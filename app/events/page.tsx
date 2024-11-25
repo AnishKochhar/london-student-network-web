@@ -2,7 +2,7 @@ import { fetchAllUpcomingEvents } from '../lib/data';
 import FilteredEventsPage from '../components/events-page/filtered-events-page';
 import CreateEventButton from '../components/events-page/create-event-button';
 
-export const revalidate = 3600 // Once per hour
+export const revalidate = 60 // Once per minute
 
 export default async function EventPage() {
 

@@ -1,6 +1,6 @@
 import { sql } from '@vercel/postgres';
-import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData } from './types';
-import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize } from './utils';
+import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations } from './types';
+import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations } from './utils';
 import bcrypt from 'bcrypt';
 
 export async function fetchEvents() {
@@ -42,15 +42,61 @@ export async function fetchUpcomingEvents() {
 	}
 }
 
+export async function fetchUserEvents(organiser_uid: string) {
+	try {
+        const events = await sql`
+            SELECT * FROM events
+            WHERE organiser_uid = ${organiser_uid}
+            ORDER BY start_time ASC
+        `;
+        
+        return events.rows.map(convertSQLEventToEvent)
+    } catch (error) {
+        console.error('Error fetching user events:', error);
+        throw new Error('Unable to fetch user\'s events')
+    }
+}
+
 export async function insertEvent(event: SQLEvent) {
 	try {
 		await sql`
-		INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals)
-		VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null})
+		INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals, capacity)
+		VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null}, ${event.capacity ?? null})
 		`
 		return { success: true };
 	} catch (error) {
 		console.error('Error creating event:', error);
+		return { success: false, error };
+	}
+}
+
+export async function updateEvent(event: SQLEvent) {
+	console.log('SQL query for ', event.id)
+	try {
+		await sql`
+			UPDATE events
+			SET
+				title = ${event.title},
+				description = ${event.description},
+				organiser = ${event.organiser},
+				start_time = ${event.start_time},
+				end_time = ${event.end_time},
+				day = ${event.day},
+				month = ${event.month},
+				year = ${event.year},
+				location_building = ${event.location_building},
+				location_area = ${event.location_area},
+				location_address = ${event.location_address},
+				image_url = ${event.image_url},
+				event_type = ${event.event_type},
+				sign_up_link = ${event.sign_up_link ?? null},
+				for_externals = ${event.for_externals ?? null},
+				capacity = ${event.capacity ?? null}
+			WHERE id = ${event.id}
+		`;
+		return { success: true };
+	} catch (error) {
+		console.error('Error updating event:', error);
 		return { success: false, error };
 	}
 }
@@ -120,6 +166,20 @@ export async function insertOrganiser(formData: SocietyRegisterFormData) {
 	}
 }
 
+// /register/student: Fetches all organisers in order to identify referrers 
+export async function fetchOrganisers() {
+	try {
+		const data = await sql<{ name: string }>`
+			SELECT name FROM users
+			WHERE role = 'organiser' AND name != 'Just A Little Test Society'
+		`;
+		return data.rows.map(row => row.name);
+	} catch (error) {
+		console.error('Database error:', error);
+		throw new Error('Failed to fetch organisers');
+	}
+}
+
 export async function insertUser(formData: UserRegisterFormData) {
 	try {
 		const hashedPassword = await bcrypt.hash(formData.password, 10);
@@ -183,8 +243,8 @@ export async function insertUserInformation(formData: UserRegisterFormData, user
 	const university = selectUniversity(formData.university, formData.otherUniversity) // if 'other' selected, uses text input entry
 	try {
 		await sql`
-			INSERT INTO user_information (user_id, gender, birthdate, university_attended, graduation_year, course, level_of_study, newsletter_subscribe)
-        	VALUES (${userId}, ${formData.gender}, ${formattedDOB}, ${university}, ${formData.graduationYear}, ${formData.degreeCourse}, ${formData.levelOfStudy}, ${formData.isNewsletterSubscribed})
+			INSERT INTO user_information (user_id, gender, birthdate, referrer, university_attended, graduation_year, course, level_of_study, newsletter_subscribe)
+        	VALUES (${userId}, ${formData.gender}, ${formattedDOB}, ${formData.referrer}, ${university}, ${formData.graduationYear}, ${formData.degreeCourse}, ${formData.levelOfStudy}, ${formData.isNewsletterSubscribed})
 		`
 		return { success: true };
 	} catch (error) {
@@ -192,3 +252,52 @@ export async function insertUserInformation(formData: UserRegisterFormData, user
 		return { success: false, error };
 	}
 }
+
+export async function checkIfRegistered(event_id: string, user_id: string) {
+	try {
+		const result = await sql`
+			SELECT id FROM event_registrations
+			WHERE event_id = ${event_id} AND user_id = ${user_id}
+			LIMIT 1
+		`;
+		return result.rows.length > 0;
+	} catch (error) {
+		console.error('Error checking registration status:', error)
+		return false // Assume unregistered
+	}
+}
+
+export async function registerForEvent(user_id: string, user_email: string, user_name: string, event_id: string) {
+	try {
+		await sql`
+		INSERT INTO event_registrations (event_id, user_id, name, email)
+		VALUES (${event_id}, ${user_id}, ${user_name}, ${user_email})
+		`
+		return { success: true }
+	} catch (error) {
+		console.error('Error registering user for event:', error)
+		return { success: false, registered: false }
+	}
+}
+
+export async function getRegistrationsForEvent(event_id: string) {
+	try {
+		const result = await sql<SQLRegistrations>`
+		SELECT user_id, name, email, created_at
+		FROM event_registrations
+		WHERE event_id = ${event_id}
+		`
+		const registrations = result.rows.map(convertSQLRegistrationsToRegistrations);
+		console.log(`Got back ${registrations}`)
+		return { success: true, registrations: registrations }
+	} catch (error) {
+		return { success: false }
+	}
+}
+
+
+/* 
+SELECT reg.name
+FROM event_registrations reg
+JOIN events ev ON ev.id::text = reg.event_id
+*/

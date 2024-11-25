@@ -1,8 +1,40 @@
+"use client";
+
+import { useEffect } from "react";
+import toast from "react-hot-toast";
+
 import Link from "next/link";
 import clsx from "clsx";
 import Image from "next/image";
 
 export default function HomePageTopSection() {
+
+	useEffect(() => {
+
+		const hasSeenToast = localStorage.getItem("registrationFeatures");
+
+		if (!hasSeenToast) {
+			toast.success(
+				"You can now register for events through LSN!",
+				{
+					duration: 5000,
+					position: "top-right",
+				}
+			);
+
+			toast.success(
+				"Event Organisers: You can track sign ups through your /account event management page!",
+				{
+					duration: 5000,
+					position: "top-right",
+				}
+			);
+
+			// Set a flag in localStorage
+			localStorage.setItem("registrationFeatures", "true");
+		}
+	}, []);
+	
 	return (
 
 		<div className="flex flex-col bg-black bg-opacity-50">

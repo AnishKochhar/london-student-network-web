@@ -1,45 +1,146 @@
-"use client";
+"use client"
 
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
+import { generateDays, generateMonths, generateYears, generateHours, generateMinutes, placeholderImages } from '@/app/lib/utils';
+import { Event, FormData, Registrations } from '@/app/lib/types';
 import { Input } from '../input';
 import { Button } from '../button';
-import { generateDays, generateMonths, generateYears, generateHours, generateMinutes, placeholderImages } from '@/app/lib/utils';
-import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { useState, useEffect, useRef } from 'react';
-import EventModal from "./event-modal";
-import { validateEvent, createEventObject } from '@/app/lib/utils';
-import { DefaultEvent, FormData } from '@/app/lib/types';
+import { validateEvent } from '@/app/lib/utils';
 import TagsField from './create-event-tags';
+import { useRouter } from 'next/navigation';
 import { upload } from '@vercel/blob/client';
+import RegistrationsModal from './registrations-modal';
 
+
+interface EditEventComponentProps {
+	event: Event;
+}
 
 const MAX_POSTGRES_STRING_LENGTH = 255;
 
-interface CreateEventPageProps {
-	organiser_id: string
-	organiserList: string[]
-}
-
-export default function CreateEventPage({ organiser_id, organiserList }: CreateEventPageProps) {
-	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [eventData, setEventData] = useState(DefaultEvent); // Event data for preview
+export default function EditEventComponent({ event }: EditEventComponentProps) {
+	const [viewRegistrationsModal, setViewRegistrationsModal] = useState(false)
+	const [organisers, setOrganisers] = useState([event.organiser]);
+	const [registrations, setRegistrations] = useState<Registrations[]>([])
 
 	const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm<FormData>({
 		mode: 'onChange',
 	});
 
-	const openModal = () => setIsModalOpen(true);
-	const closeModal = () => setIsModalOpen(false);
+	const eventTagValue = watch('event_tag', 0); // Default value is 0
 	const router = useRouter()
 
-	const eventTagValue = watch('event_tag', 0); // Default value is 0
-	setValue('organiser_uid', organiser_id)
+	const closeModal = () => setViewRegistrationsModal(false)
+
+	const viewRegistrations = async () => {
+		const toastId = toast.loading('Fetching event registration data...')
+		try {
+			const res = await fetch('/api/events/registrations', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					event_id: event.id
+				}),
+			})
+			const result = await res.json();
+			if (result.success) {
+				toast.success('Event registrations loaded!', { id: toastId })
+				setRegistrations(result.registrations)
+			} else {
+				toast.error('Error fetching event registrations!', { id: toastId })
+			}
+		} catch (error) {
+			toast.error('Error fetching event registrations!', { id: toastId })
+		}
+
+		setViewRegistrationsModal(true)
+	}
+
+	const fetchOrganisersData = async () => {
+		try {
+			const response = await fetch('/api/organisers');
+			if (response.ok) {
+				const data = await response.json();
+				setOrganisers(data);
+			} else {
+				console.error('Failed to fetch organisers:', response.statusText);
+			}
+		} catch (error) {
+			console.error('Error fetching organisers:', error);
+		}
+	}
+
+	const mapEventToFormData = (event: Event): FormData => {
+		const [startHour, startMinute] = event.time.split(' - ')[0].split(':').map(Number);
+		const [endHour, endMinute] = event.time.split(' - ')[1].split(':').map(Number);
+		const [day, month, year] = event.date.split('/').map(Number);
+
+		const formattedStartHour = String(startHour).padStart(2, '0');
+		const formattedStartMinute = String(startMinute).padStart(2, '0');
+		const formattedEndHour = String(endHour).padStart(2, '0');
+		const formattedEndMinute = String(endMinute).padStart(2, '0');
+
+		return {
+			title: event.title,
+			description: event.description,
+			organiser: event.organiser,
+			organiser_uid: '',
+			date: {
+				day,
+				month,
+				year,
+			},
+			time: {
+				startHour: formattedStartHour,
+				startMinute: formattedStartMinute,
+				endHour: formattedEndHour,
+				endMinute: formattedEndMinute,
+			},
+			location: {
+				building: event.location_building,
+				area: event.location_area,
+				address: event.location_address,
+			},
+			selectedImage: event.image_url,
+			uploadedImage: null, // Assuming it's handled later in the UI
+			event_tag: event.event_type,
+			capacity: event.capacity,
+			signupLink: event.sign_up_link || '',
+			forExternals: event.for_externals || '',
+		};
+	};
+
+	useEffect(() => {
+		// Sets form's regsitered values to those of `event`
+		const formData = mapEventToFormData(event);
+
+		Object.keys(formData).forEach((key) => {
+			const formDataKey = key as keyof FormData;
+
+			if (typeof formData[formDataKey] === 'object' && formData[formDataKey] !== null) {
+				// Nested objects
+				Object.keys(formData[formDataKey] as object).forEach((nestedKey) => {
+					setValue(`${key}.${nestedKey}` as keyof FormData, formData[formDataKey][nestedKey]);
+				});
+			} else {
+				// Non-nested fields
+				setValue(formDataKey, formData[formDataKey]);
+			}
+		});
+	}, [event, setValue]);
+
+	useEffect(() => {
+		fetchOrganisersData()
+	}, []);
 
 	const onSubmit = async (data: FormData) => {
-		const toastId = toast.loading('Uploading event...')
+		const toastId = toast.loading('Updating event....')
 		const error = validateEvent(data);
 
 		if (error) {
@@ -64,51 +165,31 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		}
 
 		try {
-			const res = await fetch('/api/events/create', {
+			const res = await fetch('/api/events/update', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					...data,
-					selectedImage: imageUrl
+					id: event.id,
+					formData: {
+						...data,
+						selectedImage: imageUrl,
+					}
 				}),
 			});
 
 			const result = await res.json();
 			if (result.success) {
-				toast.success('Event successfully created!', { id: toastId })
+				toast.success('Event successfully updated!', { id: toastId })
 				router.push('/events');
 			} else {
-				toast.error(`Error creating event: ${result.error}.`, { id: toastId })
+				toast.error(`Error updating event: ${result.error}.`, { id: toastId })
 			}
 		} catch (error) {
 			toast.error(`Error during event submission: ${error}.`, { id: toastId })
 		}
 	};
-
-	const onPreview = (data: FormData) => {
-		const error = validateEvent(data);
-
-		if (error) {
-			toast.error(`Invalid event entry: ${error}`)
-			return
-		}
-
-		let imageUrl = data.selectedImage
-		if (data.uploadedImage) {
-			imageUrl = URL.createObjectURL(data.uploadedImage)
-		}
-
-		const event = createEventObject({
-			...data,
-			selectedImage: imageUrl
-		});
-
-		setEventData(event);
-		openModal();
-	};
-
 
 	// Components for each form field
 	const TitleField = () => (
@@ -139,6 +220,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	)
 
+	
 
 	const OrganiserField = () => (
 		<div className="flex flex-col mb-4">
@@ -149,7 +231,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				className="border border-gray-300 p-4 text-sm w-[90%] self-end bg-transparent rounded-lg"
 			>
 				<option value="" disabled>Select an organiser</option>
-				{organiserList.map((org) => (
+				{organisers.map((org) => (
 					<option key={org} value={org}>{org}</option>
 				))}
 			</select>
@@ -226,7 +308,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 									<option key={hour} value={hour}>{hour}</option>
 								))}
 							</select>
-							<select {...register('time.startMinute', { required: true })} className="bg-transparent text-center">
+							<select {...register('time.startMinute', { required: true })} className="bg-transparent text-center" defaultValue={30}>
 								<option value="" disabled>Select Minute</option>
 								{minutes.map(minute => (
 									<option key={minute} value={minute}>{minute}</option>
@@ -245,7 +327,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 									<option key={hour} value={hour}>{hour}</option>
 								))}
 							</select>
-							<select {...register('time.endMinute', { required: true })} className="bg-transparent text-center">
+							<select {...register('time.endMinute', { required: true })} className="bg-transparent text-center" defaultValue={30}>
 								<option value="" disabled>Select Minute</option>
 								{minutes.map(minute => (
 									<option key={minute} value={minute}>{minute}</option>
@@ -320,7 +402,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 					<p className='text-sm self-end text-gray-500 mb-2'>Please choose from one of our placeholders</p>
 					<select
 						className="p-3 text-sm w-full bg-transparent border border-gray-300"
-						{...register('selectedImage', { required: !uploadedImage })}
+						{...register('selectedImage')}
 					>
 						<option value="" disabled>Select an image</option>
 						{placeholderImages.map((image, index) => (
@@ -413,6 +495,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
+
 	const SignupLinkField = () => (
 		<div className="flex flex-col mb-4">
 			<label className='flex flex-row items-center'><p className='text-2xl p-6 font-semibold'>Sign-up link</p> <p className='text-lg p-2'>(optional)</p></label>
@@ -439,7 +522,6 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
-
 	return (
 		<div className="relative bg-white p-10 overflow-auto text-black">
 			<div className="sticky top-0 bg-gray-300 p-4 border-b flex justify-between items-center rounded-lg">
@@ -451,11 +533,10 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 					<Button
 						variant="outline"
 						size="sm"
-						disabled={!isValid}
 						className='px-10 bg-purple-400 text-gray-950 md:text-xl'
-						onClick={handleSubmit(onPreview)}
+						onClick={viewRegistrations}
 					>
-						Preview
+						View Registrations
 					</Button>
 					<Button
 						className='px-10 md:text-xl border-black'
@@ -464,14 +545,13 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 						disabled={!isValid}
 						onClick={handleSubmit(onSubmit)}
 					>
-						Submit
+						Save Event
 					</Button>
 				</div>
 			</div>
 
 			<form className="space-y-4">
-				<h1 className="text-4xl font-semibold p-6">Let&#39;s create an event!</h1>
-				<p className="text-sm text-gray-600 pl-6">Tell us a little about your event</p>
+				<h1 className="text-4xl font-semibold p-6">Let&#39;s edit your event!</h1>
 
 				<TitleField />
 				<DescriptionField />
@@ -486,7 +566,9 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				<ForExternalsField />
 			</form>
 
-			{isModalOpen && <EventModal event={eventData} onClose={closeModal} />}
+			{viewRegistrationsModal && <RegistrationsModal registrations={registrations} onClose={closeModal} />}
+
 		</div>
 	);
-}
+};
+

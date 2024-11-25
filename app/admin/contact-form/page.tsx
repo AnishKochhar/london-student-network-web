@@ -22,7 +22,7 @@ export default async function AdminContactPage() {
 			<div className="flex flex-row items-start justify-between w-full">
 					<h1 className="text-2xl md:text-4xl">ADMIN PAGE</h1>
 					<Button variant='outline' size='lg' className="text-white border-gray-100">
-						<Link href='/admin/' replace>Switch to Contact Form list</Link>
+						<Link href='/admin/' replace>Switch to Events list</Link>
 					</Button>
 				</div>
 				<p className="p-6 text-center">View all contact form submissions<br />Please note - YOU CANNOT EDIT / DELETE these items! Do not try</p>

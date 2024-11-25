@@ -70,8 +70,13 @@
 
 // async function addColumnToTable() {
 // 	await client.sql`
-// 	ALTER TABLE events
-// 	ADD COLUMN sign_up_link VARCHAR(255)
+// 	ALTER TABLE user_information
+// 	ADD COLUMN referrer VARCHAR(255)
+// 	`
+
+// 	await client.sql`
+// 	ALTER TABLE users
+// 	DROP COLUMN IF EXISTS referrer 
 // 	`
 // }
 
@@ -79,6 +84,13 @@
 // 	await client.sql`
 // 		ALTER TABLE users
 // 		ADD COLUMN created_at TIMESTAMP DEFAULT NOW()
+// 	`
+// }
+
+// async function addCapacityColumnToEventTable() {
+// 	await client.sql`
+// 		ALTER TABLE events
+// 		ADD COLUMN capacity INT
 // 	`
 // }
 
@@ -126,12 +138,25 @@
 //     return insertedUserInformation;
 // }
 
+// async function seedEventRegistrationsTable() {
 
+// 	await client.sql`
+// 	  CREATE TABLE IF NOT EXISTS event_registrations (
+// 		id SERIAL PRIMARY KEY,
+// 		user_id VARCHAR(255),
+// 		event_id VARCHAR(255),
+// 		name VARCHAR(255),
+// 		email VARCHAR(255),
+// 		created_at TIMESTAMP DEFAULT NOW()
+// 	  );
+// 	`;
+
+// }
 
 export async function GET() {
 	// try {
 	// 	await client.sql`BEGIN`;
-	// 	await addExternalsColumnToEventTable()
+	// 	await addCapacityColumnToEventTable()
 
 	// 	await client.sql`COMMIT`;
 	// 	return Response.json({ message: 'Database updated successfully' });

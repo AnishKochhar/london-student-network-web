@@ -6,10 +6,11 @@ interface EventSectionProps {
 	month: string
 	year: string
 	events: Event[]
+	editEvent?: boolean
 }
 
 
-export default function EventSection({ month, year, events }: EventSectionProps) {
+export default function EventSection({ month, year, events, editEvent }: EventSectionProps) {
 	
 	const sortedEvents = sortEventsByDate(events)
 
@@ -19,7 +20,7 @@ export default function EventSection({ month, year, events }: EventSectionProps)
 			<div className="border-b border-gray-400 mb-4" />
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 				{sortedEvents.map((event, index) => (
-					<EventCard key={index} event={event} />
+					<EventCard key={index} event={event} editEvent={editEvent} />
 				))}
 			</div>
 		</section>

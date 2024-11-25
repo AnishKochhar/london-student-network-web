@@ -3,6 +3,7 @@ import { AdapterUser } from "next-auth/adapters";
 
 export declare module "next-auth" {
 	interface User {
+		id: string;
 		name: string;
 		email: string;
 		role: string;

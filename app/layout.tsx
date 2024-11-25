@@ -5,6 +5,7 @@ import Header from "./components/header";
 import Footer from "./components/footer";
 import SessionProviderWrapper from "./components/session-provider-wrapper";
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from "@vercel/analytics/react"
 
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({
 					</div>
 					<Toaster position="top-right" />
 					<Footer />
+					<Analytics />
 				</SessionProviderWrapper>
 			</body>
 		</html>

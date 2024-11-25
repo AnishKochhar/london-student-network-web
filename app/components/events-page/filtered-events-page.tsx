@@ -8,9 +8,10 @@ import FilteredEventsList from "./filtered-events-list";
 
 interface FilteredEventsPageProps {
 	allEvents: Event[]
+	editEvent?: boolean
 }
 
-export default function FilteredEventsPage({ allEvents }: FilteredEventsPageProps) {
+export default function FilteredEventsPage({ allEvents, editEvent }: FilteredEventsPageProps) {
 	const initialActiveTags = Object.keys(EVENT_TAG_TYPES).map(tag => parseInt(tag, 10));
 	const [activeTags, setActiveTags] = useState<number[]>(initialActiveTags);
 
@@ -23,7 +24,7 @@ export default function FilteredEventsPage({ allEvents }: FilteredEventsPageProp
 	return (
 		<>
 			<TagButtons activeTags={activeTags} toggleTag={toggleTag} />
-			<FilteredEventsList allEvents={allEvents} activeTags={activeTags} />
+			<FilteredEventsList allEvents={allEvents} activeTags={activeTags} editEvent={editEvent} />
 		</>
 	)
 }

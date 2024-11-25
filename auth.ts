@@ -55,16 +55,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 		},
 		async session({ session, token }) {
 
+			session.user.id = String(token?.id) || '45ef371c-0cbc-4f2a-b9f1-f6078aa6638c' // admin uid
 			session.user.role = String(token?.role) || 'No role found'
 			session.user.name = token?.name || 'No name found'
-
-			// session.user = {
-			// 	id: String(token?.id) || '',
-			// 	name: token?.name || 'No name found',
-			// 	email: token?.email || 'No email found',
-			// 	role: String(token?.role) || 'No role found',
-			// 	email_verified: !!token?.email_verified,
-			// };
 
 			return session;
 		},

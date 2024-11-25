@@ -57,6 +57,18 @@ function NavLinks({ pathname, className, onClick }: { pathname: string, classNam
 			)}>
 				Events
 			</Link>
+			<Link href="/sponsors" onClick={onClick} className={clsx(
+				pathname === '/sponsors' ? 'underline' : 'no-underline',
+				'hover:underline transition-all md:text-xl aria-disabled:'
+			)}>
+				Sponsors
+			</Link>
+			<Link href="/societies" onClick={onClick} className={clsx(
+				pathname === '/societies' ? 'underline' : 'no-underline',
+				'hover:underline transition-all md:text-xl aria-disabled:'
+			)}>
+				Societies
+			</Link>
 			<Link href="/about" onClick={onClick} className={clsx(
 				pathname === '/about' ? 'underline' : 'no-underline',
 				'hover:underline transition-all md:text-xl'

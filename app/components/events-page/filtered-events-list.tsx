@@ -6,9 +6,10 @@ import { convertEventsToMonthYearGroupings } from '@/app/lib/utils';
 interface FilteredEventsListProps {
 	allEvents: Event[];
 	activeTags: number[];
+	editEvent?: boolean
 }
 
-export default function FilteredEventsList({ allEvents, activeTags }: FilteredEventsListProps) {
+export default function FilteredEventsList({ allEvents, activeTags, editEvent }: FilteredEventsListProps) {
 	
 	const filteredEvents = allEvents.filter(event => {
 		// Only return events where at least one of the active tags is present
@@ -29,7 +30,7 @@ export default function FilteredEventsList({ allEvents, activeTags }: FilteredEv
 			{sortedMonthYearKeys.map((monthYearKey, index) => {
 				const [month, year] = monthYearKey.split('/');
 				return (
-					<EventSection key={index} month={month} year={year} events={monthYearGroupings[monthYearKey]} />
+					<EventSection key={index} month={month} year={year} events={monthYearGroupings[monthYearKey]} editEvent={editEvent} />
 				);
 			})}
 		</div>

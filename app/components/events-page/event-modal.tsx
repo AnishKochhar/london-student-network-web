@@ -1,9 +1,13 @@
-import { useEffect, useRef } from 'react';
-import { Event } from "@/app/lib/types";
+"use client";
+
 import Image from 'next/image';
+import toast from 'react-hot-toast';
+import { useEffect, useRef } from 'react';
+import { LockClosedIcon } from '@heroicons/react/24/outline';
+import { Event } from "@/app/lib/types";
 import { createPortal } from 'react-dom';
 import { formatDateString, EVENT_TAG_TYPES, returnLogo } from '@/app/lib/utils';
-import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { Button } from '../button';
 
 interface EventModalProps {
@@ -13,6 +17,42 @@ interface EventModalProps {
 
 export default function EventModal({ event, onClose }: EventModalProps) {
 	const modalRef = useRef<HTMLDivElement>(null);
+	const session = useSession();
+	const loggedIn = session.status === 'authenticated';
+
+	const registerForEvent = async () => {
+		if (!loggedIn) {
+			toast.error('Please log in to register for events')
+			return
+		}
+		const toastId = toast.loading('Registering for event...')
+		// Check if they are already registered
+		try {
+			const res = await fetch('/api/events/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					event_id: event.id,
+					user_information: session.data.user
+				}),
+			})
+
+			const result = await res.json();
+			if (result.success) {
+				toast.success('Successfully registered for event!', { id: toastId })
+			} else {
+				if (result.registered) {
+					toast.error('Already registered for the event!', { id: toastId })
+				} else {
+					toast.error('Error registering for event!', { id: toastId })
+				}
+			}
+		} catch (error) {
+			toast.error(`Error during event registration: ${error}.`, { id: toastId })
+		}
+	}
 
 	// Disable background scroll and handle outside click detection
 	useEffect(() => {
@@ -102,6 +142,10 @@ export default function EventModal({ event, onClose }: EventModalProps) {
 						<p className="text-sm :text-lg text-gray-600">{event.location_area}</p>
 						<p className="text-sm :text-lg text-gray-500">{event.location_address}</p>
 
+						{event.capacity && (
+							<p className="text-sm :text-lg text-gray-900 mt-1">Venue capacity: {event.capacity}</p>
+						)}
+
 						<div className="mt-6">
 							<h3 className="text-lg font-semibold mb-2 text-gray-500">About the Event</h3>
 							<hr className="border-t-1 border-gray-300 m-2" />
@@ -116,19 +160,21 @@ export default function EventModal({ event, onClose }: EventModalProps) {
 							</div>
 						)}
 
-						{event.sign_up_link && (
-							<div className="mt-10 self-end w-full flex flex-row justify-start">
-								<Button
-									variant='outline'
-									size='lg'
-									className="text-gray-600 text-lg rounded-md  border-[#e2531f] uppercase font-semibold tracking-widest px-20"
-								>
-									<Link href={event.sign_up_link} target="_blank" rel="noreferrer">
-										Sign-up
-									</Link>
-								</Button>
-							</div>
-						)}
+						
+						<div className="mt-10 self-end w-full flex flex-row justify-end pr-2">
+							<Button
+								variant='filled'
+								size='lg'
+								className="text-gray-600 text-lg rounded-none  border-[#e2531f] uppercase font-semibold tracking-widest px-20"
+								onClick={registerForEvent}
+							>
+								{!loggedIn && <LockClosedIcon width={20} height={20}  className='pr-2'/> }
+								Register through LSN
+							</Button>
+						</div>
+						
+
+						
 					</div>
 				</div>
 			</div>

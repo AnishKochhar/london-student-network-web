@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/app/components/button';
+import UserEventsList from '../components/account/user-events-list';
 
 export default function AccountPage() {
 	const { data: session, status } = useSession()
@@ -49,7 +50,8 @@ export default function AccountPage() {
 
 				<div className="border-b border-gray-300 pb-4 ml-4 mb-10 space-y-6">
 					<h2 className="text-2xl italic mb-2 ml-2">Your events</h2>
-					<p className="text-sm italic text-gray-300 ml-20 w-full">Coming Soon</p>
+					{/* <p className="text-sm italic text-gray-300 ml-20 w-full">Coming Soon</p> */}
+					<UserEventsList user_id={user.id} />
 				</div>
 
 				<div className="flex justify-end self-end">

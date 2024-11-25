@@ -19,7 +19,7 @@ import { Input } from "../input";
 import { ChevronDownIcon, ChevronLeftIcon, PencilIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/navigation";
 
-interface DataTableProps<TData extends { id: string }, TValue> { 
+interface DataTableProps<TData extends { id: string }, TValue> {
 	columns: ColumnDef<TData, TValue>[]
 	data: TData[]
 	control?: boolean
@@ -105,7 +105,9 @@ export function DataTable<TData extends { id: string }, TValue>({ columns, data,
 								className="border-slate-200 text-white"
 								disabled={selectedRows.length !== 1}
 								onClick={() => {
-									alert("Edit event " + selectedRows[0])
+									const event = table.getSelectedRowModel().rows[0].original;
+									const eventData = encodeURIComponent(JSON.stringify(event));
+									router.push(`/events/edit?data=${eventData}`);
 								}}
 							>
 								<PencilIcon className="h-4 w-4" />

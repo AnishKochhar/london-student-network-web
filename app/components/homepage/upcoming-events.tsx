@@ -1,7 +1,8 @@
-"use server"
 
 import { fetchUpcomingEvents } from "@/app/lib/data"
 import UpcomingEvents from "./events-view";
+
+export const revalidate = 86400 // Once per day
 
 export default async function UpcomingEventsView() {
 

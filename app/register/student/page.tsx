@@ -15,7 +15,8 @@ export default function UserRegistrationForm() {
 	});
 	const [step, setStep] = useState(1);
 	const [showPassword, setShowPassword] = useState(false);
-	const totalSteps = 5;
+	const [organisers, setOrganisers] = useState([]);
+	const totalSteps = 6;
 
 	const currentYear = new Date().getFullYear();
 	const graduationYears = Array.from({ length: 11 }, (_, i) => currentYear + i);
@@ -31,6 +32,20 @@ export default function UserRegistrationForm() {
 	const calculateProgress = () => {
 		return ((step) / (totalSteps)) * 100;
 	};
+
+	const fetchOrganisersData = async () => {
+		try {
+			const response = await fetch('/api/organisers');
+			if (response.ok) {
+				const data = await response.json();
+				setOrganisers(data);
+			} else {
+				console.error('Failed to fetch organisers:', response.statusText);
+			}
+		} catch (error) {
+			console.error('Error fetching organisers:', error);
+		}
+	}
 
 	const onSubmit = async (data: UserRegisterFormData) => {
 		const toastId = toast.loading('Creating user...')
@@ -77,6 +92,10 @@ export default function UserRegistrationForm() {
 			console.error('Error during user creation:', error)
 		}
 	};
+
+	useEffect(() => {
+		fetchOrganisersData()
+	}, []);
 
 
 	// Step 0 and 1: Email and Password
@@ -314,12 +333,42 @@ export default function UserRegistrationForm() {
 				<Button variant='outline' onClick={prevStep} className="p-3 bg-transparent">
 					<ArrowLeftIcon className='mr-2' width={15} height={15} /> Back
 				</Button>
+				<Button variant='outline' onClick={handleSubmit(nextStep)} className="self-end mt-3 p-3 text-white rounded-lg hover:bg-slate-500">
+					Continue <ArrowRightIcon className='ml-2' width={15} height={15} />
+				</Button>
+			</div>
+		</div>
+	);
+
+	// Step 5: Referral
+	const ReferredDetails = () => (
+		<div>
+			<p className="font-semibold mb-8">If you were referred from one of our partner organisations, please select them here</p>
+
+			<select
+				id="referrer"
+				className="w-full p-3 rounded-lg bg-transparent border border-gray-300 text-sm text-white"
+				{...register('referrer')}
+			>
+				<option value="">None</option>
+				{organisers.map((organiser) => (
+					<option key={organiser} value={organiser}>
+						{organiser}
+					</option>
+				))}
+			</select>
+
+			<div className="flex justify-between mt-6">
+				<Button variant='outline' onClick={prevStep} className="p-3 bg-transparent">
+					<ArrowLeftIcon className='mr-2' width={15} height={15} /> Back
+				</Button>
 				<Button variant='outline' onClick={handleSubmit(onSubmit)} className="self-end mt-3 p-3 text-white rounded-lg hover:bg-slate-500">
 					Submit <FlagIcon className='ml-2' width={15} height={15} />
 				</Button>
 			</div>
 		</div>
-	);
+	)
+
 
 	return (
 		<main className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10">
@@ -330,6 +379,7 @@ export default function UserRegistrationForm() {
 				{step === 2 && <PersonalInformationEntry />}
 				{step === 3 && <UniversityEntry />}
 				{step === 4 && <CourseInformationField />}
+				{step === 5 && <ReferredDetails />}
 
 
 				{step === totalSteps && (

@@ -8,13 +8,8 @@ export default function TeamSection() {
             image: "/images/about/josh-robinson.png",
         },
         {
-            name: "Mridula Jethwani",
-            title: "Chief Operating Officer",
-            image: "/images/about/mridula-jethwani.png",
-        },
-        {
             name: "Zain Ahmad",
-            title: "Head of Strategy",
+            title: "Chief Strategy Officer",
             image: "/images/about/zain-ahmad.png",
         },
         {
@@ -27,6 +22,11 @@ export default function TeamSection() {
             title: "Head of Events",
             image: "/images/about/manon-martin.png",
         },
+		{
+			name: "Anish Kochhar",
+			title: "Chief Technology Officer",
+			image: "/images/about/anish-kochhar.jpg",
+		},
         {
             name: "Nela Duniova",
             title: "Events Officer",
@@ -36,11 +36,6 @@ export default function TeamSection() {
             name: "Daryus Marchant",
             title: "Events Officer",
             image: "/images/about/daryus-marchant.png",
-        },
-        {
-            name: "James Garside",
-            title: "Product Designer",
-            image: "/images/about/james-garside.png",
         },
         {
             name: "Julie Beaulieu",
@@ -58,13 +53,8 @@ export default function TeamSection() {
             image: "/images/about/seddig-mohamed.png",
         },
         {
-            name: "Anish Kochhar",
-            title: "Head of Technology",
-            image: "/images/about/anish-kochhar.jpg",
-        },
-        {
             name: "Alan Jiang",
-            title: "Tech Officer",
+            title: "Web Developer",
             image: "/images/about/alan-jiang.jpg",
         },
     ];
