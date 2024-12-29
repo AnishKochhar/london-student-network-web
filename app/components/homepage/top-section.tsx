@@ -58,7 +58,7 @@ function Title() {
 			<div className="w-auto flex flex-col p-10 space-y-8 items-center">
 				<p className="font-bold text-lg md:text-xl text-white">Connecting <i>500,000</i> students</p>
 				<JoinButton href="/sign" text="Join us" />
-				<Suspense fallback={<p className="text-white">Loading statistics...</p>}>
+				<Suspense fallback={<p className="text-white tracking-widest">Loading statistics...</p>}>
 					<Statistics />
 				</Suspense>
 			</div>
@@ -77,7 +77,7 @@ function ForStudents() {
 				Every event, opportunity, group and skill all in one place. <br /><br />
 				Become a student of the city.
 			</p>
-			<JoinButton href="/sign" className="self-end mr-12 mt-12" text="Create your account" />
+			<JoinButton href="/register/student" className="self-end mr-12 mt-12" text="Join the London Student Network" />
 		</section>
 	)
 }
@@ -93,7 +93,7 @@ function ForSocieties() {
 				tirelessly to create exceptional events. Through LSN, every student
 				in London can experience what you have to offer.
 			</p>
-			<JoinButton href="/sign" className="ml-20 mt-12" text="Share your events through us today" />
+			<JoinButton href="/register/society" className="ml-20 mt-12" text="Share your events through us today" />
 		</section>
 	)
 }
@@ -101,7 +101,7 @@ function ForSocieties() {
 function ForSponsors() {
 	return (
 		<section className="flex flex-col items-start justify-center min-h-screen p-10 snap-start">
-			<h2 className="text-3xl sm:text-5xl md:text-6xl font-bold text-[#7F5E24] bg-clip-text bg-gradient-to-br from-[#aa936b] to-[#7F5E24] ml-20 flex flex-row items-center">
+			<h2 className="text-3xl sm:text-5xl md:text-6xl font-bold text-[#278876] bg-clip-text bg-gradient-to-br from-[#66f4b9] to-[#247f5e] ml-20 flex flex-row items-center">
 				<span className="text-white mr-4">3. </span>For Sponsors
 			</h2>
 			<p className="text-white text-xl md:text-3xl mt-20 mr-12 self-end">

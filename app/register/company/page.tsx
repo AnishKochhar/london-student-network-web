@@ -150,7 +150,7 @@ export default function OrganisationRegistrationForm() {
 			/>
 			{errors.companyName && <p className="text-red-500 mt-2">{errors.companyName.message}</p>}
 
-			<p className="mt-8  text-gray-300">Please register a contact email address (used for log in)</p>
+			<p className="mt-8  text-gray-300">Please register a contact email address - used for log in</p>
 			<Input
 				type="email"
 				placeholder="Email"
@@ -162,7 +162,7 @@ export default function OrganisationRegistrationForm() {
 			<p className="mt-8  text-gray-300">Please register a person/people of contact</p>
 			<Input
 				type="text"
-				placeholder="Contact Name"
+				placeholder="Contact Full Name"
 				className="w-full mt-4 bg-transparent"
 				{...register('contactName', { required: 'Contact name is required.' })}
 			/>
@@ -216,7 +216,7 @@ export default function OrganisationRegistrationForm() {
 	const DescriptionWebsiteEntry = () => (
 		<div>
 			<div>
-				<label className="mt-10 text-gray-300">Company description</label>
+				<label className="mt-10 text-gray-300">Company description - shared with students</label>
 				<textarea
 					id="description"
 					rows={4}
@@ -269,11 +269,11 @@ export default function OrganisationRegistrationForm() {
 
 		return (
 			<div className='flex flex-col w-full'>
-				<p className="mt-4 text-gray-300"><i>Optional</i>: Please upload your company&#39;s logo</p>
+				<p className="mt-8 text-gray-300">Please upload your company&#39;s logo</p>
 
 				<div className='flex flex-col items-center'>
 					<button className='flex flex-row self-start my-2 w-fit px-4 items-center font-light text-white border border-gray-300 hover:bg-gray-200 rounded-sm text-sm h-10' onClick={handleButtonClick}>
-						<ArrowUpTrayIcon width={15} height={15} className='mr-2' /> Upload your logo here
+						<ArrowUpTrayIcon width={15} height={15} className='mr-2' /> Upload your logo here  <br /> <span className='text-gray-300 ml-2 whitespace-pre'>(accepted files: .jpg, .png, .gif) </span>
 					</button>
 					<input
 						ref={inputRef}

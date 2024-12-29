@@ -402,7 +402,7 @@ export async function insertOrganiser(formData: SocietyRegisterFormData) {
 export async function insertCompany(formData: CompanyRegisterFormData) {
 	try {
 		const hashedPassword = await bcrypt.hash(formData.password, 10);
-		const name = formData.companyName.split(' ').map(capitalize).join(' ')
+		const name = formData.companyName.split(' ').map(capitalizeFirst).join(' ')
 
 		const result = await sql`
 			INSERT INTO users (name, email, password, role)
