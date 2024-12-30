@@ -2,23 +2,24 @@
 import { NextResponse } from "next/server";
 // import { insertToken, findUniqueForgottenPasswordEmails, cleanupForgottenPasswordEmails } from '@/app/lib/data';
 // import { generateToken } from '@/app/lib/utils';
+import { auth } from "@/auth";
+
 
 // // Reset a password from an email
 export async function POST() {
 // 	try {
-        // try{ 
-        //     const session = await getSession(); 
-        //     // check if the user is an admin
-        //     if (!session || session.user.email !== 'admin@lsn.co.uk') {
-        //         return NextResponse.json(
-        //             { error: "Unauthorized: You do not have permission to access this resource" },
-        //             { status: 403 } // 403 Forbidden
-        //         );
-        //     }
-        // } catch (error) {
-        //     console.error('Error fetching session:', error);
-        //     return NextResponse.json({ error: "Failed to authenticate" }, { status: 401 }); // 401 Unauthorized
-        // }
+        try{ 
+            const session = await auth()
+            if (!session || session?.user?.email !== 'admin@lsn.co.uk' || session?.user?.role !== 'admin') { 
+                return NextResponse.json(
+                    { error: "Unauthorized: You do not have permission to access this resource" },
+                    { status: 403 } // 403 Forbidden
+                );
+            }
+        } catch (error) {
+            console.error('Error fetching session:', error);
+            return NextResponse.json({ error: "Failed to authenticate" }, { status: 401 }); // 401 Unauthorized
+        }
 
 		// const emails = await findUniqueForgottenPasswordEmails(); // Fetches unique emails from db
         // console.log('Unique emails:', emails);
@@ -63,6 +64,6 @@ export async function POST() {
 // 		return NextResponse.json({ message: "Emails sent successfully" }, { status: 200 });
 // 	} catch (error) {
 // 		console.error('[POST] Error while sending emails:', error);
-		return NextResponse.json({ error: "Failed to send emails" }, { status: 500 });
+		return NextResponse.json({ error: "Resource not found" }, { status: 404 });
 // 	}
 }
