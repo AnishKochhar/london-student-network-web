@@ -21,7 +21,7 @@ otherwise you can load it manually with `devbox shell`.
 Devbox allow you to setup some script as a shortcut.
 Take a closer look into file `devbox.json` if you want to know which commands are available
 
-Most of those are based on root folder, but you can run in other folders, clearly if you have some commands like `cd` it will not works. Those are primary for CI usage, in this way we can run exactly same command we run locally with native tools like `go test`
+Most of those are based on root folder, but you can run in other folders, clearly if you have some commands like `cd` it will not works.
 
 ### Create a changes
 
