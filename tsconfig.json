@@ -37,5 +37,5 @@
   "exclude": [
     "node_modules"
   ],
-  "types": ["next-auth"],
+  "types": ["next-auth", "@playwright/test"],
 }
