@@ -15,6 +15,7 @@ export interface Event {
 	capacity?: number;
 	sign_up_link?: string;
 	for_externals?: string;
+	tickets_price?: string;
 }
 
 export interface EditEventProps {

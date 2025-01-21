@@ -96,12 +96,23 @@ export async function fetchUserEvents(organiser_uid: string) {
 
 export async function fetchEventById(id: string) {
 	try {
-		const data = await sql<SQLEvent>`
+		const result1 = await sql<SQLEvent>`
 			SELECT *
 			FROM events
 			WHERE id::text LIKE '%' || ${id};
 		`;
-		return convertSQLEventToEvent(data.rows[0]);
+
+		const result2 = await sql<{ ticket_price: string }>`
+			SELECT ticket_price
+			FROM tickets
+			WHERE event_uuid::text LIKE '%' || ${id};
+		`;
+		// , tickets_price: result2.rows[0]?.ticket_price || '0'
+
+		return {
+			...convertSQLEventToEvent(result1.rows[0]),
+			tickets_price: result2.rows[0]?.ticket_price || '0'
+		};
 	} catch (error) {
 		console.error('Database error:', error);
 		throw new Error('Failed to fetch event');

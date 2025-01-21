@@ -41,6 +41,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		sign_up_link: sqlEvent.sign_up_link,
 		capacity: sqlEvent.capacity,
 		for_externals: sqlEvent.for_externals,
+		// tickets_price: sqlEvent.tickets_price,
 	};
 }
 
