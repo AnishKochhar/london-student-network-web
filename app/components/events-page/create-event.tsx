@@ -65,6 +65,8 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		}
 
 		try {
+			console.log('tickets price is set to:');
+			console.log(data?.tickets_price);
 			const res = await fetch('/api/events/create', {
 				method: 'POST',
 				headers: {
@@ -423,6 +425,22 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
+	const TicketPriceField = () => (
+		<div className="flex flex-col mb-4">
+		<label htmlFor="tickets price" className="text-2xl p-6 font-semibold">Tickets price</label>
+		{errors.tickets_price && <p className="text-red-600 text-sm self-end mb-1">Please enter valid price</p>}
+		<Input
+			id='tickets_price'
+			placeholder="4.99"
+			{...register('tickets_price', { required: false, maxLength: MAX_POSTGRES_STRING_LENGTH })}
+			className="bg-transparent border border-gray-300 self-end truncate w-[90%] p-2"
+			maxLength={MAX_POSTGRES_STRING_LENGTH}
+		/>
+		</div>
+	);
+
+
+
 	const SignupLinkField = () => (
 		<div className="flex flex-col mb-4">
 			<label className='flex flex-row items-center'><p className='text-2xl p-6 font-semibold'>Sign-up link</p> <p className='text-lg p-2'>(optional)</p></label>
@@ -491,6 +509,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				<TagsFieldWrapper />
 				<LocationField />
 				<CapacityField />
+				<TicketPriceField />
 				<ImagePickerField />
 				<SignupLinkField />
 				<ForExternalsField />

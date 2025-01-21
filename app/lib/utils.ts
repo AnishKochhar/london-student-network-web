@@ -314,6 +314,7 @@ export async function createSQLEventObject(data: FormData): Promise<SQLEvent> {
 		event_type: data.event_tag || 0,
 		sign_up_link: data.signupLink || undefined,
 		for_externals: data.forExternals || undefined,
+		tickets_price: data.tickets_price || '0',
 	};
 	
 }

@@ -75,6 +75,7 @@ export interface SQLEvent {
 	capacity?: number;
 	sign_up_link?: string;
 	for_externals?: string;
+	tickets_price?: string
 }
 
 export type User = {
@@ -121,6 +122,16 @@ export interface FormData {
 	capacity?: number;
 	signupLink?: string;
 	forExternals?: string;
+	
+	// New tickets_info property for the future
+	// tickets_info: {
+	// [ticketType: string]: {
+	// 	price: number; // Price for the ticket type
+	// 	capacity?: number; // Optional: Maximum capacity for this ticket type
+	// };
+
+	// Temp tickets property, remove then above is added
+	tickets_price?: string;
 }
 
 export interface UserRegisterFormData {
