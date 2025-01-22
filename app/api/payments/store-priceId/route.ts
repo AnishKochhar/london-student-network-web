@@ -5,7 +5,7 @@ import { insertIntoTickets } from "@/app/lib/data";
 export async function POST(request: Request){
     try {
         const { tickets_price, priceId, event_uuid } = await request.json();
-        const response = await insertIntoTickets(tickets_price, event_uuid, priceId,);
+        const response = await insertIntoTickets(tickets_price, event_uuid, priceId);
 
         if (response.success) {
             return NextResponse.json({message: 'success'}, {status: 200});

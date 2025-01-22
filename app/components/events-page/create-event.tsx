@@ -65,8 +65,6 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		}
 
 		try {
-			console.log('tickets price is set to:');
-			console.log(data?.tickets_price);
 			const res = await fetch('/api/events/create', {
 				method: 'POST',
 				headers: {

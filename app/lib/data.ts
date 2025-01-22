@@ -175,6 +175,22 @@ export async function insertIntoTickets(tickets_price: string, eventId: string, 
 	}
 }
 
+export async function fetchPriceId(eventId: string) {
+	try {
+
+		const result = await sql`
+		SELECT price_id
+		FROM tickets
+		WHERE event_uuid::text LIKE '%' || ${eventId}
+		`
+
+		return { success: true, priceId: result.rows[0].price_id }
+	} catch (error) {
+		console.error('Error updating tickets table:', error);
+		return { success: false, error };
+	}
+}
+
 
 export async function updateEvent(event: SQLEvent) {
 	// console.log('SQL query for ', event.id)

@@ -30,11 +30,6 @@ export default function EventInfo() {
 	const session = useSession();
 	const loggedIn = session.status === 'authenticated';
 	
-  
-	const proceedToCheckout = async () => {
-  
-	};
-	
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -76,7 +71,7 @@ export default function EventInfo() {
 		} catch (err) {
 			console.error('Failed to fetch event information', err);
 		} finally {
-			setLoading(false)
+			setLoading(false);
 		}
 	}
 
@@ -126,9 +121,12 @@ export default function EventInfo() {
 		return tags;
 	};
 
-	const SelectTicketComponent = () => (
-		<div className="mt-6">
+	function SelectTicketComponent({event_id}: {event_id: string}) {
+		useEffect(() => {
 
+		})
+		return (
+			<div className="mt-6">
 				<div className="w-full flex flex-row justify-center">
 					<div className="flex flex-col items-center">
 						<h4 className="text-md font-semibold mb-2 text-gray-500">Select Ticket Type</h4>
@@ -147,18 +145,12 @@ export default function EventInfo() {
 								<span className="text-gray-700">Standard Ticket - £{ticketPrice}</span>
 							</label>
 						</div>
-						{/* <button
-							className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2 hover:bg-gray-200"
-							onClick={proceedToCheckout}
-							disabled={!ticketSelected}
-						>
-							Proceed to Secure Checkout
-						</button> */}
-						<EmbeddedCheckoutButton />
+						<EmbeddedCheckoutButton event_id={event_id} ticketSelected={ticketSelected}/>
 					</div>
 				</div>
-		</div>
-	)
+			</div>
+		)
+	}
 
 
 	// Handle loading and error states
@@ -169,23 +161,7 @@ export default function EventInfo() {
 	}
 
 	const societyLogo = returnLogo(event.organiser)
-	const amount = convertToSubCurrency('4.94');
 
-	// Handle potential errors in conversion
-	if (amount.error) {
-	  console.error('Invalid amount:', amount.error);
-	  return <div>Error: {amount.error}</div>;
-	}
-  
-	// Stripe Elements options
-	const options = {
-	  mode: 'payment', // Optional: Define the mode if needed
-	  clientSecret: 'your-client-secret', // Replace with your actual clientSecret
-	  appearance: {
-		theme: 'stripe', // Customize Stripe UI theme
-	  },
-	};
-  
 
 	// Render the event details
 	return (
@@ -264,7 +240,7 @@ export default function EventInfo() {
 								</button>
 							) : (
 								requiresPayment ? (
-									<SelectTicketComponent />
+									<SelectTicketComponent event_id={event_id}/>
 								) : (
 									<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
 										onClick={registerForEvent}>
