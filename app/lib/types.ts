@@ -76,7 +76,13 @@ export interface SQLEvent {
 	capacity?: number;
 	sign_up_link?: string;
 	for_externals?: string;
-	tickets_price?: string
+	tickets_price?: string;
+}
+
+export interface SelectTicketComponentProps {
+    ticketSelected: boolean;
+    handleSelect: () => void;
+    ticketPrice: string;
 }
 
 export type User = {

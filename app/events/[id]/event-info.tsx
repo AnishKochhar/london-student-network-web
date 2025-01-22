@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
@@ -10,7 +10,13 @@ import { LockClosedIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
-import { loadStripe, Stripe, StripeElements } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js'
+import { EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+import getStripe from "@/app/lib/stripe_config";
+import { convertToSubCurrency } from "@/app/lib/utils/type-manipulation";
+import { CurrencyPoundIcon } from "@heroicons/react/20/solid";
+import EmbeddedCheckoutButton from "@/app/components/payments/checkout-button";
+
 
 export default function EventInfo() {
 	const { id } = useParams() as { id: string };
@@ -23,65 +29,12 @@ export default function EventInfo() {
 	const [ticketPrice, setTicketPrice] = useState<string>('0');
 	const session = useSession();
 	const loggedIn = session.status === 'authenticated';
-
-	const [clientSecret, setClientSecret] = useState<string | null>(null);
-	const [stripe, setStripe] = useState<Stripe | null>(null);
-	const [elements, setElements] = useState<StripeElements | null>(null);
+	
   
-	useEffect(() => {
-	  // Load Stripe.js asynchronously and initialize the Stripe object
-	  const stripePromise = loadStripe(process.env.STRIPE_PUBLIC_KEY!);
-	  stripePromise.then((stripeInstance) => {
-		setStripe(stripeInstance);
-		setElements(stripeInstance?.elements());
-	  });
+	const proceedToCheckout = async () => {
   
-	  // Fetch the client secret from the backend
-	  const createPaymentIntent = async () => {
-		const response = await fetch('/api/create-payment-intent', {
-		  method: 'POST',
-		  headers: {
-			'Content-Type': 'application/json',
-		  },
-		  body: JSON.stringify({ amount: 0 }), // $0.01 in cents
-		});
-		const data = await response.json();
-		setClientSecret(data.clientSecret);
-	  };
-  
-	  createPaymentIntent();
-	}, []);
-  
-	const proceedToCheckout = async (event: React.FormEvent) => {
-	  event.preventDefault();
-  
-	  if (stripe && elements && clientSecret) {
-		const cardElement = elements.getElement('card');
-		
-		if (cardElement) {
-		  const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-			payment_method: {
-			  card: cardElement,
-			  billing_details: {
-				name: 'Your Name',
-			  },
-			},
-		  });
-  
-		  if (error) {
-			console.error('Payment failed:', error.message);
-		  } else {
-			console.log('Payment succeeded:', paymentIntent);
-		  }
-		}
-	  }
 	};
 	
-
-	useEffect(() => {
-		console.log(requiresPayment, ticketPrice, ticketSelected);
-	}, [requiresPayment, ticketPrice, ticketSelected])
-
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -100,40 +53,6 @@ export default function EventInfo() {
     const handleSelect = () => {
         setTicketSelected(!ticketSelected);
     };
-
-
-    // const proceedToCheckout = async () => {
-	// 	try {
-
-	// 		// 1. Call your backend to create the checkout session
-	// 		const res = await fetch('/api/create-checkout-session', {
-	// 		  method: 'POST',
-	// 		  headers: {
-	// 			'Content-Type': 'application/json',
-	// 		  },
-	// 		  body: JSON.stringify({
-	// 			productId: 'your-product-id',
-	// 			quantity: 1,
-	// 		  }),
-	// 		});
-		
-	// 		const responseSession = await res.json();
-		
-	// 		if (responseSession.id) {
-	// 		  // 2. Redirect to Stripe's checkout page
-	// 		  const stripe = await loadStripe('your-public-key-here');
-	// 		  const { error } = await stripe.redirectToCheckout({
-	// 			sessionId: responseSession.id,
-	// 		  });
-		
-	// 		  if (error) {
-	// 			console.error('Error redirecting to checkout:', error);
-	// 		  }
-	// 		}
-	// 	  } catch (error) {
-	// 		console.error
-    // 	};
-	// }
 
 
 	async function fetchEventInformation(id: string) {
@@ -228,13 +147,14 @@ export default function EventInfo() {
 								<span className="text-gray-700">Standard Ticket - £{ticketPrice}</span>
 							</label>
 						</div>
-						<button
-							className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
-							onClick={(event) => proceedToCheckout(event)}
+						{/* <button
+							className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2 hover:bg-gray-200"
+							onClick={proceedToCheckout}
 							disabled={!ticketSelected}
 						>
 							Proceed to Secure Checkout
-						</button>
+						</button> */}
+						<EmbeddedCheckoutButton />
 					</div>
 				</div>
 		</div>
@@ -249,6 +169,23 @@ export default function EventInfo() {
 	}
 
 	const societyLogo = returnLogo(event.organiser)
+	const amount = convertToSubCurrency('4.94');
+
+	// Handle potential errors in conversion
+	if (amount.error) {
+	  console.error('Invalid amount:', amount.error);
+	  return <div>Error: {amount.error}</div>;
+	}
+  
+	// Stripe Elements options
+	const options = {
+	  mode: 'payment', // Optional: Define the mode if needed
+	  clientSecret: 'your-client-secret', // Replace with your actual clientSecret
+	  appearance: {
+		theme: 'stripe', // Customize Stripe UI theme
+	  },
+	};
+  
 
 	// Render the event details
 	return (
