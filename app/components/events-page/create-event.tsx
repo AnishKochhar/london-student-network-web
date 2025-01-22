@@ -79,11 +79,11 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 			});
 
 			const result = await res.json();
-			if (result.success) {
+			if (result.message === 'success') {
 				toast.success('Event successfully created!', { id: toastId })
 				router.push('/events');
 			} else {
-				toast.error(`Error creating event: ${result.error}.`, { id: toastId })
+				toast.error(`Error creating event: ${result.message}.`, { id: toastId })
 			}
 		} catch (error) {
 			toast.error(`Error during event submission: ${error}.`, { id: toastId })

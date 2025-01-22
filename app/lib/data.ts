@@ -4,6 +4,7 @@ import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, conver
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
 import { redis } from './config';
+import { UUID } from 'crypto';
 
 // needs organisation
 
@@ -150,14 +151,26 @@ export async function insertEvent(event: SQLEvent) {
 		const eventId = result.rows[0].id;
 
 		// Insert into the tickets table using the event id and ticket price
-		await sql`
-			INSERT INTO tickets (ticket_price, event_uuid)
-			VALUES (${event.tickets_price}, ${eventId});
-		`;
+
 		
-		return { success: true };
+		return { success: true, id: eventId };
 	} catch (error) {
 		console.error('Error creating event:', error);
+		return { success: false, error };
+	}
+}
+
+export async function insertIntoTickets(tickets_price: string, eventId: string, priceId: string) {
+	try {
+
+		await sql`
+		INSERT INTO tickets (price_id, ticket_price, event_uuid)
+		VALUES (${priceId}, ${tickets_price}, ${eventId}::UUID)
+		`
+
+		return { success: true }
+	} catch (error) {
+		console.error('Error updating tickets table:', error);
 		return { success: false, error };
 	}
 }

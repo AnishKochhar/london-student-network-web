@@ -141,6 +141,7 @@ export interface FormData {
 	tickets_price?: string;
 }
 
+
 export interface UserRegisterFormData {
     email: string;
     password: string;
