@@ -1,4 +1,8 @@
-import stripe from "../lib/utils/stripe";
+'use server'
+
+import getStripe from "../lib/utils/stripe";
+
+const stripe = await getStripe();
 
 async function getSession(sessionId: string) {
     const session = await stripe.checkout.sessions.retrieve(sessionId!);
@@ -8,7 +12,8 @@ async function getSession(sessionId: string) {
 export default async function CheckoutReturn({ searchParams }) {
     const sessionId = searchParams.session_id;
     const session = await getSession(sessionId);
-
+    // const transactionId = session.payment_intent as string; // unique identifier
+ 
     if (session?.status === "open") {
         return <p>Payment wasn't succesfull</p>;
     }

@@ -111,6 +111,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 			capacity: event.capacity,
 			signupLink: event.sign_up_link || '',
 			forExternals: event.for_externals || '',
+			tickets_price: event.tickets_price || '0',
 		};
 	};
 
@@ -160,7 +161,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		const toastId = toast.loading('Updating event....')
 
 		try {
-			console.log(data);
+			// console.log(data);
 			const response = await fetch('/api/protected/events/update', { // upload of image is handled in here
 				method: 'POST',
 				headers: {
@@ -175,7 +176,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 			const result = await response.json();
 			if (response.status === 200) {
 				toast.success('Event successfully updated!', { id: toastId })
-				router.push('/account'); // modified to push to account, but can be changed back to /events
+				// router.push('/account'); // just staying on the same spot is pretty clean
 				onClose();
 			} else {
 				toast.error(`Error updating event: ${result.message}.`, { id: toastId })
@@ -214,7 +215,6 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		</div>
 	)
 
-	
 
 	const OrganiserField = () => (
 		<div className="flex flex-col mb-4">
@@ -497,6 +497,20 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		</div>
 	);
 
+	const TicketPriceField = () => (
+		<div className="flex flex-col mb-4">
+		<label htmlFor="tickets price" className="text-2xl p-6 font-semibold">Tickets price</label>
+		{errors.tickets_price && <p className="text-red-600 text-sm self-end mb-1">Please enter valid price</p>}
+		<Input
+			id='tickets_price'
+			placeholder="4.99"
+			{...register('tickets_price', { required: false, maxLength: MAX_POSTGRES_STRING_LENGTH })}
+			className="bg-transparent border border-gray-300 self-end truncate w-[90%] p-2"
+			maxLength={MAX_POSTGRES_STRING_LENGTH}
+		/>
+		</div>
+	);
+
 
 	const SignupLinkField = () => (
 		<div className="flex flex-col mb-4">
@@ -580,6 +594,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 							<TagsFieldWrapper />
 							<LocationField />
 							<CapacityField />
+							<TicketPriceField />
 							<ImagePickerField />
 							<SignupLinkField />
 							<ForExternalsField />

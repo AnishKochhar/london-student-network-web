@@ -22,13 +22,13 @@ export async function POST(req: Request) {
 
                 if (isNotValid) {
                     return NextResponse.json(
-                        { message: 'Some important fields are not valid'},
+                        { message: isNotValid},
                         { status: 400 } // 400 Bad Request
                     );
                 }
                 let imageUrl = formData.selectedImage;
 
-                console.log(formData);
+                // console.log(formData);
 
                 if (formData?.uploadedImage && formData?.uploadedImage?.name && typeof formData?.uploadedImage !== 'string') {
                     try {

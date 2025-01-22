@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import stripe, { createProduct } from "@/app/lib/utils/stripe";
+import getStripe, { createProduct } from "@/app/lib/utils/stripe";
 
+const stripe = await getStripe()
 
 export async function POST(request: Request) {
     try {

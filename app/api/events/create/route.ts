@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import { createSQLEventObject } from '@/app/lib/utils';
 import { FormData } from '@/app/lib/types';
 import { convertToSubCurrency } from '@/app/lib/utils/type-manipulation';
-import stripe, { createProduct } from '@/app/lib/utils/stripe';
+import getStripe, { createProduct } from '@/app/lib/utils/stripe';
+
+const stripe = await getStripe();
 
 export async function POST(req: Request) {
 	try {

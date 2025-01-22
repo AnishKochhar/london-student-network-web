@@ -9,3 +9,5 @@ const getStripe = () => {
 };
 
 export default getStripe;
+
+// this is for the public key

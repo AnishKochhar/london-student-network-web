@@ -272,6 +272,16 @@ export function validateEvent(formData: FormData): string | undefined {
 	if (!formData.title || !formData.organiser) {
 		return "Title and organiser are required!"
 	}
+
+	// Validate ticket price
+	if (formData?.tickets_price && formData?.tickets_price !== '') {
+		const ticketsPrice = formData.tickets_price;
+		if (isNaN(Number(ticketsPrice)) || !/^\d+(\.\d{1,2})?$/.test(ticketsPrice) || typeof ticketsPrice !== 'string') {
+			return "Invalid ticket price!";
+		}
+	}
+
+	return undefined; // valid data
 }
 
 export function createEventObject(data: FormData): Event {

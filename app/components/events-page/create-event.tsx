@@ -125,6 +125,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
+
 	const DescriptionField = () => (
 		<div className="flex flex-col mb-4">
 			<label htmlFor="description" className="text-2xl p-6 font-semibold">Description</label>
@@ -158,6 +159,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
+	
 	const DateField = () => {
 		const days = generateDays();
 		const months = generateMonths();
@@ -209,6 +211,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		)
 	}
 
+
 	const TimeField = () => {
 		const hours = generateHours();
 		const minutes = generateMinutes();
@@ -258,6 +261,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 			</div>
 		)
 	}
+
 
 	const TagsFieldWrapper = () => {
 		register('event_tag')
@@ -374,7 +378,8 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				</div>
 			</div>
 		)
-	}
+	};
+
 
 	const LocationField = () => (
 		<div className="flex flex-col mb-4">
@@ -407,7 +412,8 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				/>
 			</div>
 		</div>
-	)
+	);
+
 
 	const CapacityField = () => (
 		<div className="flex flex-col mb-4">
@@ -422,6 +428,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 			/>
 		</div>
 	);
+
 
 	const TicketPriceField = () => (
 		<div className="flex flex-col mb-4">
@@ -438,7 +445,6 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 	);
 
 
-
 	const SignupLinkField = () => (
 		<div className="flex flex-col mb-4">
 			<label className='flex flex-row items-center'><p className='text-2xl p-6 font-semibold'>Sign-up link</p> <p className='text-lg p-2'>(optional)</p></label>
@@ -450,6 +456,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 			/>
 		</div>
 	);
+
 
 	const ForExternalsField = () => (
 		<div className="flex flex-col mb-4">

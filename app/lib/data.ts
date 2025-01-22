@@ -3,8 +3,10 @@ import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormDa
 import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics } from './utils';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
-import { redis } from './config';
+import { getRedisClient } from './config';
 import { UUID } from 'crypto';
+
+const redis = getRedisClient();
 
 // needs organisation
 
@@ -81,13 +83,18 @@ export async function fetchUpcomingEvents() {
 
 export async function fetchUserEvents(organiser_uid: string) {
 	try {
-        const events = await sql`
-            SELECT * FROM events
-            WHERE organiser_uid = ${organiser_uid}
-            ORDER BY start_time ASC
+        const events = await sql<SQLEvent & { ticket_price: string }>`
+            SELECT e.*, t.ticket_price
+            FROM events e
+            LEFT JOIN tickets t ON e.id = t.event_uuid
+            WHERE e.organiser_uid = ${organiser_uid}
+            ORDER BY e.start_time ASC
         `;
-        
-        return events.rows.map(convertSQLEventToEvent)
+        console.log(events.rows.map(convertSQLEventToEvent));
+        return events.rows.map(row => ({
+            ...convertSQLEventToEvent(row),
+            tickets_price: row.ticket_price
+        }));
     } catch (error) {
         console.error('Error fetching user events:', error);
         throw new Error('Unable to fetch user\'s events')
