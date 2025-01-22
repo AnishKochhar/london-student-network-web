@@ -41,29 +41,29 @@ export default function EmbeddedCheckoutButton() {
     }
 
     return (
-        <div id="checkout" className='max-w-full'>
+        <div id="checkout" className="max-w-full px-4">
+            {/* Checkout Button */}
             <button
-                className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2 hover:bg-green-800"
+                className="btn btn-primary w-full text-sm font-light mt-2 hover:bg-purple-800"
                 onClick={handleCheckoutClick}
             >
                 Proceed to Secure Checkout
             </button>
-            <dialog ref={modalref}>
-                <div>
-                    <div>
-                        {showCheckout && (
-                            <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
-                                <EmbeddedCheckout />
-                            </EmbeddedCheckoutProvider>
-                        )}
 
-                    </div>
-                    <div>
-                        <form method='dialog'>
-                            <button onClick={handleCloseModal}>
-                                Close
-                            </button>
-                        </form>
+            {/* Modal */}
+            <dialog ref={modalref} className="modal">
+                <div className="modal-box">
+                    <h2 className="text-2xl font-bold text-center mb-4">Secure Checkout</h2>
+
+                    {/* Embedded Checkout Component */}
+                    {showCheckout && (
+                        <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
+                            <EmbeddedCheckout />
+                        </EmbeddedCheckoutProvider>
+                    )}
+
+                    <div className="modal-action">
+                        <button className="btn" onClick={handleCloseModal}>Close</button>
                     </div>
                 </div>
             </dialog>
