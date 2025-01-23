@@ -1,6 +1,6 @@
 
 
-export function extractFloatToTwoDecimalPlaces(input: string): { value?: number, error?: string } {
+export function extractPriceStringToTwoDecimalPlaces(input: string): { value?: string, error?: string } {
     const parsed = parseFloat(input);
   
     if (isNaN(parsed)) {
@@ -8,7 +8,8 @@ export function extractFloatToTwoDecimalPlaces(input: string): { value?: number,
     }
   
     const roundedValue = Math.round(parsed * 100) / 100; // Round to 2 decimal places
-    return { value: roundedValue };
+    const formattedValue = roundedValue.toFixed(2); // Format to 2 decimal places
+    return { value: formattedValue };
 }
 
 

@@ -3,7 +3,8 @@
 
 import getStripe from "@/app/lib/stripe_config";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import debounce from 'lodash.debounce';
 
 
 export default function EmbeddedCheckoutButton({event_id, ticketSelected}: {event_id: string, ticketSelected: boolean}) {
@@ -12,15 +13,27 @@ export default function EmbeddedCheckoutButton({event_id, ticketSelected}: {even
     const modalref = useRef<HTMLDialogElement>(null);
     const [clientSecret, setClientSecret] = useState<string | null>(null);
     const [price_id, setPrice_id] = useState<string>('');
+    const prevEventIdRef = useRef<string | null>(null);
 
+    useEffect(() => { // debouncer stops excesive fetching
+        const fetchPrice = debounce(async () => {
+            if (event_id && event_id.trim() !== '' && event_id !== prevEventIdRef.current) {
+                try {
+                    const result = await fetchPriceId(event_id);
+                    setPrice_id(result?.priceID || '');
+                    prevEventIdRef.current = event_id;
+                } catch (error) {
+                    console.error('Error fetching price ID:', error);
+                }
+            }
+        }, 300); // Debounce delay of 300ms
 
-    useEffect(() => {
-		const fetchPrice = async () => {
-			const result = await fetchPriceId(event_id)
-			setPrice_id(result?.priceID || '')
-		};
-		fetchPrice();
-	}, [event_id])
+        fetchPrice();
+
+        return () => {
+            fetchPrice.cancel();
+        };
+    }, [event_id]);
 
 
     useEffect(() => {

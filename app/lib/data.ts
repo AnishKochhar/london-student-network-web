@@ -177,7 +177,7 @@ export async function insertIntoTickets(tickets_price: string, eventId: string, 
 
 		return { success: true }
 	} catch (error) {
-		console.error('Error updating tickets table:', error);
+		console.error('Error inserting ticket into tickets table:', error);
 		return { success: false, error };
 	}
 }
@@ -193,9 +193,25 @@ export async function fetchPriceId(eventId: string) {
 
 		return { success: true, priceId: result.rows[0].price_id }
 	} catch (error) {
-		console.error('Error updating tickets table:', error);
+		console.error('Error fetching price_id from tickets table:', eventId, error);
 		return { success: false, error };
 	}
+}
+
+export async function updateTicket(eventId: string, newPriceId: string, ticketPrice: string) {
+    try {
+        const result = await sql`
+        UPDATE tickets
+        SET price_id = ${newPriceId}, ticket_price = ${ticketPrice}
+        WHERE event_uuid::text LIKE '%' || ${eventId}
+        RETURNING price_id, ticket_price --- returns the updated price_id and ticket_price
+        `;
+
+        return { success: true, newPriceId: result.rows[0].price_id, ticketPrice: result.rows[0].ticket_price };
+    } catch (error) {
+        console.error('Error updating tickets table:', error);
+        return { success: false, error };
+    }
 }
 
 

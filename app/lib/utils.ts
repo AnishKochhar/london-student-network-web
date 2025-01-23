@@ -274,12 +274,19 @@ export function validateEvent(formData: FormData): string | undefined {
 	}
 
 	// Validate ticket price
-	if (formData?.tickets_price && formData?.tickets_price !== '') {
-		const ticketsPrice = formData.tickets_price;
-		if (isNaN(Number(ticketsPrice)) || !/^\d+(\.\d{1,2})?$/.test(ticketsPrice) || typeof ticketsPrice !== 'string') {
-			return "Invalid ticket price!";
-		}
-	}
+    if (formData?.tickets_price && formData?.tickets_price !== '') {
+        const ticketsPrice = formData.tickets_price;
+        const priceNumber = Number(ticketsPrice);
+
+        if (typeof ticketsPrice !== 'string' || isNaN(priceNumber) || !/^\d+(\.\d{1,2})?$/.test(ticketsPrice)) {
+            return "Invalid ticket price!";
+        }
+
+        // Ensure the price is greater than 0.30 or is exactly '0'
+        if (priceNumber !== 0 && priceNumber < 0.30) {
+            return "Ticket price must be greater than 30p or exactly 0!";
+        }
+    }
 
 	return undefined; // valid data
 }

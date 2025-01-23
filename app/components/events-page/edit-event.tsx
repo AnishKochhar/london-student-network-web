@@ -10,7 +10,6 @@ import { Input } from '../input';
 import { Button } from '../button';
 import { ArrowLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
 import TagsField from './create-event-tags';
-import { useRouter } from 'next/navigation';
 import RegistrationsModal from './registrations-modal';
 import ToggleSwitch from '../toggle-button';
 import { createPortal } from 'react-dom';
@@ -29,7 +28,6 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 	});
 
 	const eventTagValue = watch('event_tag', 0); // Default value is 0
-	const router = useRouter()
 
 	const closeModal = () => setViewRegistrationsModal(false)
 
