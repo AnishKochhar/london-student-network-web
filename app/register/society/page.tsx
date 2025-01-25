@@ -14,6 +14,7 @@ import { FlagIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outlin
 import { upload } from '@vercel/blob/client';
 import Select from 'react-select'; // For tag selection
 import getPredefinedTags, { LondonUniversities } from '@/app/lib/utils';
+import EmbeddedStripeConnectOnboardingForm from '@/app/components/payments/embedded-onboarding/stripe-connect';
 
 
 export default function SocietyRegistrationForm() {
@@ -424,6 +425,7 @@ export default function SocietyRegistrationForm() {
 				{step === 1 && <UniversityEntry />}
 				{step === 1 && <DescriptionWebsiteTagsEntry />}
 				{step === 1 && <LogoEntry />}
+				{step === 1 && <EmbeddedStripeConnectOnboardingForm />}
 
 
 				{step === totalSteps && (

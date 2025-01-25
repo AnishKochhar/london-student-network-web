@@ -6,9 +6,10 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe
 import { useEffect, useRef, useState } from 'react';
 import debounce from 'lodash.debounce';
 
+const stripePromise = getStripe()
 
 export default function EmbeddedCheckoutButton({event_id, ticketSelected}: {event_id: string, ticketSelected: boolean}) {
-    const stripePromise = getStripe()
+
     const [showCheckout, setShowCheckout] = useState<boolean>(false);
     const modalref = useRef<HTMLDialogElement>(null);
     const [clientSecret, setClientSecret] = useState<string | null>(null);

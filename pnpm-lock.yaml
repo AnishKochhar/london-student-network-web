@@ -20,6 +20,12 @@ importers:
       '@sendgrid/mail':
         specifier: ^8.1.4
         version: 8.1.4
+      '@stripe/connect-js':
+        specifier: ^3.3.20
+        version: 3.3.20
+      '@stripe/react-connect-js':
+        specifier: ^3.3.20
+        version: 3.3.20(@stripe/connect-js@3.3.20)(react-dom@19.0.0-rc-94e652d5-20240912(react@19.0.0-rc-94e652d5-20240912))(react@19.0.0-rc-94e652d5-20240912)
       '@stripe/react-stripe-js':
         specifier: ^3.1.1
         version: 3.1.1(@stripe/stripe-js@5.5.0)(react-dom@19.0.0-rc-94e652d5-20240912(react@19.0.0-rc-94e652d5-20240912))(react@19.0.0-rc-94e652d5-20240912)
@@ -809,6 +815,16 @@ packages:
   '@sendgrid/mail@8.1.4':
     resolution: {integrity: sha512-MUpIZykD9ARie8LElYCqbcBhGGMaA/E6I7fEcG7Hc2An26QJyLtwOaKQ3taGp8xO8BICPJrSKuYV4bDeAJKFGQ==}
     engines: {node: '>=12.*'}
+
+  '@stripe/connect-js@3.3.20':
+    resolution: {integrity: sha512-4GingsjdQDJomIMAmTWFJSBifLygc5xWCcYzdcL5nYiePBuHEfYwFKKq7tOO1SIR2jsuHpn6R18xKVijToblWQ==}
+
+  '@stripe/react-connect-js@3.3.20':
+    resolution: {integrity: sha512-OYRhW7Zm7zjsT5cSAa5nxnW202Rf2W4sUpKvdCbL5qRs/J9DvMYehI/pLpMNwgkJnVieWDXel2jkcRUBiHBnZg==}
+    peerDependencies:
+      '@stripe/connect-js': '>=3.3.20'
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@stripe/react-stripe-js@3.1.1':
     resolution: {integrity: sha512-+JzYFgUivVD7koqYV7LmLlt9edDMAwKH7XhZAHFQMo7NeRC+6D2JmQGzp9tygWerzwttwFLlExGp4rAOvD6l9g==}
@@ -3532,6 +3548,14 @@ snapshots:
       '@sendgrid/helpers': 8.0.0
     transitivePeerDependencies:
       - debug
+
+  '@stripe/connect-js@3.3.20': {}
+
+  '@stripe/react-connect-js@3.3.20(@stripe/connect-js@3.3.20)(react-dom@19.0.0-rc-94e652d5-20240912(react@19.0.0-rc-94e652d5-20240912))(react@19.0.0-rc-94e652d5-20240912)':
+    dependencies:
+      '@stripe/connect-js': 3.3.20
+      react: 19.0.0-rc-94e652d5-20240912
+      react-dom: 19.0.0-rc-94e652d5-20240912(react@19.0.0-rc-94e652d5-20240912)
 
   '@stripe/react-stripe-js@3.1.1(@stripe/stripe-js@5.5.0)(react-dom@19.0.0-rc-94e652d5-20240912(react@19.0.0-rc-94e652d5-20240912))(react@19.0.0-rc-94e652d5-20240912)':
     dependencies:

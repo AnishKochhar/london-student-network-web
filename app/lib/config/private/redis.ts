@@ -1,5 +1,7 @@
+'use server'
+
+
 import Redis from 'ioredis';
-import sgMail from '@sendgrid/mail';
 
 // ================================
 // redis initialization
@@ -14,9 +16,8 @@ if (!REDIS_URL) {
 // Initialize one redis instance
 let redis: Redis | null = null;
 
-
 // redis singleton
-export function getRedisClient() {
+export default function getRedisClient() {
     if (!redis) {
         redis = new Redis(REDIS_URL);
         redis.on('connect', () => {
@@ -29,17 +30,3 @@ export function getRedisClient() {
     }
     return redis;
 }
-
-// ================================
-// sendgrid initialization
-// ================================
-
-if (!process.env.SENDGRID_API_KEY) {
-	console.error('SendGrid API key is missing!');
-	throw new Error('SENDGRID_API_KEY environment variable not set');
-}
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
-
-
-export { sgMail };
