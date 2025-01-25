@@ -1,14 +1,13 @@
 import { sql } from '@vercel/postgres';
-import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult } from './types';
+import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, EventRegistrationEmail } from './types';
 import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics } from './utils';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
 import { getRedisClient } from './config';
-import { UUID } from 'crypto';
 
 const redis = getRedisClient();
 
-// needs organisation
+// TODO: Organise based on usecases
 
 export async function fetchWebsiteStats() {
 	// return FallbackStatistics
@@ -121,6 +120,23 @@ export async function fetchEventById(id: string) {
 			...convertSQLEventToEvent(result1.rows[0]),
 			tickets_price: result2.rows[0]?.ticket_price || '0'
 		};
+	} catch (error) {
+		console.error('Database error:', error);
+		throw new Error('Failed to fetch event');
+	}
+}
+
+export async function fetchRegistrationEmailEventInformation(event_id: string) {
+	try {
+		const result = await sql<EventRegistrationEmail>`
+			SELECT title, organiser, day, month, year, start_time, end_time, location_building, location_area, location_address
+			FROM events
+			WHERE id = ${event_id}
+		`;
+		if (result.rows.length === 0) {
+			return { success: false };
+		}
+		return { success: true, event: result.rows[0] };
 	} catch (error) {
 		console.error('Database error:', error);
 		throw new Error('Failed to fetch event');
@@ -692,6 +708,27 @@ export async function getEmailFromId(id: string) {
 			LIMIT 1
 		`
 		
+		return data.rows[0] || null;
+	} catch (error) {
+		console.error('Error checking email:', error)
+		throw new Error('Failed to retrieve email for a specific organiser');
+	}
+}
+
+export async function fetchOrganiserEmailFromEventId(event_id: string) {
+	try {
+		const data = await sql<{ email: string }>`
+			SELECT users.email
+			FROM events
+			JOIN users ON events.organiser_uid = users.id
+			WHERE role='organiser' AND events.id = ${event_id}
+			LIMIT 1;
+		`
+		if (data.rows.length > 0) {
+			return data.rows[0];
+		} else {
+			return null
+		}
 		return data.rows[0] || null;
 	} catch (error) {
 		console.error('Error checking email:', error)

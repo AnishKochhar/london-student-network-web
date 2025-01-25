@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
@@ -10,11 +10,6 @@ import { LockClosedIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
-import { Elements } from '@stripe/react-stripe-js'
-import { EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
-import getStripe from "@/app/lib/stripe_config";
-import { convertToSubCurrency } from "@/app/lib/utils/type-manipulation";
-import { CurrencyPoundIcon } from "@heroicons/react/20/solid";
 import EmbeddedCheckoutButton from "@/app/components/payments/checkout-button";
 
 
@@ -34,7 +29,6 @@ export default function EventInfo() {
 	useEffect(() => {
 		const fetchData = async () => {
 			const result = await fetchEventInformation(event_id)
-			// console.log(result)
 			if (result?.tickets_price && parseFloat(result?.tickets_price) > 0) {
 				setTicketPrice(result.tickets_price);
 				setRequiresPayment(true);
@@ -101,6 +95,8 @@ export default function EventInfo() {
 			} else {
 				if (result.registered) {
 					toast.error('Already registered for the event!', { id: toastId })
+				} else if (result.emailError) {
+					toast.error('Failed to send confirmation emails!', { id: toastId })
 				} else {
 					toast.error('Error registering for event!', { id: toastId })
 				}

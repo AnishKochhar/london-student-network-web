@@ -79,6 +79,19 @@ export interface SQLEvent {
 	tickets_price?: string;
 }
 
+export interface EventRegistrationEmail {
+	title: string;
+	organiser: string;
+	day: number;
+	month: number;
+	year: number;
+	start_time: string;
+	end_time: string;
+	location_building: string;
+	location_area: string;
+	location_address: string;
+}
+
 export interface SelectTicketComponentProps {
     ticketSelected: boolean;
     handleSelect: () => void;

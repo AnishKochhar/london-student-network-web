@@ -15,7 +15,7 @@ export default async function CheckoutReturn({ searchParams }) {
     // const transactionId = session.payment_intent as string; // unique identifier
  
     if (session?.status === "open") {
-        return <p>Payment wasn't succesfull</p>;
+		return <p>Payment wasn&#39; t succesfull</p>;
     }
 
     if (session?.status === "complete") {
