@@ -2,7 +2,7 @@
 
 import getStripe from "../lib/utils/stripe";
 import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "../lib/send-email";
-import { checkIfRegistered, fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
+import { fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
 
 const stripe = await getStripe();
 

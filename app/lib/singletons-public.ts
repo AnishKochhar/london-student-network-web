@@ -18,5 +18,5 @@ export async function getPublicStripeConnectPromise(userId: string) {
 }
 
 export async function getCurrentPublicStripeConnectPromise(userId: string) {
-    return getCurrentPublicStripeConnectPromise(userId);
+    return getCurrentStripeConnectPromise(userId);
 }
