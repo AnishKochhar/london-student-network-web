@@ -34,6 +34,10 @@ export async function POST(request: Request) {
             // Define the fee (10p for now)
             const feeAmount = 10;  // Keep a constant 10p
 
+            const userEmail = userSession?.user?.email;
+            const userId = userSession?.user?.id;
+            const userName = userSession?.user?.name;
+
             // Create a payment intent with destination charge (connected account)
             const session = await stripe.checkout.sessions.create({
                 payment_method_types: ['card'],
@@ -51,7 +55,8 @@ export async function POST(request: Request) {
                     },
                 },
                 // The URL to redirect the user after checkout
-                return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}`,
+                // return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}`,
+                return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(userEmail)}&user_id=${encodeURIComponent(userId)}&name=${encodeURIComponent(userName)}&event_id=${encodeURIComponent(eventId)}`,
             });
 
             return NextResponse.json({ id: session.id, client_secret: session.client_secret });
