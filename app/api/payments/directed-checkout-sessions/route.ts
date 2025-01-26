@@ -12,16 +12,18 @@ function imaginaryAccountIDFetcher() {
 export async function POST(request: Request) {
     try {
         const userSession = await auth();
+
+        // directs payments to societies, after the main LSN account deducts a custom fee
         
         if (userSession?.user?.email) {
             const { priceId } = await request.json();
             
-            // Retrieve the price from the priceId, assuming priceId refers to a predefined Stripe price
-            const price = await stripe.prices.retrieve(priceId);
-            const amount = price.unit_amount;  // Retrieve the amount to be charged
+            // Retrieve the price from the priceId, to create percentage fees
+            // const price = await stripe.prices.retrieve(priceId);
+            // const amount = price.unit_amount;  // Retrieve the amount to be charged
             
-            // Define the fee you want to keep (1% in this case)
-            const feeAmount = Math.floor(amount * 0.01);  // Keep 1% of the total price
+            // Define the fee (10p for now)
+            const feeAmount = 10;  // Keep a constant 10p
 
             // Create a payment intent with destination charge (connected account)
             const session = await stripe.checkout.sessions.create({
