@@ -14,6 +14,9 @@ export function extractPriceStringToTwoDecimalPlaces(input: string): { value?: s
 
 
 export function convertToSubCurrency(amount: string): { value?: number, error?: string } {
+    if (amount === '0') {
+        return {value: 0};
+    }
     const parsed = parseFloat(amount);
 
     // Check if parsed is a valid number

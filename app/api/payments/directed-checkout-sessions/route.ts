@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 import getStripe from "@/app/lib/utils/stripe";
 import { auth } from "@/auth";
+import { fetchAccountIdByEvent } from "@/app/lib/data";
 
 const stripe = await getStripe();
 
-function imaginaryAccountIDFetcher() {
-    return '';
-    // update to actually return data;
-}
 
 export async function POST(request: Request) {
     try {
@@ -16,7 +13,19 @@ export async function POST(request: Request) {
         // directs payments to societies, after the main LSN account deducts a custom fee
         
         if (userSession?.user?.email) {
-            const { priceId } = await request.json();
+            const { priceId, eventId } = await request.json();
+
+            const response = await fetchAccountIdByEvent(eventId);
+
+            if (!response.success) {
+                return NextResponse.json({ message: "failed to retrieve society's account id" }, { status: 500 });
+            }
+
+            if (!response.accountId) {
+                return NextResponse.json({ message: "account id doesn't exist for this society" }, { status: 500 });
+            }
+
+            const accountId = response.accountId;
             
             // Retrieve the price from the priceId, to create percentage fees
             // const price = await stripe.prices.retrieve(priceId);
@@ -38,7 +47,7 @@ export async function POST(request: Request) {
                 payment_intent_data: {
                     application_fee_amount: feeAmount, // Your fee
                     transfer_data: {
-                        destination: imaginaryAccountIDFetcher(), // Connected account ID
+                        destination: accountId, // Connected account ID
                     },
                 },
                 // The URL to redirect the user after checkout

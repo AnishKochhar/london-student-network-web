@@ -41,6 +41,7 @@ export async function checkOwnershipOfEvent(userId: string, eventId: string) {
 	}
 }
 
+
 export async function fetchEvents() {
 	try {
 		const data = await sql<SQLEvent>`SELECT * FROM events`
@@ -904,4 +905,71 @@ export async function cleanupForgottenPasswordEmails() {
 		console.error('Error cleaning up forgotten password emails:', error);
 		return { success: false, error: error.message };
 	}
+}
+
+export async function insertAccountId(userId: string, accountId: string) {
+    try {
+        await sql`
+            UPDATE society_information
+            SET connect_account_id = ${accountId}
+            WHERE user_id::text LIKE '%' || ${userId};
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating connect_account_id:', error);
+        return { success: false };
+    }
+}
+
+export async function fetchAccountId(userId: string) {
+    try {
+        const data = await sql`
+			SELECT connect_account_id
+            FROM society_information
+            WHERE user_id::text LIKE '%' || ${userId};
+        `;
+
+		if (data.rows[0].len > 0) {
+			return { success: true, accountId: data.rows[0].connect_account_id};
+		} else {
+			return { success: true, accountId: ''};
+		}
+        
+    } catch (error) {
+        console.error('Error updating connect_account_id:', error);
+        return { success: false };
+    }
+}
+
+export async function fetchAccountIdByEvent(eventId: string) {
+	try {
+		const response1 = await sql`
+			SELECT organiser_uid
+			FROM events
+			WHERE id::text LIKE '%' || ${eventId};
+		`;
+
+		if (!(response1.rows[0].len > 0)) {
+			return { success: false };
+		}
+
+		const userId = response1.rows[0].organiser_uid;
+
+        const response2 = await sql`
+			SELECT connect_account_id
+            FROM society_information
+            WHERE user_id::text LIKE '%' || ${userId};
+        `;
+
+
+		if (response2.rows[0].len > 0) {
+			return { success: true, accountId: response2.rows[0].connect_account_id};
+		} else {
+			return { success: true, accountId: ''};
+		}
+        
+    } catch (error) {
+        console.error('Error updating connect_account_id:', error);
+        return { success: false };
+    }
 }

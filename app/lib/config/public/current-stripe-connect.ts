@@ -5,9 +5,9 @@ import { loadConnectAndInitialize, IStripeConnectInitParams, StripeConnectInstan
 
 let stripeConnectPromise: Promise<{ instance: StripeConnectInstance }> | null = null;
 
-export default async function getStripeConnectPromise(userId: string) {
+export default async function getCurrentStripeConnectPromise(userId: string) {
     if (!stripeConnectPromise) {
-        const response = await fetch('/api/payments/connected-onboarding/create-connect-account', {
+        const response = await fetch('/api/payments/connected-onboarding/resume-connected-onboarding', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

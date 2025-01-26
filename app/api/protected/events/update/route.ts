@@ -1,4 +1,4 @@
-import { updateEvent, checkOwnershipOfEvent, fetchPriceId, updateTicket } from '@/app/lib/data';
+import { updateEvent, checkOwnershipOfEvent, fetchPriceId, updateTicket, fetchAccountIdByEvent } from '@/app/lib/data';
 import { NextResponse } from 'next/server';
 import { createSQLEventObject, validateEvent } from '@/app/lib/utils';
 import { FormData } from '@/app/lib/types';
@@ -7,6 +7,7 @@ import { upload } from '@vercel/blob/client';
 import getStripe from '@/app/lib/utils/stripe';
 import { convertToSubCurrency, extractPriceStringToTwoDecimalPlaces } from '@/app/lib/utils/type-manipulation';
 import { createProduct } from '@/app/lib/utils/stripe';
+
 
 const stripe = await getStripe();
 
@@ -22,7 +23,12 @@ export async function POST(req: Request) {
         if (userId) {
             const accessGranted = await checkOwnershipOfEvent(userId, eventId);
 
-            if (accessGranted) { // old event route + frontend image upload logic goes here, to be robust against malicious users
+            if (accessGranted) {
+
+                // -------------------------
+                // validation of event
+                // -------------------------
+                
                 const isNotValid = validateEvent(formData);
 
                 if (isNotValid) {
@@ -31,6 +37,37 @@ export async function POST(req: Request) {
                         { status: 400 } // 400 Bad Request
                     );
                 }
+
+                if (formData?.tickets_price) {
+
+                }
+                const response = await fetchAccountIdByEvent(eventId);
+
+                if (!response.success) {
+                    return NextResponse.json({ message: "failed to retrieve society's account id" }, { status: 500 });
+                }
+    
+                if (!response.accountId) {
+                    return NextResponse.json({ message: "account id doesn't exist for this society" }, { status: 403 }); // not allowed to create paid ticket without account
+                }
+
+                const accountId = response.accountId;
+
+                // Fetch the account
+                const account = await stripe.accounts.retrieve(accountId);
+
+                // Check if card payments and transfers are active
+                const hasCardPayments = account.capabilities?.card_payments === "active";
+                const hasTransfers = account.capabilities?.transfers === "active";
+
+                if (!hasCardPayments || !hasTransfers) {
+                    return NextResponse.json({ message: "please finish stripe connect onboarding via account editing" }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
+                }
+
+                // -------------------------
+                // image upload
+                // -------------------------
+
                 let imageUrl = formData.selectedImage;
 
                 // console.log(formData);
@@ -50,6 +87,10 @@ export async function POST(req: Request) {
                         );
                     }
                 }
+
+                // -------------------------
+                // form data saving
+                // -------------------------
 
                 const data = { // update with new imageUrl
                     ...formData,

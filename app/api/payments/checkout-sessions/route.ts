@@ -8,7 +8,7 @@ export async function POST(request: Request){
     try {
         const userSession = await auth();
 
-        // pays directly to the LSN stripe account
+        // pays directly to the LSN stripe
         
         if (userSession?.user?.email) {
             const { priceId } = await request.json();

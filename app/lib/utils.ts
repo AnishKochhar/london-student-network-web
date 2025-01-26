@@ -284,8 +284,11 @@ export function validateEvent(formData: FormData): string | undefined {
 
         // Ensure the price is greater than 0.30 or is exactly '0'
         if (priceNumber !== 0 && priceNumber < 0.30) {
-            return "Ticket price must be greater than 30p or exactly 0!";
+            return "Ticket price must be greater than 30p or exactly 0.";
         }
+
+		// Ensure payments are enabled for the society
+		
     }
 
 	return undefined; // valid data

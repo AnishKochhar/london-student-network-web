@@ -45,7 +45,7 @@ export default function EmbeddedCheckoutButton({event_id, ticketSelected}: {even
                     headers: {
                         "Content-Type": "applications/json",
                     },
-                    body: JSON.stringify({ priceId: price_id }),
+                    body: JSON.stringify({ priceId: price_id, eventId: event_id }),
                 })
                 const data = await response.json();
                 setClientSecret(data.client_secret);

@@ -26,8 +26,9 @@ export default function SocietyRegistrationForm() {
 	});
 	const [step, setStep] = useState(1);
 	const [showPassword, setShowPassword] = useState(false);
-	const totalSteps = 2;
+	const totalSteps = 3;
 	const [predefinedTags, setPredefinedTags] = useState([]);
+	const [userId, setUserId] = useState<string | null>(null);
 
 	useEffect(() => {
 		const fetchTags = async () => {
@@ -113,6 +114,7 @@ export default function SocietyRegistrationForm() {
 			const result = await res.json()
 			if (result.success) {
 				toast.success('Society successfully created!', { id: toastId })
+				setUserId(result.id);
 				nextStep()
 				sendVerificationEmail(data)
 			} else {
@@ -406,12 +408,6 @@ export default function SocietyRegistrationForm() {
 				</div>
 				{errors.hasAgreedToTerms && <p className="text-red-500 mt-2">{errors.hasAgreedToTerms.message}</p>}
 
-				{/* Finish button */}
-				<div className="flex justify-end mt-6 items-center">
-					<Button variant='outline' onClick={handleSubmit(onSubmit)} className="p-3 text-white rounded-lg hover:bg-slate-500">
-						Submit <FlagIcon className='ml-2' width={15} height={15} />
-					</Button>
-				</div>
 			</div>
 		)
 	}
@@ -425,7 +421,25 @@ export default function SocietyRegistrationForm() {
 				{step === 1 && <UniversityEntry />}
 				{step === 1 && <DescriptionWebsiteTagsEntry />}
 				{step === 1 && <LogoEntry />}
-				{step === 1 && <EmbeddedStripeConnectOnboardingForm />}
+
+				{/* Finish button */}
+				{step === 1 &&
+					<div className="flex justify-end mt-6 items-center">
+						<Button variant='outline' onClick={handleSubmit(onSubmit)} className="p-3 text-white rounded-lg hover:bg-slate-500">
+							Submit <FlagIcon className='ml-2' width={15} height={15} />
+						</Button>
+					</div>
+				}
+
+				{(step === 2 && userId) && <EmbeddedStripeConnectOnboardingForm userId={userId} />}
+				{/* Finish without/with Stripe button */}
+				{step === 2 && 
+					<div className="flex justify-end mt-6 items-center">
+						<Button variant='outline' onClick={handleSubmit(onSubmit)} className="p-3 text-white rounded-lg hover:bg-slate-500">
+							Submit without Stripe <FlagIcon className='ml-2' width={15} height={15} />
+						</Button>
+					</div>
+				}
 
 
 				{step === totalSteps && (

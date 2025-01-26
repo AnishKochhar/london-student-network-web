@@ -2,23 +2,23 @@
 
 
 import { useEffect, useState } from 'react';
-import { getPublicStripeConnectPromise } from '@/app/lib/singletons-public';
+import { getCurrentPublicStripeConnectPromise } from '@/app/lib/singletons-public';
 import { ConnectAccountOnboarding, ConnectComponentsProvider } from '@stripe/react-connect-js';
 import { StripeConnectInstance } from '@stripe/connect-js';
 
-export default function EmbeddedStripeConnectOnboardingForm({userId} : {userId: string}) {
+export default function ResumeEmbeddedStripeConnectOnboardingForm({userId} : {userId: string}) {
     const [error, setError] = useState<string | null>(null);
     const [stripeConnectInstance, setStripeConnectInstance] = useState<StripeConnectInstance | null>(null);
 
     useEffect(() => {
         const initializeStripeConnect = async () => {
             try {
-                const { instance } = await getPublicStripeConnectPromise(userId);
+                const { instance } = await getCurrentPublicStripeConnectPromise(userId);
                 setStripeConnectInstance(instance);
 
             } catch (error) {
-                console.error('Error initializing Stripe Connect:', error);
-                setError('Failed to initialize Stripe Connect.');
+                console.error('Error fetching Stripe Connect instance:', error);
+                setError('Failed to fetch Stripe Connect instance.');
             }
         };
 

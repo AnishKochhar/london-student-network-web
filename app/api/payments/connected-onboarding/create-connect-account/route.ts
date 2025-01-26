@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import getStripe from "@/app/lib/utils/stripe";
+import { insertAccountId } from "@/app/lib/data";
 
-export async function POST(_req: Request) {
-	void _req;
+export async function POST(req: Request) {
+	
 	try {
 		const stripe = await getStripe();
+
+		const { userId } = await req.json();
 
 		// Step 1: Create the account
 		const account = await stripe.accounts.create({
 			type: 'express', // or 'custom' depending on your use case
-			country: 'GB', // for now force UK, but can be variable soon
 			capabilities: {
 				card_payments: { requested: true },
 				transfers: { requested: true },
@@ -25,6 +27,14 @@ export async function POST(_req: Request) {
 				},
 			},
 		});
+
+		// Update the user record with the accountId in your database
+		const response = await insertAccountId(userId, account.id);
+
+		if (!response.success) {
+			console.error('Error storing connect account id');
+			return NextResponse.json({ message: "couldn't insert account id in db" }, { status: 500 });
+		}
 
 		// Step 3: Return the client secret
 		return NextResponse.json({ client_secret: accountSession.client_secret });

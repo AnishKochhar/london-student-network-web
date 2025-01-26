@@ -14,11 +14,14 @@ import { OrganiserAccountEditFormData } from '@/app/lib/types';
 import { upload } from '@vercel/blob/client';
 import { Input } from '../../components/input';
 import { Button } from '@/app/components/button';
+import { FlagIcon } from '@heroicons/react/24/outline';
+import ResumeEmbeddedStripeConnectOnboardingForm from '@/app/components/payments/embedded-onboarding/stripe-connect';
 
 
 export default function EditDetailsPage() {
 
 	const [predefinedTags, setPredefinedTags] = useState([]);
+	const [showStripeEmboarding, setShowStripeEmboarding] = useState<boolean>(false);
 
 	useEffect(() => {
 		const fetchTags = async () => {
@@ -202,6 +205,15 @@ export default function EditDetailsPage() {
 					)}
 				/>
 			</div>
+			<div className="flex justify-end mt-6 items-center">
+				<Button variant='outline' onClick={() => setShowStripeEmboarding(true)} className="p-3 text-white rounded-lg hover:bg-slate-500">
+					Register for Stripe Connect <FlagIcon className='ml-2' width={15} height={15} />
+				</Button>
+			</div>
+
+			{(showStripeEmboarding && session?.user?.id) &&
+				<ResumeEmbeddedStripeConnectOnboardingForm userId={session.user.id}/>
+			}
 
 			<div>
 				{/* Save changes button */}
