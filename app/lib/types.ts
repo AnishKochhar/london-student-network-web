@@ -15,6 +15,7 @@ export interface Event {
 	capacity?: number;
 	sign_up_link?: string;
 	for_externals?: string;
+	tickets_price?: string;
 }
 
 export interface EditEventProps {
@@ -75,6 +76,26 @@ export interface SQLEvent {
 	capacity?: number;
 	sign_up_link?: string;
 	for_externals?: string;
+	tickets_price?: string;
+}
+
+export interface EventRegistrationEmail {
+	title: string;
+	organiser: string;
+	day: number;
+	month: number;
+	year: number;
+	start_time: string;
+	end_time: string;
+	location_building: string;
+	location_area: string;
+	location_address: string;
+}
+
+export interface SelectTicketComponentProps {
+    ticketSelected: boolean;
+    handleSelect: () => void;
+    ticketPrice: string;
 }
 
 export type User = {
@@ -121,7 +142,18 @@ export interface FormData {
 	capacity?: number;
 	signupLink?: string;
 	forExternals?: string;
+	
+	// New tickets_info property for the future
+	// tickets_info: {
+	// [ticketType: string]: {
+	// 	price: number; // Price for the ticket type
+	// 	capacity?: number; // Optional: Maximum capacity for this ticket type
+	// };
+
+	// Temp tickets property, remove then above is added
+	tickets_price?: string;
 }
+
 
 export interface UserRegisterFormData {
     email: string;

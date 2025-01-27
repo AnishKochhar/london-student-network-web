@@ -77,11 +77,11 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 			});
 
 			const result = await res.json();
-			if (result.success) {
+			if (result.message === 'success') {
 				toast.success('Event successfully created!', { id: toastId })
 				router.push('/events');
 			} else {
-				toast.error(`Error creating event: ${result.error}.`, { id: toastId })
+				toast.error(`Error creating event: ${result.message}.`, { id: toastId })
 			}
 		} catch (error) {
 			toast.error(`Error during event submission: ${error}.`, { id: toastId })
@@ -125,6 +125,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
+
 	const DescriptionField = () => (
 		<div className="flex flex-col mb-4">
 			<label htmlFor="description" className="text-2xl p-6 font-semibold">Description</label>
@@ -158,6 +159,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
+	
 	const DateField = () => {
 		const days = generateDays();
 		const months = generateMonths();
@@ -209,6 +211,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		)
 	}
 
+
 	const TimeField = () => {
 		const hours = generateHours();
 		const minutes = generateMinutes();
@@ -258,6 +261,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 			</div>
 		)
 	}
+
 
 	const TagsFieldWrapper = () => {
 		register('event_tag')
@@ -374,7 +378,8 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				</div>
 			</div>
 		)
-	}
+	};
+
 
 	const LocationField = () => (
 		<div className="flex flex-col mb-4">
@@ -407,7 +412,8 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				/>
 			</div>
 		</div>
-	)
+	);
+
 
 	const CapacityField = () => (
 		<div className="flex flex-col mb-4">
@@ -423,6 +429,22 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 		</div>
 	);
 
+
+	const TicketPriceField = () => (
+		<div className="flex flex-col mb-4">
+		<label htmlFor="tickets price" className="text-2xl p-6 font-semibold">Tickets price</label>
+		{errors.tickets_price && <p className="text-red-600 text-sm self-end mb-1">Please enter valid price</p>}
+		<Input
+			id='tickets_price'
+			placeholder="4.99"
+			{...register('tickets_price', { required: false, maxLength: MAX_POSTGRES_STRING_LENGTH })}
+			className="bg-transparent border border-gray-300 self-end truncate w-[90%] p-2"
+			maxLength={MAX_POSTGRES_STRING_LENGTH}
+		/>
+		</div>
+	);
+
+
 	const SignupLinkField = () => (
 		<div className="flex flex-col mb-4">
 			<label className='flex flex-row items-center'><p className='text-2xl p-6 font-semibold'>Sign-up link</p> <p className='text-lg p-2'>(optional)</p></label>
@@ -434,6 +456,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 			/>
 		</div>
 	);
+
 
 	const ForExternalsField = () => (
 		<div className="flex flex-col mb-4">
@@ -491,6 +514,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				<TagsFieldWrapper />
 				<LocationField />
 				<CapacityField />
+				<TicketPriceField />
 				<ImagePickerField />
 				<SignupLinkField />
 				<ForExternalsField />

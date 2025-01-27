@@ -1,5 +1,5 @@
 import { sgMail } from './config';
-import { EmailData } from './types';
+import { EmailData, EventRegistrationEmail } from './types';
 import { getEmailFromId } from './data';
 import EmailPayload from '../components/templates/user-to-society-email'; // this might have security issues because of user inputs.
 import EmailPayloadFallback from '../components/templates/user-to-society-email-fallback';
@@ -7,6 +7,10 @@ import ResetEmailPayload from '../components/templates/reset-password';
 import ResetEmailPayloadFallback from '../components/templates/reset-password-fallback';
 import VerificationEmailPayload from '../components/templates/verification-email';
 import VerificationEmailPayloadFallback from '../components/templates/verification-email-fallback';
+import UserRegistrationConfirmationEmail from '../components/templates/user-registration';
+import UserRegistrationConfirmationEmailFallback from '../components/templates/user-registration-fallback';
+import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
+import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
 
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
@@ -86,4 +90,48 @@ export const sendEmailVerificationEmail = async (email: string, token: string) =
 
 		throw new Error("Failed to send email to verify email");
 	};
+}
+
+export const sendUserRegistrationEmail = async (email: string, eventInformation: EventRegistrationEmail) => {
+	try {
+		const customPayload = UserRegistrationConfirmationEmail(email, eventInformation);
+		const customPayloadFallback = UserRegistrationConfirmationEmailFallback(email, eventInformation);
+
+		const msg = {
+			to: email, 
+			from: 'hello@londonstudentnetwork.com',
+			subject: `🧧 Ticket for ${eventInformation.title}`,
+			text: customPayloadFallback, 
+			html: customPayload,
+		};
+
+		await sgMail.send(msg);
+	} catch (error) {
+		console.error("Error occurred during email sending of registration email. Error message:", error.message);
+		console.error("Stack trace:", error.stack);
+
+		throw new Error("Failed to send email to verify email");
+	}
+}
+
+export const sendOrganiserRegistrationEmail = async (organiserEmail: string, userEmail: string, userName: string, eventTitle: string) => {
+	try {
+		const customPayload = OrganiserRegistrationConfirmationEmail(organiserEmail, userEmail, userName)
+		const customPayloadFallback = OrganiserRegistrationConfirmationEmailFallback(organiserEmail, userEmail, userName)
+
+		const msg = {
+			to: organiserEmail, 
+			from: 'hello@londonstudentnetwork.com',
+			subject: `🧧 New registration for ${eventTitle}`, 
+			text: customPayloadFallback, 
+			html: customPayload,
+		}
+
+		await sgMail.send(msg)
+	} catch (error) {
+		console.error("Error occurred during email sending of registration email. Error message:", error.message);
+		console.error("Stack trace:", error.stack);
+
+		throw new Error("Failed to send email to verify email");
+	}
 }

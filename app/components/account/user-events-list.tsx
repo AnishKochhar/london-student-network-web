@@ -6,8 +6,6 @@ import { Event } from "@/app/lib/types";
 import { UserEventsListProps } from "@/app/lib/types";
 
 
-/* TODO: Make api call to get events for user_id */
-
 export default function UserEventsList({ user_id, editEvent = false }: UserEventsListProps) {
 	const [userEvents, setUserEvents] = useState<Event[]>([]);
 	const [loading, setLoading] = useState(true);

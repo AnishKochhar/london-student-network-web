@@ -41,6 +41,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		sign_up_link: sqlEvent.sign_up_link,
 		capacity: sqlEvent.capacity,
 		for_externals: sqlEvent.for_externals,
+		// tickets_price: sqlEvent.tickets_price,
 	};
 }
 
@@ -271,6 +272,26 @@ export function validateEvent(formData: FormData): string | undefined {
 	if (!formData.title || !formData.organiser) {
 		return "Title and organiser are required!"
 	}
+
+	// Validate ticket price
+    if (formData?.tickets_price && formData?.tickets_price !== '') {
+        const ticketsPrice = formData.tickets_price;
+        const priceNumber = Number(ticketsPrice);
+
+        if (typeof ticketsPrice !== 'string' || isNaN(priceNumber) || !/^\d+(\.\d{1,2})?$/.test(ticketsPrice)) {
+            return "Invalid ticket price!";
+        }
+
+        // Ensure the price is greater than 0.30 or is exactly '0'
+        if (priceNumber !== 0 && priceNumber < 0.30) {
+            return "Ticket price must be greater than 30p or exactly 0.";
+        }
+
+		// Ensure payments are enabled for the society
+		
+    }
+
+	return undefined; // valid data
 }
 
 export function createEventObject(data: FormData): Event {
@@ -314,6 +335,7 @@ export async function createSQLEventObject(data: FormData): Promise<SQLEvent> {
 		event_type: data.event_tag || 0,
 		sign_up_link: data.signupLink || undefined,
 		for_externals: data.forExternals || undefined,
+		tickets_price: data.tickets_price || '0',
 	};
 	
 }
