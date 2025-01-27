@@ -936,7 +936,7 @@ export async function fetchAccountId(userId: string) {
 		}
         
     } catch (error) {
-        console.error('Error updating connect_account_id:', error);
+        console.error('Error fetching connect_account_id:', error);
         return { success: false };
     }
 }
@@ -969,7 +969,7 @@ export async function fetchAccountIdByEvent(eventId: string) {
 		}
         
     } catch (error) {
-        console.error('Error updating connect_account_id:', error);
+        console.error('Error fetching connect_account_id:', error);
         return { success: false };
     }
 }

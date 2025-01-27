@@ -32,11 +32,11 @@ export async function POST(request: Request) {
             const response = await fetchAccountIdByEvent(eventId);
 
             if (!response.success) {
-                return NextResponse.json({ message: "failed to retrieve society's account id" }, { status: 500 });
+                return NextResponse.json({ message: "there was an internal error with the server" }, { status: 500 });
             }
 
             if (!response.accountId) {
-                return NextResponse.json({ message: "account id doesn't exist for this society" }, { status: 500 });
+                return NextResponse.json({ message: "please make a stripe connect account first, by editing your account details" }, { status: 500 });
             }
 
             const accountId = response.accountId;

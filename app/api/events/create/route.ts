@@ -35,11 +35,11 @@ export async function POST(req: Request) {
 				const response = await fetchAccountId(data.organiser_uid);
 	
 				if (!response.success) {
-					return NextResponse.json({ message: "failed to retrieve society's account id" }, { status: 500 });
+					return NextResponse.json({ message: "there was an internal error with the server" }, { status: 500 });
 				}
 	
 				if (!response.accountId) {
-					return NextResponse.json({ message: "finish adding remaining information for stripe connect by editing your account" }, { status: 403 }); // not allowed to create paid ticket without account
+					return NextResponse.json({ message: "please make a stripe connect account first, by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without account
 				}
 	
 				const accountId = response.accountId;
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 				const hasTransfers = account.capabilities?.transfers === "active";
 	
 				if (!hasCardPayments || !hasTransfers) {
-					return NextResponse.json({ message: "please finish stripe connect onboarding via account editing" }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
+					return NextResponse.json({ message: "please finish stripe connect onboarding by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
 				}
 			}
 		}
