@@ -48,7 +48,7 @@ export async function POST(req: Request) {
                 }
     
                 if (!response.accountId) {
-                    return NextResponse.json({ message: "account id doesn't exist for this society" }, { status: 403 }); // not allowed to create paid ticket without account
+                    return NextResponse.json({ message: "finish adding remaining information for stripe connect by editing your account" }, { status: 403 }); // not allowed to create paid ticket without account
                 }
 
                 const accountId = response.accountId;
