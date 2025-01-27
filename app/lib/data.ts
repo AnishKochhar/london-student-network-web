@@ -973,3 +973,33 @@ export async function fetchAccountIdByEvent(eventId: string) {
         return { success: false };
     }
 }
+
+export async function checkCapacity(eventId: string) {
+    try {
+        // Query to count the number of registrations for the given event ID
+        const registrationResult = await sql`
+            SELECT COUNT(*) AS registration_count
+            FROM event_registrations
+            WHERE event_id = ${eventId};
+        `;
+        const registrationCount = parseInt(registrationResult.rows[0].registration_count, 10);
+
+        // Query to retrieve the capacity from the events table for the given event ID
+        const capacityResult = await sql`
+            SELECT capacity
+            FROM events
+            WHERE id::TEXT LIKE '%' || ${eventId};
+        `;
+        const capacity = capacityResult.rows[0]?.capacity;
+
+        // Return the registration count and capacity
+		if (typeof registrationCount !== 'number' || typeof capacity !== 'number') {
+			throw new Error('unexpected data types for registration count and event capacity');
+		}
+
+        return { success: true, spaceAvailable: (registrationCount >= capacity) };
+    } catch (error) {
+        console.error('Error in checkCapacity:', error);
+        return { success: false, error: error.message};
+    }
+}

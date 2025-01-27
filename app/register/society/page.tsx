@@ -47,6 +47,10 @@ export default function SocietyRegistrationForm() {
 		return ((step) / (totalSteps)) * 100;
 	};
 
+	const incrementStep = () => {
+		nextStep();
+	}
+
 	const onSubmit = async (data: SocietyRegisterFormData) => {
 		const toastId = toast.loading('Creating your society\'s account...')
 
@@ -435,7 +439,7 @@ export default function SocietyRegistrationForm() {
 				{/* Finish without/with Stripe button */}
 				{step === 2 && 
 					<div className="flex justify-end mt-6 items-center">
-						<Button variant='outline' onClick={handleSubmit(onSubmit)} className="p-3 text-white rounded-lg hover:bg-slate-500">
+						<Button variant='outline' onClick={incrementStep} className="p-3 text-white rounded-lg hover:bg-slate-500">
 							Submit without Stripe <FlagIcon className='ml-2' width={15} height={15} />
 						</Button>
 					</div>

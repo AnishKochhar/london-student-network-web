@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import getStripe from "@/app/lib/utils/stripe";
-import { fetchAccountId } from "@/app/lib/data";
+import { fetchAccountId, insertAccountId } from "@/app/lib/data";
 
 export async function POST(req: Request) {
     
@@ -29,10 +29,38 @@ export async function POST(req: Request) {
                 // Step 3: Return the client secret         
                 return NextResponse.json({ client_secret: accountSession.client_secret });
             }
+        } else {
+            // Step 1: Create the account
+            const account = await stripe.accounts.create({
+                type: 'express', // or 'custom' depending on your use case
+                capabilities: {
+                    card_payments: { requested: true },
+                    transfers: { requested: true },
+                },
+            });
+
+            // Step 2: Create the Account Session (client secret for embedded onboarding)
+            const accountSession = await stripe.accountSessions.create({
+                account: account.id,
+                components: {
+                    account_onboarding: {
+                        enabled: true,
+                    },
+                },
+            });
+
+            // Update the user record with the accountId in your database
+            const response = await insertAccountId(userId, account.id);
+
+            if (!response.success) {
+                console.error('Error storing connect account id');
+                return NextResponse.json({ message: "couldn't insert account id in db" }, { status: 500 });
+            }
+
+            // Step 3: Return the client secret
+            return NextResponse.json({ client_secret: accountSession.client_secret });
         }
 
-        console.error('Error fetching connect account id');
-        return NextResponse.json({ message: "couldn't fetch connect account id from db" }, { status: 500 });
         
     } catch (error) {
         console.error('Error fetching connected account:', error);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkIfRegistered, fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
+import { checkIfRegistered, fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent, checkCapacity } from "@/app/lib/data";
 import { sendOrganiserRegistrationEmail, sendUserRegistrationEmail } from "@/app/lib/send-email";
 
 export async function POST(req: Request) {
@@ -9,6 +9,14 @@ export async function POST(req: Request) {
 	if (alreadyRegistered) {
 		return NextResponse.json({ success: false, registered: true })
 	}
+	const response = await checkCapacity(event_id);
+	if (!response.success) {
+		return NextResponse.json({ success: false, error: response.error })
+	}
+	if (!response.spaceAvailable) {
+		return NextResponse.json({ success: false, error: 'event capacity reached!' })
+	}
+
 	const registrationResponse = await registerForEvent(user.id, user.email, user.name, event_id)
 	if (registrationResponse.success) {
 		// Send confirmation email to user

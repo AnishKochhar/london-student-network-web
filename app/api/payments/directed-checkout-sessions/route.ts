@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import getStripe from "@/app/lib/utils/stripe";
 import { auth } from "@/auth";
-import { fetchAccountIdByEvent } from "@/app/lib/data";
+import { fetchAccountIdByEvent, checkCapacity } from "@/app/lib/data";
 
 const stripe = await getStripe();
 
@@ -14,6 +14,20 @@ export async function POST(request: Request) {
         
         if (userSession?.user?.email) {
             const { priceId, eventId } = await request.json();
+
+            try{
+                const response = await checkCapacity(eventId);
+                if (!response.success) {
+                    return NextResponse.json({ message: response.error }, { status: 500 });
+                }
+                if (!response.spaceAvailable) {
+                    return NextResponse.json({ message: 'event capacity reached!' }, { status: 403 });
+                }
+            
+            } catch(error) {
+                console.error('There was an error checking capacity:', error.message);
+                return NextResponse.json({ success: false, message: 'error checking capacity' }, { status: 500 });
+            }
 
             const response = await fetchAccountIdByEvent(eventId);
 
