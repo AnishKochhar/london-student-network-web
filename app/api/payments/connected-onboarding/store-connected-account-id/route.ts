@@ -16,6 +16,6 @@ export async function POST(req: Request) {
         
     } catch (error) {
         console.error('Error storing account ID:', error);
-        return NextResponse.json({ message: error.message }, { status: 500 });
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     }
 }

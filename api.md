@@ -4,6 +4,142 @@ This API log follows the same [Semantic Versioning](https://semver.org/spec/v2.0
 
 For each public API route, it lists **inputs**, **outputs**, **errors thrown**, and **places invocated**
 
+# [5.0.0] # Stripe integration
+
+### `Added` ###
+
+## 'events/register/check-capacity'
+
+### Inputs
+- event_id: event identifier of type `string`
+
+### Outputs
+- success: `boolean` representing response type
+- message: `string` describing succesfull response
+- error: `string` describing failure response
+
+## 'payments/checkout-sessions'
+
+### Inputs
+- priceId: identifier for a product and it's price, of type `string`
+
+### Outputs
+- id: id for a stripe account, of type `string`
+- client_secret: a token that grants specified permissions, of type `string`
+- message: a message that describes the response type, of type `string`
+- status: a status code for the response of type `number`
+
+## 'api/payments/connected-onboarding/create-connect-account'
+
+### Inputs
+- userId: id for an LSN user, of type `string`
+
+### Outputs
+- message: `string` describing response type
+- status: `number` status code describing response type
+- client_secret: `string` token granting specified onboarding permissions
+
+## 'api/payments/connected-onboarding/resume-connected-onboarding'
+
+### Inputs
+- userId: id for an LSN user, of type `string`
+
+### Outputs
+- message: `string` describing response type
+- status: `number` status code describing response type
+- client_secret: `string` token granting specified onboarding permissions
+
+## 'api/payments/connected-onboarding/store-connected-account-id'
+
+### Inputs
+- userId: id for an LSN user, of type `string`
+- accountId: id for a stripe connect account of type `string`
+
+### Outputs
+- success: `boolean` representing response type
+- message: `string` describing response type
+- status: `number` status code describing response type
+
+## 'api/payments/create-priceId'
+
+### Inputs
+- subcurrencyAmount: monetary value in subcurrency, of type `number`
+- productName: product name, of type `string`
+- description: `string`
+
+### Outputs
+- message: `string` describing response type
+- status: `number` status code describing response type
+- productId: `string` id for product
+- priceId: `string` id for price of product
+
+## 'api/payments/directed-checkout-sessions'
+
+### Inputs
+- priceId: `string` id for price of a product
+- eventId: `string` id for LSN event
+
+### Outputs
+- success: `boolean` representing response type
+- message: `string` describing response type
+- status: `number` status code describing response type
+- id: id for a stripe account, of type `string`
+- client_secret: a token that grants specified permissions, of type `string`
+
+## 'api/payments/fetch-price-id'
+
+### Inputs
+- event_uuid: `string` id for an LSN event
+
+### Outputs
+- message: `string` describing response type
+- status: `number` status code describing response type
+- priceId: `string` id for price of a product
+
+## 'api/protected/events/update'
+
+### Inputs
+- event_id: `string` id for an LSN event
+- formData: form data of type `FormData`
+
+### Outputs
+- message: `string` describing response type
+- status: `number` status code describing response type
+- error: `string` describing an error
+
+## 'api/society/create'
+
+### Inputs
+- data: form data of type `SocietyRegisterFormData`
+
+### Outputs
+- success: `boolean` describing response type
+- id: user id for LSN users of type `string`
+- error: `string` describing error
+
+### `Changed` ###
+
+## 'events/create'
+
+### Inputs
+- data: type `FormData`
+
+### Outputs
+- status: number status code (200 = success)
+- message: string message that describes the response
+
+## 'events/register'
+
+### Inputs
+- event_id: event identifier of type `string`
+- user_information: user object containing id, name, email, all of type `string`
+
+### Outputs
+- success: `boolean` representing response type
+- registered: `boolean` that is true if user already registered
+- error: `string` describing error
+- emailError: `boolean` that is true if there is an error with email sending
+
 # [4.0.0] # New non backward compatible routes introduced to workflow, and some previous routes deleted
 
 ## 'events/update'

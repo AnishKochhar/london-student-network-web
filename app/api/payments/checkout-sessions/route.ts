@@ -24,7 +24,7 @@ export async function POST(request: Request){
                 mode: 'payment',
                 return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}`
             }) 
-            return NextResponse.json({id: session.id, client_secret: session.client_secret});
+            return NextResponse.json({id: session.id, client_secret: session.client_secret}, { status: 200 });
         }
 
         return NextResponse.json({message: 'Unauthorized, please log in first'}, {status: 401});

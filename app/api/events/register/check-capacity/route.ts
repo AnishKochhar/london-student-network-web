@@ -17,6 +17,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: 'event has space.' }, { status: 200 });
     } catch(error) {
         console.error('There was an error checking capacity:', error.message);
-        return NextResponse.json({ success: false, message: 'error checking capacity' }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'error checking capacity' }, { status: 500 });
     }
 }

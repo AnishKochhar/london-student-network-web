@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 		}
 
 		// Step 3: Return the client secret
-		return NextResponse.json({ client_secret: accountSession.client_secret });
+		return NextResponse.json({ client_secret: accountSession.client_secret }, { status: 200 });
 	} catch (error) {
 		console.error('Error creating connected account:', error);
 		return NextResponse.json({ message: error.message }, { status: 500 });

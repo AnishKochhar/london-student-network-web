@@ -4,6 +4,29 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [5.0.0] - 2025-01-27
+
+### Added
+
+- Embedded Stripe API integration for accepting payments
+- DaisyUI for pretty modals
+- Stripe Connect Embedded Onboarding API, to direct payments to societies
+- Util folders for more efficient instantiation of external services (e.g. redis)
+- Email sending on registration/payment
+- Event capacity backend enforcement
+- New routes + tables as required for payments
+- Return page for post purchase (server block)
+
+### Changed
+
+- Authentication + Ownership of society required to create events
+
+### Security
+
+- Encrypt connected account ids
+- Audit required to ensure no secret and sensitive data leaked to frontend
+
+
 # [4.0.0] - 2025-01-18 
 
 ### Added
