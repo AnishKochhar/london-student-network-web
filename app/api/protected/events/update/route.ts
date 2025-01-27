@@ -40,12 +40,8 @@ export async function POST(req: Request) {
 
                 if (formData?.tickets_price && formData?.tickets_price !== '' && formData?.tickets_price !== '0') {
                     const response = await fetchAccountIdByEvent(eventId);
-
-                    if (!response.success) {
-                        return NextResponse.json({ message: "there was an internal error with the server" }, { status: 500 });
-                    }
         
-                    if (!response.accountId) {
+                    if (!response.success || !response.accountId) {
                         return NextResponse.json({ message: "please make a stripe connect account first, by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without account
                     }
     
