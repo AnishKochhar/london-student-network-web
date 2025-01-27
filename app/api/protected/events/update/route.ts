@@ -38,31 +38,31 @@ export async function POST(req: Request) {
                     );
                 }
 
-                if (formData?.tickets_price) {
+                if (formData?.tickets_price && formData?.tickets_price !== '' && formData?.tickets_price !== '0') {
+                    const response = await fetchAccountIdByEvent(eventId);
 
-                }
-                const response = await fetchAccountIdByEvent(eventId);
-
-                if (!response.success) {
-                    return NextResponse.json({ message: "failed to retrieve society's account id" }, { status: 500 });
-                }
+                    if (!response.success) {
+                        return NextResponse.json({ message: "failed to retrieve society's account id" }, { status: 500 });
+                    }
+        
+                    if (!response.accountId) {
+                        return NextResponse.json({ message: "finish adding remaining information for stripe connect by editing your account" }, { status: 403 }); // not allowed to create paid ticket without account
+                    }
     
-                if (!response.accountId) {
-                    return NextResponse.json({ message: "finish adding remaining information for stripe connect by editing your account" }, { status: 403 }); // not allowed to create paid ticket without account
+                    const accountId = response.accountId;
+    
+                    // Fetch the account
+                    const account = await stripe.accounts.retrieve(accountId);
+    
+                    // Check if card payments and transfers are active
+                    const hasCardPayments = account.capabilities?.card_payments === "active";
+                    const hasTransfers = account.capabilities?.transfers === "active";
+    
+                    if (!hasCardPayments || !hasTransfers) {
+                        return NextResponse.json({ message: "please finish stripe connect onboarding via account editing" }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
+                    }
                 }
 
-                const accountId = response.accountId;
-
-                // Fetch the account
-                const account = await stripe.accounts.retrieve(accountId);
-
-                // Check if card payments and transfers are active
-                const hasCardPayments = account.capabilities?.card_payments === "active";
-                const hasTransfers = account.capabilities?.transfers === "active";
-
-                if (!hasCardPayments || !hasTransfers) {
-                    return NextResponse.json({ message: "please finish stripe connect onboarding via account editing" }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
-                }
 
                 // -------------------------
                 // image upload
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
                 await stripe.prices.update(oldPriceId, { active: false });
 
                 try {
-                    const response3 = convertToSubCurrency(data.tickets_price)
+                    const response3 = convertToSubCurrency(sqlEvent.tickets_price);
                     if (response3?.value) {
                         const subvalue = response3.value;
 
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
                         try {
                             const { priceId } = await createProduct(subcurrencyAmount, productName, description, stripe);
 
-                            const response4 = extractPriceStringToTwoDecimalPlaces(data.tickets_price);
+                            const response4 = extractPriceStringToTwoDecimalPlaces(sqlEvent.tickets_price);
                             if (response4.error) {
                                 return NextResponse.json(
                                     { message: response4.error },
