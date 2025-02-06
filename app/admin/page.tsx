@@ -10,7 +10,7 @@ import Link from "next/link";
 export default async function AdminPage() {
 
 	const session = await auth()
-	if (!session) { 
+	if (!session) {
 		redirect('/login')
 	}
 
@@ -25,11 +25,11 @@ export default async function AdminPage() {
 				<div className="flex flex-col md:flex-row items-center md:items-start justify-between w-full space-y-10 md:space-y-0">
 					<h1 className="text-2xl md:text-4xl">ADMIN PAGE</h1>
 					<div className="flex flex-col space-y-2">
-					<Button variant='outline' size='lg' className="text-white border-gray-100">
-						<Link href='/admin/contact-form' replace>Switch to Contact Form list</Link>
-					</Button>
-					<Button variant='outline' size='lg' className="text-white border-gray-100">
-						<Link href='/admin/speed-dating' replace>Switch to Speed Dating page</Link>
+						<Button variant='outline' size='lg' className="text-white border-gray-100">
+							<Link href='/admin/contact-form' replace>Switch to Contact Form list</Link>
+						</Button>
+						<Button variant='outline' size='lg' className="text-white border-gray-100">
+							<Link href='/admin/speed-dating' replace>Switch to Speed Dating page</Link>
 						</Button>
 					</div>
 				</div>

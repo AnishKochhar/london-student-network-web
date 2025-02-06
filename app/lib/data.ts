@@ -176,7 +176,6 @@ export async function insertEvent(event: SQLEvent) {
 
 		// Insert into the tickets table using the event id and ticket price
 
-
 		return { success: true, id: eventId };
 	} catch (error) {
 		console.error('Error creating event:', error);
@@ -1006,9 +1005,37 @@ export async function checkCapacity(eventId: string) {
 export async function fetchDatingAttendees() {
 	try {
 		const result = await sql<DatingEventAttendee>`
-			SELECT id, name, email FROM dating_attendees ORDER BY name ASC
+			SELECT id, name, email FROM dating_attendees ORDER BY id ASC
 		`
 		return result.rows;
+	} catch (error) {
+		console.error("Error fetching attendees:", error);
+		throw new Error("Failed to fetch attendees");
+	}
+}
+
+export async function fetchAttendeeDetails(id: string): Promise<{ name: string; email: string } | null> {
+	try {
+		const result = await sql<{ name: string; email: string }>`
+			SELECT name, email FROM dating_attendees WHERE id = ${id} LIMIT 1
+		`;
+		if (result.rows.length === 0) {
+			return null;
+		}
+		return result.rows[0];
+	} catch (error) {
+		console.error("Error fetching attendee details:", error);
+		return null;
+	}
+}
+
+export async function addMatchToDatabase(from: string, to: string, from_name: string, to_name: string) {
+	try {
+		await sql`
+			INSERT INTO dating_matches (from_id, to_id, from_name, to_name)
+			VALUES (${from}, ${to}, ${from_name}, ${to_name})
+		`
+		return true;
 	} catch (error) {
 		console.error("Error fetching attendees:", error);
 		throw new Error("Failed to fetch attendees");

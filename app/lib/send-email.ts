@@ -11,6 +11,8 @@ import UserRegistrationConfirmationEmail from '../components/templates/user-regi
 import UserRegistrationConfirmationEmailFallback from '../components/templates/user-registration-fallback';
 import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
 import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
+import { SpeedDatingMatchEmailPayload } from '../components/templates/speed-dating-match';
+import { SpeedDatingMatchEmailPayloadFallback } from '../components/templates/speed-dating-match-fallback';
 
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
@@ -135,3 +137,40 @@ export const sendOrganiserRegistrationEmail = async (organiserEmail: string, use
 		throw new Error("Failed to send email to verify email");
 	}
 }
+
+export const sendSpeedDatingMatchEmail = async ({ toEmail, fromEmail, toName, fromName, toID, fromID }: 
+	{ toEmail: string; fromEmail: string; toName: string; fromName: string; toID: string; fromID: string; }) => {
+	try {
+		const htmlPayload = SpeedDatingMatchEmailPayload({
+			fromEmail,
+			toName,
+			fromName,
+			toID,
+			fromID,
+		});
+		const textPayload = SpeedDatingMatchEmailPayloadFallback({
+			fromEmail,
+			toName,
+			fromName,
+			toID,
+			fromID,
+		});
+
+		const msg = {
+			to: toEmail,
+			cc: fromEmail,
+			from: "hello@londonstudentnetwork.com",
+			subject: "🥳 Your Speed Dating Match is Here!",
+			text: textPayload,
+			html: htmlPayload,
+		};
+
+		await sgMail.send(msg);
+	} catch (error) {
+		console.error("Error sending speed dating match email:", error.message);
+		console.error("Stack trace:", error.stack);
+		
+		throw new Error("Failed to send speed dating match email");
+	}
+};
+

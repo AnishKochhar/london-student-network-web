@@ -4,6 +4,14 @@ export interface DatingEventAttendee {
 	email: string;
 }
 
+export interface DatingMatch {
+	from: string;
+	to: string;
+	fromName?: string;
+	toName?: string;
+	submitted?: boolean;
+}
+
 export interface Event {
 	id: string;
 	title: string;

@@ -19,12 +19,13 @@ export default async function Statistics() {
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			next: { revalidate: 86400 }, // Enable ISR (revalidate every 24 hours)
+			// next: { revalidate: 86400 }, // Enable ISR (revalidate every 24 hours)
 		});
 		if (!res.ok) {
 			throw new Error("Failed to fetch statistics");
 		}
 		stats = await res.json()
+		console.log(`Stats: ${stats}`)
 
 	} catch (error) {
 		console.error()
