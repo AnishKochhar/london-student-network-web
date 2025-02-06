@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { checkCapacity } from "@/app/lib/data";
 
 export async function POST(req: Request) {
-
-    try{
+    try {
         const { event_id } = await req.json();
 
         const response = await checkCapacity(event_id);

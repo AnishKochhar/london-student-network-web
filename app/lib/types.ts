@@ -1,3 +1,8 @@
+export interface DatingEventAttendee {
+	id: string;
+	name: string;
+	email: string;
+}
 
 export interface Event {
 	id: string;
