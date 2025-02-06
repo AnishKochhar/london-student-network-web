@@ -16,9 +16,11 @@ export const SpeedDatingMatchEmailPayloadFallback = ({
 	return `
 Hello ${toName},
 
-Great news - you have a new speed dating match!
+Well…. Isn't today your lucky day
 
-${fromName} (ID: ${fromID}) has been paired with you because we think you both have a lot to offer.
+The stars have aligned, the cosmos happy, and the universe harmonious. You have found your soul mate. 
+
+Here's their name and email. Be sure to drop them a little message and let them know where you are and what you look like - they’re waiting!
 
 Match Details:
 Your ID: ${toID} - ${toName}

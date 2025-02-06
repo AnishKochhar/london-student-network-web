@@ -9,26 +9,25 @@ interface SpeedDatingMatchPayloadProps {
 export const SpeedDatingMatchEmailPayload = ({ fromEmail, toName, fromName, toID, fromID }: SpeedDatingMatchPayloadProps) => {
 	return `
     <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-      <p>Hello ${toName},</p>
-      <p>Guess what? You have a new speed dating match!</p>
-      <p>
-        ${fromName} (ID: ${fromID}) thinks you're pretty awesome, and so do we!
-      </p>
-      <p>
-        We've connected you both. Feel free to reach out and start a conversation.
-      </p>
-      <p>
-        Your match details:
-        <br/>
-        <strong>Your ID:</strong> ${toID} - ${toName}
-        <br/>
-        <strong>Match's ID:</strong> ${fromID} - ${fromName} - ${fromEmail}
-      </p>
-      <p>
-        Happy dating, and good luck!
-      </p>
-      <p>Cheers,</p>
-      <p style="margin-left: 20px;">The London Student Network Team</p>
+		<p>Hello ${toName},</p>
+		<p>Well…. Isn't today your lucky day</p>
+		<p>
+		The stars have aligned, the cosmos happy, and the universe harmonious. You have found your soul mate.
+		</p>
+		<p>Here's their name and email. Be sure to drop them a little message and let them know where you are and what you look like - they're waiting!</p>
+
+		<p>
+			Your match details:
+			<br/>
+			<strong>Your ID:</strong> ${toID} - ${toName}
+			<br/>
+			<strong>Match's ID:</strong> ${fromID} - ${fromName} - ${fromEmail}
+		</p>
+		<p>
+			Happy dating, and good luck!
+		</p>
+		<p>Cheers,</p>
+		<p style="margin-left: 20px;">The London Student Network Team</p>
     </div>
   `;
 };
