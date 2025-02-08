@@ -32,13 +32,15 @@ export async function POST(req: Request) {
 			} 
 	
 			if (ticketPrice.value > 0) { // check if allowed to take payments + make transfers
-				const response = await fetchAccountId(data.organiser_uid);
+				// const response = await fetchAccountId(data.organiser_uid);
 	
-				if (!response.success || !response.accountId) {
-					return NextResponse.json({ message: "please make a stripe connect account first, by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without account
-				}
+				// if (!response.success || !response.accountId) {
+				// 	return NextResponse.json({ message: "please make a stripe connect account first, by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without account
+				// }
 	
-				const accountId = response.accountId;
+				// const accountId = response.accountId;
+
+				const accountId = 'acct_1QltReFk2QQd4u4n';
 	
 				// Fetch the account
 				const account = await stripe.accounts.retrieve(accountId);

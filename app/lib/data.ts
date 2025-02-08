@@ -934,7 +934,7 @@ export async function fetchAccountId(userId: string) {
 		} else {
 			return { success: true, accountId: ''};
 		}
-        
+
     } catch (error) {
         console.error('Error fetching connect_account_id:', error);
         return { success: false };

@@ -18,8 +18,8 @@ async function getUser(email: string): Promise<User | undefined> {
 
 export const { auth, handlers, signIn, signOut } = NextAuth({
 	pages: {
-		signIn: '/login',
-		signOut: '/logout',
+		signIn: '/auth/login',
+		signOut: '/auth/logout',
 	},
 	session: {
 		strategy: "jwt",
