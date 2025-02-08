@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 // note for improvement, use suspense or similar library to handle initial loading of tags, as it shows an unpleasent
 // unknown(number) value, while the tags are loaded in in the initial render. It only shows for less than a second however. 
@@ -41,7 +41,6 @@ export default function AccountPage() {
 
 	if (session) {
 		const { user } = session;
-		console.log(session);
 
 		return (
 			<div className="min-h-screen flex flex-col justify-start p-10 bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] overflow-x-hidden">

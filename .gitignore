@@ -38,7 +38,8 @@ next-env.d.ts
 
 # local
 /.history/
-/.vscode
+/.vscode/
+.bugs.md
 
 # tests
 /.tests/

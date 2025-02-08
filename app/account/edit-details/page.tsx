@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 // for future improvement, move some fields in components to be used with register and other forms
 
