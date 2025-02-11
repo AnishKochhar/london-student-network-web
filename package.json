@@ -45,6 +45,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.51.0-alpha-2025-02-08",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.17.17",
     "@types/react": "^18.3.18",

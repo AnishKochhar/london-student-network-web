@@ -90,7 +90,7 @@ export async function fetchUserEvents(organiser_uid: string) {
             WHERE e.organiser_uid = ${organiser_uid}
             ORDER BY e.start_time ASC
         `;
-        console.log(events.rows.map(convertSQLEventToEvent));
+        // console.log(events.rows.map(convertSQLEventToEvent));
         return events.rows.map(row => ({
             ...convertSQLEventToEvent(row),
             tickets_price: row.ticket_price
@@ -929,7 +929,7 @@ export async function fetchAccountId(userId: string) {
             WHERE user_id::text LIKE '%' || ${userId};
         `;
 
-		if (data.rows[0].len > 0) {
+		if (data.rows.length > 0 && data.rows[0]?.connect_account_id) {
 			return { success: true, accountId: data.rows[0].connect_account_id};
 		} else {
 			return { success: true, accountId: ''};

@@ -54,7 +54,7 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 		<div className="pb-4 mb-10 space-y-6">
 			<p className="text-sm capitalize">
 				<h3 className="text-lg font-semibold mb-2 text-white">Description</h3>
-				<hr className="border-t-1 border-gray-300 w-2/3 mt-2 mb-4" />
+				<hr className="border-t-1 border-gray-300 w-2/3 my-2" />
 				<p className="text-gray-100 whitespace-pre-wrap">{description || "No Description Found"}</p>
 			</p>
 			<p className="text-sm">
@@ -74,13 +74,6 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 						.join(', ')
 					: 'No tags found'}
 			</p>
-			<Button
-				variant="filled"
-				className="bg-blue-600 text-white my-4 py-2 px-4 rounded-full"
-				onClick={() => router.push('account/edit-details')}
-			>
-				Edit Details
-			</Button>
 		</div>
 	)
 }

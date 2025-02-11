@@ -13,6 +13,7 @@ import UserEventsList from '../components/account/user-events-list';
 import AccountFields from '../components/account/account-fields';
 import AccountLogo from '../components/account/account-logo';
 import ForgottenPasswordModal from '../components/login/reset-password-modal';
+import StripeConnectStatus from '../components/account/stripe-connect/stripe-connect-status';
 
 
 export default function AccountPage() {
@@ -52,17 +53,17 @@ export default function AccountPage() {
 						<div className='w-full'>
 							<p className="text-sm">
 								<h3 className="text-lg font-semibold mb-2 text-white">Name</h3>
-								<hr className="border-t-1 border-gray-300 w-[80%] mt-2 mb-4" />
+								<hr className="border-t-1 border-gray-300 w-2/3 my-2" />
 								<p className="text-gray-100 whitespace-pre-wrap font-bold">{user?.name || 'Test User'}</p>
 							</p>
 							<p className="text-sm mt-6">
 								<h3 className="text-lg font-semibold mb-2 text-white">Email</h3>
-								<hr className="border-t-1 border-gray-300 w-[80%] mt-2 mb-4" />
+								<hr className="border-t-1 border-gray-300 w-2/3 my-2" />
 								<p className="text-gray-100 whitespace-pre-wrap font-bold">{user?.email || 'test@lsn.co.uk'}</p>
 							</p>
 							<p className="text-sm capitalize mt-6">
 								<h3 className="text-lg font-semibold mb-2 text-white">Role</h3>
-								<hr className="border-t-1 border-gray-300 w-[80%] mt-2 mb-4" />
+								<hr className="border-t-1 border-gray-300 w-2/3 my-2" />
 								<p className="text-gray-100 whitespace-pre-wrap font-bold">{user?.role || 'user'}</p>
 							</p>
 
@@ -74,6 +75,25 @@ export default function AccountPage() {
 						}
 					</div>
 					{user.role === 'organiser' && < AccountFields id={user.id} role={user.role} />}
+					{user.role === 'organiser' && 
+						<StripeConnectStatus id={user.id} />
+					}
+					<div className="pb-4 mb-10 space-y-6">				
+						{/* <Button
+							variant="filled"
+							className="bg-blue-600 text-white my-4 py-2 px-4 rounded-full"
+							onClick={() => router.push('account/edit-details')}
+						>
+							Edit Details
+						</Button> */}
+						{/* Edit Account Details Button */}
+						<button
+							onClick={() => router.push('/account/edit-details')}
+							className="btn btn-primary mt-4"
+							>
+							Edit Account Details
+						</button>
+					</div>
 				</div>
 
 				<div className="border-b border-gray-300 pb-4 ml-4 mb-10 space-y-6">
