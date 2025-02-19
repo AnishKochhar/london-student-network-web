@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import { NOT_FOUND } from "@/app/lib/types/general";
 
 // Define types for statuses
 type CardPaymentsStatus = 'loading' | 'inconclusive' | 'active' | 'inactive' | 'pending';
@@ -62,13 +63,17 @@ export default function StripeConnectStatus({ id }: { id: string }) {
   }, []);
 
   // Helper: Map a status to a DaisyUI badge class
-  function getBadgeClass(status: string | boolean): string {
+  // Helper: Map a status to a DaisyUI badge class.
+  function getBadgeClass(status: string | boolean | typeof NOT_FOUND | Array<any>): string {
     if (typeof status === 'boolean') {
-      // Convert boolean to badge class: true is success, false is error
       return status ? 'badge badge-success' : 'badge badge-error';
     }
-    
-    // If status is a string, return the appropriate badge class.
+    if (typeof status === typeof NOT_FOUND) {
+      return 'badge badge-accent';
+    }
+    if (Array.isArray(status) && status.length > 0) {
+      return 'badge badge-warning';
+    }
     switch (status) {
       case 'active':
         return 'badge badge-success';

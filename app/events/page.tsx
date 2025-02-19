@@ -4,6 +4,13 @@ import CreateEventButton from '../components/events-page/create-event-button';
 
 export const revalidate = 60 // Once per minute
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Upcoming Student Events in London | London Student Network",
+  description: "View popular upcoming events, hosted by students like you.",
+};
+
 export default async function EventPage() {
 
 	const allEvents = await fetchAllUpcomingEvents()

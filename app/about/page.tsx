@@ -1,6 +1,13 @@
 import ProblemSection from '@/app/components/about-page/problem-section';
 import SolutionSection from '@/app/components/about-page/solution-section';
 import TeamSection from '@/app/components/about-page/team-section';
+import { Metadata } from "next"; // use addMetadataClientSide if this page becomes client side
+
+export const metadata: Metadata = {
+    title: 'About London Student Network | Our Mission & Team',
+    description: 'Learn more about London Student Network - our motivation, solution, and team.',
+};
+
 
 export default function AboutPage() {
     return (

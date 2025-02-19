@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { fetchUserEvents, fetchAccountId } from "@/app/lib/data";
+import { fetchAccountId } from "@/app/lib/data";
 import getStripe from "@/app/lib/utils/stripe";
 import { auth } from "@/auth";
+import { StripeConnectApplicationAlternative, StripeConnectApplicationError, StripeConnectApplicationDisabledReason } from "@/app/lib/types/payments";
+import { NOT_FOUND } from "@/app/lib/types/general";
 
 const stripe = await getStripe();
 
@@ -16,8 +18,8 @@ export async function POST(request: Request) {
     const session = await auth();
     if (session.user.id !== user_id) {
       return NextResponse.json(
-        { error: "Please login to view this resource" },
-        { status: 401 }
+        { error: "Permission denied to view resource" },
+        { status: 403 }
       );
     }
 
@@ -25,17 +27,22 @@ export async function POST(request: Request) {
     const response = await fetchAccountId(user_id);
     if (!response.success) {
       return NextResponse.json(
-        { stripeConnectOnboardingStatus: "inconclusive" },
+        {
+          cardPaymentsCapabilityStatus: 'inconclusive',
+          bankTransferCapabilityStatus: 'inconclusive',
+          payoutsCapabilityStatus: 'inconclusive',
+          stripeConnectOnboardingStatus: 'inconclusive',
+        },
         { status: 500 }
       );
     }
     if (!response.accountId) {
       return NextResponse.json(
         { 
-            cardPaymentsCapabilityStatus: 'inactive',
-            bankTransferCapabilityStatus: 'inactive',
-            payoutsCapabilityStatus: false,
-            stripeConnectOnboardingStatus: "not started" 
+          cardPaymentsCapabilityStatus: 'inactive',
+          bankTransferCapabilityStatus: 'inactive',
+          payoutsCapabilityStatus: false,
+          stripeConnectOnboardingStatus: "not started",
         },
         { status: 200 }
       );
@@ -45,36 +52,98 @@ export async function POST(request: Request) {
     // Retrieve the Stripe account details.
     const stripeAccount = await stripe.accounts.retrieve(accountId);
 
-    // Compute the status for being able to accept card payments (so LSN can charge a user).
-    const cardPaymentsCapabilityStatus = stripeAccount.capabilities?.card_payments;
+    // Compute the statuses.
+    const cardPaymentsCapabilityStatus = stripeAccount.capabilities.card_payments; // ('active' | 'inactive' | 'pending';)
+    const bankTransferCapabilityStatus = stripeAccount.capabilities.transfers; // ('active' | 'inactive' | 'pending';)
+    const payoutsCapabilityStatus = stripeAccount.payouts_enabled; // (boolean;)
 
-    // Compute the status for bank transfers between stripe connect accounts (so LSN can direct funds to society).
-    const bankTransferCapabilityStatus = stripeAccount.capabilities.transfers; 
 
-    // Compute the status of payouts to external/personal banks (so society can withdraw their funds from Stripe).
-    const payoutsCapabilityStatus = stripeAccount.payouts_enabled;
+    // Build a complete requirements object with defaults for SEO.
+    const reqs = stripeAccount.requirements;
+    const future_reqs = stripeAccount.future_requirements;
+
+
+    // Details interface put here for ease for developer. Can be imported from payments.ts types file instead.
+    interface details { // typeof NOT_FOUND is a custom type for ease of differentation between failure to extract details vs details N/A for Stripe (null)
+        currentlyDue: Array<string> | null | typeof NOT_FOUND;
+        alternatives: Array<StripeConnectApplicationAlternative> | null | typeof NOT_FOUND;
+        eventuallyDue: Array<string> | null | typeof NOT_FOUND;
+        currentDeadline: number | null | typeof NOT_FOUND;
+        pastDue: Array<string> | null | typeof NOT_FOUND;
+        pendingVerification: Array<string> | null | typeof NOT_FOUND;
+        errors: Array<StripeConnectApplicationError> | null | typeof NOT_FOUND;
+        disabledReason: StripeConnectApplicationDisabledReason | null | typeof NOT_FOUND;
+        futureRequirements: Array<string> | null | typeof NOT_FOUND;
+        futureRequirementsAlternatives: Array<StripeConnectApplicationAlternative> | null | typeof NOT_FOUND;
+        eventuallyDueWithNewCompliance: Array<string> | null | typeof NOT_FOUND;
+        futureDeadlines: number | null | typeof NOT_FOUND;
+        futureRequirementsPastDue: Array<string> | null | typeof NOT_FOUND;
+        futurePendingVerification: Array<string> | null | typeof NOT_FOUND;
+        futureErrors: Array<StripeConnectApplicationError> | null | typeof NOT_FOUND;
+        futureDisabledReason: StripeConnectApplicationDisabledReason | null | typeof NOT_FOUND;
+        detailsSubmitted: boolean | typeof NOT_FOUND;
+        accountType: 'custom' | 'express' | 'none' | 'standard' | typeof NOT_FOUND;
+    }
+
+
+    const details = {
+      currentlyDue: reqs.currently_due,
+      alternatives: reqs.alternatives, // array of objects with string attributes original_fields_due and alternative_fields_due
+      eventuallyDue: reqs.eventually_due,
+      currentDeadline: reqs.current_deadline,
+      pastDue: reqs.past_due,
+      pendingVerification: reqs.pending_verification,
+      errors: reqs.errors,
+      disabledReason: reqs.disabled_reason,
+      futureRequirements: future_reqs.currently_due,
+      futureRequirementsAlternatives: future_reqs.alternatives,
+      eventuallyDueWithNewCompliance: future_reqs.eventually_due,
+      futureDeadlines: future_reqs.current_deadline,
+      futureRequirementsPastDue: future_reqs.past_due,
+      futurePendingVerification: reqs.pending_verification,
+      futureErrors: future_reqs.errors,
+      futureDisabledReason: future_reqs.disabled_reason,
+      detailsSubmitted: stripeAccount.details_submitted,
+      accountType: stripeAccount.type
+    };
 
     // Determine the Stripe Connect onboarding status.
     let stripeConnectOnboardingStatus:
-      | "inconclusive"
-      | "not started"
-      | "more info required"
-      | "under review"
-      | "approved"
-      | "rejected"
-      | "disabled" = "approved";
+    | "inconclusive"
+    | "not started"
+    | "action required"
+    | "under review"
+    | "approved"
+    | "evidence rejected"
+    | "error"
+    | "disabled" = "approved";
 
-    if (stripeAccount.requirements.disabled_reason) {
-      stripeConnectOnboardingStatus = "disabled";
-    } else if (
-      stripeAccount.requirements.currently_due &&
-      stripeAccount.requirements.currently_due.length > 0
-    ) {
-      stripeConnectOnboardingStatus = "more info required";
-    } else {
-      stripeConnectOnboardingStatus = "approved";
-    }
-
+    if (details.disabledReason) {
+        stripeConnectOnboardingStatus = "disabled";
+      } else if (Array.isArray(details.errors) && details.errors.length > 0) {
+        stripeConnectOnboardingStatus = "evidence rejected";
+      } else if (
+            (Array.isArray(details.currentlyDue) && details.currentlyDue.length > 0 &&
+            Array.isArray(details.alternatives) && details.alternatives.length > 0) || 
+            (Array.isArray(details.pastDue) && details.pastDue.length > 0) || 
+            (Array.isArray(details.futureRequirements) && details.futureRequirements.length > 0) || 
+            (Array.isArray(details.futureRequirementsPastDue) && details.futureRequirementsPastDue.length > 0 &&
+            Array.isArray(details.futureRequirementsAlternatives) && details.futureRequirementsAlternatives.length > 0) )
+        {
+        stripeConnectOnboardingStatus = "action required";
+      } else if (
+            details.detailsSubmitted &&
+            (( Array.isArray(details.pendingVerification) &&
+            details.pendingVerification.length > 0 ) ||
+            ( Array.isArray(details.futurePendingVerification) &&
+            details.futurePendingVerification.length > 0 )) )
+        {
+        stripeConnectOnboardingStatus = "under review";
+      } else if (details.detailsSubmitted) {
+        stripeConnectOnboardingStatus = "approved";
+      } else {
+        stripeConnectOnboardingStatus = "inconclusive";
+      }
 
     return NextResponse.json(
       {
@@ -85,6 +154,7 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
+
   } catch (error) {
     console.error("Error fetching Stripe Connect status:", error);
     return NextResponse.json(

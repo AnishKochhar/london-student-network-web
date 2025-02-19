@@ -15,6 +15,11 @@ import AccountLogo from '../components/account/account-logo';
 import ForgottenPasswordModal from '../components/login/reset-password-modal';
 import StripeConnectStatus from '../components/account/stripe-connect/stripe-connect-status';
 
+// export const metadata = {
+// 	title: 'LSN Account Details',
+// 	description: 'Your LSN account details, past events, and future events',
+// };
+
 
 export default function AccountPage() {
 	const [showForgottenPasswordModal, setShowForgottenPasswordModal] = useState(false);

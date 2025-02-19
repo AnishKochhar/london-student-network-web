@@ -15,7 +15,6 @@ export default function ResumeEmbeddedStripeConnectOnboardingForm({userId} : {us
             try {
                 const { instance } = await getCurrentPublicStripeConnectPromise(userId);
                 setStripeConnectInstance(instance);
-
             } catch (error) {
                 console.error('Error fetching Stripe Connect instance:', error);
                 setError('Failed to fetch Stripe Connect instance.');

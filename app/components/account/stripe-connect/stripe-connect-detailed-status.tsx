@@ -93,7 +93,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
   }, []);
 
   // Helper: Map a status to a DaisyUI badge class.
-  function getBadgeClass(status: string | boolean | typeof NOT_FOUND | Array<any>): string {
+  function getBadgeClass(status: number | string | boolean | typeof NOT_FOUND | Array<any>): string {
     if (typeof status === 'boolean') {
       return status ? 'badge badge-success' : 'badge badge-error';
     }
@@ -104,6 +104,8 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
       return 'badge badge-warning';
     }
     switch (status) {
+      case 'N/A':
+        return 'badge badge-success';
       case 'active':
         return 'badge badge-success';
       case 'approved':
@@ -155,7 +157,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             Card Payments: <span className={`${getBadgeClass(cardPaymentsStatus)} ml-2`}>{cardPaymentsStatus}</span>
           </h3>
           <hr className="border-t border-gray-300 w-2/3 my-2" />
-          <p className="text-gray-400 whitespace-pre-wrap">
+          <p className="text-gray-400 whitespace-pre-wrap w-2/3">
             This must be active to accept card payments from users.
           </p>
         </div>
@@ -166,7 +168,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             Bank Transfers: <span className={`${getBadgeClass(bankTransferCapabilityStatus)} ml-2`}>{bankTransferCapabilityStatus}</span>
           </h3>
           <hr className="border-t border-gray-300 w-2/3 my-2" />
-          <p className="text-gray-400 whitespace-pre-wrap">
+          <p className="text-gray-400 whitespace-pre-wrap w-2/3">
             This must be active for LSN to direct payments to your Connected Stripe Express account.
           </p>
         </div>
@@ -177,7 +179,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             Payouts Enabled: <span className={`${getBadgeClass(payoutsEnabled)} ml-2`}>{payoutsEnabled.toString()}</span>
           </h3>
           <hr className="border-t border-gray-300 w-2/3 my-2" />
-          <p className="text-gray-400 whitespace-pre-wrap">
+          <p className="text-gray-400 whitespace-pre-wrap w-2/3">
             This is required for you to withdraw funds from your Stripe Express account.
           </p>
         </div>
@@ -188,7 +190,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             Stripe Connect Account Status: <span className={`${getBadgeClass(stripeConnectOnboardingStatus)} ml-2`}>{stripeConnectOnboardingStatus}</span>
           </h3>
           <hr className="border-t border-gray-300 w-2/3 my-2" />
-          <p className="text-gray-400 whitespace-pre-wrap">
+          <p className="text-gray-400 whitespace-pre-wrap w-2/3">
             The general status of your Stripe Connect Account Application.
           </p>
         </div>
@@ -210,14 +212,16 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Currently Due:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.currentlyDue)} ml-2`}>
-                  {Array.isArray(requirementsDetails.currentlyDue)
-                    ? requirementsDetails.currentlyDue.join(", ")
-                    : displayValue(requirementsDetails.currentlyDue)}
-                </span>
+                <span className={`${getBadgeClass(requirementsDetails.currentlyDue)} ml-2 mt-2`}></span>
+
               </h3>
+              <p className="w-2/3">
+                {Array.isArray(requirementsDetails.currentlyDue)
+                  ? requirementsDetails.currentlyDue.join(", ")
+                  : getBadgeClass(requirementsDetails.currentlyDue)}
+              </p>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields currently due for submission.
               </p>
             </div>
@@ -239,7 +243,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Alternative options available.
               </p>
             </div>
@@ -255,7 +259,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields that will eventually be required.
               </p>
             </div>
@@ -264,14 +268,14 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Current Deadline:{" "}
-                <span className={`btn btn-accent ml-2`}>
+                <span className={`${getBadgeClass(requirementsDetails.currentDeadline)} ml-2`}>
                   {typeof requirementsDetails.currentDeadline === "number"
                     ? requirementsDetails.currentDeadline
-                    : displayValue(requirementsDetails.currentDeadline)}
+                    : 'N/A'}
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Deadline for current requirements (timestamp).
               </p>
             </div>
@@ -287,7 +291,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields that are past due.
               </p>
             </div>
@@ -303,7 +307,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields pending verification.
               </p>
             </div>
@@ -321,7 +325,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Errors encountered during processing.
               </p>
             </div>
@@ -338,7 +342,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Reason for any disablement.
               </p>
             </div>
@@ -354,7 +358,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields required in the future.
               </p>
             </div>
@@ -376,7 +380,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Alternatives for future requirements.
               </p>
             </div>
@@ -392,7 +396,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields required under new compliance rules.
               </p>
             </div>
@@ -408,7 +412,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Upcoming deadlines for future requirements.
               </p>
             </div>
@@ -424,7 +428,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Future requirements that are already past due.
               </p>
             </div>
@@ -440,7 +444,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields pending verification in the future.
               </p>
             </div>
@@ -458,7 +462,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Any future errors.
               </p>
             </div>
@@ -475,7 +479,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Reason for future disablement.
               </p>
             </div>
@@ -491,7 +495,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Whether the required details have been submitted.
               </p>
             </div>
@@ -507,7 +511,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
-              <p className="text-gray-400 whitespace-pre-wrap">
+              <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 The type of Stripe Connect account.
               </p>
             </div>
