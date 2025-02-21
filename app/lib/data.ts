@@ -1,15 +1,16 @@
 import { sql } from '@vercel/postgres';
 import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, EventRegistrationEmail } from './types';
-import { FallbackStatistics } from './utils';
+import { FallbackStatistics } from './utils/general';
 import { selectUniversity } from './utils/events';
 import { formatDOB } from './utils/events';
 import { capitalize, capitalizeFirst } from './utils/general';
 import { convertSQLEventToEvent, convertSQLRegistrationsToRegistrations } from './utils/type-manipulation';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
-import { getRedisClient } from './config';
+import { getRedisClientInstance } from './singletons-private';
 
-const redis = getRedisClient();
+
+const redis = await getRedisClientInstance();
 
 // TODO: Organise based on usecases
 

@@ -1,4 +1,4 @@
-import { sgMail } from './config';
+import { getSendGridClientInstance } from './singletons-private';
 import { EmailData, EventRegistrationEmail } from './types';
 import { getEmailFromId } from './data';
 import EmailPayload from '../components/templates/user-to-society-email'; // this might have security issues because of user inputs.
@@ -12,6 +12,7 @@ import UserRegistrationConfirmationEmailFallback from '../components/templates/u
 import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
 import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
 
+let sgMail = await getSendGridClientInstance();
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
 	try {

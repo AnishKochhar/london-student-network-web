@@ -16,7 +16,7 @@ if (!SENDGRID_API_KEY) {
 
 let isInitialized = false;
 
-export default function getSendGridClient() {
+export default async function getSendGridClient() {
     if (!isInitialized) {
         sgMail.setApiKey(SENDGRID_API_KEY);
         isInitialized = true;

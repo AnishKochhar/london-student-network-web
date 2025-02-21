@@ -1,12 +1,12 @@
 'use client'
 
 
-import getStripe from "@/app/lib/stripe_config";
+import { getPublicStripePromise } from "@/app/lib/singletons-public";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { useEffect, useRef, useState } from 'react';
 import debounce from 'lodash.debounce';
 
-const stripePromise = getStripe()
+const stripePromise = getPublicStripePromise();
 
 export default function EmbeddedCheckoutButton({event_id, ticketSelected}: {event_id: string, ticketSelected: boolean}) {
 

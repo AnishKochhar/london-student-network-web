@@ -1,15 +1,16 @@
 import { updateEvent, checkOwnershipOfEvent, fetchPriceId, updateTicket, fetchAccountIdByEvent } from '@/app/lib/data';
 import { NextResponse } from 'next/server';
-import { createSQLEventObject, validateEvent } from '@/app/lib/utils';
+import { createSQLEventObject } from '@/app/lib/utils/type-manipulation';
+import { validateEvent } from '@/app/lib/utils/events';
 import { FormData } from '@/app/lib/types';
 import { auth } from '@/auth';
 import { upload } from '@vercel/blob/client';
-import getStripe from '@/app/lib/utils/stripe';
+import { getSecretStripePromise } from '@/app/lib/singletons-private';
 import { convertToSubCurrency, extractPriceStringToTwoDecimalPlaces } from '@/app/lib/utils/type-manipulation';
 import { createProduct } from '@/app/lib/utils/stripe';
 
 
-const stripe = await getStripe();
+const stripe = await getSecretStripePromise();
 
 export async function POST(req: Request) {
     try{ 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import getStripe from "@/app/lib/utils/stripe";
+import { getSecretStripePromise } from "@/app/lib/singletons-private";
 import { auth } from "@/auth";
 
-const stripe = await getStripe();
+const stripe = await getSecretStripePromise();
 
 export async function POST(request: Request){
     try {

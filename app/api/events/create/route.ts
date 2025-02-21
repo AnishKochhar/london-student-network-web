@@ -1,13 +1,14 @@
 import { insertEvent, insertIntoTickets, fetchAccountId } from '@/app/lib/data';
 import { NextResponse } from 'next/server';
-import { createSQLEventObject } from '@/app/lib/utils';
+import { createSQLEventObject } from '@/app/lib/utils/type-manipulation';
 import { FormData } from '@/app/lib/types';
 import { convertToSubCurrency } from '@/app/lib/utils/type-manipulation';
-import getStripe, { createProduct } from '@/app/lib/utils/stripe';
-import { validateEvent } from '@/app/lib/utils';
+import { createProduct } from '@/app/lib/utils/stripe';
+import { getSecretStripePromise } from '@/app/lib/singletons-private';
+import { validateEvent } from '@/app/lib/utils/events';
 import { auth } from '@/auth';
 
-const stripe = await getStripe();
+const stripe = await getSecretStripePromise();
 
 export async function POST(req: Request) {
 	try {

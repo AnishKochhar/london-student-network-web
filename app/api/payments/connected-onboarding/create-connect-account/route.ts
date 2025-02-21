@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import getStripe from "@/app/lib/utils/stripe";
+import { getSecretStripePromise } from "@/app/lib/singletons-private";
 import { insertAccountId } from "@/app/lib/data";
 
 export async function POST(req: Request) {
 	
 	try {
-		const stripe = await getStripe();
+		const stripe = await getSecretStripePromise();
 
 		const { userId } = await req.json();
 

@@ -1,7 +1,7 @@
 import { sendEmailVerificationEmail } from "@/app/lib/send-email";
 import { NextResponse, NextRequest } from "next/server";
 import { insertToken } from '@/app/lib/data';
-import { generateToken } from '@/app/lib/utils';
+import { generateToken } from "@/app/lib/utils/general";
 
 // Verify an email
 export async function POST(request: NextRequest) {

@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { FlagIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { upload } from '@vercel/blob/client';
 import Select from 'react-select'; // For tag selection
-import getPredefinedTags, { LondonUniversities } from '@/app/lib/utils';
+import getPredefinedTags, {LondonUniversities} from '@/app/lib/utils/events';
 import EmbeddedStripeConnectOnboardingForm from '@/app/components/payments/embedded-onboarding/stripe-connect';
 
 

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { fetchAccountId } from "@/app/lib/data";
-import getStripe from "@/app/lib/utils/stripe";
+import { getSecretStripePromise } from "@/app/lib/singletons-private";
 import { auth } from "@/auth";
 import { StripeConnectApplicationAlternative, StripeConnectApplicationError, StripeConnectApplicationDisabledReason } from "@/app/lib/types/payments";
 import { NOT_FOUND } from "@/app/lib/types/general";
 
-const stripe = await getStripe();
+const stripe = await getSecretStripePromise();
 
 export async function POST(request: Request) {
   try {

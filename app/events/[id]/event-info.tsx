@@ -5,7 +5,7 @@ import { Event } from "@/app/lib/types";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/utils/type-manipulation";
-import { returnLogo } from "@/app/lib/utils";
+import { returnLogo } from "@/app/lib/utils/events";
 import { EVENT_TAG_TYPES } from "@/app/lib/utils/events";
 import { formatDateString } from "@/app/lib/utils/time";
 import { LockClosedIcon, ArrowRightIcon } from "@heroicons/react/24/outline";

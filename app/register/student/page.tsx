@@ -7,7 +7,7 @@ import { UserRegisterFormData } from '@/app/lib/types';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { ArrowLeftIcon, ArrowRightIcon, FlagIcon } from '@heroicons/react/24/outline';
-import { LondonUniversities } from '../../lib/utils';
+import { LondonUniversities } from '@/app/lib/utils/events';
 
 
 export default function UserRegistrationForm() {

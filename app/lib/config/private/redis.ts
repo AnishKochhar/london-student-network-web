@@ -1,6 +1,5 @@
 'use server'
 
-
 import Redis from 'ioredis';
 
 // ================================
@@ -17,7 +16,7 @@ if (!REDIS_URL) {
 let redis: Redis | null = null;
 
 // redis singleton
-export default function getRedisClient() {
+export default async function getRedisClient() {
     if (!redis) {
         redis = new Redis(REDIS_URL);
         redis.on('connect', () => {

@@ -1,10 +1,10 @@
 'use server'
 
-import getStripe from "../lib/utils/stripe";
+import { getSecretStripePromise } from "../lib/singletons-private";
 import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "../lib/send-email";
 import { fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
 
-const stripe = await getStripe();
+const stripe = await getSecretStripePromise();
 
 async function getSession(sessionId: string) {
     const session = await stripe.checkout.sessions.retrieve(sessionId!);
