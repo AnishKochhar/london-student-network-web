@@ -1,7 +1,7 @@
 "use client";
 import EventSection from './event-section';
 import { Event } from '@/app/lib/types';
-import { convertEventsToMonthYearGroupings } from '@/app/lib/utils';
+import { convertEventsToMonthYearGroupings } from '@/app/lib/utils/events';
 
 interface FilteredEventsListProps {
 	allEvents: Event[];

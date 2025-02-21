@@ -4,7 +4,7 @@
 import { Button } from "../button";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
-import fetchPredefinedTags from "@/app/lib/utils";
+import getPredefinedTags from "@/app/lib/utils/events";
 
 export default function AccountFields({ id, role }: { id: string, role: string }) {
 
@@ -15,7 +15,7 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 
 	useEffect(() => {
 		const fetchTags = async () => {
-			const tags = await fetchPredefinedTags();
+			const tags = await getPredefinedTags();
 			setPredefinedTags(tags);
 		};
 

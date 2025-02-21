@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';
 import Select from 'react-select'; // For tag selection
 import ImageUpload from '@/app/components/account/logo-edit';
-import getPredefinedTags from '@/app/lib/utils';
+import getPredefinedTags from '@/app/lib/utils/events';
 import { OrganiserAccountEditFormData } from '@/app/lib/types';
 import { upload } from '@vercel/blob/client';
 import { Input } from '../../components/input';

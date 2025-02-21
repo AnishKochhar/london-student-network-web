@@ -41,6 +41,7 @@ next-env.d.ts
 /.vscode/
 /.bugs/
 /.todo.txt
+/.notes.txt
 
 # tests
 /.tests/

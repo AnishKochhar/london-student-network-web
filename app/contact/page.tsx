@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { useState, useEffect } from "react";
-import addMetadataClientSide from "../hooks/SEO";
+
 
 
 interface ContactFormData {
@@ -23,15 +23,6 @@ export default function ContactForm() {
 
 	const [status, setStatus] = useState<string | null>(null)
 
-	// useEffect(() => {
-	// 	document.title = "Upcoming Student Events in London | London Student Network";
-
-	// }, []);
-
-	addMetadataClientSide(
-		'Contact London Student Network | Get in Touch', 
-		'Get in touch with the LSN team. We are always happy to receive feedback or solve any issues.'
-	);
 	
 	const onSubmit = async (data: ContactFormData) => {
 		setStatus('Sending...');

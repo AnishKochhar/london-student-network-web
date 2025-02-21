@@ -1,7 +1,7 @@
 import ProblemSection from '@/app/components/about-page/problem-section';
 import SolutionSection from '@/app/components/about-page/solution-section';
 import TeamSection from '@/app/components/about-page/team-section';
-import { Metadata } from "next"; // use addMetadataClientSide if this page becomes client side
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
     title: 'About London Student Network | Our Mission & Team',

@@ -10,7 +10,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import debounce from 'lodash.debounce';
-import { fetchPartners } from '@/app/lib/utils';
+import { fetchPartners } from '@/app/lib/utils/events';
 import CardSkeleton from '@/app/components/skeletons/card';
 import Partners from '@/app/components/societies/partners';
 import { FormattedPartner } from '@/app/lib/types';
