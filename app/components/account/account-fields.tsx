@@ -2,15 +2,14 @@
 
 
 // import { Button } from "../button";
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 import getPredefinedTags from "@/app/lib/utils/events";
 
 export default function AccountFields({ id, role }: { id: string, role: string }) {
 
-	const [description, setDescription] = useState('')
-	const [website, setWebsite] = useState('')
-	const [tags, setTags] = useState<number[] | 'loading'>([])
+	const [description, setDescription] = useState('loading');
+	const [website, setWebsite] = useState('loading');
+	const [tags, setTags] = useState<number[] | 'loading'>('loading');
 	const [predefinedTags, setPredefinedTags] = useState([]);
 
 	useEffect(() => {
@@ -24,6 +23,9 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 
 	const fetchAccountInfo = async (id: string) => {
 		try {
+			setDescription('loading');
+			setWebsite('loading');
+			setTags('loading');
 			const res = await fetch('/api/user/get-account-fields', {
 				method: 'POST',
 				headers: {
@@ -33,12 +35,15 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 			});
 
 			const { description, website, tags } = await res.json()
-			setDescription(description)
-			setWebsite(website)
-			setTags(tags)
-			console.log(description, website, tags)
+			setDescription(description);
+			setWebsite(website);
+			setTags(tags);
+			console.log(description, website, tags);
 		} catch (error) {
-			console.error('Error loading description:', error)
+			setDescription('');
+			setWebsite('');
+			setTags([]);
+			console.error('Error loading description:', error);
 		}
 	}
 
@@ -47,8 +52,6 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 			fetchAccountInfo(id);
 		}
 	}, [role, id]);
-
-	const router = useRouter()
 
 	return (
 		<div className="pb-4 mb-10 space-y-6">
