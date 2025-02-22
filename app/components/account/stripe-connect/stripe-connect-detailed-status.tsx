@@ -60,10 +60,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
   const [stripeConnectOnboardingStatus, setStripeConnectOnboardingStatus] = useState<StripeConnectOnboardingStatus>('loading');
   const [requirementsDetails, setRequirementsDetails] = useState<details>(defaultDetails);
 
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
 
-  const [showCurrentlyDue, setShowCurrentlyDue] = useState(false);
-
+  const [showCurrentlyDue, setShowCurrentlyDue] = useState<boolean>(false);
+  const [showPastDue, setShowPastDue] = useState<boolean>(false);
 
   // Fetch detailed status from the backend API on component mount.
   useEffect(() => {
@@ -220,7 +220,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                   <span className={`${getBadgeClass(requirementsDetails.currentlyDue)} ml-2 mt-2`}>
                     {requirementsDetails.currentlyDue !== NOT_FOUND && (
                       <button onClick={() => setShowCurrentlyDue(!showCurrentlyDue)}>
-                        <p>Show Currently Due</p>
+                        <p>{showCurrentlyDue ? "Hide Currently Due" : "Show Currently Due"}</p>
                       </button>
                     )}
                   </span>
@@ -299,17 +299,32 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
 
             {/* Past Due (Array<string>) */}
             <div className="text-sm">
-              <h3 className="text-lg font-semibold mb-2 text-white capitalize">
-                Past Due:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.pastDue)} ml-2`}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold mb-2 text-white capitalize">
+                  Past Due:{" "}
+                  <span className={`${getBadgeClass(requirementsDetails.pastDue)} ml-2 mt-2`}>
+                    {requirementsDetails.pastDue !== NOT_FOUND && (
+                      <button onClick={() => setShowPastDue(!showPastDue)}>
+                        <p>{showPastDue ? "Hide Past Due" : "Show Past Due"}</p>
+                      </button>
+                    )}
+                  </span>
+                </h3>
+              </div>
+              {requirementsDetails.pastDue !== NOT_FOUND && showPastDue && (
+                <div className="mt-4">
                   {Array.isArray(requirementsDetails.pastDue)
-                    ? requirementsDetails.pastDue.join(", ")
-                    : displayValue(requirementsDetails.pastDue)}
-                </span>
-              </h3>
+                    ? requirementsDetails.pastDue.map((field, index) => (
+                        <p key={index} className="mb-1">
+                          {getVerificationFieldDescription(field)}
+                        </p>
+                      ))
+                    : <p>{getVerificationFieldDescription(requirementsDetails.pastDue)}</p>}
+                </div>
+              )}
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
-                Fields that are past due.
+                Fields that haven't been submitted by the deadline.
               </p>
             </div>
 
@@ -513,7 +528,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
-                Whether the required details have been submitted.
+                Whether the initial onboarding details have been submitted.
               </p>
             </div>
 

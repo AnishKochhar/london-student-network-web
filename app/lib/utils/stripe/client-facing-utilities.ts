@@ -45,6 +45,7 @@ const verificationLookup: { [code: string]: string } = {
     "business_profile.support_address.state": "Support address state or province",
     "business_profile.support_address.postal_code": "Support address ZIP or postal code",
     "business_profile.support_address.country": "Support address country",
+    "business_type": "Type of business",
   
     // Additional company/person fields
     "company.directors_provided": "Directors' information has been provided (boolean)",
