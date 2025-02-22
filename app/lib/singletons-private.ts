@@ -18,6 +18,6 @@ export function getSendGridClientInstance() {
 }
 
 
-export function getRedisClientInstance() {
+export async function getRedisClientInstance() {
     return getRedisClient();
 }

@@ -6,26 +6,29 @@ import Redis from 'ioredis';
 // redis initialization
 // ================================
 
+
 const REDIS_URL = process.env.REDIS_URL;
 
 if (!REDIS_URL) {
-	throw new Error('REDIS_URL environment variable is not set');
+    throw new Error('REDIS_URL environment variable is not set');
 }
 
-// Initialize one redis instance
-let redis: Redis | null = null;
 
-// redis singleton
-export default async function getRedisClient() {
-    if (!redis) {
-        redis = new Redis(REDIS_URL);
-        redis.on('connect', () => {
-            console.log('Connected to Redis successfully');
+// Use a global variable to persist across module reloads (due to ephemeral nature of serverless functions)
+declare global {
+    var _redis: Redis | undefined;
+}
+
+export default async function getRedisClient(): Promise<Redis> {
+    if (!global._redis) {
+        global._redis = new Redis(REDIS_URL);
+        global._redis.on('connect', () => {
+            console.log(`Attempted at: [${new Date().toISOString()}] Connected to Redis successfully`);
         });
 
-        redis.on('error', (error) => {
-            console.error('Error connecting to Redis:', error);
+        global._redis.on('error', (error) => {
+            console.error(`Attempted at: [${new Date().toISOString()}]`, 'Error connecting to Redis:', error);
         });
     }
-    return redis;
+    return global._redis;
 }

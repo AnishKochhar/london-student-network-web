@@ -14,6 +14,7 @@ import OrganiserRegistrationConfirmationEmail from '../components/templates/orga
 
 let sgMail = await getSendGridClientInstance();
 
+
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
 	try {
 		const recipient = await getEmailFromId(id);

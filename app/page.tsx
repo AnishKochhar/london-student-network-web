@@ -10,10 +10,8 @@ export const metadata: Metadata = {
 export default function Home() {
 	return (
 		<main className="relative bg-cover bg-center bg-fixed bg-no-repeat h-screen overflow-y-auto snap-y snap-mandatory" style={{ backgroundImage: "url('/images/tower-bridge-1.jpeg')" }} >
-
-				<HomePageTopSection />
-				<PartnersSection />
-			
+			<HomePageTopSection />
+			<PartnersSection />
 		</main>
 	);
 }

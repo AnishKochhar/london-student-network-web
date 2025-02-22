@@ -249,7 +249,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             </div>
 
             {/* Eventually Due (Array<string>) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Eventually Due:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.eventuallyDue)} ml-2`}>
@@ -262,7 +262,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields that will eventually be required.
               </p>
-            </div>
+            </div> */}
 
             {/* Current Deadline (number) */}
             <div className="text-sm">
@@ -348,7 +348,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             </div>
 
             {/* Future Requirements (Array<string>) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Future Requirements:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.futureRequirements)} ml-2`}>
@@ -361,10 +361,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields required in the future.
               </p>
-            </div>
+            </div> */}
 
             {/* Future Requirements Alternatives (Array<StripeConnectApplicationAlternative>) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Future Requirements Alternatives:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.futureRequirementsAlternatives)} ml-2`}>
@@ -383,10 +383,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Alternatives for future requirements.
               </p>
-            </div>
+            </div> */}
 
             {/* Eventually Due With New Compliance (Array<string>) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Eventually Due With New Compliance:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.eventuallyDueWithNewCompliance)} ml-2`}>
@@ -399,10 +399,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields required under new compliance rules.
               </p>
-            </div>
+            </div> */}
 
             {/* Future Deadlines (number) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Future Deadlines:{" "}
                 <span className={`btn btn-accent ml-2`}>
@@ -415,10 +415,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Upcoming deadlines for future requirements.
               </p>
-            </div>
+            </div> */}
 
             {/* Future Requirements Past Due (Array<string>) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Future Requirements Past Due:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.futureRequirementsPastDue)} ml-2`}>
@@ -431,10 +431,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Future requirements that are already past due.
               </p>
-            </div>
+            </div> */}
 
             {/* Future Pending Verification (Array<string>) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Future Pending Verification:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.futurePendingVerification)} ml-2`}>
@@ -447,10 +447,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields pending verification in the future.
               </p>
-            </div>
+            </div> */}
 
             {/* Future Errors (Array<StripeConnectApplicationError>) */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Future Errors:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.futureErrors)} ml-2`}>
@@ -465,10 +465,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Any future errors.
               </p>
-            </div>
+            </div> */}
 
             {/* Future Disabled Reason */}
-            <div className="text-sm">
+            {/* <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Future Disabled Reason:{" "}
                 <span className={`${getBadgeClass(requirementsDetails.futureDisabledReason)} ml-2`}>
@@ -482,7 +482,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Reason for future disablement.
               </p>
-            </div>
+            </div> */}
 
             {/* Details Submitted (boolean) */}
             <div className="text-sm">

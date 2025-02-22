@@ -1,7 +1,7 @@
 "use client";
 
 
-import { Button } from "../button";
+// import { Button } from "../button";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from "react";
 import getPredefinedTags from "@/app/lib/utils/events";
@@ -10,7 +10,7 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 
 	const [description, setDescription] = useState('')
 	const [website, setWebsite] = useState('')
-	const [tags, setTags] = useState<number[]>([])
+	const [tags, setTags] = useState<number[] | 'loading'>([])
 	const [predefinedTags, setPredefinedTags] = useState([]);
 
 	useEffect(() => {
@@ -65,14 +65,16 @@ export default function AccountFields({ id, role }: { id: string, role: string }
 			<p className="text-sm capitalize">
 				<h3 className="text-lg font-semibold mb-2 text-white">Tags</h3>
 				<hr className="border-t-1 border-gray-300 w-2/3 my-2" />
-				{Array.isArray(tags) && tags.length > 0 // handles array that isn't defined or is empty
-					? tags
-						.map((tag) => {
+				{tags === 'loading' || predefinedTags.length === 0 // modified to not show displeasing state while loading
+					? 'Loading'
+					: Array.isArray(tags) && tags.length > 0
+						? tags
+							.map((tag) => {
 							const foundTag = predefinedTags.find((t) => t.value === tag);
 							return foundTag ? foundTag.label : `Unknown (${tag})`;
-						})
-						.join(', ')
-					: 'No tags found'}
+							})
+							.join(', ')
+						: 'No tags found'}
 			</p>
 		</div>
 	)

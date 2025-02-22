@@ -5,7 +5,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
     title: 'About London Student Network | Our Mission & Team',
-    description: 'Learn more about London Student Network - our motivation, solution, and team.',
+    description: 'Want to find interesting events near you? Want more people to attend an event you have planned? Learn more about London Student Network - our motivation, solution, and team.',
 };
 
 
