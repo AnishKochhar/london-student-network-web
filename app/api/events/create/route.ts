@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { createSQLEventObject } from '@/app/lib/utils/type-manipulation';
 import { FormData } from '@/app/lib/types';
 import { convertToSubCurrency } from '@/app/lib/utils/type-manipulation';
-import { createProduct } from '@/app/lib/utils/stripe';
+import { createProduct } from '@/app/lib/utils/stripe/server-utilities';
 import { getSecretStripePromise } from '@/app/lib/singletons-private';
 import { validateEvent } from '@/app/lib/utils/events';
 import { auth } from '@/auth';

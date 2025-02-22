@@ -7,7 +7,7 @@ import { auth } from '@/auth';
 import { upload } from '@vercel/blob/client';
 import { getSecretStripePromise } from '@/app/lib/singletons-private';
 import { convertToSubCurrency, extractPriceStringToTwoDecimalPlaces } from '@/app/lib/utils/type-manipulation';
-import { createProduct } from '@/app/lib/utils/stripe';
+import { createProduct } from '@/app/lib/utils/stripe/server-utilities';
 
 
 const stripe = await getSecretStripePromise();

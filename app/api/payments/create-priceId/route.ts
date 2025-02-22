@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createProduct } from "@/app/lib/utils/stripe";
+import { createProduct } from "@/app/lib/utils/stripe/server-utilities";
 import { getSecretStripePromise } from "@/app/lib/singletons-private";
 
 const stripe = await getSecretStripePromise()

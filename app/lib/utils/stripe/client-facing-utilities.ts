@@ -1,33 +1,4 @@
-'use server'
-
-import { Stripe } from "stripe";
-
-
-export async function createProduct(subcurrencyAmount: number, productName: string, description: string, stripe: Stripe) {
-    try {
-        // Step 1: Create a new product
-        const product = await stripe.products.create({
-            name: productName,
-            description: description || "",
-        });
-
-        // console.log("Product created:", product.id);
-
-        // Step 2: Create a price for the product
-        const price = await stripe.prices.create({
-            unit_amount: subcurrencyAmount, // Price in smallest currency unit (e.g., cents)
-            currency: "gbp",
-            product: product.id,
-        });
-
-        // console.log("Price created:", price.id);
-
-        return { productId: product.id, priceId: price.id };
-    } catch (error) {
-        console.error("Error creating product or price:", error);
-        throw error;
-    }
-}
+'use client'
 
 // A lookup table to transform Stripe verification field codes into meaningful outputs.
 const verificationLookup: { [code: string]: string } = {
@@ -98,16 +69,38 @@ const verificationLookup: { [code: string]: string } = {
     "person.relationship.executive": "Person is an executive (boolean)",
     "person.relationship.representative": "Person is a representative (boolean)",
     "person.relationship.title": "Title or role of the person in the company",
+
+    // Additional Representative and Terms of Service fields:
+    "representative.address.city": "City of the representative's address",
+    "representative.address.line1": "Address line 1 of the representative",
+    "representative.address.line2": "Address line 2 of the representative (if available)",
+    "representative.address.postal_code": "Postal code of the representative's address",
+    "representative.address.country": "Country of the representative's address",
+    "representative.dob.day": "Representative's day of birth",
+    "representative.dob.month": "Representative's month of birth",
+    "representative.dob.year": "Representative's year of birth",
+    "representative.email": "Representative's email address",
+    "representative.first_name": "Representative's first name",
+    "representative.last_name": "Representative's last name",
+    "representative.phone": "Representative's phone number",
+    "representative.id_number": "Government-issued ID number of the representative",
+    "representative.ssn_last_4": "Last four digits of the representative's Social Security Number",
+    "representative.verification.document.front": "Front of the representative's government-issued ID",
+    "representative.verification.document.back": "Back of the representative's government-issued ID",
+    "representative.verification.additional_document.front": "Front of an additional document for representative verification",
+    "representative.verification.additional_document.back": "Back of an additional document for representative verification",
+    "tos_acceptance.date": "Timestamp when Terms of Service was accepted",
+    "tos_acceptance.ip": "IP address from which Terms of Service was accepted",
   
     // External account for payouts
     "external_account": "Bank account or debit card for payouts",
-  };
+};
   
-  // Helper function to get the description for a given verification field code.
-  function getVerificationFieldDescription(code: string): string {
-    return verificationLookup[code] || "Unknown verification field code";
-  }
+// Helper function to get the description for a given verification field code.
+export function getVerificationFieldDescription(code: string): string {
+    return verificationLookup[code] || code;
+}
   
-  // Example usage:
-  console.log(getVerificationFieldDescription("individual.verification.document.front"));
-  // Expected output: "Front of a government-issued ID document"
+// Example usage:
+// console.log(getVerificationFieldDescription("individual.verification.document.front"));
+// Expected output: "Front of a government-issued ID document"

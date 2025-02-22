@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { NOT_FOUND } from "@/app/lib/types/general";
 import { details } from "@/app/lib/types/payments";
+import { getVerificationFieldDescription } from "@/app/lib/utils/stripe/client-facing-utilities";
 
 // Define types for basic statuses
 type CardPaymentsStatus = 'loading' | 'inconclusive' | 'active' | 'inactive' | 'pending';
@@ -58,7 +59,10 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
   const [payoutsEnabled, setPayoutsEnabled] = useState<PayoutsStatus>('loading');
   const [stripeConnectOnboardingStatus, setStripeConnectOnboardingStatus] = useState<StripeConnectOnboardingStatus>('loading');
   const [requirementsDetails, setRequirementsDetails] = useState<details>(defaultDetails);
+
   const [showDetails, setShowDetails] = useState(false);
+
+  const [showCurrentlyDue, setShowCurrentlyDue] = useState(false);
 
 
   // Fetch detailed status from the backend API on component mount.
@@ -210,16 +214,29 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
           <div className="mt-6 space-y-6">
             {/* Currently Due (Array<string>) */}
             <div className="text-sm">
-              <h3 className="text-lg font-semibold mb-2 text-white capitalize">
-                Currently Due:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.currentlyDue)} ml-2 mt-2`}></span>
-
-              </h3>
-              <p className="w-2/3">
-                {Array.isArray(requirementsDetails.currentlyDue)
-                  ? requirementsDetails.currentlyDue.join(", ")
-                  : getBadgeClass(requirementsDetails.currentlyDue)}
-              </p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold mb-2 text-white capitalize">
+                  Currently Due:{" "}
+                  <span className={`${getBadgeClass(requirementsDetails.currentlyDue)} ml-2 mt-2`}>
+                    {requirementsDetails.currentlyDue !== NOT_FOUND && (
+                      <button onClick={() => setShowCurrentlyDue(!showCurrentlyDue)}>
+                        <p>Show Currently Due</p>
+                      </button>
+                    )}
+                  </span>
+                </h3>
+              </div>
+              {requirementsDetails.currentlyDue !== NOT_FOUND && showCurrentlyDue && (
+                <div className="mt-4">
+                  {Array.isArray(requirementsDetails.currentlyDue)
+                    ? requirementsDetails.currentlyDue.map((field, index) => (
+                        <p key={index} className="mb-1">
+                          {getVerificationFieldDescription(field)}
+                        </p>
+                      ))
+                    : <p>{getVerificationFieldDescription(requirementsDetails.currentlyDue)}</p>}
+                </div>
+              )}
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields currently due for submission.

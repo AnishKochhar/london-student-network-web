@@ -1,6 +1,5 @@
 "use client";
 
-// for future improvement, move some fields in components to be used with register and other forms
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +17,7 @@ import { FlagIcon } from '@heroicons/react/24/outline';
 import ResumeEmbeddedStripeConnectOnboardingForm from '@/app/components/payments/resume-embedded-onboarding/stripe-connect';
 import EmbeddedStripeConnectOnboardingForm from '@/app/components/payments/embedded-onboarding/stripe-connect';
 import StripeConnectDetailedStatus from '@/app/components/account/stripe-connect/stripe-connect-detailed-status';
+
 
 
 export default function EditDetailsPage() {
