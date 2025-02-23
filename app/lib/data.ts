@@ -21,7 +21,7 @@ export async function fetchWebsiteStats() {
         SELECT
             (SELECT COUNT(*) FROM events) AS total_events,
             (SELECT COUNT(DISTINCT university_attended) FROM user_information) AS total_universities,
-            (SELECT COUNT(*) FROM users WHERE role = 'organiser') AS total_societies
+            (SELECT COUNT(*) FROM users WHERE role = 'organiser' AND is_test_account = FALSE) AS total_societies
     	`;
 		return stats.rows
 
@@ -327,7 +327,7 @@ export async function fetchAccountInfo(id: string) {
 		return data.rows[0];
 	} catch (error) {
 		console.error('Database error:', error)
-		throw new Error('Failed to fetch account information from users table')
+		throw new Error('Failed to fetch account information from society information table')
 	}
 }
 
@@ -342,7 +342,7 @@ export async function fetchAccountLogo(id: string) {
 		return data.rows[0];
 	} catch (error) {
 		console.error('Database error:', error)
-		throw new Error('Failed to fetch account logo from users table')
+		throw new Error('Failed to fetch account logo from society information table')
 	}
 }
 
@@ -425,6 +425,7 @@ export async function getOrganiser(id: string) {
 			WHERE u.role = 'organiser' 
 			AND u.id=${id}
 			AND u.name != 'Just A Little Test Society'  -- Exclude the test society
+			AND u.is_test_account = FALSE -- Exclude all test accounts
 		`;
   
 		return data.rows || null;
@@ -443,6 +444,7 @@ export async function getOrganiserName(id: string) {
 			WHERE role = 'organiser' 
 			AND id=${id}
 			AND name != 'Just A Little Test Society'  -- Exclude the test society
+			AND is_test_account = FALSE -- Exclude all test accounts
 		`;
   
 		return data.rows[0] || null;
@@ -462,6 +464,7 @@ export async function getOrganiserCards(page: number, limit: number) {
             JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'
 			AND u.name != 'Just A Little Test Society'  -- Exclude the test society
+			AND u.is_test_account = FALSE -- Exclude all test accounts
 			LIMIT ${limit} OFFSET ${offset}
 		`;
   
@@ -480,6 +483,7 @@ export async function getAllOrganiserCards() {
             JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'
 			AND u.name != 'Just A Little Test Society'  -- Exclude the test society
+			AND u.is_test_account = FALSE -- Exclude all test accounts
 		`;
   
 		return data.rows;
@@ -602,7 +606,9 @@ export async function fetchOrganisers() {
 	try {
 		const data = await sql<{ name: string }>`
 			SELECT name FROM users
-			WHERE role = 'organiser' AND name != 'Just A Little Test Society'
+			WHERE role = 'organiser' 
+			AND name != 'Just A Little Test Society'
+			AND is_test_account = FALSE -- Exclude all test accounts
 		`;
 		return data.rows.map(row => row.name);
 	} catch (error) {
@@ -710,7 +716,7 @@ export async function getEmailFromId(id: string) {
 		const data = await sql`
 			SELECT email 
 			FROM users
-			WHERE role='organiser' and id = ${id} --- we really want to ensure no user email is leaked by accident
+			WHERE role='organiser' and id = ${id}
 			LIMIT 1
 		`
 		
