@@ -159,3 +159,8 @@ export interface details {
     detailsSubmitted: boolean | typeof NOT_FOUND;
     accountType: 'custom' | 'express' | 'none' | 'standard' | typeof NOT_FOUND;
 }
+
+export interface DashboardBadge {
+    badgeClass: string;
+    badgeLabel: string;
+}

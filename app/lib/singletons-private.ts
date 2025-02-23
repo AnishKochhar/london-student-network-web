@@ -5,7 +5,7 @@
 // Functions are defined in individual config files for maintainability.
 
 import getRedisClient from "./config/private/redis";
-import getSendGridClient from "./config/private/sendgrid";
+import sendSendGridEmail from "./config/private/sendgrid";
 import getSecretStripe from "./config/private/stripe-secret";
 
 export async function getSecretStripePromise() {
@@ -13,8 +13,8 @@ export async function getSecretStripePromise() {
 }
 
 
-export function getSendGridClientInstance() {
-    return getSendGridClient();
+export async function sendEmail({ to, from='hello@londonstudentnetwork.com', subject, text, html }) {
+    return sendSendGridEmail({ to, from, subject, text, html });
 }
 
 

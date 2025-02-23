@@ -23,11 +23,11 @@ export default async function getRedisClient(): Promise<Redis> {
     if (!global._redis) {
         global._redis = new Redis(REDIS_URL);
         global._redis.on('connect', () => {
-            console.log(`Attempted at: [${new Date().toISOString()}] Connected to Redis successfully`);
+            console.log(`->->->->->->(developer message) Attempted at: [${new Date().toISOString()}] Connected to Redis successfully<-<-<-<-<-<-`);
         });
 
         global._redis.on('error', (error) => {
-            console.error(`Attempted at: [${new Date().toISOString()}]`, 'Error connecting to Redis:', error);
+            console.error(`->->->->->->(developer message) Attempted at: [${new Date().toISOString()}]`, 'Error connecting to Redis:<-<-<-<-<-<-', error,);
         });
     }
     return global._redis;

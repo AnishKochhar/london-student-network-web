@@ -1,4 +1,4 @@
-import { getSendGridClientInstance } from './singletons-private';
+import { sendEmail } from './singletons-private';
 import { EmailData, EventRegistrationEmail } from './types';
 import { getEmailFromId } from './data';
 import EmailPayload from '../components/templates/user-to-society-email'; // this might have security issues because of user inputs.
@@ -11,8 +11,6 @@ import UserRegistrationConfirmationEmail from '../components/templates/user-regi
 import UserRegistrationConfirmationEmailFallback from '../components/templates/user-registration-fallback';
 import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
 import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
-
-let sgMail = await getSendGridClientInstance();
 
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
@@ -30,13 +28,13 @@ export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData
 
 		const msg = {
 			to,
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: 'New communication from the London Student Network',
 			text: customPayloadFallback, // Sendgrid uses text only as a fallback
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending or fetching logic. Error message:", error.message);
@@ -54,13 +52,13 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
 
 		const msg = {
 			to: email,
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: '🥁🥁🥁 Reset Password request with the London Student Network 🥁🥁🥁',
 			text: customPayloadFallback, // Sendgrid uses text only as a fallback
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending of reset email. Error message:", error.message);
@@ -78,13 +76,13 @@ export const sendEmailVerificationEmail = async (email: string, token: string) =
 
 		const msg = {
 			to: email,
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: '🥁🥁🥁 Verify your email with the London Student Network 🥁🥁🥁',
 			text: customPayloadFallback, // Sendgrid uses text only as a fallback,
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending of verification email. Error message:", error.message);
@@ -101,13 +99,14 @@ export const sendUserRegistrationEmail = async (email: string, eventInformation:
 
 		const msg = {
 			to: email, 
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: `🧧 Ticket for ${eventInformation.title}`,
 			text: customPayloadFallback, 
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendEmail(msg);
+
 	} catch (error) {
 		console.error("Error occurred during email sending of registration email. Error message:", error.message);
 		console.error("Stack trace:", error.stack);
@@ -123,13 +122,14 @@ export const sendOrganiserRegistrationEmail = async (organiserEmail: string, use
 
 		const msg = {
 			to: organiserEmail, 
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: `🧧 New registration for ${eventTitle}`, 
 			text: customPayloadFallback, 
 			html: customPayload,
 		}
 
-		await sgMail.send(msg)
+		await sendEmail(msg);
+
 	} catch (error) {
 		console.error("Error occurred during email sending of registration email. Error message:", error.message);
 		console.error("Stack trace:", error.stack);

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { NOT_FOUND } from "@/app/lib/types/general";
-import { details } from "@/app/lib/types/payments";
-import { getVerificationFieldDescription } from "@/app/lib/utils/stripe/client-facing-utilities";
+import { details, DashboardBadge } from "@/app/lib/types/payments";
+import { BadgeUtils, getDisabledReasonLookup, getVerificationFieldDescription } from "@/app/lib/utils/stripe/client-facing-utilities";
+import { CollapsibleToggle } from "../../general/toggle";
 
 // Define types for basic statuses
 type CardPaymentsStatus = 'loading' | 'inconclusive' | 'active' | 'inactive' | 'pending';
@@ -58,12 +59,25 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
   const [bankTransferCapabilityStatus, setBankTransferCapabilityStatus] = useState<BankTransferStatus>('loading');
   const [payoutsEnabled, setPayoutsEnabled] = useState<PayoutsStatus>('loading');
   const [stripeConnectOnboardingStatus, setStripeConnectOnboardingStatus] = useState<StripeConnectOnboardingStatus>('loading');
-  const [requirementsDetails, setRequirementsDetails] = useState<details>(defaultDetails);
+  const [requirementsDetails, setRequirementsDetails] = useState<details>(defaultDetails); // make it default initially to a loading state
 
   const [showDetails, setShowDetails] = useState<boolean>(false);
 
   const [showCurrentlyDue, setShowCurrentlyDue] = useState<boolean>(false);
+  const [showAlternatives, setShowAlternatives] = useState<boolean>(false);
   const [showPastDue, setShowPastDue] = useState<boolean>(false);
+  const [showPendingVerification, setShowPendingVerification] = useState<boolean>(false);
+  const [showDisabledReason, setShowDisabledReason] = useState<boolean>(false);
+
+  const [currentlyDueBadge, setCurrentlyDueBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  const [alternativesBadge, setAlternativesBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  const [currentDeadlineBadge, setCurrentDeadlineBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  const [pastDueBadge, setPastDueBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  const [pendingVerificationBadge, setPendingVerificationBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  const [errorsBadge, setErrorsBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  const [disabledReasonBadge, setDisabledReasonBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  // const [currentlyDueBadge, setCurrentlyDueBade] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+  // const [currentlyDueBadge, setCurrentlyDueBade] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
 
   // Fetch detailed status from the backend API on component mount.
   useEffect(() => {
@@ -75,7 +89,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
           body: JSON.stringify({ user_id: id }),
         });
         if (!res.ok) {
-          console.error("Failed to fetch status:", res.statusText);
+          console.error("Failed to fetch stripe status:", res.statusText);
           return;
         }
         const data: ExtendedStripeConnectStatusResponse = await res.json();
@@ -95,6 +109,34 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
     }
     fetchStatus();
   }, []);
+
+  useEffect(() => { // Currently Due Badge
+    setCurrentlyDueBadge(BadgeUtils.getCurrentlyDueBadge(requirementsDetails.currentlyDue));
+  }, [requirementsDetails.currentlyDue]);
+
+  useEffect(() => { // Alternative Badge
+    setAlternativesBadge(BadgeUtils.getAlternativesBadge(requirementsDetails.currentlyDue, requirementsDetails.alternatives));
+  }, [requirementsDetails.currentlyDue, requirementsDetails.alternatives]);
+
+  useEffect(() => { // Currently Deadline Badge
+    setCurrentDeadlineBadge(BadgeUtils.getCurrentDeadlineBadge(requirementsDetails.currentDeadline));
+  }, [requirementsDetails.currentDeadline]);
+
+  useEffect(() => { // Past Due Badge
+    setPastDueBadge(BadgeUtils.getPastDueBadge(requirementsDetails.pastDue));
+  }, [requirementsDetails.pastDue]);
+
+  useEffect(() => { // Pending Verification Badge
+    setPendingVerificationBadge(BadgeUtils.getPendingVerificationBadge(requirementsDetails.pendingVerification));
+  }, [requirementsDetails.pendingVerification]);
+
+  useEffect(() => { // Errors Badge
+    setErrorsBadge(BadgeUtils.getErrorsBadge(requirementsDetails.errors));
+  }, [requirementsDetails.errors]);
+
+  useEffect(() => { // Errors Badge
+    setDisabledReasonBadge(BadgeUtils.getDisabledReasonBadge(requirementsDetails.disabledReason));
+  }, [requirementsDetails.disabledReason]);
 
   // Helper: Map a status to a DaisyUI badge class.
   function getBadgeClass(status: number | string | boolean | typeof NOT_FOUND | Array<any>): string {
@@ -153,7 +195,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
 
   return (
     <>
-      <h2 className="text-2xl italic mb-2 ml-2">Stripe Connect</h2>
+      <h2 className="text-2xl italic mb-5 ml-2">Stripe Connect</h2>
       <div className="pb-4 mb-10 space-y-6">
         {/* Card Payments Status */}
         <div className="text-sm">
@@ -212,31 +254,40 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
         {/* Additional Details Section */}
         {showDetails && (
           <div className="mt-6 space-y-6">
+
             {/* Currently Due (Array<string>) */}
             <div className="text-sm">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                   Currently Due:{" "}
-                  <span className={`${getBadgeClass(requirementsDetails.currentlyDue)} ml-2 mt-2`}>
-                    {requirementsDetails.currentlyDue !== NOT_FOUND && (
-                      <button onClick={() => setShowCurrentlyDue(!showCurrentlyDue)}>
-                        <p>{showCurrentlyDue ? "Hide Currently Due" : "Show Currently Due"}</p>
-                      </button>
+                  <span className={`${currentlyDueBadge.badgeClass} ml-2 mt-2`}>
+                    {currentlyDueBadge.badgeLabel !== null ? (
+                      <p>{currentlyDueBadge.badgeLabel}</p>
+                    ) : (
+                      <CollapsibleToggle
+                        show={showCurrentlyDue}
+                        onClick={() => setShowCurrentlyDue(!showCurrentlyDue)}
+                        labelShow="Show Currently Due"
+                        labelHide="Hide Currently Due"
+                      />
                     )}
                   </span>
                 </h3>
               </div>
-              {requirementsDetails.currentlyDue !== NOT_FOUND && showCurrentlyDue && (
-                <div className="mt-4">
-                  {Array.isArray(requirementsDetails.currentlyDue)
-                    ? requirementsDetails.currentlyDue.map((field, index) => (
-                        <p key={index} className="mb-1">
-                          {getVerificationFieldDescription(field)}
-                        </p>
-                      ))
-                    : <p>{getVerificationFieldDescription(requirementsDetails.currentlyDue)}</p>}
-                </div>
-              )}
+              {requirementsDetails.currentlyDue !== NOT_FOUND &&
+                requirementsDetails.currentlyDue != null &&
+                Array.isArray(requirementsDetails.currentlyDue) &&
+                requirementsDetails.currentlyDue.length > 0 &&
+                showCurrentlyDue && (
+                  <div className="mt-4">
+                    {requirementsDetails.currentlyDue.map((field, index) => (
+                      <p key={index} className="mb-1">
+                        {getVerificationFieldDescription(field)}
+                      </p>
+                    ))}
+                  </div>
+                )
+              }
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields currently due for submission.
@@ -247,18 +298,39 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Alternatives:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.alternatives)} ml-2`}>
-                  {Array.isArray(requirementsDetails.alternatives)
-                    ? requirementsDetails.alternatives
-                        .map((alt) =>
-                          typeof alt === "string"
-                            ? alt
-                            : JSON.stringify(alt)
-                        )
-                        .join(", ")
-                    : displayValue(requirementsDetails.alternatives)}
+                <span className={`${alternativesBadge.badgeClass} ml-2`}>
+                  {alternativesBadge.badgeLabel !== null ? (
+                    <p>{alternativesBadge.badgeLabel}</p>
+                  ) : (
+                    // <button onClick={() => setShowAlternatives(!showAlternatives)}>
+                    //   <p>{showAlternatives ? "Hide Alternatives" : "Show Alternatives"}</p>
+                    // </button>
+                    <CollapsibleToggle
+                      show={showAlternatives}
+                      onClick={() => setShowAlternatives(!showAlternatives)}
+                      labelShow="Show Alternatives"
+                      labelHide="Hide Alternatives"
+                    />
+                  )}
                 </span>
               </h3>
+              {requirementsDetails.currentlyDue !== NOT_FOUND &&
+                requirementsDetails.currentlyDue != null &&
+                Array.isArray(requirementsDetails.currentlyDue) &&
+                requirementsDetails.currentlyDue.length > 0 &&
+                requirementsDetails.alternatives !== NOT_FOUND &&
+                requirementsDetails.alternatives != null &&
+                Array.isArray(requirementsDetails.alternatives) &&
+                requirementsDetails.alternatives.length > 0 &&
+                showAlternatives && (
+                  <div className="mt-4">
+                    {requirementsDetails.alternatives.map((alt, index) => (
+                      <p key={index} className="mb-1">
+                        {typeof alt === "string" ? alt : JSON.stringify(alt)}
+                      </p>
+                    ))}
+                  </div>
+                )}
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Alternative options available.
@@ -285,10 +357,8 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Current Deadline:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.currentDeadline)} ml-2`}>
-                  {typeof requirementsDetails.currentDeadline === "number"
-                    ? requirementsDetails.currentDeadline
-                    : 'N/A'}
+                <span className={`${currentDeadlineBadge.badgeClass} ml-2`}>
+                  <p>{currentDeadlineBadge.badgeLabel}</p>
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
@@ -297,31 +367,41 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               </p>
             </div>
 
-            {/* Past Due (Array<string>) */}
+            {/* Past Due */}
             <div className="text-sm">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                   Past Due:{" "}
-                  <span className={`${getBadgeClass(requirementsDetails.pastDue)} ml-2 mt-2`}>
-                    {requirementsDetails.pastDue !== NOT_FOUND && (
-                      <button onClick={() => setShowPastDue(!showPastDue)}>
-                        <p>{showPastDue ? "Hide Past Due" : "Show Past Due"}</p>
-                      </button>
+                  <span className={`${pastDueBadge.badgeClass} ml-2 mt-2`}>
+                    {pastDueBadge.badgeLabel !== null ? (
+                      <p>{pastDueBadge.badgeLabel}</p>
+                    ) : (
+                      // <button onClick={() => setShowPastDue(!showPastDue)}>
+                      //   <p>{showPastDue ? "Hide Past Due" : "Show Past Due"}</p>
+                      // </button>
+                      <CollapsibleToggle
+                        show={showPastDue}
+                        onClick={() => setShowPastDue(!showPastDue)}
+                        labelShow="Show Past Due"
+                        labelHide="Hide Past Due"
+                      />
                     )}
                   </span>
                 </h3>
               </div>
-              {requirementsDetails.pastDue !== NOT_FOUND && showPastDue && (
-                <div className="mt-4">
-                  {Array.isArray(requirementsDetails.pastDue)
-                    ? requirementsDetails.pastDue.map((field, index) => (
-                        <p key={index} className="mb-1">
-                          {getVerificationFieldDescription(field)}
-                        </p>
-                      ))
-                    : <p>{getVerificationFieldDescription(requirementsDetails.pastDue)}</p>}
-                </div>
-              )}
+              {requirementsDetails.pastDue !== NOT_FOUND &&
+                requirementsDetails.pastDue != null &&
+                Array.isArray(requirementsDetails.pastDue) &&
+                requirementsDetails.pastDue.length > 0 &&
+                showPastDue && (
+                  <div className="mt-4">
+                    {requirementsDetails.pastDue.map((field, index) => (
+                      <p key={index} className="mb-1">
+                        {getVerificationFieldDescription(field)}
+                      </p>
+                    ))}
+                  </div>
+                )}
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields that haven't been submitted by the deadline.
@@ -332,12 +412,29 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Pending Verification:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.pendingVerification)} ml-2`}>
-                  {Array.isArray(requirementsDetails.pendingVerification)
-                    ? requirementsDetails.pendingVerification.join(", ")
-                    : displayValue(requirementsDetails.pendingVerification)}
+                <span className={`${pendingVerificationBadge.badgeClass} ml-2`}>
+                  {pendingVerificationBadge.badgeLabel !== null ? (
+                    <p>{pendingVerificationBadge.badgeLabel}</p>
+                  ) : (
+                    <button onClick={() => setShowPendingVerification(!showPendingVerification)}>
+                      <p>{showPendingVerification ? "Hide Pending" : "Show Pending"}</p>
+                    </button>
+                  )}
                 </span>
               </h3>
+              {requirementsDetails.pendingVerification !== NOT_FOUND &&
+                requirementsDetails.pendingVerification != null &&
+                Array.isArray(requirementsDetails.pendingVerification) &&
+                requirementsDetails.pendingVerification.length > 0 &&
+                showPendingVerification && (
+                  <div className="mt-4">
+                    {requirementsDetails.pendingVerification.map((field, index) => (
+                      <p key={index} className="mb-1">
+                        {field}
+                      </p>
+                    ))}
+                  </div>
+                )}
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
                 Fields pending verification.
@@ -348,12 +445,8 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Errors:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.errors)} ml-2`}>
-                  {Array.isArray(requirementsDetails.errors)
-                    ? requirementsDetails.errors
-                        .map((err) => JSON.stringify(err))
-                        .join(", ")
-                    : displayValue(requirementsDetails.errors)}
+                <span className={`${errorsBadge.badgeClass} ml-2`}>
+                  <p>{errorsBadge.badgeLabel}</p>
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
@@ -366,16 +459,32 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Disabled Reason:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.disabledReason)} ml-2`}>
-                  {requirementsDetails.disabledReason &&
-                  typeof requirementsDetails.disabledReason === "object"
-                    ? JSON.stringify(requirementsDetails.disabledReason)
-                    : displayValue(requirementsDetails.disabledReason)}
+                <span className={`${disabledReasonBadge.badgeClass} ml-2`}>
+                  {disabledReasonBadge.badgeLabel !== null ? (
+                    <p>{disabledReasonBadge.badgeLabel}</p>
+                  ) : (
+                    // <button onClick={() => setShowDisabledReason(!showDisabledReason)}>
+                    //   <p>{showDisabledReason ? "Hide Reason" : "Show Reason"}</p>
+                    // </button>
+                    <CollapsibleToggle
+                      show={showDisabledReason}
+                      onClick={() => setShowDisabledReason(!showDisabledReason)}
+                      labelShow="Show Disabled Reason"
+                      labelHide="Hide Disabled Reason"
+                    />
+                  )}
                 </span>
               </h3>
+              {requirementsDetails.disabledReason !== NOT_FOUND &&
+                requirementsDetails.disabledReason != null &&
+                showDisabledReason && (
+                  <div className="mt-4">
+                    <p>{getDisabledReasonLookup(requirementsDetails.disabledReason)}</p>
+                  </div>
+                )}
               <hr className="border-t border-gray-300 w-2/3 my-2" />
               <p className="text-gray-400 whitespace-pre-wrap w-2/3">
-                Reason for any disablement.
+                Reason for disablement of account, if any.
               </p>
             </div>
 
@@ -520,10 +629,8 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Details Submitted:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.detailsSubmitted)} ml-2`}>
-                  {typeof requirementsDetails.detailsSubmitted === "boolean"
-                    ? requirementsDetails.detailsSubmitted.toString()
-                    : displayValue(requirementsDetails.detailsSubmitted)}
+                <span className={`${BadgeUtils.getDetailsSubmittedBadge(requirementsDetails.detailsSubmitted).badgeClass} ml-2`}>
+                  {BadgeUtils.getDetailsSubmittedBadge(requirementsDetails.detailsSubmitted).badgeLabel}
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
@@ -536,10 +643,8 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
             <div className="text-sm">
               <h3 className="text-lg font-semibold mb-2 text-white capitalize">
                 Account Type:{" "}
-                <span className={`${getBadgeClass(requirementsDetails.accountType)} ml-2`}>
-                  {typeof requirementsDetails.accountType === "string"
-                    ? requirementsDetails.accountType
-                    : displayValue(requirementsDetails.accountType)}
+                <span className={`${BadgeUtils.getAccountTypeBadge(requirementsDetails.accountType).badgeClass} ml-2`}>
+                  {BadgeUtils.getAccountTypeBadge(requirementsDetails.accountType).badgeLabel}
                 </span>
               </h3>
               <hr className="border-t border-gray-300 w-2/3 my-2" />
