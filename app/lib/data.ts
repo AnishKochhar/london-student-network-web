@@ -278,12 +278,25 @@ export async function deleteEvents(eventIds: string[]): Promise<void> {
 
 		const jsonEventIds = eventIds.map(id => ({ id }));
 
-		// Use json_populate_recordset to delete the events by ID
+		// Begin a transaction
+		await sql.query(`BEGIN`);
+
+		// Delete the related event
 		await sql.query(
 			`DELETE FROM events
-             WHERE id IN (SELECT id FROM json_populate_recordset(NULL::events, $1))`,
+            WHERE id IN (SELECT id FROM json_populate_recordset(NULL::events, $1))`,
 			[JSON.stringify(jsonEventIds)]
 		);
+
+		// Delete the related ticket products
+		await sql.query(
+			`DELETE FROM tickets
+			WHERE event_uuid IN (SELECT id FROM json_populate_recordset(NULL::events, $1))`,
+			[JSON.stringify(jsonEventIds)]
+		);
+
+		// Commit the transaction
+		await sql.query(`COMMIT`);
 
 
 		console.log(`Deleted ${eventIds.length} events.`);
