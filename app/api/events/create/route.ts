@@ -16,46 +16,51 @@ export async function POST(req: Request) {
 		const session = await auth();
 
 		if (session?.user?.id !== data.organiser_uid) {
-			return NextResponse.json({message: 'you do not have permission to create the event'}, {status: 403}); // not allowed to make the event
+			return NextResponse.json({ message: 'you do not have permission to create the event' }, { status: 403 }); // not allowed to make the event
 		}
 
 		const isNotValid = validateEvent(data);
 
 		if (isNotValid) {
-			return NextResponse.json({message: isNotValid}, {status: 400});
+			return NextResponse.json({ message: isNotValid }, { status: 400 });
 		}
 
-		if (data?.tickets_price && data?.tickets_price !== '') { 
-			const ticketPrice = convertToSubCurrency(data?.tickets_price);
+		if (data?.tickets_price && data?.tickets_price !== '0') { 
+			const ticketPrice = convertToSubCurrency(data.tickets_price);
 
 			if (ticketPrice.error) {
-				return NextResponse.json({message: 'ticket price is not valid'}, {status: 400});
+				return NextResponse.json({ message: 'Ticket price is not valid.' }, { status: 400 });
 			} 
 	
-			if (ticketPrice.value > 0) { // check if allowed to take payments + make transfers
-				// const response = await fetchAccountId(data.organiser_uid);
+			if (ticketPrice.value > 0) { // check if allowed to make payouts + make transfers
+				const response = await fetchAccountId(data.organiser_uid);
 	
-				// if (!response.success || !response.accountId) {
-				// 	return NextResponse.json({ message: "please make a stripe connect account first, by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without account
-				// }
-	
-				// const accountId = response.accountId;
+				if (!response.success) {
+					console.error("DB error occurred during trying to fetch account id for stripe connect, for a society trying to make a paid event.");
+					return NextResponse.json({ message: "Internal error. Please try again later." }, { status: 500 }); // server oopsie moment
+				}
 
-				const accountId = 'acct_1QltReFk2QQd4u4n';
-	
+				if (!response.accountId) {
+					return NextResponse.json({ message: "Please make a stripe connect account first, by editing your account details." }, { status: 403 }); // not allowed to create paid ticket without account
+				}
+
+				const accountId = response.accountId;
+
 				// Fetch the account
 				const account = await stripe.accounts.retrieve(accountId);
 	
-				// Check if card payments and transfers are active
-				const hasCardPayments = account.capabilities?.card_payments === "active";
-				const hasTransfers = account.capabilities?.transfers === "active";
-	
-				if (!hasCardPayments || !hasTransfers) {
-					return NextResponse.json({ message: "please finish stripe connect onboarding by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
+				// Check if payouts and transfers are active
+				// const hasCardPayments = account.capabilities.card_payments === "active"; // apparently not required, as we collect payments for societies
+				const hasTransfers = account.capabilities.transfers === "active";
+				const hasPayouts = account.payouts_enabled === true;
+				if (!hasTransfers) {
+					return NextResponse.json({ message: "Your account doesn't have transfers active. Please finish your stripe connect account setup." }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
+				}
+				if (!hasPayouts) {
+					return NextResponse.json({ message: "Your account doesn't have payouts active. Please finish your stripe connect account setup." }, { status: 403 }); // not allowed to create paid ticket without full account onboarding
 				}
 			}
 		}
-
 
 
 		const sqlEvent = await createSQLEventObject(data);
@@ -65,47 +70,45 @@ export async function POST(req: Request) {
 			return NextResponse.json({message: response1.error}, {status: 500});
 		}
 
-		if (data?.tickets_price && data?.tickets_price !== '' && data?.tickets_price !== '0') { 
+		if (data?.tickets_price && data?.tickets_price !== '0') { 
 			const response2 = convertToSubCurrency(data?.tickets_price);
-			const subValue = response2.value;
-	
+			
 			if (response2?.error) {
-				return NextResponse.json({message: response2.error}, {status: 500});
+				return NextResponse.json({message: "Invalid ticket price."}, {status: 400});
 			}
-	
+
+			const subValue = response2.value;
+
 			let price_id: string;
-	
+
 			try {
 				const { subcurrencyAmount, productName, description } = {
 					subcurrencyAmount: subValue,
 					productName: 'Standard Ticket',
 					description: data?.title? `Standard Ticket for ${data.title}` : 'Standard Ticket for event',
 				};
-		
-				if (!subcurrencyAmount || !productName) {
-					return NextResponse.json({message: "the request doesn't contain important information"}, {status: 400});
-				}
-	
+
 				const { priceId } = await createProduct(subcurrencyAmount, productName, description, stripe);
 				price_id = priceId;
-	
+
 			} catch (error) {
 				console.error("An error occurred during product creation:", error);
 				return NextResponse.json({ message: error.message }, { status: 500 });
 			}
-	
+
 			try {
 				const response3 = await insertIntoTickets(data.tickets_price, response1.id, price_id);
 				if (!response3.success) {
-					return NextResponse.json({message: 'failed to insert price of ticket into database'}, {status: 500});
+					console.error("Failed to insert details into tickets table during paid event creation");
+					return NextResponse.json({message: 'Internal server error, please try again later.'}, {status: 500});
 				}
-	
+
 			} catch (error) {
 				console.error('an error occured during trying to save priceId:', error);
 				return NextResponse.json({message: error.message}, {status: 500});
 			}
 		}
-	
+
 		return NextResponse.json({message: 'success'}, {status: 200});
 
 	} catch(error) {

@@ -29,6 +29,24 @@ export default async function getCurrentStripeConnectPromise(userId: string) {
         const initParams: IStripeConnectInitParams = {
             publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
             fetchClientSecret: async () => client_secret, // Use fetched client_secret
+            appearance: {
+                variables: { // https://docs.stripe.com/connect/customize-connect-embedded-components
+                    colorPrimary: "#3C82F6",
+                    colorText: "#FFFFFF",
+                    buttonPrimaryColorBackground: "#4A00FF",
+                    buttonSecondaryColorBackground: "#00B5FF",
+                    buttonSecondaryColorText: "#000000",
+                    colorSecondaryText: "#FFFFFF",
+                    actionPrimaryColorText: "#FFFFFF",
+                    actionPrimaryTextDecorationColor: "#D7D9F9",
+                    actionSecondaryColorText: "#EEEEEE",
+                    formHighlightColorBorder: "#4A00FF",
+                    formAccentColor: "#552CB5",
+                    badgeNeutralColorText: "#9AAFF4",
+                    borderRadius: "20px",
+                    spacingUnit: "10px",
+                },
+            },
         };
 
         const instance = loadConnectAndInitialize(initParams);

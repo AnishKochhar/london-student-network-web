@@ -104,15 +104,15 @@ export default function StripeConnectStatus({ id }: { id: string }) {
       <div className="pb-4 mb-10 space-y-6">
 
         {/* Card Payments Status */}
-        <div className="text-sm">
+        {/* <div className="text-sm">
           <h3 className="text-lg font-semibold mb-2 text-white capitalize">
             Card Payments: <span className={`${getBadgeClass(cardPaymentsStatus)} ml-2`}>{cardPaymentsStatus}</span>
           </h3>
           <hr className="border-t border-gray-300 w-2/3 my-2" />
           <p className="text-gray-400 whitespace-pre-wrap">
-            This must be active to accept card payments from users.
+            Indicates if your account can collect payments from users. This is *NOT* required, as LSN collects payments for you.
           </p>
-        </div>
+        </div> */}
 
         {/* Bank Transfers Status */}
         <div className="text-sm">
