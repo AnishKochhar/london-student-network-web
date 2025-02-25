@@ -1004,7 +1004,7 @@ export async function checkCapacity(eventId: string) {
         const registrationResult = await sql`
             SELECT COUNT(*) AS registration_count
             FROM event_registrations
-            WHERE event_id = ${eventId};
+            WHERE event_id::TEXT LIKE '%' || ${eventId};
         `;
         const registrationCount = parseInt(registrationResult.rows[0].registration_count, 10);
 

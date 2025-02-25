@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { checkIfRegistered, fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
 import { sendOrganiserRegistrationEmail, sendUserRegistrationEmail } from "@/app/lib/send-email";
+import { checkIfEventIsPaid } from "@/app/lib/data/payments";
 
 export async function POST(req: Request) {
 	const { event_id, user_information } = await req.json();
 	const user: { email: string, id: string, name: string } = user_information
 	const alreadyRegistered = await checkIfRegistered(event_id, user.id)
 	if (alreadyRegistered) {
-		return NextResponse.json({ success: false, registered: true })
+		return NextResponse.json({ success: false, registered: true });
 	}
 	// const response = await checkCapacity(event_id);
 	// if (!response.success) {
@@ -16,6 +17,12 @@ export async function POST(req: Request) {
 	// if (!response.spaceAvailable) {
 	// 	return NextResponse.json({ success: false, error: 'event capacity reached!' })
 	// }
+
+	const eventPaid = await checkIfEventIsPaid(event_id);
+
+	if (eventPaid) { // Do not use this route for paid events. Instead, users should go through the payment flow and be registered with the paymentProcessingAndServiceFulfilment() server action
+		return NextResponse.json({ success: false, registered: false });
+	}
 
 	const registrationResponse = await registerForEvent(user.id, user.email, user.name, event_id)
 	if (registrationResponse.success) {

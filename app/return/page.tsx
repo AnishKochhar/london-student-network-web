@@ -1,60 +1,135 @@
-'use server'
+'use client'
 
-import { getSecretStripePromise } from "../lib/singletons-private";
-import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "../lib/send-email";
-import { fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-const stripe = await getSecretStripePromise();
+export default function CheckoutReturn({ searchParams }: { searchParams: any }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { session_id, email, user_id, name, event_id } = searchParams;
 
-async function getSession(sessionId: string) {
-    const session = await stripe.checkout.sessions.retrieve(sessionId!);
-    return session
-}
+  useEffect(() => {
+    const processPayment = async () => {
+      try {
+        // 1. Check session status
+        const sessionRes = await fetch(`/api/payments/check-session?session_id=${session_id}`);
+        const session = await sessionRes.json();
 
-export default async function CheckoutReturn({ searchParams }) {
-    const sessionId = searchParams.session_id;
-    const userEmail = searchParams.email;
-    const userId = searchParams.user_id;
-    const userName = searchParams.name;
-    const eventId = searchParams.event_id;
-
-    const session = await getSession(sessionId);
- 
-    if (session?.status === "open") {
-		return <p>Payment wasn&#39; t succesfull.</p>;
-    }
-
-    if (session?.status === 'expired') {
-        return (
-            <p>Session expired.</p>
-        )
-    }
-
-    if (session?.status === "complete") {
-        const response = await registerForEvent(userId, userEmail, userName, eventId);
-
-        if (response.success) {
-            const eventInformationResponse = await fetchRegistrationEmailEventInformation(eventId);
-            if (eventInformationResponse.success) {
-                await sendUserRegistrationEmail(userEmail, eventInformationResponse.event);
-            }
-            const organiserEmailResponse = await fetchOrganiserEmailFromEventId(eventId)
-            await sendOrganiserRegistrationEmail(organiserEmailResponse.email, userEmail, userName, eventInformationResponse.event.title);
+        if (!sessionRes.ok) {
+          router.push(`/registration/payment-complete/server-error`);
+          return;
         }
 
+        // 2. Process registration
+        // const { event_id, user_information } = await req.json();
+        // const user: { email: string, id: string, name: string } = user_information
+        let registrationSuccess = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const regRes = await fetch('/api/events/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event_id,
+                user_information: {
+                  email,
+                  id: user_id,
+                  name
+                }
+              })
+            });
 
-        return (
-            <h3>
-                We appreciate your businesss! 
-                <br/>
-                Your Stripe customer id is:
-                <br/>
-                {(session?.customer as string)}
-                <br/>
-                Please keep this number safe as a reference for future correspondence.
-                <br/>
-                Please check your email for a confirmation of payment.
-            </h3>
-        )
-    }
+            if (regRes.ok) {
+              registrationSuccess = true;
+              break;
+            }
+          } catch (err) {
+            if (attempt === 3) throw err;
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+          }
+        }
+
+        if (!registrationSuccess) {
+          router.push(`/registration/payment-complete/server-error`);
+          return;
+        }
+
+        // 3. Get event information
+        const eventInfoRes = await fetch(`/api/event-info?event_id=${event_id}`);
+        const eventInfo = await eventInfoRes.json();
+        
+        if (!eventInfoRes.ok) {
+          router.push(`/registration/payment-complete/server-error`);
+          return;
+        }
+
+        // 4. Send user email
+        let emailSuccess = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            const emailRes = await fetch('/api/send-user-email', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email,
+                event: eventInfo.event
+              })
+            });
+
+            if (emailRes.ok) {
+              emailSuccess = true;
+              break;
+            }
+          } catch (err) {
+            if (attempt === 3) throw err;
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+          }
+        }
+
+        if (!emailSuccess) {
+          router.push(`/registration/payment-complete/email-error`);
+          return;
+        }
+
+        // 5. Send organizer email (fire-and-forget)
+        fetch('/api/send-organizer-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userEmail: email,
+            userName: name,
+            eventId: event_id
+          })
+        }).catch(console.error);
+
+        // Final success
+        router.push(`/registration/payment-complete/success/thank-you`);
+
+      } catch (err) {
+        console.error('Payment processing failed:', err);
+        router.push(`/registration/payment-complete/server-error`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    processPayment();
+  }, []);
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold text-blue-600">
+          Processing your payment...
+        </h2>
+        <h3 className="text-2xl font-semibold text-blue-600">
+          Please do not reload or close the page
+        </h3>
+        <div className="mt-4 flex justify-center">
+          <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    </div>
+  );
 }
