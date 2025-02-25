@@ -48,7 +48,7 @@ export default function RegistrationsModal({ registrations, onClose }: Registrat
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
 			<div
 				ref={modalRef}
-				className="relative bg-white w-[90vw] h-[80vh] p-8 border-2 border-black overflow-hidden flex items-center justify-center"
+				className="relative bg-white w-[90vw] h-[80vh] p-8 border-2 border-black overflow-scroll flex items-center justify-center"
 			>
 				<button onClick={onClose} className="absolute top-4 right-4 transition" >
 					<Image

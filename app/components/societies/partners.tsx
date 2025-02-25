@@ -3,7 +3,7 @@
 import { FormattedPartner } from "@/app/lib/types";
 import Image from "next/image";
 import Link from "next/link";
-import { formattedWebsite } from "@/app/lib/utils";
+import { formattedWebsite } from "@/app/lib/utils/general";
 
 
 function Partners({ filteredPartners }: { filteredPartners: FormattedPartner[] }) {

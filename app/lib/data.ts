@@ -1,11 +1,18 @@
 import { sql } from '@vercel/postgres';
-import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult } from './types';
-import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics } from './utils';
+import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, EventRegistrationEmail } from './types';
+import { FallbackStatistics } from './utils/general';
+import { selectUniversity } from './utils/events';
+import { formatDOB } from './utils/events';
+import { capitalize, capitalizeFirst } from './utils/general';
+import { convertSQLEventToEvent, convertSQLRegistrationsToRegistrations } from './utils/type-manipulation';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
-import { redis } from './config';
+import { getRedisClientInstance } from './singletons-private';
 
-// needs organisation
+
+const redis = await getRedisClientInstance();
+
+// TODO: Organise based on usecases
 
 export async function fetchWebsiteStats() {
 	// return FallbackStatistics
@@ -14,7 +21,7 @@ export async function fetchWebsiteStats() {
         SELECT
             (SELECT COUNT(*) FROM events) AS total_events,
             (SELECT COUNT(DISTINCT university_attended) FROM user_information) AS total_universities,
-            (SELECT COUNT(*) FROM users WHERE role = 'organiser') AS total_societies
+            (SELECT COUNT(*) FROM users WHERE role = 'organiser' AND is_test_account = FALSE) AS total_societies
     	`;
 		return stats.rows
 
@@ -38,6 +45,7 @@ export async function checkOwnershipOfEvent(userId: string, eventId: string) {
 		throw new Error('Failed to verify ownership in database function');
 	}
 }
+
 
 export async function fetchEvents() {
 	try {
@@ -80,13 +88,18 @@ export async function fetchUpcomingEvents() {
 
 export async function fetchUserEvents(organiser_uid: string) {
 	try {
-        const events = await sql`
-            SELECT * FROM events
-            WHERE organiser_uid = ${organiser_uid}
-            ORDER BY start_time ASC
+        const events = await sql<SQLEvent & { ticket_price: string }>`
+            SELECT e.*, t.ticket_price
+            FROM events e
+            LEFT JOIN tickets t ON e.id = t.event_uuid
+            WHERE e.organiser_uid = ${organiser_uid}
+            ORDER BY e.start_time ASC
         `;
-        
-        return events.rows.map(convertSQLEventToEvent)
+        // console.log(events.rows.map(convertSQLEventToEvent));
+        return events.rows.map(row => ({
+            ...convertSQLEventToEvent(row),
+            tickets_price: row.ticket_price
+        }));
     } catch (error) {
         console.error('Error fetching user events:', error);
         throw new Error('Unable to fetch user\'s events')
@@ -96,12 +109,40 @@ export async function fetchUserEvents(organiser_uid: string) {
 
 export async function fetchEventById(id: string) {
 	try {
-		const data = await sql<SQLEvent>`
+		const result1 = await sql<SQLEvent>`
 			SELECT *
 			FROM events
 			WHERE id::text LIKE '%' || ${id};
 		`;
-		return convertSQLEventToEvent(data.rows[0]);
+
+		const result2 = await sql<{ ticket_price: string }>`
+			SELECT ticket_price
+			FROM tickets
+			WHERE event_uuid::text LIKE '%' || ${id};
+		`;
+		// , tickets_price: result2.rows[0]?.ticket_price || '0'
+
+		return {
+			...convertSQLEventToEvent(result1.rows[0]),
+			tickets_price: result2.rows[0]?.ticket_price || '0'
+		};
+	} catch (error) {
+		console.error('Database error:', error);
+		throw new Error('Failed to fetch event');
+	}
+}
+
+export async function fetchRegistrationEmailEventInformation(event_id: string) {
+	try {
+		const result = await sql<EventRegistrationEmail>`
+			SELECT title, organiser, day, month, year, start_time, end_time, location_building, location_area, location_address
+			FROM events
+			WHERE id = ${event_id}
+		`;
+		if (result.rows.length === 0) {
+			return { success: false };
+		}
+		return { success: true, event: result.rows[0] };
 	} catch (error) {
 		console.error('Database error:', error);
 		throw new Error('Failed to fetch event');
@@ -129,15 +170,70 @@ export async function fetchEventWithUserId(event_id: string, user_id: string) {
 
 export async function insertEvent(event: SQLEvent) {
 	try {
-		await sql`
+		const result = await sql`
 		INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals, capacity, image_contain)
 		VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null}, ${event.capacity ?? null}, ${event.image_contain})
+		RETURNING id
 		`
-		return { success: true };
+
+		// Get the id of the newly inserted event
+		const eventId = result.rows[0].id;
+
+		// Insert into the tickets table using the event id and ticket price
+
+		
+		return { success: true, id: eventId };
 	} catch (error) {
 		console.error('Error creating event:', error);
 		return { success: false, error };
 	}
+}
+
+export async function insertIntoTickets(tickets_price: string, eventId: string, priceId: string) {
+	try {
+
+		await sql`
+		INSERT INTO tickets (price_id, ticket_price, event_uuid)
+		VALUES (${priceId}, ${tickets_price}, ${eventId}::UUID)
+		`
+
+		return { success: true }
+	} catch (error) {
+		console.error('Error inserting ticket into tickets table:', error);
+		return { success: false, error };
+	}
+}
+
+export async function fetchPriceId(eventId: string) {
+	try {
+
+		const result = await sql`
+		SELECT price_id
+		FROM tickets
+		WHERE event_uuid::text LIKE '%' || ${eventId}
+		`
+
+		return { success: true, priceId: result.rows[0].price_id }
+	} catch (error) {
+		console.error('Error fetching price_id from tickets table:', eventId, error);
+		return { success: false, error };
+	}
+}
+
+export async function updateTicket(eventId: string, newPriceId: string, ticketPrice: string) {
+    try {
+        const result = await sql`
+        UPDATE tickets
+        SET price_id = ${newPriceId}, ticket_price = ${ticketPrice}
+        WHERE event_uuid::text LIKE '%' || ${eventId}
+        RETURNING price_id, ticket_price --- returns the updated price_id and ticket_price
+        `;
+
+        return { success: true, newPriceId: result.rows[0].price_id, ticketPrice: result.rows[0].ticket_price };
+    } catch (error) {
+        console.error('Error updating tickets table:', error);
+        return { success: false, error };
+    }
 }
 
 
@@ -182,12 +278,25 @@ export async function deleteEvents(eventIds: string[]): Promise<void> {
 
 		const jsonEventIds = eventIds.map(id => ({ id }));
 
-		// Use json_populate_recordset to delete the events by ID
+		// Begin a transaction
+		await sql.query(`BEGIN`);
+
+		// Delete the related event
 		await sql.query(
 			`DELETE FROM events
-             WHERE id IN (SELECT id FROM json_populate_recordset(NULL::events, $1))`,
+            WHERE id IN (SELECT id FROM json_populate_recordset(NULL::events, $1))`,
 			[JSON.stringify(jsonEventIds)]
 		);
+
+		// Delete the related ticket products
+		await sql.query(
+			`DELETE FROM tickets
+			WHERE event_uuid IN (SELECT id FROM json_populate_recordset(NULL::events, $1))`,
+			[JSON.stringify(jsonEventIds)]
+		);
+
+		// Commit the transaction
+		await sql.query(`COMMIT`);
 
 
 		console.log(`Deleted ${eventIds.length} events.`);
@@ -231,7 +340,7 @@ export async function fetchAccountInfo(id: string) {
 		return data.rows[0];
 	} catch (error) {
 		console.error('Database error:', error)
-		throw new Error('Failed to fetch account information from users table')
+		throw new Error('Failed to fetch account information from society information table')
 	}
 }
 
@@ -246,7 +355,7 @@ export async function fetchAccountLogo(id: string) {
 		return data.rows[0];
 	} catch (error) {
 		console.error('Database error:', error)
-		throw new Error('Failed to fetch account logo from users table')
+		throw new Error('Failed to fetch account logo from society information table')
 	}
 }
 
@@ -329,6 +438,7 @@ export async function getOrganiser(id: string) {
 			WHERE u.role = 'organiser' 
 			AND u.id=${id}
 			AND u.name != 'Just A Little Test Society'  -- Exclude the test society
+			AND u.is_test_account = FALSE -- Exclude all test accounts
 		`;
   
 		return data.rows || null;
@@ -347,6 +457,7 @@ export async function getOrganiserName(id: string) {
 			WHERE role = 'organiser' 
 			AND id=${id}
 			AND name != 'Just A Little Test Society'  -- Exclude the test society
+			AND is_test_account = FALSE -- Exclude all test accounts
 		`;
   
 		return data.rows[0] || null;
@@ -366,6 +477,7 @@ export async function getOrganiserCards(page: number, limit: number) {
             JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'
 			AND u.name != 'Just A Little Test Society'  -- Exclude the test society
+			AND u.is_test_account = FALSE -- Exclude all test accounts
 			LIMIT ${limit} OFFSET ${offset}
 		`;
   
@@ -384,6 +496,7 @@ export async function getAllOrganiserCards() {
             JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'
 			AND u.name != 'Just A Little Test Society'  -- Exclude the test society
+			AND u.is_test_account = FALSE -- Exclude all test accounts
 		`;
   
 		return data.rows;
@@ -506,7 +619,9 @@ export async function fetchOrganisers() {
 	try {
 		const data = await sql<{ name: string }>`
 			SELECT name FROM users
-			WHERE role = 'organiser' AND name != 'Just A Little Test Society'
+			WHERE role = 'organiser' 
+			AND name != 'Just A Little Test Society'
+			AND is_test_account = FALSE -- Exclude all test accounts
 		`;
 		return data.rows.map(row => row.name);
 	} catch (error) {
@@ -614,10 +729,31 @@ export async function getEmailFromId(id: string) {
 		const data = await sql`
 			SELECT email 
 			FROM users
-			WHERE role='organiser' and id = ${id} --- we really want to ensure no user email is leaked by accident
+			WHERE role='organiser' and id = ${id}
 			LIMIT 1
 		`
 		
+		return data.rows[0] || null;
+	} catch (error) {
+		console.error('Error checking email:', error)
+		throw new Error('Failed to retrieve email for a specific organiser');
+	}
+}
+
+export async function fetchOrganiserEmailFromEventId(event_id: string) {
+	try {
+		const data = await sql<{ email: string }>`
+			SELECT users.email
+			FROM events
+			JOIN users ON events.organiser_uid = users.id
+			WHERE role='organiser' AND events.id = ${event_id}
+			LIMIT 1;
+		`
+		if (data.rows.length > 0) {
+			return data.rows[0];
+		} else {
+			return null
+		}
 		return data.rows[0] || null;
 	} catch (error) {
 		console.error('Error checking email:', error)
@@ -793,4 +929,101 @@ export async function cleanupForgottenPasswordEmails() {
 		console.error('Error cleaning up forgotten password emails:', error);
 		return { success: false, error: error.message };
 	}
+}
+
+export async function insertAccountId(userId: string, accountId: string) {
+    try {
+        await sql`
+            UPDATE society_information
+            SET connect_account_id = ${accountId}
+            WHERE user_id::text LIKE '%' || ${userId};
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating connect_account_id:', error);
+        return { success: false };
+    }
+}
+
+export async function fetchAccountId(userId: string) {
+    try {
+        const data = await sql`
+			SELECT connect_account_id
+            FROM society_information
+            WHERE user_id::text LIKE '%' || ${userId};
+        `;
+
+		if (data.rows.length > 0 && data.rows[0]?.connect_account_id) {
+			return { success: true, accountId: data.rows[0].connect_account_id};
+		} else {
+			return { success: true, accountId: ''};
+		}
+
+    } catch (error) {
+        console.error('Error fetching connect_account_id:', error);
+        return { success: false };
+    }
+}
+
+export async function fetchAccountIdByEvent(eventId: string) {
+	try {
+		const response1 = await sql`
+			SELECT organiser_uid
+			FROM events
+			WHERE id::text LIKE '%' || ${eventId};
+		`;
+
+		if (!(response1.rows[0].len > 0)) {
+			return { success: false };
+		}
+
+		const userId = response1.rows[0].organiser_uid;
+
+        const response2 = await sql`
+			SELECT connect_account_id
+            FROM society_information
+            WHERE user_id::text LIKE '%' || ${userId};
+        `;
+
+
+		if (response2.rows[0].len > 0) {
+			return { success: true, accountId: response2.rows[0].connect_account_id};
+		} else {
+			return { success: true, accountId: ''};
+		}
+        
+    } catch (error) {
+        console.error('Error fetching connect_account_id:', error);
+        return { success: false };
+    }
+}
+
+export async function checkCapacity(eventId: string) {
+    try {
+        // Query to count the number of registrations for the given event ID
+        const registrationResult = await sql`
+            SELECT COUNT(*) AS registration_count
+            FROM event_registrations
+            WHERE event_id::TEXT LIKE '%' || ${eventId};
+        `;
+        const registrationCount = parseInt(registrationResult.rows[0].registration_count, 10);
+
+        // Query to retrieve the capacity from the events table for the given event ID
+        const capacityResult = await sql`
+            SELECT capacity
+            FROM events
+            WHERE id::TEXT LIKE '%' || ${eventId};
+        `;
+        const capacity = capacityResult.rows[0]?.capacity;
+
+        // Return the registration count and capacity
+		if (typeof registrationCount !== 'number' || typeof capacity !== 'number') {
+			throw new Error('unexpected data types for registration count and event capacity');
+		}
+
+        return { success: true, spaceAvailable: (registrationCount >= capacity) };
+    } catch (error) {
+        console.error('Error in checkCapacity:', error);
+        return { success: false, error: error.message};
+    }
 }

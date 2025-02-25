@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EVENT_TAG_TYPES } from '@/app/lib/utils';
+import { EVENT_TAG_TYPES } from '@/app/lib/utils/events';
 import { Button } from '../button';
 
 interface TagsFieldProps {

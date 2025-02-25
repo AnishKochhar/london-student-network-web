@@ -416,7 +416,7 @@ export default function OrganisationRegistrationForm() {
 				{step === totalSteps && (
 					<div className="text-center items-center flex flex-col">
 						<h2 className="text-4xl font-semibold">Thank you for registering!</h2>
-						<p className="mt-4 text-gray-300">Please verify your email with the link we sent for full access to the LSN.</p>
+						<p className="mt-4 text-gray-300">Please verify your email with the link we sent for full access to LSN.</p>
 					</div>
 				)}
 

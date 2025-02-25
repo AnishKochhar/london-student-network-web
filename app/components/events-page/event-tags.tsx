@@ -1,4 +1,4 @@
-import { EVENT_TAG_TYPES } from "@/app/lib/utils";
+import { EVENT_TAG_TYPES } from "@/app/lib/utils/events";
 
 interface EventCardTagsProps {
 	eventType: number;

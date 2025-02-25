@@ -7,7 +7,7 @@ import { UserRegisterFormData } from '@/app/lib/types';
 import { Button } from '../../components/button';
 import { Input } from '../../components/input';
 import { ArrowLeftIcon, ArrowRightIcon, FlagIcon } from '@heroicons/react/24/outline';
-import { LondonUniversities } from '../../lib/utils';
+import { LondonUniversities } from '@/app/lib/utils/events';
 
 
 export default function UserRegistrationForm() {
@@ -411,7 +411,7 @@ export default function UserRegistrationForm() {
 				{step === totalSteps && (
 					<div className="text-center items-center flex flex-col">
 						<h2 className="text-4xl font-semibold">Thank you for registering!</h2>
-						<p className="mt-4 text-gray-300">Please verify your email with the link we sent for full access to the LSN.</p>
+						<p className="mt-4 text-gray-300">Please verify your email with the link we sent for full access to LSN.</p>
 					</div>
 				)}
 

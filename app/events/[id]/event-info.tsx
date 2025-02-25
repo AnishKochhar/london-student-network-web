@@ -4,21 +4,46 @@ import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { base62ToBase16 } from "@/app/lib/uuid-utils";
-import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
+import { base62ToBase16 } from "@/app/lib/utils/type-manipulation";
+import { returnLogo } from "@/app/lib/utils/events";
+import { EVENT_TAG_TYPES } from "@/app/lib/utils/events";
+import { formatDateString } from "@/app/lib/utils/time";
 import { LockClosedIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
+import EmbeddedCheckoutButton from "@/app/components/payments/checkout-button";
+
 
 export default function EventInfo() {
 	const { id } = useParams() as { id: string };
 
 	const event_id = base62ToBase16(id);
 	const [event, setEvent] = useState<Event | null>(null);
-	const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [requiresPayment, setRequiresPayment] = useState<boolean>(false);
+	const [ticketSelected, setTicketSelected] = useState<boolean>(false);
+	const [ticketPrice, setTicketPrice] = useState<string>('0');
 	const session = useSession();
 	const loggedIn = session.status === 'authenticated';
+	
+
+	useEffect(() => {
+		const fetchData = async () => {
+			const result = await fetchEventInformation(event_id)
+			if (result?.tickets_price && parseFloat(result?.tickets_price) > 0) {
+				setTicketPrice(result.tickets_price);
+				setRequiresPayment(true);
+			}
+			setEvent(result);
+		};
+		fetchData();
+	}, [id]);
+
+
+    const handleSelect = () => {
+        setTicketSelected(!ticketSelected);
+    };
 
 
 	async function fetchEventInformation(id: string) {
@@ -33,7 +58,7 @@ export default function EventInfo() {
 			})
 
 			if (!response.ok) {
-				throw new Error('Failed to fetch a event information');
+				throw new Error('Failed to fetch an event information');
 			}
 
 			const data = await response.json();
@@ -42,25 +67,10 @@ export default function EventInfo() {
 		} catch (err) {
 			console.error('Failed to fetch event information', err);
 		} finally {
-			setLoading(false)
+			setLoading(false);
 		}
 	}
 
-	useEffect(() => {
-		const fetchData = async () => {
-			const result = await fetchEventInformation(event_id)
-			console.log(result)
-			setEvent(result);
-		};
-		fetchData();
-	}, [id]);
-
-	// Handle loading and error states
-	if (loading) {
-		return (
-			<EventInfoPageSkeleton />
-		)
-	}
 
 	const registerForEvent = async () => {
 		if (!loggedIn) {
@@ -87,6 +97,8 @@ export default function EventInfo() {
 			} else {
 				if (result.registered) {
 					toast.error('Already registered for the event!', { id: toastId })
+				} else if (result.emailError) {
+					toast.error('Failed to send confirmation emails!', { id: toastId })
 				} else {
 					toast.error('Error registering for event!', { id: toastId })
 				}
@@ -95,6 +107,7 @@ export default function EventInfo() {
 			toast.error(`Error during event registration: ${error}.`, { id: toastId })
 		}
 	}
+
 
 	const getTags = (eventType: number) => {
 		const tags = [];
@@ -105,6 +118,45 @@ export default function EventInfo() {
 		}
 		return tags;
 	};
+
+	function SelectTicketComponent({event_id}: {event_id: string}) {
+		useEffect(() => {
+
+		})
+		return (
+			<div className="mt-6">
+				<div className="w-full flex flex-row justify-center">
+					<div className="flex flex-col items-center">
+						<h4 className="text-md font-semibold mb-2 text-gray-500">Select Ticket Type</h4>
+						<div className="flex items-center mb-4">
+							<input
+								type="checkbox"
+								id="ticket"
+								checked={ticketSelected}
+								onChange={handleSelect}
+								className="hidden"
+							/>
+							<label
+								htmlFor="ticket"
+								className={`flex items-center cursor-pointer p-2 border-2 rounded-full ${ticketSelected ? 'bg-green-500' : 'bg-white'}`}
+							>
+								<span className="text-gray-700">Standard Ticket - £{ticketPrice}</span>
+							</label>
+						</div>
+						<EmbeddedCheckoutButton event_id={event_id} ticketSelected={ticketSelected}/>
+					</div>
+				</div>
+			</div>
+		)
+	}
+
+
+	// Handle loading and error states
+	if (loading) {
+		return (
+			<EventInfoPageSkeleton />
+		)
+	}
 
 	const societyLogo = returnLogo(event.organiser)
 
@@ -178,13 +230,23 @@ export default function EventInfo() {
 						<h3 className="text-lg font-semibold mb-2 text-gray-500">Registration</h3>
 						<hr className="border-t-1 border-gray-300 m-2" />
 						<div className="w-full flex flex-row justify-center">
-							<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
-								onClick={registerForEvent}>
-								{!loggedIn && <LockClosedIcon width={20} height={20} className='pr-2' />}
-								Press here to register to this event
-								{loggedIn && <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />}
-							</button>
-
+							{!loggedIn ? (
+								<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
+									onClick={registerForEvent}>
+									<LockClosedIcon width={20} height={20} className='pr-2' />
+									Press here to register to this event
+								</button>
+							) : (
+								requiresPayment ? (
+									<SelectTicketComponent event_id={event_id}/>
+								) : (
+									<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
+										onClick={registerForEvent}>
+										Press here to register to this event
+										<ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
+									</button>
+								)
+							)}
 						</div>
 					</div>
 				</div>

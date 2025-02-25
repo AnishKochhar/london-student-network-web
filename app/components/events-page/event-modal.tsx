@@ -5,10 +5,11 @@ import { useEffect, useRef } from 'react';
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import { EventModalProps } from "@/app/lib/types";
 import { createPortal } from 'react-dom';
-import { formatDateString, EVENT_TAG_TYPES, returnLogo } from '@/app/lib/utils';
+import { EVENT_TAG_TYPES, returnLogo } from '@/app/lib/utils/events';
+import { formatDateString } from '@/app/lib/utils/time';
 import { Button } from '../button';
 import { useRouter } from 'next/navigation';
-import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import { base16ToBase62 } from '@/app/lib/utils/type-manipulation';
 
 
 export default function EventModal({ event, onClose }: EventModalProps) {

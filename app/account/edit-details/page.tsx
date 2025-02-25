@@ -1,6 +1,5 @@
-'use client'
+"use client";
 
-// for future improvement, move some fields in components to be used with register and other forms
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -9,16 +8,26 @@ import toast from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';
 import Select from 'react-select'; // For tag selection
 import ImageUpload from '@/app/components/account/logo-edit';
-import getPredefinedTags from '@/app/lib/utils';
+import getPredefinedTags from '@/app/lib/utils/events';
 import { OrganiserAccountEditFormData } from '@/app/lib/types';
 import { upload } from '@vercel/blob/client';
 import { Input } from '../../components/input';
 import { Button } from '@/app/components/button';
+import { FlagIcon } from '@heroicons/react/24/outline';
+import ResumeEmbeddedStripeConnectOnboardingForm from '@/app/components/payments/resume-embedded-onboarding/stripe-connect';
+import EmbeddedStripeConnectOnboardingForm from '@/app/components/payments/embedded-onboarding/stripe-connect';
+import StripeConnectDetailedStatus from '@/app/components/account/stripe-connect/stripe-connect-detailed-status';
+
 
 
 export default function EditDetailsPage() {
 
 	const [predefinedTags, setPredefinedTags] = useState([]);
+	const [showStripeEmboarding, setShowStripeEmboarding] = useState<boolean>(false);
+	const [alreadyStartedStripeConnectOnboarding, setAlreadyStartedStripeConnectOnboarding] = useState<'loading' | true | false>('loading');
+
+	const { data: session, status } = useSession();
+	const router = useRouter();
 
 	useEffect(() => {
 		const fetchTags = async () => {
@@ -29,8 +38,31 @@ export default function EditDetailsPage() {
 		fetchTags();
 	}, []);
 
-	const { data: session, status } = useSession();
-	const router = useRouter();
+
+	const checkIfOnboardingStarted = async () => {
+		try {
+			const result = await fetch('/api/account/stripe-connect/has-started-onboarding/', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ user_id: session?.user?.id }),
+			})
+			if (!result.ok) {
+				setAlreadyStartedStripeConnectOnboarding(false);
+				return;
+			}
+			setAlreadyStartedStripeConnectOnboarding(true);
+
+		} catch(error) {
+			setAlreadyStartedStripeConnectOnboarding(false); // default behaviour
+			console.error(error.message);
+		}
+	};
+
+	useEffect(() => {
+		checkIfOnboardingStarted();
+	}, [session]);
 
 	const { register, handleSubmit, setValue, control } = useForm<OrganiserAccountEditFormData>({
 		mode: 'onSubmit',
@@ -202,6 +234,70 @@ export default function EditDetailsPage() {
 					)}
 				/>
 			</div>
+
+			{user.role === 'organiser' && 
+				<StripeConnectDetailedStatus id={user.id} />
+			}
+
+			{(alreadyStartedStripeConnectOnboarding === 'loading') ? ( // for some reason, the daisyui button spans the whole width with <></>, but behaves nicely with a div parent
+				<div className="pb-4 mb-10 space-y-6">		
+					{/* Loading Button */}
+					<button
+						className="btn btn-outline mt-4"
+					>
+						Loading your details...
+					</button>
+				</div>
+
+			) : (alreadyStartedStripeConnectOnboarding === false) ? (
+				<div className="pb-4 mb-10 space-y-6">		
+					{/* New Application Button */}
+					<button
+						onClick={() => setShowStripeEmboarding(true)}
+						className="btn btn-primary mt-4"
+					>
+						Register for Stripe Connect <FlagIcon className='ml-2' width={15} height={15} />
+					</button>
+				</div>
+			) : (alreadyStartedStripeConnectOnboarding === true) ? (
+				<div className="pb-4 mb-10 space-y-6">		
+					{/* Continue Application Button */}
+					<button
+						onClick={() => setShowStripeEmboarding(true)}
+						className="btn btn-primary mt-4"
+					>
+						Add information for Stripe Connect <FlagIcon className='ml-2' width={15} height={15} />
+					</button>
+				</div>
+			) : (
+				<div>
+					{/* Error Button */}
+					<button
+						className="btn btn-info mt-4"
+						disabled
+					>
+						Please try again later
+					</button>
+				</div>
+			)}
+
+			{(showStripeEmboarding && session?.user?.id) &&
+				<>
+					{(alreadyStartedStripeConnectOnboarding === 'loading') ? (
+						// Placeholder while the onboarding status is loading
+						<div className="p-4 bg-base-200 rounded-md shadow">
+							{/* Insert your custom loading JSX here */}
+							<p className="text-center text-gray-600">Loading your onboarding status...</p>
+						</div>
+						) : alreadyStartedStripeConnectOnboarding ? (
+						// If onboarding has already been started, resume it.
+						<ResumeEmbeddedStripeConnectOnboardingForm userId={session.user.id} />
+						) : (
+						// Otherwise, show the embedded onboarding form.
+						<EmbeddedStripeConnectOnboardingForm userId={session.user.id} />
+					)}
+				</>
+			}
 
 			<div>
 				{/* Save changes button */}

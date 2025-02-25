@@ -1,10 +1,11 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+
 
 interface ContactFormData {
 	name: string;
@@ -22,6 +23,7 @@ export default function ContactForm() {
 
 	const [status, setStatus] = useState<string | null>(null)
 
+	
 	const onSubmit = async (data: ContactFormData) => {
 		setStatus('Sending...');
 		try {

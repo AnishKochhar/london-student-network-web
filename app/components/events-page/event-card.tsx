@@ -4,7 +4,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { EventCardProps } from "@/app/lib/types";
-import { formatDateString } from "@/app/lib/utils";
+import { formatDateString } from "@/app/lib/utils/time";
 import EventCardTags from "./event-tags";
 import EventModal from "./event-modal";
 import EditPage from "../edit/edit";

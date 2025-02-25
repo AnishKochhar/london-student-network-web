@@ -8,9 +8,9 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
 		}
 		const events = await fetchUserEvents(user_id);
-		return NextResponse.json(events)
+		return NextResponse.json(events);
 	} catch (error) {
-		console.error('Error fetching user events:', error)
+		console.error('Error fetching user events:', error);
 		return NextResponse.json({ error: 'Failed to fetch user events' }, { status: 500 });
 	}
 }

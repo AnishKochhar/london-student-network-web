@@ -1,0 +1,18 @@
+[
+    {
+      "id": "event1",
+      "title": "Tech Conference 2025",
+      "image_url": "/images/tech-conference.jpg",
+      "organiser": "Tech Society",
+      "event_type": 1,
+      "date": "2025-03-15",
+      "time": "10:00 AM",
+      "location_building": "Main Hall",
+      "location_area": "Campus Centre",
+      "location_address": "123 University St, London",
+      "capacity": 200,
+      "description": "A conference bringing together tech enthusiasts to discuss the latest trends and innovations.",
+      "for_externals": "Please bring your university ID.",
+      "tags": [1, 2]
+    }
+]

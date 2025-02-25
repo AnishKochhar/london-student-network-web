@@ -4,7 +4,7 @@ import { animate, useMotionValue, motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import useMeasure from "react-use-measure";
-import { PartnerLogos } from "@/app/lib/utils";
+import { PartnerLogos } from "@/app/lib/utils/events";
 
 export default function SlidingPartners() {
 
