@@ -1,6 +1,10 @@
 'use server'
 
 
+// ensure waiting for status to be complete (upto 40s)
+// ensure error pages are created and insightful
+// ensure searchParams are properly validated + cleaned
+
 import { getSecretStripePromise } from "@/app/lib/singletons-private";
 import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "@/app/lib/send-email";
 import { fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
