@@ -10,28 +10,31 @@ export async function POST(request: Request) {
     try {
         const userSession = await auth();
 
+        console.log('trying to create a checkout session...');
+
         // directs payments to societies, after the main LSN account deducts a custom fee
         
         if (userSession?.user?.email) {
             const { priceId, eventId } = await request.json();
 
-            try{
-                const response = await checkCapacity(eventId);
-                if (!response.success) {
-                    return NextResponse.json({ message: response.error }, { status: 500 });
-                }
-                if (!response.spaceAvailable) {
-                    return NextResponse.json({ message: 'event capacity reached!' }, { status: 403 });
-                }
+            // try{
+            //     const response = await checkCapacity(eventId);
+            //     if (!response.success) {
+            //         return NextResponse.json({ message: response.error }, { status: 500 });
+            //     }
+            //     if (!response.spaceAvailable) {
+            //         return NextResponse.json({ message: 'event capacity reached!' }, { status: 403 });
+            //     }
             
-            } catch(error) {
-                console.error('There was an error checking capacity:', error.message);
-                return NextResponse.json({ success: false, message: 'error checking capacity' }, { status: 500 });
-            }
+            // } catch(error) {
+            //     console.error('There was an error checking capacity:', error.message);
+            //     return NextResponse.json({ success: false, message: 'error checking capacity' }, { status: 500 });
+            // }
 
-            const response = await fetchAccountIdByEvent(eventId);
+            const response = await fetchAccountIdByEvent(eventId); // expecting acct_1QvjSpCSTsdVXuB7
+            console.log(response)
 
-            if (!response.success || !response.accountId) {
+            if (!response.success) {
                 return NextResponse.json({ message: "please make a stripe connect account first, by editing your account details" }, { status: 403 }); // not allowed to create paid ticket without account
             }
 
@@ -63,10 +66,15 @@ export async function POST(request: Request) {
                     transfer_data: {
                         destination: accountId, // Connected account ID
                     },
+                }, // modify to not include any searchparams (let the webhook handle all data)
+                ui_mode: "embedded",
+                return_url: `${request.headers.get('origin')}/return/event-registration?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(userEmail)}&user_id=${encodeURIComponent(userId)}&name=${encodeURIComponent(userName)}&event_id=${encodeURIComponent(eventId)}`,
+                metadata: { // this is included in the webhook data object
+                    email: userEmail,
+                    user_id: userId,
+                    name: userName,
+                    event_id: eventId,
                 },
-                // The URL to redirect the user after checkout
-                // return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}`,
-                return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}&email=${encodeURIComponent(userEmail)}&user_id=${encodeURIComponent(userId)}&name=${encodeURIComponent(userName)}&event_id=${encodeURIComponent(eventId)}`,
             });
 
             return NextResponse.json({ id: session.id, client_secret: session.client_secret });

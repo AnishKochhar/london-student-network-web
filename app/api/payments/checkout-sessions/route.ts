@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSecretStripePromise } from "@/app/lib/singletons-private";
 import { auth } from "@/auth";
 
-const stripe = await getSecretStripePromise();
+const stripe = await getSecretStripePromise(); // DO NOT USE THIS ROUTE. IT ISN'T COMPLETE.
 
 export async function POST(request: Request){
     try {
@@ -22,8 +22,8 @@ export async function POST(request: Request){
                     }
                 ],
                 mode: 'payment',
-                return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}`
-            }) 
+                return_url: `${request.headers.get('origin')}/return?session_id={CHECKOUT_SESSION_ID}`,
+            })
             return NextResponse.json({id: session.id, client_secret: session.client_secret}, { status: 200 });
         }
 

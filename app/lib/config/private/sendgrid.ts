@@ -19,7 +19,7 @@ if (!SENDGRID_API_KEY) {
 sgMail.setApiKey(SENDGRID_API_KEY); // sgMail setup is light and will likely not be required repeatedly, so just re-attach always
 
 // Function to send an email (exported as a server action)
-export default async function sendSendGridEmail({ to, from='hello@londonstudentnetwork.com', subject, text, html }: DefaultEmailPayloadType) {
+export default async function sendSendGridEmail({ to, from, subject, text, html }: DefaultEmailPayloadType) {
     if (!text && !html) {
         throw new Error("At least one of 'text' or 'html' must be provided.");
       }

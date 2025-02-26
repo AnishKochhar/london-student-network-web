@@ -137,6 +137,23 @@ export async function fetchRegistrationEmailEventInformation(event_id: string) {
 		const result = await sql<EventRegistrationEmail>`
 			SELECT title, organiser, day, month, year, start_time, end_time, location_building, location_area, location_address
 			FROM events
+			WHERE id::text LIKE '%' || ${event_id};
+		`;
+		if (result.rows.length === 0) {
+			return { success: false };
+		}
+		return { success: true, event: result.rows[0] };
+	} catch (error) {
+		console.error('Database error:', error);
+		throw new Error('Failed to fetch event');
+	}
+}
+
+export async function fetchHolisticEventInformation(event_id: string) {
+	try {
+		const result = await sql`
+			SELECT title, organiser, day, month, year, start_time, end_time, location_building, location_area, location_address
+			FROM events
 			WHERE id = ${event_id}
 		`;
 		if (result.rows.length === 0) {
@@ -729,7 +746,7 @@ export async function getEmailFromId(id: string) {
 		const data = await sql`
 			SELECT email 
 			FROM users
-			WHERE role='organiser' and id = ${id}
+			WHERE role='organiser' and id::text LIKE '%' || ${id};
 			LIMIT 1
 		`
 		
@@ -746,15 +763,14 @@ export async function fetchOrganiserEmailFromEventId(event_id: string) {
 			SELECT users.email
 			FROM events
 			JOIN users ON events.organiser_uid = users.id
-			WHERE role='organiser' AND events.id = ${event_id}
+			WHERE users.role='organiser' AND events.id::text LIKE '%' || ${event_id}
 			LIMIT 1;
 		`
-		if (data.rows.length > 0) {
-			return data.rows[0];
-		} else {
+		if (!data.rowCount || !data.rows[0]?.email) {
 			return null
+		} else {
+			return data.rows[0].email;
 		}
-		return data.rows[0] || null;
 	} catch (error) {
 		console.error('Error checking email:', error)
 		throw new Error('Failed to retrieve email for a specific organiser');
@@ -967,31 +983,36 @@ export async function fetchAccountId(userId: string) {
 
 export async function fetchAccountIdByEvent(eventId: string) {
 	try {
-		const response1 = await sql`
+		const eventResponse = await sql`
 			SELECT organiser_uid
 			FROM events
-			WHERE id::text LIKE '%' || ${eventId};
+			WHERE id::text LIKE '%' || ${eventId}
 		`;
 
-		if (!(response1.rows[0].len > 0)) {
+		// 2. Proper empty check
+		if (!eventResponse.rowCount || !eventResponse.rows[0]?.organiser_uid) {
 			return { success: false };
-		}
+	  	}
 
-		const userId = response1.rows[0].organiser_uid;
+		const userId = eventResponse.rows[0].organiser_uid;
 
-        const response2 = await sql`
+        const accountResponse = await sql`
 			SELECT connect_account_id
             FROM society_information
-            WHERE user_id::text LIKE '%' || ${userId};
+           	WHERE user_id::text LIKE '%' || ${userId}
         `;
 
 
-		if (response2.rows[0].len > 0) {
-			return { success: true, accountId: response2.rows[0].connect_account_id};
-		} else {
-			return { success: true, accountId: ''};
+		// 4. Proper account ID validation
+		if (!accountResponse.rowCount || !accountResponse.rows[0]?.connect_account_id) {
+			return { success: false, accountId: '' };
 		}
-        
+
+		return { 
+			success: true, 
+			accountId: accountResponse.rows[0].connect_account_id 
+		};
+
     } catch (error) {
         console.error('Error fetching connect_account_id:', error);
         return { success: false };

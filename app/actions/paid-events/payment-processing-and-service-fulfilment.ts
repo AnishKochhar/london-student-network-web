@@ -9,24 +9,24 @@ import { getSecretStripePromise } from "@/app/lib/singletons-private";
 import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "@/app/lib/send-email";
 import { fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
 import { redirect } from "next/navigation";
+import { getSession } from "@/app/lib/utils/stripe/server-utilities";
+
 const stripe = await getSecretStripePromise();
 
-async function getSession(sessionId: string) {
-    const session = await stripe.checkout.sessions.retrieve(sessionId!);
-    return session
-}
 
-export default async function paymentProcessingAndServiceFulfilment({ searchParams }) {
+export default async function paymentProcessingAndServiceFulfilment({ searchParams }: { searchParams: { [key: string]: string } }) {
+
     const sessionId = searchParams.session_id;
     const userEmail = searchParams.email;
     const userId = searchParams.user_id;
     const userName = searchParams.name;
     const eventId = searchParams.event_id;
 
-    const session = await getSession(sessionId);
+    const session = await getSession(sessionId, stripe);
 
-    
- 
+
+
+
     // if (session?.status === "open") {
     // 	return <p>Payment wasn&#39; t succesfull.</p>;
     // }
@@ -60,9 +60,9 @@ export default async function paymentProcessingAndServiceFulfilment({ searchPara
             redirect("/registration/payment-complete/server-error");
             return;
         }
-    
+
         // Get event information
-        const eventInformationResponse = await fetchRegistrationEmailEventInformation(eventId);
+        const eventInformationResponse = await fetchRegistrationEmailEventInformation(eventId); // get everything you will need
         if (!eventInformationResponse.success) {
             redirect("/registration/payment-complete/server-error");
             return;
@@ -72,7 +72,7 @@ export default async function paymentProcessingAndServiceFulfilment({ searchPara
         let userEmailSuccess = false;
         for (let emailAttempt = 1; emailAttempt <= 3; emailAttempt++) {
             try {
-                await sendUserRegistrationEmail(userEmail, eventInformationResponse.event);
+                await sendUserRegistrationEmail(userEmail, eventInformationResponse.event); // attach what email sending logic needs
                 userEmailSuccess = true;
                 break;
             } catch (error) {
@@ -95,7 +95,7 @@ export default async function paymentProcessingAndServiceFulfilment({ searchPara
         for (let organiserAttempt = 1; organiserAttempt <= 3; organiserAttempt++) {
             try {
                 await sendOrganiserRegistrationEmail(
-                    organiserEmailResponse.email,
+                    organiserEmailResponse,
                     userEmail,
                     userName,
                     eventInformationResponse.event.title
@@ -114,6 +114,6 @@ export default async function paymentProcessingAndServiceFulfilment({ searchPara
             // errorLog();
         }
 
-        redirect("/registration/payment-complete/success/thank-you");
+        redirect("/registration/thank-you"); // attach everything the thank you page needs (prolly all the event info fetched above)
     }
 }

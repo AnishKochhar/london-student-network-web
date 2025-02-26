@@ -40,7 +40,7 @@ export default function EmbeddedCheckoutButton({event_id, ticketSelected}: {even
     useEffect(() => {
         const fetchClientSecret = async () => {
             try {
-                const response = await fetch("/api/payments/checkout-sessions", {
+                const response = await fetch("/api/payments/directed-checkout-sessions", {
                     method: "POST",
                     headers: {
                         "Content-Type": "applications/json",

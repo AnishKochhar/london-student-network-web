@@ -28,3 +28,8 @@ export async function createProduct(subcurrencyAmount: number, productName: stri
         throw error;
     }
 }
+
+export async function getSession(sessionId: string, stripe: Stripe) {
+    const session = await stripe.checkout.sessions.retrieve(sessionId!);
+    return session
+}

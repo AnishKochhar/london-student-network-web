@@ -1,13 +1,13 @@
 'use client'
 
 
-import { useEffect, useState } from 'react';
-import paymentProcessingAndServiceFulfilment from '../api/actions/paid-events/payment-processing-and-service-fulfilment';
+import { useEffect } from 'react';
+import paymentProcessingAndServiceFulfilment from '../../actions/paid-events/payment-processing-and-service-fulfilment';
 
-export default function CheckoutReturn({ searchParams }: { searchParams: any }) {
+export default function CheckoutReturn({ searchParams }: { searchParams: { [key: string]: string } }) {
 
   useEffect(() => {
-    paymentProcessingAndServiceFulfilment(searchParams);
+    paymentProcessingAndServiceFulfilment({ searchParams });
   }, []);
 
   return (
@@ -16,6 +16,9 @@ export default function CheckoutReturn({ searchParams }: { searchParams: any }) 
         <h2 className="text-2xl font-semibold text-blue-600">
           Processing your payment...
         </h2>
+        <h3 className="text-2xl font-semibold text-blue-600">
+          This may take upto a minute.
+        </h3>
         <h3 className="text-2xl font-semibold text-blue-600">
           Please do not reload or close the page
         </h3>
