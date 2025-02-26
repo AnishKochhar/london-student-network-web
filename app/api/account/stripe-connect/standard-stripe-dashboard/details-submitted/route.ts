@@ -21,10 +21,31 @@ export async function POST(req: Request) {
                 const accountSession = await stripe.accountSessions.create({
                     account: accountId,
                     components: {
-                        account_onboarding: {
-                            enabled: true,
+                        notification_banner: {
+                            enabled: true
                         },
-                    },
+                        balances: {
+                            enabled: true
+                        },
+                        payments: {
+                            enabled: true
+                        },
+                        payouts: {
+                            enabled: true
+                        },
+                        account_management: {
+                            enabled: true
+                        },
+                        documents: {
+                            enabled: true
+                        },
+                        tax_registrations: {
+                            enabled: true
+                        },
+                        tax_settings: {
+                            enabled: true
+                        },
+                },
                 });
                 // Step 3: Return the client secret         
                 return NextResponse.json({ client_secret: accountSession.client_secret }, { status: 200 });
@@ -32,35 +53,7 @@ export async function POST(req: Request) {
                 return NextResponse.json({ message: "Server error - server can't decide if accountId exists or not" }, { status: 500 });
             }
         } else {
-            // Step 1: Create the account
-            const account = await stripe.accounts.create({
-                type: 'express', // or 'custom' depending on your use case
-                capabilities: {
-                    card_payments: { requested: true },
-                    transfers: { requested: true },
-                },
-            });
-
-            // Step 2: Create the Account Session (client secret for embedded onboarding)
-            const accountSession = await stripe.accountSessions.create({
-                account: account.id,
-                components: {
-                    account_onboarding: {
-                        enabled: true,
-                    },
-                },
-            });
-
-            // Update the user record with the accountId in your database
-            const response = await insertAccountId(userId, account.id);
-
-            if (!response.success) {
-                console.error('Error storing connect account id');
-                return NextResponse.json({ message: "couldn't insert account id in db" }, { status: 500 });
-            }
-
-            // Step 3: Return the client secret
-            return NextResponse.json({ client_secret: accountSession.client_secret }, { status: 200});
+            return NextResponse.json({ message: "No stripe connect account found for user" }, { status: 403 });
         }
 
         

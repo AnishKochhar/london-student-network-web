@@ -1,6 +1,7 @@
 'use client'
 
 import { NOT_FOUND } from "../../types/general";
+import { details } from "../../types/payments";
 
 // A lookup table to transform Stripe verification field codes into meaningful outputs.
 const verificationLookup: { [code: string]: string } = {
@@ -168,7 +169,7 @@ export function getBadgeClass(status: number | string | boolean | typeof NOT_FOU
     }
 }
 
-export const getCurrentlyDueBadge = (currentlyDue) => {
+export const getCurrentlyDueBadge = (currentlyDue: details["currentlyDue"]) => {
   if (currentlyDue === 'loading') {
     return { badgeClass: "badge badge-info", badgeLabel: "loading" };
   }
@@ -181,7 +182,7 @@ export const getCurrentlyDueBadge = (currentlyDue) => {
   return { badgeClass: "badge badge-success", badgeLabel: "Up to date" }; // in case there is nothing to submit
 };
 
-export const getAlternativesBadge = (currentlyDue, alternatives) => {
+export const getAlternativesBadge = (currentlyDue: details["currentlyDue"], alternatives: details["alternatives"]) => {
   if (alternatives === 'loading') {
     return { badgeClass: "badge badge-info", badgeLabel: "loading" };
   }
@@ -197,7 +198,7 @@ export const getAlternativesBadge = (currentlyDue, alternatives) => {
   return { badgeClass: "badge badge-info", badgeLabel: "N/A" };
 };
 
-export const getCurrentDeadlineBadge = (deadline) => {
+export const getCurrentDeadlineBadge = (deadline: details["currentDeadline"]) => {
   if (deadline === 'loading') {
     return { badgeClass: "badge badge-info", badgeLabel: "loading" };
   }
@@ -210,7 +211,7 @@ export const getCurrentDeadlineBadge = (deadline) => {
   return { badgeClass: "badge badge-info", badgeLabel: "N/A" };
 };
 
-export const getPastDueBadge = (pastDue) => {
+export const getPastDueBadge = (pastDue: details["pastDue"]) => {
   if (pastDue === 'loading') {
     return { badgeClass: "badge badge-info", badgeLabel: "loading" };
   }
@@ -223,7 +224,7 @@ export const getPastDueBadge = (pastDue) => {
   return { badgeClass: "badge badge-info", badgeLabel: "N/A" };
 };
 
-export const getPendingVerificationBadge = (pendingVerification) => {
+export const getPendingVerificationBadge = (pendingVerification: details["pendingVerification"]) => {
   if (pendingVerification === 'loading') {
     return { badgeClass: "badge badge-info", badgeLabel: "loading" };
   }
@@ -236,7 +237,7 @@ export const getPendingVerificationBadge = (pendingVerification) => {
   return { badgeClass: "badge badge-info", badgeLabel: "N/A" };
 };
 
-export const getErrorsBadge = (errors) => {
+export const getErrorsBadge = (errors: details["errors"]) => {
   if (errors === 'loading') {
     return { badgeClass: "badge badge-info", badgeLabel: "loading" };
   }
@@ -250,7 +251,7 @@ export const getErrorsBadge = (errors) => {
   return { badgeClass: "badge badge-info", badgeLabel: "N/A" };
 };
 
-export const getDisabledReasonBadge = (disabledReason) => {
+export const getDisabledReasonBadge = (disabledReason: details["disabledReason"]) => {
   if (disabledReason === 'loading') {
     return { badgeClass: "badge badge-info", badgeLabel: "loading" };
   }
@@ -263,7 +264,10 @@ export const getDisabledReasonBadge = (disabledReason) => {
   return { badgeClass: "badge badge-info", badgeLabel: "N/A" };
 };
 
-export const getDetailsSubmittedBadge = (detailsSubmitted: any) => {
+export const getDetailsSubmittedBadge = (detailsSubmitted: details["detailsSubmitted"]) => {
+  if (detailsSubmitted === 'loading') {
+    return { badgeClass: "badge badge-info", badgeLabel: "loading" };
+  }
   if (detailsSubmitted === NOT_FOUND) {
     return { badgeClass: "badge badge-secondary", badgeLabel: "Error, please try again later" };
   }
@@ -275,7 +279,10 @@ export const getDetailsSubmittedBadge = (detailsSubmitted: any) => {
   return { badgeClass: "badge badge-secondary", badgeLabel: "Unexpected error. Please contact support." };
 };
 
-export const getAccountTypeBadge = (accountType: any) => {
+export const getAccountTypeBadge = (accountType: details["accountType"]) => {
+  if (accountType === 'loading') {
+    return { badgeClass: "badge badge-info", badgeLabel: "loading" };
+  }
   if (accountType === NOT_FOUND) {
     return { badgeClass: "badge badge-secondary", badgeLabel: "Error, please try again later" };
   }
@@ -288,7 +295,6 @@ export const getAccountTypeBadge = (accountType: any) => {
 export const getLoadingBadge = () => {
   return { badgeClass: "badge badge-info", badgeLabel: "loading" };
 }
-
 
 // Group together for ease
 export const BadgeUtils = {

@@ -140,24 +140,24 @@ export type StripeConnectApplicationDisabledReason =
 
 
 export interface details {
-    currentlyDue: Array<string> | null | typeof NOT_FOUND;
-    alternatives: Array<StripeConnectApplicationAlternative> | null | typeof NOT_FOUND;
-    eventuallyDue: Array<string> | null | typeof NOT_FOUND;
-    currentDeadline: number | null | typeof NOT_FOUND;
-    pastDue: Array<string> | null | typeof NOT_FOUND;
-    pendingVerification: Array<string> | null | typeof NOT_FOUND;
-    errors: Array<StripeConnectApplicationError> | null | typeof NOT_FOUND;
-    disabledReason: StripeConnectApplicationDisabledReason | null | typeof NOT_FOUND;
-    futureRequirements: Array<string> | null | typeof NOT_FOUND;
-    futureRequirementsAlternatives: Array<StripeConnectApplicationAlternative> | null | typeof NOT_FOUND;
-    eventuallyDueWithNewCompliance: Array<string> | null | typeof NOT_FOUND;
-    futureDeadlines: number | null | typeof NOT_FOUND;
-    futureRequirementsPastDue: Array<string> | null | typeof NOT_FOUND;
-    futurePendingVerification: Array<string> | null | typeof NOT_FOUND;
-    futureErrors: Array<StripeConnectApplicationError> | null | typeof NOT_FOUND;
-    futureDisabledReason: StripeConnectApplicationDisabledReason | null | typeof NOT_FOUND;
-    detailsSubmitted: boolean | typeof NOT_FOUND;
-    accountType: 'custom' | 'express' | 'none' | 'standard' | typeof NOT_FOUND;
+    currentlyDue: Array<string> | null | typeof NOT_FOUND | 'loading';
+    alternatives: Array<StripeConnectApplicationAlternative> | null | typeof NOT_FOUND | 'loading';
+    eventuallyDue: Array<string> | null | typeof NOT_FOUND | 'loading';
+    currentDeadline: number | null | typeof NOT_FOUND | 'loading';
+    pastDue: Array<string> | null | typeof NOT_FOUND | 'loading';
+    pendingVerification: Array<string> | null | typeof NOT_FOUND | 'loading';
+    errors: Array<StripeConnectApplicationError> | null | typeof NOT_FOUND | 'loading';
+    disabledReason: StripeConnectApplicationDisabledReason | null | typeof NOT_FOUND | 'loading';
+    futureRequirements: Array<string> | null | typeof NOT_FOUND | 'loading';
+    futureRequirementsAlternatives: Array<StripeConnectApplicationAlternative> | null | typeof NOT_FOUND | 'loading';
+    eventuallyDueWithNewCompliance: Array<string> | null | typeof NOT_FOUND | 'loading';
+    futureDeadlines: number | null | typeof NOT_FOUND | 'loading';
+    futureRequirementsPastDue: Array<string> | null | typeof NOT_FOUND | 'loading';
+    futurePendingVerification: Array<string> | null | typeof NOT_FOUND | 'loading';
+    futureErrors: Array<StripeConnectApplicationError> | null | typeof NOT_FOUND | 'loading';
+    futureDisabledReason: StripeConnectApplicationDisabledReason | null | typeof NOT_FOUND | 'loading';
+    detailsSubmitted: boolean | typeof NOT_FOUND | 'loading';
+    accountType: 'custom' | 'express' | 'none' | 'standard' | typeof NOT_FOUND | 'loading';
 }
 
 export interface DashboardBadge {

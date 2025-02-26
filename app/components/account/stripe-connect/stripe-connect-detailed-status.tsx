@@ -5,6 +5,9 @@ import { NOT_FOUND } from "@/app/lib/types/general";
 import { details, DashboardBadge } from "@/app/lib/types/payments";
 import { BadgeUtils, getDisabledReasonLookup, getVerificationFieldDescription } from "@/app/lib/utils/stripe/client-facing-utilities";
 import { CollapsibleToggle } from "../../general/toggle";
+import { getStripeConnectPromiseForStandardDashboard } from "@/app/lib/singletons-public";
+import { ConnectComponentsProvider, ConnectAccountManagement, ConnectBalances, ConnectDocuments, ConnectPayments, ConnectPayouts, ConnectNotificationBanner, ConnectTaxRegistrations, ConnectTaxSettings } from "@stripe/react-connect-js";
+import { StripeConnectInstance } from "@stripe/connect-js";
 
 // Define types for basic statuses
 type CardPaymentsStatus = 'loading' | 'inconclusive' | 'active' | 'inactive' | 'pending';
@@ -34,34 +37,40 @@ interface ExtendedStripeConnectStatusResponse extends StripeConnectStatusRespons
 }
 
 const defaultDetails: details = {
-  currentlyDue: NOT_FOUND as typeof NOT_FOUND,
-  alternatives: NOT_FOUND as typeof NOT_FOUND,
-  eventuallyDue: NOT_FOUND as typeof NOT_FOUND,
-  currentDeadline: NOT_FOUND as typeof NOT_FOUND,
-  pastDue: NOT_FOUND as typeof NOT_FOUND,
-  pendingVerification: NOT_FOUND as typeof NOT_FOUND,
-  errors: NOT_FOUND as typeof NOT_FOUND,
-  disabledReason: NOT_FOUND as typeof NOT_FOUND,
-  futureRequirements: NOT_FOUND as typeof NOT_FOUND,
-  futureRequirementsAlternatives: NOT_FOUND as typeof NOT_FOUND,
-  eventuallyDueWithNewCompliance: NOT_FOUND as typeof NOT_FOUND,
-  futureDeadlines: NOT_FOUND as typeof NOT_FOUND,
-  futureRequirementsPastDue: NOT_FOUND as typeof NOT_FOUND,
-  futurePendingVerification: NOT_FOUND as typeof NOT_FOUND,
-  futureErrors: NOT_FOUND as typeof NOT_FOUND,
-  futureDisabledReason: NOT_FOUND as typeof NOT_FOUND,
-  detailsSubmitted: NOT_FOUND as typeof NOT_FOUND,
-  accountType: NOT_FOUND as typeof NOT_FOUND,
+  currentlyDue: 'loading',
+  alternatives: 'loading',
+  eventuallyDue: 'loading',
+  currentDeadline: 'loading',
+  pastDue: 'loading',
+  pendingVerification: 'loading',
+  errors: 'loading',
+  disabledReason: 'loading',
+  futureRequirements: 'loading',
+  futureRequirementsAlternatives: 'loading',
+  eventuallyDueWithNewCompliance: 'loading',
+  futureDeadlines: 'loading',
+  futureRequirementsPastDue: 'loading',
+  futurePendingVerification: 'loading',
+  futureErrors: 'loading',
+  futureDisabledReason: 'loading',
+  detailsSubmitted: 'loading',
+  accountType: 'loading',
 };
 
+type StripeConnectState =
+  | { status: 'loading' }
+  | { status: 'ready'; instance: StripeConnectInstance }
+  | { status: 'null' };
+
 export default function StripeConnectDetailedStatus({ id }: { id: string }) {
-  const [cardPaymentsStatus, setCardPaymentsStatus] = useState<CardPaymentsStatus>('loading');
+  // const [cardPaymentsStatus, setCardPaymentsStatus] = useState<CardPaymentsStatus>('loading');
   const [bankTransferCapabilityStatus, setBankTransferCapabilityStatus] = useState<BankTransferStatus>('loading');
   const [payoutsEnabled, setPayoutsEnabled] = useState<PayoutsStatus>('loading');
   const [stripeConnectOnboardingStatus, setStripeConnectOnboardingStatus] = useState<StripeConnectOnboardingStatus>('loading');
   const [requirementsDetails, setRequirementsDetails] = useState<details>(defaultDetails); // make it default initially to a loading state
 
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [showStripeDashboard, setShowStripeDashboard] = useState<boolean>(false);
 
   const [showCurrentlyDue, setShowCurrentlyDue] = useState<boolean>(false);
   const [showAlternatives, setShowAlternatives] = useState<boolean>(false);
@@ -76,8 +85,26 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
   const [pendingVerificationBadge, setPendingVerificationBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
   const [errorsBadge, setErrorsBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
   const [disabledReasonBadge, setDisabledReasonBadge] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
-  // const [currentlyDueBadge, setCurrentlyDueBade] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
-  // const [currentlyDueBadge, setCurrentlyDueBade] = useState<DashboardBadge>(BadgeUtils.getLoadingBadge());
+
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [stripeConnectInstance, setStripeConnectInstance] = useState<StripeConnectState>({ status: null });
+
+  useEffect(() => {
+      const initializeStripeConnect = async () => {
+          try {
+              if (requirementsDetails.detailsSubmitted === true){
+                setStripeConnectInstance({ status: 'loading' })
+                const { instance } = await getStripeConnectPromiseForStandardDashboard(id);
+                setStripeConnectInstance({ status: 'ready', instance });
+              }
+          } catch (error) {
+              console.error('Error fetching Stripe Connect instance:', error);
+              setDashboardError('Failed to fetch Stripe Connect instance.');
+          }
+      };
+
+      initializeStripeConnect();
+  }, [requirementsDetails]);
 
   // Fetch detailed status from the backend API on component mount.
   useEffect(() => {
@@ -93,14 +120,14 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
           return;
         }
         const data: ExtendedStripeConnectStatusResponse = await res.json();
-        setCardPaymentsStatus(data.cardPaymentsCapabilityStatus);
+        // setCardPaymentsStatus(data.cardPaymentsCapabilityStatus);
         setBankTransferCapabilityStatus(data.bankTransferCapabilityStatus);
         setPayoutsEnabled(data.payoutsCapabilityStatus);
         setStripeConnectOnboardingStatus(data.stripeConnectOnboardingStatus);
         setRequirementsDetails(data.details);
       } catch (error) {
         console.error("Error fetching Stripe Connect status:", error);
-        setCardPaymentsStatus('inconclusive');
+        // setCardPaymentsStatus('inconclusive');
         setBankTransferCapabilityStatus('inconclusive');
         setPayoutsEnabled('inconclusive');
         setStripeConnectOnboardingStatus('inconclusive');
@@ -134,7 +161,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
     setErrorsBadge(BadgeUtils.getErrorsBadge(requirementsDetails.errors));
   }, [requirementsDetails.errors]);
 
-  useEffect(() => { // Errors Badge
+  useEffect(() => { // Disabled Reason Badge
     setDisabledReasonBadge(BadgeUtils.getDisabledReasonBadge(requirementsDetails.disabledReason));
   }, [requirementsDetails.disabledReason]);
 
@@ -178,20 +205,20 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
   // Helper to display a value.
   // If the value is NOT_FOUND or null, show an error badge with "N/A".
   // For arrays, join the values (or show "None" if empty).
-  function displayValue(value: any) {
-    if (value === NOT_FOUND || value === null) {
-      return <span className="badge badge-error">N/A</span>;
-    }
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.join(', ') : <span className="badge badge-error">None</span>;
-    }
-    return value.toString();
-  }
+  // function displayValue(value: any) {
+  //   if (value === NOT_FOUND || value === null) {
+  //     return <span className="badge badge-error">N/A</span>;
+  //   }
+  //   if (Array.isArray(value)) {
+  //     return value.length > 0 ? value.join(', ') : <span className="badge badge-error">None</span>;
+  //   }
+  //   return value.toString();
+  // }
 
   // Helper to pretty-print keys from camelCase to "camel Case".
-  function prettyKey(key: string) {
-    return key.replace(/([A-Z])/g, ' $1').toLowerCase();
-  }
+  // function prettyKey(key: string) {
+  //   return key.replace(/([A-Z])/g, ' $1').toLowerCase();
+  // }
 
   return (
     <>
@@ -242,13 +269,50 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
         </div>
 
         {/* Toggle Button for Additional Details */}
-        <div>
+        {/* <div>
           <button
             className="btn btn-info mt-4"
             onClick={() => setShowDetails((prev) => !prev)}
           >
             {showDetails ? "Hide Additional Details" : "Show Additional Details"}
           </button>
+        </div> */}
+
+        {/* Toggle Button with State Management */}
+        <div>
+          {requirementsDetails.detailsSubmitted === NOT_FOUND ? (
+            <button
+              className="btn btn-error mt-4 cursor-not-allowed"
+              disabled
+            >
+              ⚠️ Error: Required Details Not Found
+            </button>
+          ) : requirementsDetails.detailsSubmitted === 'loading' ? (
+            <button
+              className="btn btn-info mt-4 cursor-progress"
+            >
+              <span className="loading loading-spinner"></span>
+              Processing Details...
+            </button>
+          ) : (
+            <button
+              className={`btn ${requirementsDetails.detailsSubmitted ? 'btn-success' : 'btn-warning'} mt-4`}
+              onClick={() => {
+                if (requirementsDetails.detailsSubmitted === true) {
+                  setShowDetails(false);
+                  setShowStripeDashboard((prev) => !prev);
+                } else if (requirementsDetails.detailsSubmitted === false) {
+                  setShowDetails((prev) => !prev);
+                  setShowStripeDashboard(false);
+                }
+              }}
+            >
+              {requirementsDetails.detailsSubmitted
+                ? (showStripeDashboard ? "Hide Dashboard" : "Show Dashboard")
+                : (showDetails ? "Hide Details" : "Show Details")
+              }
+            </button>
+          )}
         </div>
 
         {/* Additional Details Section */}
@@ -302,9 +366,6 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                   {alternativesBadge.badgeLabel !== null ? (
                     <p>{alternativesBadge.badgeLabel}</p>
                   ) : (
-                    // <button onClick={() => setShowAlternatives(!showAlternatives)}>
-                    //   <p>{showAlternatives ? "Hide Alternatives" : "Show Alternatives"}</p>
-                    // </button>
                     <CollapsibleToggle
                       show={showAlternatives}
                       onClick={() => setShowAlternatives(!showAlternatives)}
@@ -376,9 +437,6 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                     {pastDueBadge.badgeLabel !== null ? (
                       <p>{pastDueBadge.badgeLabel}</p>
                     ) : (
-                      // <button onClick={() => setShowPastDue(!showPastDue)}>
-                      //   <p>{showPastDue ? "Hide Past Due" : "Show Past Due"}</p>
-                      // </button>
                       <CollapsibleToggle
                         show={showPastDue}
                         onClick={() => setShowPastDue(!showPastDue)}
@@ -653,6 +711,24 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
               </p>
             </div>
           </div>
+        )}
+        {/* Stripe Dashboard Section */}
+
+        {stripeConnectInstance.status === 'ready' &&
+        requirementsDetails.detailsSubmitted &&
+        showStripeDashboard && (
+          <>
+            <ConnectComponentsProvider connectInstance={stripeConnectInstance.instance}>
+              <ConnectNotificationBanner />
+              <ConnectBalances />
+              <ConnectPayments />
+              <ConnectPayouts />
+              <ConnectAccountManagement />
+              <ConnectDocuments />
+              <ConnectTaxRegistrations />
+              <ConnectTaxSettings />
+            </ConnectComponentsProvider>
+          </>
         )}
       </div>
     </>
