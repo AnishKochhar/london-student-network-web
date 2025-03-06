@@ -118,18 +118,42 @@ export async function fetchAllUpcomingEvents() {
 
 export async function fetchUpcomingEvents() {
 	try {
-		const data = await sql<SQLEvent>`
-			SELECT * FROM events
-			WHERE (year, month, day) >= (EXTRACT(YEAR FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_DATE))
-			ORDER BY year, month, day
-			LIMIT 5
+		// Fetch all upcoming events
+		const eventsResult = await sql<SQLEvent>`
+		  SELECT *
+		  FROM events
+		  WHERE (year, month, day) >= (
+			EXTRACT(YEAR FROM CURRENT_DATE),
+			EXTRACT(MONTH FROM CURRENT_DATE),
+			EXTRACT(DAY FROM CURRENT_DATE)
+		  )
+		  ORDER BY year, month, day
+		  LIMIT 5;
 		`;
-		return data.rows.map(convertSQLEventToEvent);
-	} catch (error) {
+		const events = eventsResult.rows;
+  
+	  // For each event, fetch its tickets separately
+	  const eventsWithTickets = await Promise.all(
+		  events.map(async (event) => {
+			const ticketsResult = await sql<SQLTicketResult>`
+			  SELECT ticket_name, ticket_price, tickets_available
+			  FROM tickets
+			  WHERE event_uuid::TEXT LIKE '%' || ${event.id}
+			`;
+			return {
+			  ...convertSQLEventToEvent(event),
+			  tickets_info: convertSQLTicketResultToTicketInfo(ticketsResult.rows),
+			};
+		  })
+		);
+  
+		return eventsWithTickets;
+  
+	  } catch (error) {
 		console.error('Database error:', error);
 		throw new Error('Failed to fetch upcoming events');
+	  }
 	}
-}
 
 // export async function fetchUserEvents(organiser_uid: string) {
 // 	try {

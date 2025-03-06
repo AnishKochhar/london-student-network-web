@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table";
-import { Event } from "@/app/lib/types";
+import { Event, IncompleteEvent } from "@/app/lib/types";
 import { ArrowsUpDownIcon } from "@heroicons/react/24/outline";
 import { Button } from "../button";
 import { DataTableColumnHeader } from "./column-header";
@@ -13,7 +13,7 @@ const parseDate = (dateString: string) => {
 };
 
 
-export const columns: ColumnDef<Event>[] = [
+export const columns: ColumnDef<Event | IncompleteEvent>[] = [
 	{
 		id: "select",
 		header: ({ table }) => (
