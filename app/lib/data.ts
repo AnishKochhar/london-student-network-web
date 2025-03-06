@@ -1641,27 +1641,30 @@ export async function registerForEvent(user_id: string, user_email: string, user
 
 			if (result.rowCount === 0) {
 				await sql` -- add the new tickets
-				INSERT INTO event_registrations (event_id, user_id, name, email, ticket_uuid, quantity)
+				INSERT INTO event_registrations 
+				(event_id, user_id, name, email, ticket_uuid, quantity)
 				VALUES (${event_id}, ${user_id}, ${user_name}, ${user_email}, ${id}, ${ticket_to_quantity[id]})
 				`
 
-				await sql` -- update the tickets available
-				UPDATE tickets (tickets_available)
-				VALUES (tickets_available - ${ticket_to_quantity[id]})
-			    WHERE ticket_uuid::TEXT LIKE '%' || ${id};
+				await sql` -- decrease the tickets available
+				UPDATE tickets
+				SET tickets_available = tickets_available - ${ticket_to_quantity[id]}
+				WHERE ticket_uuid::TEXT LIKE '%' || ${id}
+				AND tickets_available IS NOT NULL;
 				`
 			} else {
 				await sql` -- increase the quantity for existing ticket
-				UPDATE event_registrations (quantity)
-				VALUES (quantity + ${ticket_to_quantity[id]})
+				UPDATE event_registrations
+				SET quantity = quantity + ${ticket_to_quantity[id]}
 				WHERE event_id::TEXT LIKE '%' || ${event_id} AND
 			    ticket_uuid::TEXT LIKE '%' || ${id} AND
 				user_id::TEXT LIKE '%' || ${user_id};
 				`
 				await sql` -- update the tickets available
-				UPDATE tickets (tickets_available)
-				VALUES (tickets_available - ${ticket_to_quantity[id]})
-				WHERE ticket_uuid::TEXT LIKE '%' || ${id};
+				UPDATE tickets
+				SET tickets_available = tickets_available - ${ticket_to_quantity[id]}
+				WHERE ticket_uuid::TEXT LIKE '%' || ${id}
+				AND tickets_available IS NOT NULL;
 				`
 			}
 		}

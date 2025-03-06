@@ -21,13 +21,13 @@ Here are the details:
 - Time: ${start_time} - ${end_time}
 - Location: ${eventInformation.location_building}, ${eventInformation.location_area}, ${eventInformation.location_address}
 - Ticket Details:
-${ticketDetails.map(td => `  * ${td.ticket_name}: ${ticket_to_quantity.get(td.ticket_uuid)}`).join('\n')}
+${ticketDetails.map(td => `  * ${td.ticket_name}: ${ticket_to_quantity[td.ticket_uuid]}`).join('\n')}
 
 Please find below any important information about this event.
 
 - Event Description: ${eventInformation.description}
-- Sign up Link:</strong> ${eventInformation.sign_up_link}
-- Information for Externals:</strong> ${eventInformation.for_externals}
+- Sign up Link:</strong> ${eventInformation.sign_up_link || 'N/A'}
+- Information for Externals:</strong> ${eventInformation.for_externals || 'N/A'}
 
 
 We are super excited to see you there! If you have any questions or need assistance, feel free to contact the organiser through the LSN website, or

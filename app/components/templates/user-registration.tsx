@@ -23,7 +23,7 @@ const UserRegistrationConfirmationEmail = (
         <li><strong>Your Tickets:</strong>
           <ul>
             ${ticketDetails.map(ticketDetail => `
-              <li>${ticketDetail.ticket_name} - Quantity: ${ticket_to_quantity.get(ticketDetail.ticket_uuid)}</li>
+              <li>${ticketDetail.ticket_name} - Quantity: ${ticket_to_quantity[ticketDetail.ticket_uuid]}</li>
             `).join('')}
           </ul>
         </li>
@@ -31,8 +31,8 @@ const UserRegistrationConfirmationEmail = (
       <p>Please find below any important information about this event</p>
       <ul style="list-style: none; padding: 0;">
         <li><strong>Event Description:</strong> ${eventInformation.description}</li>
-        <li><strong>Sign up Link:</strong> ${eventInformation.sign_up_link}</li>
-        <li><strong>Information for Externals:</strong> ${eventInformation.for_externals}</li>
+        <li><strong>Sign up Link:</strong> ${eventInformation.sign_up_link || 'N/A'}</li>
+        <li><strong>Information for Externals:</strong> ${eventInformation.for_externals || 'N/A'}</li>
       </ul>
       <p>We can't wait to see you there! If you have any questions or need to chat, just head over to the LSN website and get in touch with the organiser
       at the link here: https://www.londonstudentnetwork.com/societies/society/${organiser_uid} .
