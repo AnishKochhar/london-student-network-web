@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import toast from 'react-hot-toast';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { Input } from '../input';
 import { Button } from '../button';
 import { generateDays, generateMonths, generateYears, generateHours, generateMinutes } from '@/app/lib/utils/time';
@@ -17,6 +17,7 @@ import { DefaultEvent, FormData } from '@/app/lib/types';
 import TagsField from './create-event-tags';
 import { upload } from '@vercel/blob/client';
 import ToggleSwitch from '../toggle-button';
+import * as TableComponents from '../table';
 
 
 const MAX_POSTGRES_STRING_LENGTH = 255;
@@ -30,7 +31,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [eventData, setEventData] = useState(DefaultEvent); // Event data for preview
 
-	const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm<FormData>({
+	const { control, register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm<FormData>({
 		mode: 'onChange',
 	});
 
@@ -52,7 +53,7 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 
 		let imageUrl = data.selectedImage
 
-		if (data.uploadedImage && typeof data.uploadedImage !== 'string') {
+		if (data.uploadedImage && typeof data.uploadedImage !== 'string') { // this truly should be happening in the backend. TODO
 			try {
 				const newBlob = await upload(data.uploadedImage.name, data.uploadedImage, {
 					access: 'public',
@@ -417,32 +418,158 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 	);
 
 
-	const CapacityField = () => (
-		<div className="flex flex-col mb-4">
-			<label htmlFor="capacity" className="text-2xl p-6 font-semibold">Ticketing Capacity</label>
-			{errors.capacity && <p className="text-red-600 text-sm self-end mb-1">Capacity must be a number</p>}
-			<input
-				id="capacity"
-				type="number"
-				{...register('capacity', { required: false })}
-				className="w-[90%] self-end block p-3 text-sm text-gray-900 bg-transparent rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-				placeholder="No ticketing limit imposed"
-			/>
+	// const CapacityField = () => ( // turn this and below field into a tickets section, that captures ticket name, ticket price, and ticket availability
+	// 	<div className="flex flex-col mb-4">
+	// 		<label htmlFor="capacity" className="text-2xl p-6 font-semibold">Ticketing Capacity</label>
+	// 		{errors.capacity && <p className="text-red-600 text-sm self-end mb-1">Capacity must be a number</p>}
+	// 		<input
+	// 			id="capacity"
+	// 			type="number"
+	// 			{...register('capacity', { required: false })}
+	// 			className="w-[90%] self-end block p-3 text-sm text-gray-900 bg-transparent rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+	// 			placeholder="No ticketing limit imposed"
+	// 		/>
+	// 	</div>
+	// );
+
+
+	// const TicketPriceField = () => (
+	// 	<div className="flex flex-col mb-4">
+	// 	<label htmlFor="tickets price" className="text-2xl p-6 font-semibold">Tickets price</label>
+	// 	{errors.tickets_price && <p className="text-red-600 text-sm self-end mb-1">Please enter valid price</p>}
+	// 	<Input
+	// 		id='tickets_price'
+	// 		placeholder="4.99"
+	// 		{...register('tickets_price', { required: false, maxLength: MAX_POSTGRES_STRING_LENGTH })}
+	// 		className="bg-transparent border border-gray-300 self-end truncate w-[90%] p-2"
+	// 		maxLength={MAX_POSTGRES_STRING_LENGTH}
+	// 	/>
+	// 	</div>
+	// );
+
+	const { fields, append, remove } = useFieldArray({
+		control,
+		name: "tickets_info",
+	});
+
+	const TicketFields = () => (
+	<div className="mb-8">
+		<div className="flex justify-between items-center mb-4">
+		<h2 className="text-2xl p-6 font-semibold">Tickets</h2>
+		<button
+			type="button"
+			onClick={() => {
+				// const currentTickets = watch("tickets_info");
+				// console.log(currentTickets);
+				append({ ticketName: "", price: null, capacity: null });
+			}}
+			className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+		>
+			Add Ticket
+		</button>
 		</div>
+
+		<TableComponents.Table>
+		<TableComponents.TableHeader>
+			<TableComponents.TableRow>
+			<TableComponents.TableHead className="w-[35%]">Ticket Name</TableComponents.TableHead>
+			<TableComponents.TableHead className="w-[25%]">Price (£)</TableComponents.TableHead>
+			<TableComponents.TableHead className="w-[25%]">Tickets Available</TableComponents.TableHead>
+			<TableComponents.TableHead className="w-[15%]">Actions</TableComponents.TableHead>
+			</TableComponents.TableRow>
+		</TableComponents.TableHeader>
+		<TableComponents.TableBody>
+			{fields.map((field, index) => (
+			<TableComponents.TableRow key={field.id}>
+				<TableComponents.TableCell>
+				<input
+					{...register(`tickets_info.${index}.ticketName`, {
+					required: "Name is required",
+					pattern: {
+						value: /^[a-zA-Z0-9 ]+$/,
+						message: "Only letters, numbers and spaces allowed",
+					},
+					})}
+					className="w-full p-2 border rounded"
+					placeholder="Standard Ticket"
+				/>
+				{errors.tickets_info?.[index]?.ticketName && (
+					<p className="text-red-500 text-sm mt-1">
+					{errors.tickets_info[index]?.ticketName?.message}
+					</p>
+				)}
+				</TableComponents.TableCell>
+
+				<TableComponents.TableCell>
+				<input
+					type="number"
+					step="0.01"
+					{...register(`tickets_info.${index}.price`, {
+					min: {
+						value: 0,
+						message: "Price must be non-negative",
+					},
+					validate: (value) =>
+						value === null || value >= 0,
+					})}
+					className="w-full p-2 border rounded"
+					placeholder="For free tickets, enter 0 or leave empty"
+				/>
+				{errors.tickets_info?.[index]?.price && (
+					<p className="text-red-500 text-sm mt-1">
+					{errors.tickets_info[index]?.price?.message}
+					</p>
+				)}
+				</TableComponents.TableCell>
+
+				<TableComponents.TableCell>
+				<input
+					type="number"
+					{...register(`tickets_info.${index}.capacity`, {
+					min: {
+						value: 0,
+						message: "Must be non-negative integer",
+					},
+					validate: (value) =>
+						value === null || Number.isInteger(Number(value)),
+					})}
+					className="w-full p-2 border rounded"
+					placeholder="Leave empty if no capacity problems expected"
+				/>
+				{errors.tickets_info?.[index]?.capacity && (
+					<p className="text-red-500 text-sm mt-1">
+					{errors.tickets_info[index]?.capacity?.message}
+					</p>
+				)}
+				</TableComponents.TableCell>
+
+				<TableComponents.TableCell>
+				<button
+					type="button"
+					onClick={() => remove(index)}
+					className="text-red-500 hover:text-red-700"
+				>
+					Remove
+				</button>
+				</TableComponents.TableCell>
+			</TableComponents.TableRow>
+			))}
+		</TableComponents.TableBody>
+		</TableComponents.Table>
+	</div>
 	);
 
-
-	const TicketPriceField = () => (
+	const VerificationMethod = () => (
 		<div className="flex flex-col mb-4">
-		<label htmlFor="tickets price" className="text-2xl p-6 font-semibold">Tickets price</label>
-		{errors.tickets_price && <p className="text-red-600 text-sm self-end mb-1">Please enter valid price</p>}
-		<Input
-			id='tickets_price'
-			placeholder="4.99"
-			{...register('tickets_price', { required: false, maxLength: MAX_POSTGRES_STRING_LENGTH })}
-			className="bg-transparent border border-gray-300 self-end truncate w-[90%] p-2"
-			maxLength={MAX_POSTGRES_STRING_LENGTH}
-		/>
+			<label className='flex flex-row items-center'><p className='text-2xl p-6 font-semibold'>Choose verification method</p> <p className='text-lg p-2'>(optional)</p></label>
+			<textarea
+				id="forExternals"
+				rows={4}
+				{...register('forExternals')}
+				className="w-[90%] self-end block p-3 text-sm  text-black bg-transparent rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+				placeholder="For now, all attendees just get a confirmation email. In the near future, all attendees would get a qr code. You can choose to just verify by confirmation email, or the more robust method, ensure a verifier is logged in to your LSN society account, and scans the qr codes with the coming scanner app that will be found on your LSN account details."
+				disabled
+			/>
 		</div>
 	);
 
@@ -469,10 +596,11 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				rows={4}
 				{...register('forExternals')}
 				className="w-[90%] self-end block p-3 text-sm  text-gray-900 bg-transparent rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-				placeholder="e.g. Who to contact to get building access on the day..."
+				placeholder="How to get building access for the event, dress code, event rules, etc..."
 			/>
 		</div>
 	);
+
 
 
 	return (
@@ -515,8 +643,8 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				<TimeField />
 				<TagsFieldWrapper />
 				<LocationField />
-				<CapacityField />
-				<TicketPriceField />
+				<TicketFields />
+				<VerificationMethod />
 				<ImagePickerField />
 				<SignupLinkField />
 				<ForExternalsField />

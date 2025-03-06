@@ -12,10 +12,34 @@ export interface Event {
 	image_url: string;
 	image_contain: boolean;
 	event_type: number;
-	capacity?: number;
 	sign_up_link?: string;
 	for_externals?: string;
-	tickets_price?: string;
+	tickets_info: TicketInfo[];
+}
+
+export interface Tickets{
+	ticket_name: string;
+	ticket_price: number;
+	tickets_available: number;
+	price_id: string;
+	ticket_uuid: string;
+}
+
+export interface IncompleteEvent {
+	id: string;
+	title: string;
+	description: string;
+	organiser: string;
+	time: string;
+	date: string;
+	location_building: string;
+	location_area: string;
+	location_address: string;
+	image_url: string;
+	image_contain: boolean;
+	event_type: number;
+	sign_up_link?: string;
+	for_externals?: string;
 }
 
 export interface EditEventProps {
@@ -73,11 +97,10 @@ export interface SQLEvent {
 	image_url: string;
 	image_contain: boolean;
 	event_type: number;
-	capacity?: number;
 	sign_up_link?: string;
 	for_externals?: string;
-	tickets_price?: string;
 }
+
 
 export interface EventRegistrationEmail {
 	title: string;
@@ -114,6 +137,13 @@ export interface ContactFormInput {
 	message: string
 }
 
+export interface TicketInfo {
+	ticket_uuid?: string;
+	ticketName: string;
+	price?: number;
+	capacity?: number;
+}
+
 export interface FormData {
 	title: string;
 	description: string;
@@ -139,19 +169,15 @@ export interface FormData {
 	uploadedImage: File | null;
 	image_contain: boolean;
 	event_tag: number;
-	capacity?: number;
+	// capacity?: number;
 	signupLink?: string;
 	forExternals?: string;
 	
 	// New tickets_info property for the future
-	// tickets_info: {
-	// [ticketType: string]: {
-	// 	price: number; // Price for the ticket type
-	// 	capacity?: number; // Optional: Maximum capacity for this ticket type
-	// };
+	tickets_info: TicketInfo[];
 
-	// Temp tickets property, remove then above is added
-	tickets_price?: string;
+	// Temp tickets property, remove when above is added
+	// tickets_price?: string;
 }
 
 
@@ -317,6 +343,6 @@ export const DefaultEvent: Event = {
 	image_url: '/images/placeholders/football.jpg',
 	image_contain: true,
 	event_type: 7, 
-	capacity: 150,
 	sign_up_link: 'https://google.co.uk',
+	tickets_info: [{ticketName: 'Standard ticket', price: 0, capacity: null}, {ticketName: 'VIP ticket', price: 4.99, capacity: 20}],
 };

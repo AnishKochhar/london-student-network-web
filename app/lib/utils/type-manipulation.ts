@@ -1,4 +1,5 @@
-import { SQLEvent, Event, FormData, Registrations, SQLRegistrations, Partner, Tag } from "../types";
+import { SQLTicketResult } from "../data";
+import { SQLEvent, Event, IncompleteEvent, FormData, Registrations, SQLRegistrations, Partner, Tag, TicketInfo } from "../types";
 
 // ==============================================
 // STRIPE CONNECT
@@ -17,24 +18,29 @@ export function extractPriceStringToTwoDecimalPlaces(input: string): { value?: s
 }
 
 
-export function convertToSubCurrency(amount: string): { value?: number, error?: string } {
-    if (amount === '') {
-        return {value: 0};
+export function convertToSubCurrency(amount: string | number): { value?: number, error?: string } {
+    if (typeof amount === 'string') {
+        if (amount === '') {
+            return {value: 0};
+        }
+        if (amount === '0') {
+            return {value: 0};
+        }
+        const parsed = parseFloat(amount);
+    
+        // Check if parsed is a valid number
+        if (isNaN(parsed)) {
+          return { error: 'Invalid input: Not a valid number' };
+        }
+      
+        // Ensure the number is rounded to 2 decimal places
+        const rounded = Math.round(parsed * 100)
+    
+        return {value: rounded};
+    } else if (typeof amount === 'number') {
+        return {value: Math.round(amount * 100)};
     }
-    if (amount === '0') {
-        return {value: 0};
-    }
-    const parsed = parseFloat(amount);
 
-    // Check if parsed is a valid number
-    if (isNaN(parsed)) {
-      return { error: 'Invalid input: Not a valid number' };
-    }
-  
-    // Ensure the number is rounded to 2 decimal places
-    const rounded = Math.round(parsed * 100)
-
-    return {value: rounded};
 
 }
 
@@ -89,7 +95,7 @@ export function base62ToBase16(base62: string): string {
 // EVENTS
 // ==============================================
 
-export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
+export function convertSQLEventToEvent(sqlEvent: SQLEvent): IncompleteEvent {
 	const date = `${String(sqlEvent.day).padStart(2, '0')}/${String(sqlEvent.month).padStart(2, '0')}/${sqlEvent.year}`;
 	const time = `${sqlEvent.start_time} - ${sqlEvent.end_time}`;
 
@@ -107,11 +113,18 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		image_contain: sqlEvent.image_contain,
 		event_type: sqlEvent.event_type,
 		sign_up_link: sqlEvent.sign_up_link,
-		capacity: sqlEvent.capacity,
 		for_externals: sqlEvent.for_externals,
-		// tickets_price: sqlEvent.tickets_price,
 	};
 }
+
+export function convertSQLTicketResultToTicketInfo(sqlTickets: SQLTicketResult[]): TicketInfo[] {
+    return sqlTickets.map(ticket => ({
+      ticket_uuid: ticket.ticket_uuid,
+      ticketName: ticket.ticket_name,
+      price: ticket.ticket_price,
+      capacity: ticket.tickets_available,
+    }));
+  }
 
 export function convertSQLRegistrationsToRegistrations(registrations: SQLRegistrations): Registrations {
     return {
@@ -136,9 +149,9 @@ export function createEventObject(data: FormData): Event {
         image_url: data.selectedImage,
         image_contain: data.image_contain,
         event_type: data.event_tag || 0, 
-        capacity: data.capacity,
         sign_up_link: data.signupLink || undefined,
         for_externals: data.forExternals || undefined,
+        tickets_info: data.tickets_info,
     };
 }
 
@@ -159,11 +172,9 @@ export async function createSQLEventObject(data: FormData): Promise<SQLEvent> {
         location_address: data.location.address,
         image_url: data.selectedImage,
         image_contain: data.image_contain,
-        capacity: data.capacity || undefined,
         event_type: data.event_tag || 0,
         sign_up_link: data.signupLink || undefined,
         for_externals: data.forExternals || undefined,
-        tickets_price: data.tickets_price || '0',
     };
     
 }

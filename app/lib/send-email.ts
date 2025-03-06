@@ -1,5 +1,5 @@
 import { sendEmail } from './singletons-private';
-import { EmailData, EventRegistrationEmail } from './types';
+import { EmailData, EventRegistrationEmail, Event, Tickets } from './types';
 import { getEmailFromId } from './data';
 import EmailPayload from '../components/templates/user-to-society-email'; // this might have security issues because of user inputs.
 import EmailPayloadFallback from '../components/templates/user-to-society-email-fallback';
@@ -92,15 +92,15 @@ export const sendEmailVerificationEmail = async (email: string, token: string) =
 	};
 }
 
-export const sendUserRegistrationEmail = async (email: string, eventInformation: EventRegistrationEmail) => {
+export const sendUserRegistrationEmail = async (email: string, user_name: string, event: Event, ticketDetails: Tickets[], ticket_to_quantity: Map<string, number>, organiser_uid: string) => {
 	try {
-		const customPayload = UserRegistrationConfirmationEmail(email, eventInformation);
-		const customPayloadFallback = UserRegistrationConfirmationEmailFallback(email, eventInformation);
+		const customPayload = UserRegistrationConfirmationEmail(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
+		const customPayloadFallback = UserRegistrationConfirmationEmailFallback(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
 
 		const msg = {
 			to: email, 
 			// from: 'hello@londonstudentnetwork.com',
-			subject: `🧧 Ticket for ${eventInformation.title}`,
+			subject: `🧧 Tickets for ${event.title}`,
 			text: customPayloadFallback, 
 			html: customPayload,
 		};

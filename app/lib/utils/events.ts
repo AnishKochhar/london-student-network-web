@@ -157,21 +157,54 @@ export function validateEvent(formData: FormData): string | undefined {
     }
 
     // Validate ticket price
-    if (formData?.tickets_price && formData?.tickets_price !== '') {
-        const ticketsPrice = formData.tickets_price;
-        const priceNumber = Number(ticketsPrice);
+    // if (formData?.tickets_price && formData?.tickets_price !== '') {
+    //     const ticketsPrice = formData.tickets_price;
+    //     const priceNumber = Number(ticketsPrice);
 
-        if (typeof ticketsPrice !== 'string' || isNaN(priceNumber) || !/^\d+(\.\d{1,2})?$/.test(ticketsPrice)) {
-            return "Invalid ticket price!";
-        }
+    //     if (typeof ticketsPrice !== 'string' || isNaN(priceNumber) || !/^\d+(\.\d{1,2})?$/.test(ticketsPrice)) {
+    //         return "Invalid ticket price!";
+    //     }
 
         // Ensure the price is greater than 0.30 or is exactly '0'
-        if (priceNumber !== 0 && priceNumber < 0.30) {
-            return "Ticket price must be greater than 30p or exactly 0.";
-        }
+        // if (priceNumber !== 0 && priceNumber < 0.30) {
+        //     return "Ticket price must be greater than 30p or exactly 0.";
+        // }
 
         // Ensure payments are enabled for the society
         
+    // }
+
+    if (formData?.tickets_info && Array.isArray(formData?.tickets_info)) {
+        for (let i = 0; i < formData.tickets_info.length; i++) {
+            const ticket = formData.tickets_info[i];
+            
+            // Convert to number and handle empty values
+            const priceNumber = Number(ticket?.price || 0);
+            
+            // Only validate if price is non-zero
+            if (priceNumber !== 0) {
+                const priceStr = String(ticket.price);
+                
+                // Check valid number format
+                if (isNaN(priceNumber)) {
+                    return `Invalid ticket price for ticket ${ticket.ticketName || `at index ${i}`}!`;
+                }
+                
+                // Validate decimal format
+                if (!/^\d+(\.\d{1,2})?$/.test(priceStr)) {
+                    return `Ticket price format invalid for ${ticket.ticketName || `ticket ${i}`} - max 2 decimal places`;
+                }
+                
+                // Validate minimum amount
+                if (priceNumber < 0.30) {
+                    return `Ticket price must be at least £0.30 for ${ticket.ticketName || `ticket ${i}`}, or free`;
+                }
+            }
+        }
+    }
+
+    if (formData.tickets_info.length === 0) { // check if there is at least 1 ticket
+        return `There must be at least 1 ticket type for event: ${formData.title}`
     }
 
     return undefined; // valid data
@@ -179,7 +212,7 @@ export function validateEvent(formData: FormData): string | undefined {
 
 export function convertEventsToMonthYearGroupings(events: Event[]) {
     const months: { [key: string]: Event[] } = {}
-
+    console.log(events);
     events.forEach((event) => {
         const monthYear = `${event.date.substring(3)}`
 

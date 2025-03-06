@@ -33,6 +33,7 @@ export default async function getPromiseForStandardDashboard(userId: string) {
                 variables: { // https://docs.stripe.com/connect/customize-connect-embedded-components
                     colorPrimary: "#3C82F6",
                     colorText: "#FFFFFF",
+                    colorBackground: "#041D35",
                     buttonPrimaryColorBackground: "#4A00FF",
                     buttonSecondaryColorBackground: "#00B5FF",
                     buttonSecondaryColorText: "#000000",
