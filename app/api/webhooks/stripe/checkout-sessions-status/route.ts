@@ -6,6 +6,7 @@ import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "@/app
 import { fetchOrganiserEmailFromEventId, registerForEvent } from "@/app/lib/data";
 import { Tickets } from '@/app/lib/types';
 import { isEventProcessed, markEventProcessed } from '@/app/lib/utils/stripe/server-utilities';
+import { sql } from '@vercel/postgres';
 
 // ensure error pages are created and insightful
 // check if we are using the correct type of session (I was expecting Stripe.Checkout.SessionResources, not Stripe.Checkout.Session)
@@ -35,8 +36,8 @@ export async function POST(req: Request) {
     console.log("I'VE MADE IT!!!!!");
     console.log("I'VE MADE IT!!!!!");
 
-    const result = await isEventProcessed(event.id);
-    if (result) return NextResponse.json({ success: true }, { status: 200 })
+    // const result = await isEventProcessed(event.id);
+    // if (result) return NextResponse.json({ success: true }, { status: 200 });
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -47,91 +48,113 @@ export async function POST(req: Request) {
         await handleCheckoutExpired(event.data.object, event);
         break;
 
+      case 'checkout.session.async_payment_succeeded':
+        await handleCheckoutCompleted(event.data.object, event);
+        break;
+      
+      case 'checkout.session.async_payment_failed':
+        await handleCheckoutExpired(event.data.object, event);
+        break;
       default:
-        return;
+        return NextResponse.json({ received: true }, { status: 400 });;
     }
 
-
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true }, { status: 200 });
   } catch (err) {
     console.error('Webhook Error:', err);
     return NextResponse.json(
       { success: false },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session, event: Stripe.Event) {
+    try{
+      // return NextResponse.json({ success: true }, { status: 200 });
 
-    if (!session.metadata || typeof session.metadata !== 'object') {
-        throw new Error('Invalid session metadata');
-    }
+      if (session.payment_status !== 'paid') {
+        console.log('Payment not completed:', session.payment_status);
+        return NextResponse.json({ success: false }, { status: 402 });
+      }
 
-    // Core Identifiers
-    const user_id = session.metadata.user_id;       // User ID (from metadata)
-    const eventId = session.metadata.event_id;     // Event ID (from metadata)
-    const organiser_uid = session.metadata.organiser_uid;
+      if (!session.metadata || typeof session.metadata !== 'object') {
+          throw new Error('Invalid session metadata');
+      }
 
-    // User Information
-    const user_email = session.metadata.email;
-    const user_name = session.metadata.name;
+      // Core Identifiers
+      const user_id = session.metadata.user_id;       // User ID (from metadata)
+      const eventId = session.metadata.event_id;     // Event ID (from metadata)
+      const organiser_uid = session.metadata.organiser_uid;
 
-    // Ticket Data
-    const ticketDetails = JSON.parse(session.metadata.ticketDetails) as Tickets[];
-    const ticket_id_to_quantity = JSON.parse(session.metadata.tickets) as Map<string, number>;
+      // User Information
+      const user_email = session.metadata.email;
+      const user_name = session.metadata.name;
 
-    const eventInfo = {
-      id: eventId,
-      title: session.metadata.title,
-      description: session.metadata.description,
-      organiser: session.metadata.organiser,
-      time: session.metadata.time,
-      date: session.metadata.date,
-      location_building: session.metadata.building,
-      location_area: session.metadata.area,
-      location_address: session.metadata.address,
-      image_url: '',
-      image_contain: true,
-      event_type: 1,
-      sign_up_link: session.metadata.sign_up_link,
-      for_externals: session.metadata.for_externals,
-      tickets_info: []
-    };
+      // Ticket Data
+      const ticketDetails = JSON.parse(session.metadata.ticketDetails) as Tickets[];
+      let temp = JSON.parse(session.metadata.tickets) as Record<string, number>;
+      const ticket_id_to_quantity = new Map<string, number>(Object.entries(temp));
+
+      const eventInfo = {
+        id: eventId,
+        title: session.metadata.title,
+        description: session.metadata.description,
+        organiser: session.metadata.organiser,
+        time: session.metadata.time,
+        date: session.metadata.date,
+        location_building: session.metadata.building,
+        location_area: session.metadata.area,
+        location_address: session.metadata.address,
+        image_url: '',
+        image_contain: true,
+        event_type: 1,
+        sign_up_link: session.metadata.sign_up_link,
+        for_externals: session.metadata.for_externals,
+        tickets_info: []
+      };
 
 
-    // console.log(userId, eventId, userEmail, userName);
+      // console.log(userId, eventId, userEmail, userName);
 
-    const registrationResponse = await registerForEvent(
-      user_id, 
-      user_email, 
-      user_name, 
-      eventId,
-      ticket_id_to_quantity
-    );
-
-    if (!registrationResponse.success) {
-      return NextResponse.json({ success: false }, { status: 500 });
-    }
-
-    // Send emails
-    await sendUserRegistrationEmail(user_email, user_name, eventInfo, ticketDetails, ticket_id_to_quantity, organiser_uid);
-    const organiserEmail = await fetchOrganiserEmailFromEventId(eventId);
-    if (organiserEmail) {
-      await sendOrganiserRegistrationEmail(
-        organiserEmail, 
+      const registrationResponse = await registerForEvent(
+        user_id, 
         user_email, 
         user_name, 
-        eventInfo.title
+        eventId,
+        ticket_id_to_quantity
       );
-    }
 
-    markEventProcessed(event.id);
-    // redirect("/registration/payment-complete/success/thank-you");
-  }
+      if (!registrationResponse.success) {
+        throw new Error('Registration failed: ' + JSON.stringify(registrationResponse));
+      }
 
+      // Send emails
+      await sendUserRegistrationEmail(user_email, user_name, eventInfo, ticketDetails, ticket_id_to_quantity, organiser_uid);
+      const organiserEmail = await fetchOrganiserEmailFromEventId(eventId);
+      if (organiserEmail) {
+        await sendOrganiserRegistrationEmail(
+          organiserEmail, 
+          user_email, 
+          user_name, 
+          eventInfo.title
+        );
+      }
+
+      await markEventProcessed(event.id);
+      return NextResponse.json({ success: true }, { status: 200 });
+      // redirect("/registration/payment-complete/success/thank-you");
+    } catch (error) {
+      console.error('Checkout processing failed:', error);
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 502 }
+      );
+    }    
+}
+ 
 async function handleCheckoutExpired(session: Stripe.Checkout.Session, event: Stripe.Event) {
-    markEventProcessed(event.id);
+    await markEventProcessed(event.id);
     return NextResponse.json({ success: true }, { status: 200 });
 }
 

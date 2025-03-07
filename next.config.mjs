@@ -2,6 +2,9 @@
 const nextConfig = {
 	images: {
 		remotePatterns: [{ hostname: "*.public.blob.vercel-storage.com" }]
+	},
+	api: {
+		bodyParser: false, // Disable body parsing for API routes
 	}
 };
 
