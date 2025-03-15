@@ -39,23 +39,23 @@ export async function POST(req: Request) {
     // if (result) return NextResponse.json({ success: true }, { status: 200 });
 
     switch (event.type) {
-      case 'checkout.session.completed':
-        await handleCheckoutCompleted(event.data.object, event);
-        break;
+      // case 'checkout.session.completed':
+      //   await handleCheckoutCompleted(event.data.object, event);
+      //   break;
       
-      case 'checkout.session.expired':
-        await handleCheckoutExpired(event.data.object, event);
-        break;
+      // case 'checkout.session.expired':
+      //   await handleCheckoutExpired(event.data.object, event);
+      //   break;
 
-      case 'checkout.session.async_payment_succeeded':
-        await handleCheckoutCompleted(event.data.object, event);
-        break;
+      // case 'checkout.session.async_payment_succeeded':
+      //   await handleCheckoutCompleted(event.data.object, event);
+      //   break;
       
-      case 'checkout.session.async_payment_failed':
-        await handleCheckoutExpired(event.data.object, event);
-        break;
+      // case 'checkout.session.async_payment_failed':
+      //   await handleCheckoutExpired(event.data.object, event);
+      //   break;
       default:
-        return NextResponse.json({ received: true }, { status: 400 });;
+        return NextResponse.json({ received: true }, { status: 200 });;
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
