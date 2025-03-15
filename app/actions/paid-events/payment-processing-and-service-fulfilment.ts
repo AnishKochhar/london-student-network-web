@@ -1,119 +1,182 @@
-// 'use server'
+'use server';
 
+import { getSecretStripePromise } from "@/app/lib/singletons-private";
+import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "@/app/lib/send-email";
+import { fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
+import { redirect } from "next/navigation";
+import { getSession } from "@/app/lib/utils/stripe/server-utilities";
+import { Tickets } from '@/app/lib/types';
+import Stripe from "stripe";
 
-// // ensure waiting for status to be complete (upto 40s)
-// // ensure error pages are created and insightful
-// // ensure searchParams are properly validated + cleaned
+const stripe = await getSecretStripePromise();
+const MAX_RETRIES = 5;
+const RETRY_DELAY = 5000;
 
-// import { getSecretStripePromise } from "@/app/lib/singletons-private";
-// import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "@/app/lib/send-email";
-// import { fetchOrganiserEmailFromEventId, fetchRegistrationEmailEventInformation, registerForEvent } from "@/app/lib/data";
-// import { redirect } from "next/navigation";
-// import { getSession } from "@/app/lib/utils/stripe/server-utilities";
+async function retryOperation<T>(
+    operation: () => Promise<T>,
+    errorLabel: string
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        console.error(`${errorLabel} attempt ${attempt} failed:`, error);
+        if (attempt < MAX_RETRIES) await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+      }
+    }
+    throw new Error(`${errorLabel} failed after ${MAX_RETRIES} attempts`);
+}
 
-// const stripe = await getSecretStripePromise();
+export default async function paymentProcessingAndServiceFulfilment({ searchParams }: { searchParams: { [key: string]: string } }) {
+    // Validate only session_id comes from client-side
+    const sessionId = searchParams['session_id'];
+    if (!sessionId || typeof sessionId !== 'string') {
+        redirect("/registration/invalid-session");
+    }
 
+    try {
 
-// export default async function paymentProcessingAndServiceFulfilment({ searchParams }: { searchParams: { [key: string]: string } }) {
+        let session: Stripe.Checkout.Session;
+        let paymentCheckAttempt = 1;
+        while (paymentCheckAttempt <= MAX_RETRIES) {
+            session = await getSession(sessionId, stripe);
+            if (session?.payment_status === 'paid') break;
+            
+            if (paymentCheckAttempt < MAX_RETRIES) {
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+            }
+            paymentCheckAttempt++;
+        }
 
-//     const sessionId = searchParams.session_id;
-//     const userEmail = searchParams.email;
-//     const userId = searchParams.user_id;
-//     const userName = searchParams.name;
-//     const eventId = searchParams.event_id;
-
-//     const session = await getSession(sessionId, stripe);
-
-
-
-
-//     // if (session?.status === "open") {
-//     // 	return <p>Payment wasn&#39; t succesfull.</p>;
-//     // }
-
-//     // if (session?.status === 'expired') {
-//     //     return (
-//     //         <p>Session expired.</p>
-//     //     )
-//     // }
-
-//     if (session?.status === "complete") {
-
-//         // Register for event with 3 attempts
-//         let registrationSuccess = false;
-//         for (let registrationAttempt = 1; registrationAttempt <= 3; registrationAttempt++) {
-//             try {
-//                 const response = await registerForEvent(userId, userEmail, userName, eventId);
-//                 if (response.success) {
-//                     registrationSuccess = true;
-//                     break;
-//                 }
-//                 if (registrationAttempt < 3) {
-//                     await new Promise(resolve => setTimeout(resolve, 1000));
-//                 }
-//             } catch (error) {
-//                 console.error(`Registration attempt ${registrationAttempt} failed:`, error);
-//             }
-//         }
-
-//         if (!registrationSuccess) {
-//             redirect("/registration/payment-complete/server-error");
-//             return;
-//         }
-
-//         // Get event information
-//         const eventInformationResponse = await fetchRegistrationEmailEventInformation(eventId); // get everything you will need
-//         if (!eventInformationResponse.success) {
-//             redirect("/registration/payment-complete/server-error");
-//             return;
-//         }
-    
-//         // Send user email with 3 attempts
-//         let userEmailSuccess = false;
-//         for (let emailAttempt = 1; emailAttempt <= 3; emailAttempt++) {
-//             try {
-//                 await sendUserRegistrationEmail(userEmail, eventInformationResponse.event); // attach what email sending logic needs
-//                 userEmailSuccess = true;
-//                 break;
-//             } catch (error) {
-//                 console.error(`User email attempt ${emailAttempt} failed:`, error);
-//                 if (emailAttempt < 3) {
-//                     await new Promise(resolve => setTimeout(resolve, 1000));
-//                 }
-//             }
-//         }
-    
-//         if (!userEmailSuccess) {
-//             redirect("/registration/payment-complete/email-error");
-//             return;
-//         }
-    
-//         // Get organizer email and send notification
-//         const organiserEmailResponse = await fetchOrganiserEmailFromEventId(eventId);
-//         let organiserEmailSuccess = false;
+        if (session.payment_status !== 'paid') {
+            redirect("/registration/payment-incomplete");
+        }
+        // Retrieve and validate Stripe session
+        // const session = await getSession(sessionId, stripe);
         
-//         for (let organiserAttempt = 1; organiserAttempt <= 3; organiserAttempt++) {
-//             try {
-//                 await sendOrganiserRegistrationEmail(
-//                     organiserEmailResponse,
-//                     userEmail,
-//                     userName,
-//                     eventInformationResponse.event.title
-//                 );
-//                 organiserEmailSuccess = true;
-//                 break;
-//             } catch (error) {
-//                 console.error(`Organizer email attempt ${organiserAttempt} failed:`, error);
-//                 if (organiserAttempt < 3) {
-//                     await new Promise(resolve => setTimeout(resolve, 1000));
-//                 }
-//             }
-//         }
-    
-//         if (!organiserEmailSuccess) {
-//             // errorLog();
-//         }
+        if (!session) {
+            redirect("/registration/invalid-session");
+        }
 
-//         redirect("/registration/thank-you"); // attach everything the thank you page needs (prolly all the event info fetched above)
-//     }
-// }
+        // Validate metadata structure
+        if (!session.metadata || typeof session.metadata !== 'object') {
+            redirect("/registration/invalid-metadata");
+        }
+
+        
+
+        // Extract all values from session metadata
+        const requiredMetadata = [
+            'user_id', 'event_id', 'email', 'name',
+            'ticketDetails', 'tickets', 'organiser_uid'
+        ];
+        
+        for (const param of requiredMetadata) {
+            if (!session.metadata[param]) {
+                redirect("/registration/incomplete-metadata");
+            }
+        }
+
+        // Type-safe extraction
+        // const { 
+        //     user_id: userId,
+        //     event_id: eventId,
+        //     email: userEmail,
+        //     name: userName,
+        //     ticketDetails,
+        //     tickets,
+        //     organiser_uid: organiserUid
+        // } = session.metadata;
+      // Core Identifiers
+
+      const user_id = session.metadata.user_id;       // User ID (from metadata)
+      const eventId = session.metadata.event_id;     // Event ID (from metadata)
+      const organiser_uid = session.metadata.organiser_uid;
+      // User Information
+      const user_email = session.metadata.email;
+      const user_name = session.metadata.name;
+
+      // Ticket Data
+      const ticketDetails = JSON.parse(session.metadata.ticketDetails) as Tickets[];
+      console.log(ticketDetails);
+      let ticket_id_to_quantity = JSON.parse(session.metadata.tickets) as Record<string, number>;
+      // console.log(temp);
+      // const ticket_id_to_quantity = new Map<string, number>(Object.entries(temp));
+      console.log(ticket_id_to_quantity);
+      console.log('.');
+      console.log('.');
+      console.log('.');
+      console.log('.');
+      console.log('.');
+      console.log('.');
+
+      const eventInfo = {
+        id: eventId,
+        title: session.metadata.title,
+        description: session.metadata.description,
+        organiser: session.metadata.organiser,
+        time: session.metadata.time,
+        date: session.metadata.date,
+        location_building: session.metadata.building,
+        location_area: session.metadata.area,
+        location_address: session.metadata.address,
+        image_url: '',
+        image_contain: true,
+        event_type: 1,
+        sign_up_link: session.metadata.sign_up_link,
+        for_externals: session.metadata.for_externals,
+        tickets_info: []
+      };
+        // Validate payment status
+
+
+        // ... rest of the implementation using metadata values ...
+        // [Keep the existing retry logic but use metadata values instead of searchParams]
+
+        // const registrationResponse = await registerForEvent(
+        //     user_id, 
+        //     user_email, 
+        //     user_name, 
+        //     eventId,
+        //     ticket_id_to_quantity
+        //   );
+
+          const registrationResponse = await retryOperation(
+            () => registerForEvent(
+                user_id, 
+                user_email, 
+                user_name, 
+                eventId,
+                ticket_id_to_quantity
+            ),
+            'Event registration'
+        );
+    
+          if (!registrationResponse.success) {
+            throw new Error('Registration failed: ' + JSON.stringify(registrationResponse));
+          }
+    
+          // Send emails
+          await retryOperation(
+            () => sendUserRegistrationEmail(user_email, user_name, eventInfo, ticketDetails, ticket_id_to_quantity, organiser_uid),
+            'User email sending'
+        );
+        //   await sendUserRegistrationEmail(user_email, user_name, eventInfo, ticketDetails, ticket_id_to_quantity, organiser_uid);
+          const organiserEmail = await fetchOrganiserEmailFromEventId(eventId);
+          if (organiserEmail) {
+            await sendOrganiserRegistrationEmail(
+              organiserEmail, 
+              user_email, 
+              user_name, 
+              eventInfo.title
+            );
+          }
+
+        // return NextResponse.json({ success: true }, { status: 200 });
+
+    } catch (error) {
+        console.error('Payment processing failed:', error);
+        throw new Error('error with server action:', error)
+        // redirect("/registration/payment-complete/server-error");
+    }
+}

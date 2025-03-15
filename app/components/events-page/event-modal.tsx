@@ -121,7 +121,6 @@ export default function EventModal({ event, onClose }: EventModalProps) {
 							<p className="text-sm :text-lg text-gray-900 mt-1">Venue capacity: {event.capacity}</p>
 						)} */}
 
-						<p className="text-black">should be below this line:</p>
 						{event.tickets_info?.length > 0 && (
 							<div className="mt-4 space-y-2">
 								<h3 className="text-sm font-semibold text-gray-900">Tickets Available:</h3>

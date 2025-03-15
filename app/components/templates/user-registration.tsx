@@ -4,7 +4,7 @@ const UserRegistrationConfirmationEmail = (
   user_name: string,
   eventInformation: Event,
   ticketDetails: Tickets[],
-  ticket_to_quantity: Map<string, number>,
+  ticket_to_quantity: Record<string, number>,
   organiser_uid: string
 ) => {
   const [day, month, year] = eventInformation.date.split('/').map(Number);

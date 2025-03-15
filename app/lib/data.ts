@@ -1626,7 +1626,7 @@ export async function checkIfRegistered(event_id: string, user_id: string) {
 	}
 }
 
-export async function registerForEvent(user_id: string, user_email: string, user_name: string, event_id: string, ticket_to_quantity: Map<string, number>) {
+export async function registerForEvent(user_id: string, user_email: string, user_name: string, event_id: string, ticket_to_quantity: Record<string, number>) {
 	try {
 		await sql.query(`BEGIN`);
 

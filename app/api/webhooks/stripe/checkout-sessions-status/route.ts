@@ -85,15 +85,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, event: 
       const user_id = session.metadata.user_id;       // User ID (from metadata)
       const eventId = session.metadata.event_id;     // Event ID (from metadata)
       const organiser_uid = session.metadata.organiser_uid;
-
       // User Information
       const user_email = session.metadata.email;
       const user_name = session.metadata.name;
 
       // Ticket Data
       const ticketDetails = JSON.parse(session.metadata.ticketDetails) as Tickets[];
-      let temp = JSON.parse(session.metadata.tickets) as Record<string, number>;
-      const ticket_id_to_quantity = new Map<string, number>(Object.entries(temp));
+      let ticket_id_to_quantity = JSON.parse(session.metadata.tickets) as Record<string, number>;
+      // const ticket_id_to_quantity = new Map<string, number>(Object.entries(temp));
 
       const eventInfo = {
         id: eventId,

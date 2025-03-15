@@ -92,7 +92,7 @@ export const sendEmailVerificationEmail = async (email: string, token: string) =
 	};
 }
 
-export const sendUserRegistrationEmail = async (email: string, user_name: string, event: Event, ticketDetails: Tickets[], ticket_to_quantity: Map<string, number>, organiser_uid: string) => {
+export const sendUserRegistrationEmail = async (email: string, user_name: string, event: Event, ticketDetails: Tickets[], ticket_to_quantity: Record<string, number>, organiser_uid: string) => {
 	try {
 		const customPayload = UserRegistrationConfirmationEmail(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
 		const customPayloadFallback = UserRegistrationConfirmationEmailFallback(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);

@@ -73,7 +73,7 @@ const stripe = await getSecretStripePromise();
 // }
 
 export async function POST(req: Request) {
-  const { event_id, user_id, ticket_id_to_quantity }: { event_id: string, user_id: string, ticket_id_to_quantity: Map<string, number> }  = await req.json();
+  const { event_id, user_id, ticket_id_to_quantity }: { event_id: string, user_id: string, ticket_id_to_quantity: Record<string, number> }  = await req.json();
   
   try {
     // Fetch required data
@@ -150,6 +150,12 @@ export async function POST(req: Request) {
 
     // Handle case for only free tickets
     if (freeTickets.length === 1 && paidTickets.length === 0) {
+      console.log(ticket_id_to_quantity);
+      console.log('.');
+      console.log('..');
+      console.log('...');
+      console.log('....');
+      console.log('.....');
       const registrationResponse = await registerForEvent(
         user_id, 
         user.email, 

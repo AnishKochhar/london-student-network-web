@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import paymentProcessingAndServiceFulfilment from '@/app/actions/paid-events/payment-processing-and-service-fulfilment';
 
 function wait(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -19,6 +20,7 @@ export default function CheckoutReturn({ searchParams }: { searchParams: { [key:
       setError('Missing session ID');
       return;
     }
+    paymentProcessingAndServiceFulfilment({ searchParams });
 
     const controller = new AbortController();
     
