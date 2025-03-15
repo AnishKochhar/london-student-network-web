@@ -1615,8 +1615,8 @@ export async function fetchOrganiserEmailFromEventId(event_id: string) {
 export async function checkIfRegistered(event_id: string, user_id: string) {
 	try {
 		const result = await sql`
-			SELECT id FROM event_registrations
-			WHERE event_id = ${event_id} AND user_id = ${user_id}
+			SELECT event_registration_uuid FROM event_registrations
+			WHERE event_id::TEXT LIKE '%' || ${event_id} AND user_id::TEXT LIKE '%' || ${user_id}
 			LIMIT 1
 		`;
 		return result.rows.length > 0;

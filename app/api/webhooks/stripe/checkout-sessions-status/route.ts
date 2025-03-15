@@ -5,8 +5,7 @@ import { getSecretStripePromise } from '@/app/lib/singletons-private';
 import { sendUserRegistrationEmail, sendOrganiserRegistrationEmail } from "@/app/lib/send-email";
 import { fetchOrganiserEmailFromEventId, registerForEvent } from "@/app/lib/data";
 import { Tickets } from '@/app/lib/types';
-import { isEventProcessed, markEventProcessed } from '@/app/lib/utils/stripe/server-utilities';
-import { sql } from '@vercel/postgres';
+import { markEventProcessed } from '@/app/lib/utils/stripe/server-utilities';
 
 // ensure error pages are created and insightful
 // check if we are using the correct type of session (I was expecting Stripe.Checkout.SessionResources, not Stripe.Checkout.Session)
