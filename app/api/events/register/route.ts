@@ -173,7 +173,7 @@ export async function POST(req: Request) {
 			// Send emails
 			const userRegistrationEmailResponse = await sendUserRegistrationEmail(user.email, user.name, event, ticketDetails, ticket_id_to_quantity, organiser_uid);
 			if (!userRegistrationEmailResponse.success) {
-				return NextResponse.json({ success: false, error: 'Registration Email Failure\n(You have successfully registered with our system though) :)' }, { status: 501 });
+				return NextResponse.json({ success: false, error: 'Email Sending Failure\n(You have successfully registered with our system though) :)' }, { status: 501 });
 			}
 
 			// TODO: Uncomment/Delete this for organiser confirmation emails!
@@ -186,7 +186,7 @@ export async function POST(req: Request) {
 			// 		event.title
 			// 	);
 			// 	if (!organierEmailResponse.success) {
-			// 		return NextResponse.json({ success: false, error: 'Registration Email Failure\n(You have successfully registered with our system though) :)' }, { status: 501 });
+			// 		return NextResponse.json({ success: false, error: 'Email Sending Failure\n(You have successfully registered with our system though) :)' }, { status: 501 });
 			// 	}
 			// }
 
