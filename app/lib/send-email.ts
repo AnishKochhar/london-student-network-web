@@ -83,12 +83,14 @@ export const sendEmailVerificationEmail = async (email: string, token: string) =
 		};
 
 		await sendEmail(msg);
+		return { success: true };
 
 	} catch (error) {
 		console.error("Error occurred during email sending of verification email. Error message:", error.message);
 		console.error("Stack trace:", error.stack);
 
-		throw new Error("Failed to send email to verify email");
+		// throw new Error("Failed to send email to verify email");
+		return { success: false };
 	};
 }
 
