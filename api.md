@@ -4,6 +4,13 @@ This API log follows the same [Semantic Versioning](https://semver.org/spec/v2.0
 
 For each public API route, it lists **inputs**, **outputs**, **errors thrown**, and **places invocated**
 
+# [5.0.1] 
+
+### `Removed` ###
+
+### api/statistics
+- Replaced with internal `fetchWebsiteStats()` function load
+
 # [5.0.0] # Stripe integration
 
 ### `Added` ###

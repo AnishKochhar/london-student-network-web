@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchWebsiteStats } from "@/app/lib/data";
 import { WebsiteStats } from "@/app/lib/types";
 import { FallbackStatistics } from "@/app/lib/utils/general";
 
@@ -11,26 +12,8 @@ const statisticsMap = [
 
 export default async function Statistics() {
 
-	let stats: WebsiteStats = FallbackStatistics
-	try {
-
-		const res = await fetch('/api/statistics', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			next: { revalidate: 86400 }, // Enable ISR (revalidate every 24 hours)
-		});
-		if (!res.ok) {
-			throw new Error("Failed to fetch statistics");
-		}
-		stats = await res.json()
-
-	} catch (error) {
-		console.error()
-	}
-	// console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
-
+	let stats: WebsiteStats = await fetchWebsiteStats();
+	
 	return (
 		<div className="font-bold text-lg md:text-xl text-white flex flex-col justify-center text-center">
 			{/* <h2 className="text-white text-md tracking-widest">OUR STATISTICS</h2> */}
