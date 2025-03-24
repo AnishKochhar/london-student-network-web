@@ -176,18 +176,19 @@ export async function POST(req: Request) {
 				return NextResponse.json({ success: false, error: 'Registration Email Failure\n(You have successfully registered with our system though) :)' }, { status: 501 });
 			}
 
-			const organiserEmail = await fetchOrganiserEmailFromEventId(event_id);
-			if (organiserEmail) {
-				const organierEmailResponse = await sendOrganiserRegistrationEmail(
-					organiserEmail,
-					user.email,
-					user.name,
-					event.title
-				);
-				if (!organierEmailResponse.success) {
-					return NextResponse.json({ success: false, error: 'Registration Email Failure\n(You have successfully registered with our system though) :)' }, { status: 501 });
-				}
-			}
+			// TODO: Uncomment/Delete this for organiser confirmation emails!
+			// const organiserEmail = await fetchOrganiserEmailFromEventId(event_id);
+			// if (organiserEmail) {
+			// 	const organierEmailResponse = await sendOrganiserRegistrationEmail(
+			// 		organiserEmail,
+			// 		user.email,
+			// 		user.name,
+			// 		event.title
+			// 	);
+			// 	if (!organierEmailResponse.success) {
+			// 		return NextResponse.json({ success: false, error: 'Registration Email Failure\n(You have successfully registered with our system though) :)' }, { status: 501 });
+			// 	}
+			// }
 
 			return NextResponse.json({ success: true, requiresPayment: false }, { status: 200 });
 		}
