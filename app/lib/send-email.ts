@@ -1,4 +1,6 @@
-import { sgMail } from './sendgrid-config';
+'use server'
+
+import sendSendGridEmail from './config/private/sendgrid';
 import { EmailData } from './types';
 import { getEmailFromId } from './data';
 import EmailPayload from '../components/templates/user-to-society-email'; // this might have security issues because of user inputs.
@@ -7,13 +9,14 @@ import ResetEmailPayload from '../components/templates/reset-password';
 import ResetEmailPayloadFallback from '../components/templates/reset-password-fallback';
 import VerificationEmailPayload from '../components/templates/verification-email';
 import VerificationEmailPayloadFallback from '../components/templates/verification-email-fallback';
-
+import UserRegistrationConfirmationEmail from '../components/templates/user-registration';
+import UserRegistrationConfirmationEmailFallback from '../components/templates/user-registration-fallback';
+import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
+import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
-	console.log(id)
 	try {
 		const recipient = await getEmailFromId(id);
-		console.log("recipient", recipient)
 
 		if (!recipient.email || recipient.email === '') {
 			console.error('Email could not be fetched for the organiser:', id);
@@ -32,7 +35,7 @@ export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendSendGridEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending or fetching logic. Error message:", error.message);
@@ -60,13 +63,13 @@ export const sendUserEmail = async ({ toEmail, fromEmail, subject, text }) => {
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendSendGridEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending or fetching logic. Error message:", error.message);
 		console.error("Stack trace:", error.stack);
 
-		throw new Error("Failed to send email or an error occurred during the attempt to retrieve organiser email by id");
+		throw new Error("An error occurred during the attempt to retrieve organiser email by id");
 	}
 };
 
@@ -84,7 +87,7 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendSendGridEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending of reset email. Error message:", error.message);
@@ -108,7 +111,7 @@ export const sendEmailVerificationEmail = async (email: string, token: string) =
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendSendGridEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending of verification email. Error message:", error.message);
