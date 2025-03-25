@@ -6,3 +6,9 @@ export interface DefaultEmailPayloadType {
     text?: string; // email might only contain html body
     html?: string; // email might only contain text body
 }
+
+export interface FallbackEmailServiceResponse {
+    success: boolean;
+    error?: string; // when there is an error
+    info?: string; // when the response is succesfull, gives email transportation info
+}
