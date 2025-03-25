@@ -22,7 +22,7 @@ export default async function sendSendGridEmail({ to, from, subject, text, html 
     if (!text && !html) {
         throw new Error("At least one of 'text' or 'html' must be provided.");
     }
-    
+
     const msg = {
         to,
         from,
@@ -35,13 +35,10 @@ export default async function sendSendGridEmail({ to, from, subject, text, html 
         await sgMail.send(msg);
         return { success: true };
     } catch(err) {
-        if (from === 'hello@londonstudentnetwork.com') {
-            const response = await requestFallbackEmailService({ to: msg.to, subject: msg.subject, ...(text && { text }), ...(html && { html }) })
-            if (!response.success) {
-                throw new Error(`LSN email service failed to send email: ${response.error}`);
-            }
+        const response = await requestFallbackEmailService({ to: msg.to, subject: msg.subject, ...(text && { text }), ...(html && { html }) })
+        if (!response.success) {
+            throw new Error(`LSN email service failed to send email: ${response.error}`);
         }
-        throw new Error('Email service failed to send email:', err);
     }
     // on failure, an error is raised that should be catched wherever this function is used
 }
