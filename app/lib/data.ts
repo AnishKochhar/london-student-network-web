@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres';
-import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, EventRegistrationEmail, Event, FormData, Tickets } from './types';
+import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, EventRegistrationEmail, Event, FormData, Tickets, WebsiteStats } from './types';
 import { FallbackStatistics } from './utils/general';
 import { selectUniversity } from './utils/events';
 import { formatDOB } from './utils/events';
@@ -21,16 +21,23 @@ const redis = await getRedisClientInstance();
 
 // TODO: Organise based on usecases
 
-export async function fetchWebsiteStats() {
+export async function fetchWebsiteStats(): Promise<WebsiteStats> {
 	// return FallbackStatistics
 	try {
-		const stats = await sql`
+		const result = await sql`
         SELECT
             (SELECT COUNT(*) FROM events) AS total_events,
             (SELECT COUNT(DISTINCT university_attended) FROM user_information) AS total_universities,
             (SELECT COUNT(*) FROM users WHERE role = 'organiser' AND is_test_account = FALSE) AS total_societies
     	`;
-		return stats.rows
+		const row = result.rows[0];
+
+		return {
+			total_events: String(row.total_events),
+			total_universities: String(row.total_universities),
+			total_societies: String(row.total_societies),
+		};
+
 
 	} catch (error) {
 		console.error('Database error:', error)

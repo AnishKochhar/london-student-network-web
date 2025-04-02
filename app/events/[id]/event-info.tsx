@@ -534,7 +534,7 @@ export default function EventInfo() {
 											disabled={totalSelected === 0}
 											className="btn btn-primary w-full mt-4"
 										>
-											{requiresPayment ? 'Proceed to Checkout' : 'Complete Registration'} 
+											{requiresPayment ? 'Proceed to Checkout ' : 'Complete Registration '} 
 											({totalSelected} selected)
 										</button>
 										</form>
