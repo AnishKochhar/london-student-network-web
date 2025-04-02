@@ -4,13 +4,19 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [5.0.2] - 2025-04-02
+
+### Added
+
+- Email fallback to (email-sender-gules.vercel.app) - Mikael's email service
+- No events found GIF in events page. Displayed when empty list of upcoming events
+
 # [5.0.1] - 2025-03-24
 
 ### Changed
 
 - Added returned `success` boolean from `sendUserRegistrationEmail` and `sendOrganiserRegistrationEmail` along with error handling in caller functions
 - Removed erroneous api call inside `statistics.tsx`. Replaced with internal `fetchWebsiteStats()` call
-
 
 # [5.0.0] - 2025-01-27
 
