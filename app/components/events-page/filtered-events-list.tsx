@@ -1,7 +1,8 @@
 "use client";
 import EventSection from './event-section';
+import Image from 'next/image';
 import { Event } from '@/app/lib/types';
-import { convertEventsToMonthYearGroupings } from '@/app/lib/utils';
+import { convertEventsToMonthYearGroupings } from '@/app/lib/utils/events';
 
 interface FilteredEventsListProps {
 	allEvents: Event[];
@@ -26,13 +27,17 @@ export default function FilteredEventsList({ allEvents, activeTags, editEvent }:
 	});
 
 	return (
-		<div>
-			{sortedMonthYearKeys.map((monthYearKey, index) => {
-				const [month, year] = monthYearKey.split('/');
-				return (
-					<EventSection key={index} month={month} year={year} events={monthYearGroupings[monthYearKey]} editEvent={editEvent} />
-				);
-			})}
-		</div>
+		filteredEvents.length === 0 ? (
+			<Image src='/gif/no-events-found.gif' alt='No events found' width={500} height={500} className="object-contain self-center" />
+		) : (
+			<div>
+				{sortedMonthYearKeys.map((monthYearKey, index) => {
+					const [month, year] = monthYearKey.split('/');
+					return (
+						<EventSection key={index} month={month} year={year} events={monthYearGroupings[monthYearKey]} editEvent={editEvent} />
+					);
+				})}
+			</div>
+		)
 	);
 }

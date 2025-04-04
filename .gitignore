@@ -36,5 +36,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local extensions
-/.history
+# local
+/.history/
+/.vscode/
+/.bugs/
+/.todo.txt
+/.notes.txt
+/.developer.notes.txt
+
+# tests
+/.tests/

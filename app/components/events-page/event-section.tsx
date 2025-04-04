@@ -1,6 +1,7 @@
 import { Event } from "@/app/lib/types";
 import EventCard from "./event-card";
-import { getMonthName, sortEventsByDate } from "@/app/lib/utils";
+import { sortEventsByDate } from "@/app/lib/utils/events";
+import { getMonthName } from "@/app/lib/utils/time";
 
 interface EventSectionProps {
 	month: string

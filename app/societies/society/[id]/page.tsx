@@ -12,8 +12,8 @@ import { Button } from '@/app/components/button';
 import UserEventsList from '@/app/components/account/user-events-list';
 import NextImage from 'next/image'; // using NextImage instead of Image to avoid Namespace clashs with javascript Image method in extractAndSetMainColor 
 import { FetchAccountDetailsPromiseInterface, Tag } from '@/app/lib/types';
-import getPredefinedTags from '@/app/lib/utils';
-import { formattedWebsite } from '@/app/lib/utils';
+import getPredefinedTags from '@/app/lib/utils/events';
+import { formattedWebsite } from '@/app/lib/utils/general';
 import * as skeletons from '@/app/components/skeletons/unique-society';
 import SendEmailPage from '../../message/[id]/page';
 

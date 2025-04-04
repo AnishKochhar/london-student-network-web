@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Event } from "@/app/lib/types";
 import TagButtons from "./event-tag-filters";
-import { EVENT_TAG_TYPES } from "@/app/lib/utils";
+import { EVENT_TAG_TYPES } from "@/app/lib/utils/events";
 import FilteredEventsList from "./filtered-events-list";
 
 interface FilteredEventsPageProps {

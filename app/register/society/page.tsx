@@ -13,7 +13,8 @@ import Image from 'next/image';
 import { FlagIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { upload } from '@vercel/blob/client';
 import Select from 'react-select'; // For tag selection
-import getPredefinedTags, { LondonUniversities } from '@/app/lib/utils';
+import getPredefinedTags, {LondonUniversities} from '@/app/lib/utils/events';
+import EmbeddedStripeConnectOnboardingForm from '@/app/components/payments/embedded-onboarding/stripe-connect';
 
 
 export default function SocietyRegistrationForm() {
@@ -25,8 +26,9 @@ export default function SocietyRegistrationForm() {
 	});
 	const [step, setStep] = useState(1);
 	const [showPassword, setShowPassword] = useState(false);
-	const totalSteps = 2;
+	const totalSteps = 3;
 	const [predefinedTags, setPredefinedTags] = useState([]);
+	const [userId, setUserId] = useState<string | null>(null);
 
 	useEffect(() => {
 		const fetchTags = async () => {
@@ -44,6 +46,10 @@ export default function SocietyRegistrationForm() {
 	const calculateProgress = () => {
 		return ((step) / (totalSteps)) * 100;
 	};
+
+	const incrementStep = () => {
+		nextStep();
+	}
 
 	const onSubmit = async (data: SocietyRegisterFormData) => {
 		const toastId = toast.loading('Creating your society\'s account...')
@@ -112,6 +118,7 @@ export default function SocietyRegistrationForm() {
 			const result = await res.json()
 			if (result.success) {
 				toast.success('Society successfully created!', { id: toastId })
+				setUserId(result.id);
 				nextStep()
 				sendVerificationEmail(data)
 			} else {
@@ -405,12 +412,6 @@ export default function SocietyRegistrationForm() {
 				</div>
 				{errors.hasAgreedToTerms && <p className="text-red-500 mt-2">{errors.hasAgreedToTerms.message}</p>}
 
-				{/* Finish button */}
-				<div className="flex justify-end mt-6 items-center">
-					<Button variant='outline' onClick={handleSubmit(onSubmit)} className="p-3 text-white rounded-lg hover:bg-slate-500">
-						Submit <FlagIcon className='ml-2' width={15} height={15} />
-					</Button>
-				</div>
 			</div>
 		)
 	}
@@ -425,11 +426,30 @@ export default function SocietyRegistrationForm() {
 				{step === 1 && <DescriptionWebsiteTagsEntry />}
 				{step === 1 && <LogoEntry />}
 
+				{/* Finish button */}
+				{step === 1 &&
+					<div className="flex justify-end mt-6 items-center">
+						<Button variant='outline' onClick={handleSubmit(onSubmit)} className="p-3 text-white rounded-lg hover:bg-slate-500">
+							Submit <FlagIcon className='ml-2' width={15} height={15} />
+						</Button>
+					</div>
+				}
+
+				{(step === 2 && userId) && <EmbeddedStripeConnectOnboardingForm userId={userId} />}
+				{/* Finish without/with Stripe button */}
+				{step === 2 && 
+					<div className="flex justify-end mt-6 items-center">
+						<Button variant='outline' onClick={incrementStep} className="p-3 text-white rounded-lg hover:bg-slate-500">
+							Submit without Stripe <FlagIcon className='ml-2' width={15} height={15} />
+						</Button>
+					</div>
+				}
+
 
 				{step === totalSteps && (
 					<div className="text-center items-center flex flex-col">
 						<h2 className="text-4xl font-semibold">Thank you for registering!</h2>
-						<p className="mt-4 text-gray-300">Please verify your email with the link we sent for full access to the LSN.</p>
+						<p className="mt-4 text-gray-300">Please verify your email with the link we sent for full access to LSN.</p>
 					</div>
 				)}
 

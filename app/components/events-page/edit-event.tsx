@@ -3,17 +3,18 @@
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useState, useEffect, useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { generateDays, generateMonths, generateYears, generateHours, generateMinutes, placeholderImages } from '@/app/lib/utils';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { generateDays, generateMonths, generateYears, generateHours, generateMinutes } from '@/app/lib/utils/time';
+import { placeholderImages } from '@/app/lib/utils/events';
 import { Event, FormData, Registrations, EditEventProps } from '@/app/lib/types';
 import { Input } from '../input';
 import { Button } from '../button';
 import { ArrowLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
 import TagsField from './create-event-tags';
-import { useRouter } from 'next/navigation';
 import RegistrationsModal from './registrations-modal';
 import ToggleSwitch from '../toggle-button';
 import { createPortal } from 'react-dom';
+import * as TableComponents from '../table';
 
 
 const MAX_POSTGRES_STRING_LENGTH = 255;
@@ -24,12 +25,16 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 	const [organisers, setOrganisers] = useState([eventProp.organiser]);
 	const [registrations, setRegistrations] = useState<Registrations[]>([])
 
-	const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm<FormData>({
+	const { register, handleSubmit, formState: { errors, isValid }, setValue, watch, control } = useForm<FormData>({
 		mode: 'onChange',
 	});
 
+	const { fields, append, remove, replace } = useFieldArray({
+		control,
+		name: "tickets_info",
+	});
+
 	const eventTagValue = watch('event_tag', 0); // Default value is 0
-	const router = useRouter()
 
 	const closeModal = () => setViewRegistrationsModal(false)
 
@@ -108,9 +113,11 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 			uploadedImage: null, // Assuming it's handled later in the UI
 			image_contain: event.image_contain,
 			event_tag: event.event_type,
-			capacity: event.capacity,
+			// capacity: event.capacity,
 			signupLink: event.sign_up_link || '',
 			forExternals: event.for_externals || '',
+			// tickets_price: event.tickets_price || '0',
+			tickets_info: event.tickets_info,
 		};
 	};
 
@@ -137,6 +144,31 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		fetchOrganisersData()
 	}, []);
 
+	useEffect(() => {
+		if (!eventProp) return;
+	  
+		const formData = mapEventToFormData(eventProp);
+	  
+		Object.keys(formData).forEach((key) => {
+		  const formDataKey = key as keyof FormData;
+		  const value = formData[formDataKey];
+	  
+		  if (key === 'tickets_info') {
+			// Special handling for tickets array
+			replace(formData.tickets_info || []);
+		  } 
+		  else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+			// Existing nested object handling
+			Object.keys(value).forEach((nestedKey) => {
+			  setValue(`${key}.${nestedKey}` as keyof FormData, value[nestedKey as keyof typeof value]);
+			});
+		  } else {
+			// Existing non-nested field handling
+			setValue(formDataKey, value);
+		  }
+		});
+	}, [eventProp, setValue, replace]);
+
 	// Disable background scroll and handle outside click detection
 	useEffect(() => {
 		// Prevent background scrolling
@@ -160,7 +192,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		const toastId = toast.loading('Updating event....')
 
 		try {
-			console.log(data);
+			// console.log(data);
 			const response = await fetch('/api/protected/events/update', { // upload of image is handled in here
 				method: 'POST',
 				headers: {
@@ -175,7 +207,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 			const result = await response.json();
 			if (response.status === 200) {
 				toast.success('Event successfully updated!', { id: toastId })
-				router.push('/account'); // modified to push to account, but can be changed back to /events
+				// router.push('/account'); // just staying on the same spot is pretty clean
 				onClose();
 			} else {
 				toast.error(`Error updating event: ${result.message}.`, { id: toastId })
@@ -214,7 +246,6 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		</div>
 	)
 
-	
 
 	const OrganiserField = () => (
 		<div className="flex flex-col mb-4">
@@ -483,18 +514,140 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		</div>
 	)
 
-	const CapacityField = () => (
-		<div className="flex flex-col mb-4">
-			<label htmlFor="capacity" className="text-2xl p-6 font-semibold">Ticketing Capacity</label>
-			{errors.capacity && <p className="text-red-600 text-sm self-end mb-1">Capacity must be a number</p>}
-			<input
-				id="capacity"
-				type="number"
-				{...register('capacity', { required: false })}
-				className="w-[90%] self-end block p-3 text-sm text-gray-900 bg-transparent rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-				placeholder="No ticketing limit imposed"
-			/>
+	// const CapacityField = () => (
+	// 	<div className="flex flex-col mb-4">
+	// 		<label htmlFor="capacity" className="text-2xl p-6 font-semibold">Ticketing Capacity</label>
+	// 		{errors.capacity && <p className="text-red-600 text-sm self-end mb-1">Capacity must be a number</p>}
+	// 		<input
+	// 			id="capacity"
+	// 			type="number"
+	// 			{...register('capacity', { required: false })}
+	// 			className="w-[90%] self-end block p-3 text-sm text-gray-900 bg-transparent rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+	// 			placeholder="No ticketing limit imposed"
+	// 		/>
+	// 	</div>
+	// );
+
+	// const TicketPriceField = () => (
+	// 	<div className="flex flex-col mb-4">
+	// 	<label htmlFor="tickets price" className="text-2xl p-6 font-semibold">Tickets price</label>
+	// 	{errors.tickets_price && <p className="text-red-600 text-sm self-end mb-1">Please enter valid price</p>}
+	// 	<Input
+	// 		id='tickets_price'
+	// 		placeholder="4.99"
+	// 		{...register('tickets_price', { required: false, maxLength: MAX_POSTGRES_STRING_LENGTH })}
+	// 		className="bg-transparent border border-gray-300 self-end truncate w-[90%] p-2"
+	// 		maxLength={MAX_POSTGRES_STRING_LENGTH}
+	// 	/>
+	// 	</div>
+	// );
+
+	const TicketFields = () => (
+	<div className="mb-8">
+		<div className="flex justify-between items-center mb-4">
+		<h2 className="text-2xl p-6 font-semibold">Tickets</h2>
+		<button
+			type="button"
+			onClick={() => {
+				// const currentTickets = watch("tickets_info");
+				// console.log(currentTickets);
+				append({ ticketName: "", price: null, capacity: null });
+			}}
+			className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+		>
+			Add Ticket
+		</button>
 		</div>
+
+		<TableComponents.Table>
+		<TableComponents.TableHeader>
+			<TableComponents.TableRow>
+			<TableComponents.TableHead className="w-[35%]">Ticket Name</TableComponents.TableHead>
+			<TableComponents.TableHead className="w-[25%]">Price</TableComponents.TableHead>
+			<TableComponents.TableHead className="w-[25%]">Tickets Available</TableComponents.TableHead>
+			<TableComponents.TableHead className="w-[15%]">Actions</TableComponents.TableHead>
+			</TableComponents.TableRow>
+		</TableComponents.TableHeader>
+		<TableComponents.TableBody>
+			{fields.map((field, index) => (
+			<TableComponents.TableRow key={field.id}>
+				<TableComponents.TableCell>
+				<input
+					{...register(`tickets_info.${index}.ticketName`, {
+					required: "Name is required",
+					pattern: {
+						value: /^[a-zA-Z0-9 ]+$/,
+						message: "Only letters, numbers and spaces allowed",
+					},
+					})}
+					className="w-full p-2 border rounded"
+					placeholder="Standard Ticket"
+				/>
+				{errors.tickets_info?.[index]?.ticketName && (
+					<p className="text-red-500 text-sm mt-1">
+					{errors.tickets_info[index]?.ticketName?.message}
+					</p>
+				)}
+				</TableComponents.TableCell>
+
+				<TableComponents.TableCell>
+				<input
+					type="number"
+					step="0.01"
+					{...register(`tickets_info.${index}.price`, {
+					min: {
+						value: 0,
+						message: "Price must be non-negative",
+					},
+					validate: (value) =>
+						value === null || value >= 0,
+					})}
+					className="w-full p-2 border rounded"
+					placeholder="For free tickets, enter 0 or leave empty"
+				/>
+				{errors.tickets_info?.[index]?.price && (
+					<p className="text-red-500 text-sm mt-1">
+					{errors.tickets_info[index]?.price?.message}
+					</p>
+				)}
+				</TableComponents.TableCell>
+
+				<TableComponents.TableCell>
+				<input
+					type="number"
+					step="1"
+					{...register(`tickets_info.${index}.capacity`, {
+					min: {
+						value: 0,
+						message: "Must be non-negative integer",
+					},
+					validate: (value) =>
+						value === null || Number.isInteger(Number(value)),
+					})}
+					className="w-full p-2 border rounded"
+					placeholder="Leave empty if no capacity problems expected"
+				/>
+				{errors.tickets_info?.[index]?.capacity && (
+					<p className="text-red-500 text-sm mt-1">
+					{errors.tickets_info[index]?.capacity?.message}
+					</p>
+				)}
+				</TableComponents.TableCell>
+
+				<TableComponents.TableCell>
+				<button
+					type="button"
+					onClick={() => remove(index)}
+					className="text-red-500 hover:text-red-700"
+				>
+					Remove
+				</button>
+				</TableComponents.TableCell>
+			</TableComponents.TableRow>
+			))}
+		</TableComponents.TableBody>
+		</TableComponents.Table>
+	</div>
 	);
 
 
@@ -579,7 +732,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 							<TimeField />
 							<TagsFieldWrapper />
 							<LocationField />
-							<CapacityField />
+							<TicketFields />
 							<ImagePickerField />
 							<SignupLinkField />
 							<ForExternalsField />

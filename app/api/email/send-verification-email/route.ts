@@ -1,7 +1,7 @@
 import { sendEmailVerificationEmail } from "@/app/lib/send-email";
 import { NextResponse, NextRequest } from "next/server";
 import { insertToken } from '@/app/lib/data';
-import { generateToken } from '@/app/lib/utils';
+import { generateToken } from "@/app/lib/utils/general";
 
 // Verify an email
 export async function POST(request: NextRequest) {
@@ -22,7 +22,10 @@ export async function POST(request: NextRequest) {
             throw new Error('Failed to insert token into redis');
         }
 
-		await sendEmailVerificationEmail(email, token);
+		const verificationEmailResponse = await sendEmailVerificationEmail(email, token);
+		if (!verificationEmailResponse.success) {
+			return NextResponse.json({ success: false, error: "Failed to send email" }, { status: 500 }); // 500 Internal Server Error
+		}
 
 		return NextResponse.json({ success: true, message: "Email sent successfully" }, { status: 200 });
 	} catch (error) {
