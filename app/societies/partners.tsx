@@ -1,4 +1,4 @@
-const partners = [
+const partners = [ // it should be noted these are fake societies, merely for testing purposes
 	{ id: 1, name: "Summit Scholars Network", keywords: ["education", "scholarships", "networking"], description: "A network connecting high-achieving students with scholarships and educational opportunities.", website: "https://summitscholars.com" },
 	{ id: 2, name: "Aspire Education Group", keywords: ["tutoring", "mentoring", "academic success"], description: "A tutoring and mentoring group that helps students achieve academic excellence.", website: "https://aspireeducation.com" },
 	{ id: 3, name: "Global Learners Alliance", keywords: ["global", "learning", "student exchange"], description: "An alliance supporting international student exchanges and cross-cultural learning.", website: "https://globallearners.com" },

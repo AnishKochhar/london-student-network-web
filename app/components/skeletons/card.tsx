@@ -1,21 +1,35 @@
 export default function CardSkeleton() {
 	return (
-		<div className="bg-transparent p-6 rounded-lg flex flex-row items-center justify-between border-2 border-blue-100 min-w-[800px]">
-			{/* Left Side: Partner Info */}
-			<div className="flex flex-col space-y-4 w-2/3 pr-4">
-				<h2 className="h-6 w-3/4 bg-glowing-spot bg-no-repeat bg-[length:200%_100%] animate-glow rounded bg-gray-500"></h2>
-				<p className="h-4 w-full bg-glowing-spot bg-no-repeat bg-[length:200%_100%] animate-glow rounded bg-gray-500"></p>
-				<p className="h-4 w-5/6 bg-glowing-spot bg-no-repeat bg-[length:200%_100%] animate-glow rounded bg-gray-500"></p>
+		<div className="flex flex-col p-4 rounded-sm shadow-lg relative bg-white h-[400px]">
+			{/* Logo Skeleton */}
+			<div className="w-full h-40 bg-gray-200 animate-pulse mb-1 border border-black rounded-sm"></div>
+
+			{/* Content Skeleton */}
+			<div className="flex flex-col justify-between flex-grow">
+				<div>
+					{/* Description Skeleton */}
+					<div className="space-y-2">
+						<div className="h-3 w-full bg-gray-200 animate-pulse rounded"></div>
+						<div className="h-3 w-4/5 bg-gray-200 animate-pulse rounded"></div>
+						<div className="h-3 w-3/4 bg-gray-200 animate-pulse rounded"></div>
+					</div>
+
+					{/* Name Skeleton */}
+					<div className="h-6 w-3/4 bg-gray-200 animate-pulse rounded mt-2 mb-2"></div>
+				</div>
+
+				{/* Tags Skeleton */}
+				<div className="flex flex-wrap gap-2 mt-2">
+					{[...Array(3)].map((_, i) => (
+						<div key={i} className="h-4 w-16 bg-gray-200 animate-pulse rounded-full"></div>
+					))}
+				</div>
 			</div>
 
-			{/* Vertical Line Divider */}
-			<div className="border-l-2 border-gray-300 h-full mx-4"></div>
-
-			{/* Right Side: Logo and Links */}
-			<div className="flex flex-col items-center space-y-4 w-1/3">
-				<div className="w-24 h-24 bg-glowing-spot bg-no-repeat bg-[length:200%_100%] animate-glow rounded-full bg-gray-500"></div>
-				<div className="h-4 w-20 bg-glowing-spot bg-no-repeat bg-[length:200%_100%] animate-glow rounded bg-gray-500"></div>
-				<div className="h-4 w-32 bg-glowing-spot bg-no-repeat bg-[length:200%_100%] animate-glow rounded bg-gray-500"></div>
+			{/* Button Group Skeleton */}
+			<div className="flex justify-between mt-4">
+				<div className="h-6 w-20 bg-gray-200 animate-pulse rounded"></div>
+				<div className="h-6 w-24 bg-gray-200 animate-pulse rounded"></div>
 			</div>
 		</div>
 	);

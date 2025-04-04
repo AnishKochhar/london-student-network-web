@@ -290,7 +290,7 @@ export default function SocietyPage() {
 					{/* Description */}
 					<div className='flex justify-center'>
 						<p className="text-lg text-white mb-6 leading-relaxed whitespace-pre-wrap">
-							{description || 'no description found'}
+							{description || `Welcome to ${name}`}
 						</p>
 					</div>
 

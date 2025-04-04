@@ -13,43 +13,46 @@ export default function EditPageComponent({ event, onClose }: EventModalProps) {
 	const session = useSession();
 
 	useEffect(() => {
-		validateEditPrivileges(eventProp);
-	}, [session]);
-
-	async function validateEditPrivileges(targetEvent: Event) { // Soft verification for UX. There is a second, hard check in backend for security
-		try {
-			setStatus('loading'); // in case session changes
-
-			const response = await fetch('/api/protected/events/verify-owner-of-event', {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({ eventId: targetEvent.id }),
-			});
 		
-			// const data = await response.json();
-		
-			switch (response.status) {
-				case 200:
-					setStatus('valid');
-					break;
-				case 401:
-					setStatus('unauthorized');
-					break;
-				case 403:
-					setStatus('forbidden');
-					break;
-				default:
-					setStatus('unauthorized');
-					break;
+		async function validateEditPrivileges(targetEvent: Event) { // Soft verification for UX. There is a second, hard check in backend for security
+			try {
+				setStatus('loading'); // in case session changes
+	
+				const response = await fetch('/api/protected/events/verify-owner-of-event', {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ eventId: targetEvent.id }),
+				});
+			
+				// const data = await response.json();
+			
+				switch (response.status) {
+					case 200:
+						setStatus('valid');
+						break;
+					case 401:
+						setStatus('unauthorized');
+						break;
+					case 403:
+						setStatus('forbidden');
+						break;
+					default:
+						setStatus('unauthorized');
+						break;
+				}
+	
+			} catch (error) {
+				setStatus('unauthorized');
+				console.error("Error verifying ownership:", error);
 			}
-
-		} catch (error) {
-			setStatus('unauthorized');
-			console.error("Error verifying ownership:", error);
 		}
-	}
+
+		validateEditPrivileges(eventProp);
+	}, [session, eventProp]);
+
+
 
 	// could use better + more informative screens
 

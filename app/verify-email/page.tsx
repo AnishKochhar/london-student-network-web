@@ -49,7 +49,7 @@ function VerifyEmailPage() {
     	};
 
     	verifyEmail();
-	}, []);
+	}, [router, searchParams]);
 
   return <div className="min-h-screen">Verifying your email...</div>; // Loading indicator or message
 }

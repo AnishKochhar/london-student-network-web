@@ -38,3 +38,46 @@ body {
 		--radius: 0.5rem;
 	}
 }
+
+/* Custom styles for the partner grid */
+.partner-grid {
+	/* Base style (mobile-first) - Corresponds to grid-cols-1 */
+	grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+  
+/* Tailwind's default 'sm' breakpoint (optional, if you removed sm:grid-cols-2) */
+@media (min-width: 740px) {
+	.partner-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr)); /* Corresponds to grid-cols-2 */
+	}
+}
+  
+/* Tailwind's default 'md' breakpoint (optional, if you removed md:grid-cols-3) */
+@media (min-width: 1068px) {
+	.partner-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr)); /* Corresponds to grid-cols-3 */
+	}
+}
+  
+/* --- Your CUSTOM Breakpoints --- */
+
+/* Example: Custom breakpoint 'lg-plus' starting at 1150px */
+	@media (min-width: 1350px) {
+	.partner-grid {
+		grid-template-columns: repeat(4, minmax(0, 1fr)); /* Example: 4 columns */
+	}
+}
+  
+/* Tailwind's default 'xl' breakpoint (modify or replace with custom) */
+@media (min-width: 1580px) {
+	.partner-grid {
+		grid-template-columns: repeat(5, minmax(0, 1fr)); /* Corresponds to grid-cols-4 */
+	}
+}
+  
+/* Tailwind's default '2xl' breakpoint (modify or replace with custom) */
+@media (min-width: 1536px) {
+	.partner-grid {
+		grid-template-columns: repeat(6, minmax(0, 1fr)); /* Corresponds to grid-cols-6 */
+	}
+}

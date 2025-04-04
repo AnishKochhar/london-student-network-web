@@ -53,7 +53,7 @@ export default function EventInfo() {
 			setEvent(result);
 		};
 		fetchData();
-	}, [id]);
+	}, [event_id]);
 
 	// Handle loading and error states
 	if (loading) {

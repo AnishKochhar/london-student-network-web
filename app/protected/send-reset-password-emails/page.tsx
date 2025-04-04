@@ -37,7 +37,7 @@ export default function SendResetPasswordEmails() {
         };
 
         sendEmails();
-    }, []);
+    }, [router]);
 
     return <div>Authenticating...</div>; // Or a loading indicator
 }

@@ -36,5 +36,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local extensions
+# local
 /.history
+/.notes.txt
+/.todo.txt
+/.developer.notes.txt
+/.bugs
