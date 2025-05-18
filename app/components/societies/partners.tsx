@@ -6,7 +6,6 @@ import CardSkeleton from "../skeletons/card";
 
 
 function Partners({ filteredPartners, skeleton }: { filteredPartners: FormattedPartner[], skeleton: boolean }) {
-
 	return (
 		<>
 			{skeleton ? (

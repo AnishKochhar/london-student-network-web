@@ -12,6 +12,7 @@ import { useState, useEffect, useMemo,useCallback } from 'react';
 import { fetchAllPartners } from '@/app/lib/utils';
 import Partners from '@/app/components/societies/partners';
 import { FormattedPartner } from '@/app/lib/types';
+import partner from '../partners';
 
 export default function SocietyPage() {
 	// Search feature will search the whole dataset, and we'll paginate it
@@ -84,8 +85,10 @@ export default function SocietyPage() {
 			)} */}
 
 			{/* Partners List */}
-			<div className=" w-full mt-3 grid partner-grid gap-8 ">
-				<Partners filteredPartners={filteredPartners} skeleton={loading}/>
+			{/* notice that partner grid is defined in global.css */}
+			<div className="relative w-full mt-3 grid partner-grid gap-8">
+				<Partners filteredPartners={[...(partner.map(it => {it.logo = null;return it})), ...filteredPartners]} skeleton={loading}/> {/* only for testing */}
+				{/* <Partners filteredPartners={filteredPartners} skeleton={loading}/> */}
 			</div>
 
 		</main>
