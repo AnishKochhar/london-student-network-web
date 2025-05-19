@@ -4,15 +4,23 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-# [4.0.1] - 2024-03-04
-(forgot the exact date, took me a long time after completion to remember the PR is not made)
+# [4.1.0] - 2025-03-04
 
-### Added:
-nothing
+### Added
+
+- Sponsor page search functionality with query debouncing
 
 ### Changed:
+- Sponsor's page UI (more compact cards + fixed dimensions)
+- Sponsor's page skeleton for new UI
+- Before cards were transparent, now white
+- Now `Welcome to ${partner_name}` is always default fallback for description
+- Card fetching logic now uses next API caching
+- General code improvements
+- Prettier `No logo found` fallback image
 
-- organized a better structure for the society grids
+### Fixed:
+- Quick fix for duplicate/missing cards by removing lazy loading
 
 # [4.0.0] - 2025-01-18 
 

@@ -1,22 +1,28 @@
+import Intro from '@/app/components/sponsor-page/intro-section';
+import SponsorSection from '@/app/components/sponsor-page/sponsor-section';
+import HowToSponsorSection from '../components/sponsor-page/how-to-sponsor-section';
+import { getAllCompanyInformation } from '../lib/data';
+import { hardCodedSponsors } from '../components/sponsor-page/hard-coded-sponsors';
 
-export default function SponsorPage() {
-	return (
-		<main className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10">
-			<h1 className="text-5xl font-bold text-white mb-4 animate-pulse">
-				Coming Soon
-			</h1>
-			<p className="text-lg text-gray-200 mb-8">
-				We&#39;re working hard to bring you something amazing. Stay tuned for updates!
-			</p>
-			<div className="flex justify-center space-x-4">
-				<a
-					href="/"
-					className="px-4 py-2  text-white font-semibold rounded-full shadow-lg hover:bg-indigo-600 transition duration-300"
-				>
-					Back to Home
-				</a>
-			</div>
-		</main>
-	);
+export default async function SponserPage() {
+    const companyInformation = await getAllCompanyInformation();
+    return (
+        <main className="relative bg-cover bg-center bg-fixed bg-no-repeat h-screen overflow-y-auto snap-y snap-mandatory" style={{ backgroundImage: "url('/images/tower-bridge-1.jpeg')" }}>
+            <div className="flex flex-col bg-black bg-opacity-50 text-white">
+                <section className='p-10 snap-start min-h-screen flex items-center justify-center'>
+                    <SponsorSection
+                        companyInformation={[...companyInformation, ...hardCodedSponsors]}
+                    />
+                </section>
 
+                <section className='flex flex-col items-start p-10 pl-[5%] snap-start min-h-screen justify-center'>
+                    <Intro />
+                </section>
+
+                <section className='flex flex-col pb-10 pl-[10] pr-[5%] snap-start min-h-screen justify-center'>
+                    <HowToSponsorSection />
+                </section>
+            </div>
+        </main>
+    );
 }

@@ -42,3 +42,6 @@ next-env.d.ts
 /.todo.txt
 /.developer.notes.txt
 /.bugs
+
+# tests
+/.tests/

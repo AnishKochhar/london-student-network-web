@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres';
-import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult } from './types';
+import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, CompanyInformation } from './types';
 import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics } from './utils';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
@@ -465,6 +465,35 @@ export async function insertOrganiserInformation(formData: SocietyRegisterFormDa
 	} catch (error) {
 		console.log('Error creating society_information', error)
 		return { success: false, error }
+	}
+}
+
+
+export async function getAllCompanyInformation() {
+	try {
+		const data = await sql`
+			SELECT
+					c.id,
+					u.name AS company_name, 
+					COALESCE(c.contact_email, u.email) AS contact_email,
+					COALESCE(c.description, u.description) AS description,
+					c.motivation,
+					c.contact_name,
+					COALESCE(c.website, u.website) AS website,
+					COALESCE(c.logo_url, u.logo_url) AS logo_url
+			FROM 
+					users AS u 
+			JOIN 
+					company_information AS c ON u.id = c.user_id
+			WHERE 
+					u.role = 'company'
+			AND u.name != 'TEST COMPANY';
+		`
+		return data.rows.map(it => it as CompanyInformation)
+	}
+	catch (error) {
+		console.log("Database error:", error)
+		throw new Error("Error fetching all company information")
 	}
 }
 
