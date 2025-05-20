@@ -1,6 +1,6 @@
 export default function PartnerTags({ keywords }: { keywords: string[] }) {
 	return (
-		<div className="flex flex-wrap gap-2 left-0 h-16 mt-2 mb-2 overflow-y-auto scrollbar-hide">
+		<div className="flex flex-wrap gap-2 left-0 h-6 mt-2 mb-2 overflow-hidden">
 			{keywords.map((tag, index) => (
 				<span
 					key={index}
