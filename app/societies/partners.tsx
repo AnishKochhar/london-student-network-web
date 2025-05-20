@@ -121,7 +121,13 @@ const partners = [ // it should be noted these are fake societies, merely for te
 	{ id: 120, name: "Illuminate Learning Network", keywords: ["learning", "network", "online resources"], description: "An online learning network offering courses, materials, and resources for students.", website: "https://illuminatelearning.com" },
 ]
 
-const partner = partners.map(item => ({
+const extremeCases = [
+	{ id: partners.length + 1, name: "Very Long Name Very Long Name Very Long Name Very Long Name Very Long Name Very Long Name", keywords: ["education", "scholarships", "networking"], description: "A network connecting high-achieving students with scholarships and educational opportunities.", website: "https://summitscholars.com" },
+	{ id: partners.length + 2, name: "Many Keywords", keywords: ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5", "keyword 6", "keyword 7", "keyword 8"], description: "A network connecting high-achieving students with scholarships and educational opportunities.", website: "https://summitscholars.com" },
+	{ id: partners.length + 3, name: "Very Long Description", keywords: ["education", "scholarships", "networking"], description: "Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description Very Long Description ", website: "https://summitscholars.com" },
+]
+
+const partner = [...extremeCases, ...partners].map(item => ({
 	...item,
 	logo: "https://via.placeholder.com/150" // Adding placeholder logo
 }));
