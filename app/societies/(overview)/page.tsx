@@ -87,8 +87,8 @@ export default function SocietyPage() {
 			{/* Partners List */}
 			{/* notice that partner grid is defined in global.css */}
 			<div className="relative w-full mt-3 grid partner-grid gap-8">
-				<Partners filteredPartners={[...(partner.map(it => {it.logo = null;return it})), ...filteredPartners]} skeleton={loading}/> {/* only for testing */}
-				{/* <Partners filteredPartners={filteredPartners} skeleton={loading}/> */}
+				{/* <Partners filteredPartners={[...(partner.map(it => {it.logo = null;return it})), ...filteredPartners]} skeleton={loading}/> only for testing */}
+				<Partners filteredPartners={filteredPartners} skeleton={loading}/>
 			</div>
 
 		</main>
