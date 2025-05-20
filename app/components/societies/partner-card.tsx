@@ -23,7 +23,7 @@ export default function PartnerCard({ partner }: { partner: FormattedPartner }) 
 
     return (
         <Link
-            className="flex flex-col p-4 rounded-sm shadow-lg relative transition-transform duration-300 ease-in-out hover:scale-105 bg-white h-[400px] w-full"
+            className="flex flex-col p-4 rounded-sm shadow-lg relative transition-transform duration-300 ease-in-out hover:scale-105 bg-white h-[500px] w-full"
             href={`/societies/society/${partner.id}`}
             passHref
         >
@@ -42,10 +42,10 @@ export default function PartnerCard({ partner }: { partner: FormattedPartner }) 
             <div className="flex flex-col flex-1 min-h-0">
                 {/* Text Content */}
                 <div className="flex-1 min-h-0 grid grid-rows-[auto,auto] gap-2">
-                    <h3 className="text-slate-700 text-xl font-bold line-clamp-3 leading-tight overflow-y-auto scrollbar-hide">
+                    <h3 className="text-slate-700 text-xl font-bold line-clamp-3 leading-tight h-20">
                         {partner.name}
                     </h3>
-                    <p className="text-gray-700 text-sm line-clamp-4 overflow-y-auto custom-scroll">
+                    <p className="text-gray-700 text-sm line-clamp-4 overflow-y-auto scrollbar-hide">
                         {partner.description}
                     </p>
                 </div>
