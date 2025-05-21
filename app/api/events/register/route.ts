@@ -55,8 +55,8 @@
 
 import { NextResponse } from "next/server";
 import { getSecretStripePromise } from "@/app/lib/singletons-private";
-import { registerForEvent, fetchOrganiserEmailFromEventId, fetchEventById, getUserById, fetchTicketDetails, checkForFreeTickets, fetchAccountIdByEvent } from "@/app/lib/data";
-import { sendOrganiserRegistrationEmail, sendUserRegistrationEmail } from "@/app/lib/send-email";
+import { registerForEvent, fetchEventById, getUserById, fetchTicketDetails, checkForFreeTickets, fetchAccountIdByEvent } from "@/app/lib/data";
+import { sendUserRegistrationEmail } from "@/app/lib/send-email";
 import { Event } from "@/app/lib/types";
 
 const stripe = await getSecretStripePromise();

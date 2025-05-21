@@ -1,0 +1,4 @@
+be sure to seed the database!
+
+- ticket_uuid in event_registrations
+- check anything else needing seeding
