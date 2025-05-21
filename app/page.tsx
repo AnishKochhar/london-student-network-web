@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 	description: "For the students, by the students. The official London Student Network website.",
 };
 
-export default function Home() {
+export default async function Home() {
 	return (
 		<main className="relative bg-cover bg-center bg-fixed bg-no-repeat h-screen overflow-y-auto snap-y snap-mandatory" style={{ backgroundImage: "url('/images/tower-bridge-1.jpeg')" }} >
 			<HomePageTopSection />
