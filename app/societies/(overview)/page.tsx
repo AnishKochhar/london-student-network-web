@@ -12,7 +12,6 @@ import { useState, useEffect, useMemo,useCallback } from 'react';
 import { fetchAllPartners } from '@/app/lib/utils';
 import Partners from '@/app/components/societies/partners';
 import { FormattedPartner } from '@/app/lib/types';
-import partner from '../partners';
 
 export default function SocietyPage() {
 	// Search feature will search the whole dataset, and we'll paginate it
