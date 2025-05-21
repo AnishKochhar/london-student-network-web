@@ -11,7 +11,12 @@ import UserRegistrationConfirmationEmail from '../components/templates/user-regi
 import UserRegistrationConfirmationEmailFallback from '../components/templates/user-registration-fallback';
 import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
 import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
-import { FallbackEmailServiceResponse } from './types/emails';
+import OrganiserEventReminderEmail from '../components/templates/organiser-reminder';
+import OrganiserEventReminderEmailFallback from '../components/templates/organiser-reminder-fallback';
+import UserEventReminderEmail from '../components/templates/user-reminder';
+import UserEventReminderEmailFallback from '../components/templates/user-reminder-fallback';
+// import { FallbackEmailServiceResponse } from './types/emails';
+import { fetchEventById } from './data';
 
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
@@ -148,5 +153,68 @@ export const sendOrganiserRegistrationEmail = async (organiserEmail: string, use
 		console.error("Stack trace:", error.stack);
 
 		return { success: false };
+	}
+}
+
+export const sendUserReminderEmail = async (email: string, user_name: string, event: Event, ticketDetails: Tickets[], ticket_to_quantity: Record<string, number>, organiser_uid: string) => {
+	try {
+		const customPayload = UserEventReminderEmail(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
+		const customPayloadFallback = UserEventReminderEmailFallback(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
+
+		const msg = {
+			to: email, 
+			// from: 'hello@londonstudentnetwork.com',
+			subject: `🔔⏰ Don't forget - ${event.title} starts soon`,
+			text: customPayloadFallback, 
+			html: customPayload,
+		};
+
+		await sendEmail(msg);
+		return { success: true };
+
+	} catch (error) {
+		console.error("Error occurred during email sending of reminder email (for user). Error message:", error.message);
+		console.error("Stack trace:", error.stack);
+
+		throw new Error("error with event email reminder sending (for user)")
+	}
+}
+
+export const sendOrganiserReminderEmail = async (organiserEmail: string, eventId: string ) => {
+	try {
+		const response = await fetchEventById(eventId);
+		if (!response.success) {
+			throw new Error();
+		}
+		const eventTitle = response.event.title;
+		const eventStartTime = response.event.time
+		const eventStartDate = response.event.date
+
+		try {
+			const customPayload = OrganiserEventReminderEmail(organiserEmail, eventTitle, eventStartTime, eventStartDate)
+			const customPayloadFallback = OrganiserEventReminderEmailFallback(organiserEmail, eventTitle, eventStartTime, eventStartDate)
+
+			const msg = {
+				to: organiserEmail, 
+				// from: 'hello@londonstudentnetwork.com',
+				subject: `⏳⏳⏳ Event reminder for ${eventTitle}`, 
+				text: customPayloadFallback, 
+				html: customPayload,
+			}
+
+			await sendEmail(msg);
+			return { success: true };
+
+		} catch (error) {
+			console.error("Error occurred during email sending of reminder email (for organiser). Error message:", error.message);
+			console.error("Stack trace:", error.stack);
+
+			throw new Error("error with event email reminder sending (for organiser)")
+		}
+	} catch(error) {
+		console.error("Error occurred during event start time retrieval for reminder email (for organiser). Error message:", error.message);
+		console.error("Stack trace:", error.stack);
+
+		throw new Error("error with fetchEventById call, during event email reminder sending (for organiser)")
 	}
 }

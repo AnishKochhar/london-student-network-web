@@ -1,4 +1,3 @@
-
 import { fetchUpcomingEvents } from "@/app/lib/data"
 import UpcomingEvents from "./events-view";
 

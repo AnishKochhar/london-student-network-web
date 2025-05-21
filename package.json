@@ -24,6 +24,7 @@
     "@vercel/postgres": "^0.10.0",
     "autoprefixer": "^10.4.21",
     "bcrypt": "^5.1.1",
+    "bullmq": "^5.53.0",
     "clsx": "^2.1.1",
     "daisyui": "^4.12.23",
     "debounce": "^2.2.0",
