@@ -15,6 +15,7 @@ import OrganiserEventReminderEmail from '../components/templates/organiser-remin
 import OrganiserEventReminderEmailFallback from '../components/templates/organiser-reminder-fallback';
 import UserEventReminderEmail from '../components/templates/user-reminder';
 import UserEventReminderEmailFallback from '../components/templates/user-reminder-fallback';
+import { UserEmailReminderInterface } from './types/emails';
 // import { FallbackEmailServiceResponse } from './types/emails';
 import { fetchEventById } from './data';
 
@@ -156,7 +157,7 @@ export const sendOrganiserRegistrationEmail = async (organiserEmail: string, use
 	}
 }
 
-export const sendUserReminderEmail = async (email: string, user_name: string, event: Event, ticketDetails: Tickets[], ticket_to_quantity: Record<string, number>, organiser_uid: string) => {
+export const sendUserReminderEmail = async ({email, user_name, event, ticketDetails, ticket_to_quantity, organiser_uid } : UserEmailReminderInterface ) => {
 	try {
 		const customPayload = UserEventReminderEmail(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
 		const customPayloadFallback = UserEventReminderEmailFallback(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);

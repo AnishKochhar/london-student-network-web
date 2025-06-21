@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { Worker } from "bullmq";
 import { getRedisClientInstance } from "@/app/lib/singletons-private";
 import { scheduleEventEmailReminder } from "@/app/lib/functions/events/schedule-event-email-reminder";
-import { sendEmail } from "@/app/lib/singletons-private";
+import { sendUserReminderEmail } from "@/app/lib/send-email";
+
 
 const connection = await getRedisClientInstance();
 
@@ -15,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (attempts > 3) {
                 return;
             }
-
+            await sendUserReminderEmail()
 
             console.log(`Triggering reminder email for ${user_id} on event ${event_id}`);
         },
@@ -35,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 user_id: job.data.user_id,
                 event_id: job.data.event_id,
                 attempts: job.data.attempts + 1,
-                buffer_time: 60 * 60 * (job.data.attempts + 1) // try again later
+                buffer_time: 60 * 60 * (job.data.attempts + 1) // try again later in seconds
             }
         )
         console.error(`Job ${job?.id} failed:`, err);
