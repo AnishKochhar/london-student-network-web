@@ -4,8 +4,7 @@ import { useForm } from "react-hook-form";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { useState, useEffect } from "react";
-
-
+import { getLatestEventsByInstitution } from "../lib/@scrapers/master";
 
 interface ContactFormData {
 	name: string;
@@ -46,6 +45,14 @@ export default function ContactForm() {
 			setStatus('An error occurred. Please try again.');
 		}
 	};
+
+	useEffect(() => {
+		getLatestEventsByInstitution('ucl')
+		.then((host) => {
+			console.log('Events:', host.lectures)
+		})
+		.catch(console.error)
+	}, [])
 
 	return (
 		<main className="min-h-screen w-screen bg-gradient-to-b from-[#083157]  to-[#064580]">
