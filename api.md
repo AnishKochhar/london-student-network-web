@@ -19,6 +19,14 @@ For each public API route, it lists **inputs**, **outputs**, **errors thrown**, 
 - success: indicate if the user is the organiser of the event
 - event: the event, just in case
 
+## 'emails/send-user-notice'
+- method: POST
+### Inputs
+- toEmail: the email of the recipient
+- fromEmail: you email, e.g. session.data.user.email
+- subject: the subject of the email
+- text: the content of the email
+
 # [4.0.0] # New non backward compatible routes introduced to workflow, and some previous routes deleted
 
 ## 'events/update'

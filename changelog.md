@@ -10,8 +10,8 @@ This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 - custom email sending for each event, only accessible by the organiser
 - new api events/check-is-organiser for checking if the user_id is organiser
+- new api emails/send-user-notice to distinguish sending to organiser and user
 - email sending modals and UIs
-- antd dependency?
 
 # [4.1.0] - 2025-03-04
 
