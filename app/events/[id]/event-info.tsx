@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
@@ -10,6 +10,7 @@ import { LockClosedIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
+import EventEmailSendingModal from "@/app/components/events-page/email-sending-modal";
 
 export default function EventInfo() {
 	const { id } = useParams() as { id: string };
@@ -19,6 +20,32 @@ export default function EventInfo() {
 	const [loading, setLoading] = useState(true);
 	const session = useSession();
 	const loggedIn = session.status === 'authenticated';
+	const isOrganiser = useRef<boolean>(false);
+	const [viewEmailSending, setViewEmailSending] = useState<boolean>(false)
+
+	// dont know why the event type does not include organiser_uid, defaulting to this instead
+	async function checkIsOrganiser(id: string, user_id: string) {
+		try {
+			const response = await fetch('/api/events/check-is-organiser', {
+				method: "POST",
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ id, user_id }),
+			})
+			console.log(response)
+			if (!response.ok) {
+				throw new Error('Failed to check if the current user is the organiser of the event');
+			}
+			const data = await response.json();
+			if (data.success) {
+				isOrganiser.current = true
+			}
+			// we dont need the data now
+		} catch (err) {
+			console.error('Failed to check if the current user is the organiser of the event', err);
+		}
+	}
 
 
 	async function fetchEventInformation(id: string) {
@@ -47,8 +74,20 @@ export default function EventInfo() {
 	}
 
 	useEffect(() => {
+		const helper = async () => {
+			if (session.status === 'authenticated' && session.data?.user?.id) {
+				await checkIsOrganiser(event_id, session.data.user.id);
+			}
+		};
+
+		helper();
+	}, [session.status, session.data?.user?.id, event_id]);
+
+
+	useEffect(() => {
 		const fetchData = async () => {
 			const result = await fetchEventInformation(event_id)
+			// await checkIsOrganiser(event_id, session.data.user.id)
 			console.log(result)
 			setEvent(result);
 		};
@@ -186,9 +225,20 @@ export default function EventInfo() {
 							</button>
 
 						</div>
+						<hr className="border-t-1 border-gray-300 m-2" />
+						<div className="w-full flex flex-row justify-center">
+							<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
+								onClick={() => setViewEmailSending(true)}
+							>
+								{!isOrganiser && <LockClosedIcon width={20} height={20} className='pr-2' />}
+								Press here to send emails to all the attendees
+								{isOrganiser && <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />}
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
+			{viewEmailSending && <EventEmailSendingModal onClose={() => setViewEmailSending(false)} event={event}/>}
 		</div>
 	);
 }
