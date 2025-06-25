@@ -28,15 +28,15 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
   const [sendToAll, setSendToAll] = useState<boolean>(true); // State to toggle between "Send to All" and "Single Recipient"
   const [customEmail, setCustomEmail] = useState<string>(""); // Custom email input for a single user
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+  //       onClose();
+  //     }
+  //   };
+  //   document.addEventListener("mousedown", handleClickOutside);
+  //   return () => document.removeEventListener("mousedown", handleClickOutside);
+  // }, [onClose]);
 
   useEffect(() => {
     const helper = async () => {
