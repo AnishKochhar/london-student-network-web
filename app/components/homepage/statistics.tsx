@@ -31,6 +31,10 @@ export default async function Statistics() {
 		console.error("Error fetching data:", error)
 	}
 	// console.log(stats[0])
+	if(Array.isArray(stats)) {
+		// unsure why, but seems sometime the json is array-wrapped
+		stats = stats[0]
+	}
 	console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
 
 	return (
@@ -42,7 +46,7 @@ export default async function Statistics() {
 						key={text}
 						className="flex flex-col items-center justify-center  backdrop-blur text-white border-white border p-6 rounded-md shadow-md hover:scale-105 transition-transform duration-300 ease-in-out w-40"
 					>
-						<p className="text-3xl md:text-4xl font-bold">{stats[0][json]}</p>
+						<p className="text-3xl md:text-4xl font-bold">{stats[json]}</p>
 						<p className="text-sm text-gray-300 uppercase">{text}</p>
 					</div>
 				))}
