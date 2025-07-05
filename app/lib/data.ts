@@ -723,7 +723,7 @@ export async function registerForEvent(user_id: string, user_email: string, user
 export async function getRegistrationsForEvent(event_id: string) {
 	try {
 		const result = await sql<SQLRegistrations>`
-		SELECT user_id, name, email, created_at
+		SELECT user_id, name, email, created_at, external
 		FROM event_registrations
 		WHERE event_id = ${event_id}
 		`

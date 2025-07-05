@@ -267,6 +267,7 @@ export interface Registrations {
 	user_name: string;
 	user_email: string;
 	date_registered: string;
+	external: boolean;
 }
 
 export interface SQLRegistrations {
@@ -276,6 +277,7 @@ export interface SQLRegistrations {
 	name: string;
 	email: string;
 	created_at: string;
+	external: boolean;
 }
 
 export interface WebsiteStats {
