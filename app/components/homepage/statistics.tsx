@@ -11,7 +11,7 @@ const statisticsMap = [
 ]
 
 export default async function Statistics() {
-	console.log(process.env)
+	// console.log(process.env)
 	let stats: WebsiteStats = FallbackStatistics
 	try {
 
