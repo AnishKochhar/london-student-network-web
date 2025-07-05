@@ -1,5 +1,6 @@
 "use server";
 
+import { BASE_URL } from "@/app/lib/config";
 import { WebsiteStats } from "@/app/lib/types";
 import { FallbackStatistics } from "@/app/lib/utils";
 
@@ -14,7 +15,7 @@ export default async function Statistics() {
 	let stats: WebsiteStats = FallbackStatistics
 	try {
 
-		const res = await fetch('/api/statistics', {
+		const res = await fetch(`${BASE_URL}/api/statistics`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -27,9 +28,10 @@ export default async function Statistics() {
 		stats = await res.json()
 
 	} catch (error) {
-		console.error()
+		console.error("Error fetching data:", error)
 	}
-	// console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
+	// console.log(stats[0])
+	console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
 
 	return (
 		<div className="font-bold text-lg md:text-xl text-white flex flex-col justify-center text-center">
@@ -40,7 +42,7 @@ export default async function Statistics() {
 						key={text}
 						className="flex flex-col items-center justify-center  backdrop-blur text-white border-white border p-6 rounded-md shadow-md hover:scale-105 transition-transform duration-300 ease-in-out w-40"
 					>
-						<p className="text-3xl md:text-4xl font-bold">{stats[json]}</p>
+						<p className="text-3xl md:text-4xl font-bold">{stats[0][json]}</p>
 						<p className="text-sm text-gray-300 uppercase">{text}</p>
 					</div>
 				))}

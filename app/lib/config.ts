@@ -36,3 +36,4 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
 
 export { redis };
 export { sgMail };
+export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
