@@ -4,6 +4,15 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [4.2.0] - 2025-06-24
+
+### Added
+
+- custom email sending for each event, only accessible by the organiser
+- new api events/check-is-organiser for checking if the user_id is organiser
+- new api emails/send-user-notice to distinguish sending to organiser and user
+- email sending modals and UIs
+
 # [4.1.0] - 2025-03-04
 
 ### Added

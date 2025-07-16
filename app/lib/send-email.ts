@@ -10,8 +10,10 @@ import VerificationEmailPayloadFallback from '../components/templates/verificati
 
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
+	console.log(id)
 	try {
 		const recipient = await getEmailFromId(id);
+		console.log("recipient", recipient)
 
 		if (!recipient.email || recipient.email === '') {
 			console.error('Email could not be fetched for the organiser:', id);
@@ -25,6 +27,34 @@ export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData
 		const msg = {
 			to,
 			from: 'hello@londonstudentnetwork.com',
+			subject: 'New communication from the London Student Network',
+			text: customPayloadFallback, // Sendgrid uses text only as a fallback
+			html: customPayload,
+		};
+
+		await sgMail.send(msg);
+
+	} catch (error) {
+		console.error("Error occurred during email sending or fetching logic. Error message:", error.message);
+		console.error("Stack trace:", error.stack);
+
+		throw new Error("Failed to send email or an error occurred during the attempt to retrieve organiser email by id");
+	}
+};
+
+export const sendUserEmail = async ({ toEmail, fromEmail, subject, text }) => {
+	try {
+		if (!toEmail) {
+			console.error('The target email is empty');
+			throw new Error('The target email to send is empty');
+		}
+
+		const customPayload = EmailPayload({ email: fromEmail, subject, text });
+		const customPayloadFallback = EmailPayloadFallback({ email: fromEmail, subject, text });
+
+		const msg = {
+			to: toEmail,
+			from: 'hello@londonstudentnetwork.com', // question: should we keep this
 			subject: 'New communication from the London Student Network',
 			text: customPayloadFallback, // Sendgrid uses text only as a fallback
 			html: customPayload,
