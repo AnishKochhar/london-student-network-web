@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { SQLEvent, Event, FormData, Registrations, SQLRegistrations, Partner, Tag } from "./types";
-import { v4 as uuidv4 } from 'uuid';
+import type { SQLEvent, Event, FormData, Registrations, SQLRegistrations, Partner, Tag } from "./types";
+import { v4 as uuidv4 } from "uuid";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs))
@@ -382,14 +382,28 @@ export const SocietyLogos = [
 	{ name: "European Affairs Institute", src: '/societies/LSN.png' },
 ]
 
-export function returnLogo(organiser: string): { found: boolean, src?: string } {
-	const logo = SocietyLogos.find(logo => logo.name === organiser);
-	if (logo) {
-		return { found: true, src: logo.src };
-	}
-	return { found: false };
-}
+export const SponsorsInformation = [
+	{ name: "Vercel" },
+	{ name: "Google" },
+	{ name: "Microsoft" },
+	{ name: "Amazon Web Services" },
+	{ name: "Meta" },
+	{ name: "Apple" },
+	{ name: "Netflix" },
+	{ name: "Spotify" },
+	{ name: "Canva" },
+	{ name: "Figma" },
+	{ name: "Notion" },
+	{ name: "Slack" },
+]
 
+export function returnLogo(organiser: string): { found: boolean; src?: string } {
+	const logo = SocietyLogos.find((logo) => logo.name === organiser)
+	if (logo) {
+		return { found: true, src: logo.src }
+	}
+	return { found: false }
+}
 
 export const placeholderImages = [
 	{ src: '/images/placeholders/lecture-hall-1.jpg', name: 'Lecture'},

@@ -17,15 +17,6 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
 	const openViewModal = () => setModalChoice('view');
 	const closeModal = () => setModalChoice('waiting');
 
-	// const navigateToEdit = () => {
-	// 	try {
-	// 		const data = { id: event.id };
-	// 		router.push(`/events/edit?data=${data}`)
-	// 	} catch (error) {
-	// 		console.error("Error encoding event data:", error)
-	// 	}
-	// }
-
 
 	const handleCardClick = () => {
 		{editEvent? openEditModal() : openViewModal()} // !editEvent is the most likely scenario
