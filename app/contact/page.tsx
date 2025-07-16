@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { useState, useEffect } from "react";
-import { getLatestEventsByInstitution } from "../lib/@scrapers/master";
+import { sources } from "../lib/@package/scrapers/src";
 
 interface ContactFormData {
 	name: string;
@@ -46,12 +46,21 @@ export default function ContactForm() {
 		}
 	};
 
+
 	useEffect(() => {
-		getLatestEventsByInstitution('ucl')
-		.then((host) => {
-			console.log('Events:', host.lectures)
-		})
-		.catch(console.error)
+		async function fetchSoasLectures() {
+			try {
+				console.log('trying to fetch the data!')
+				const res = await fetch('/api/scrapers/lectures')
+				const data = await res.json()
+				console.log('trying to log the data!')
+				console.log(data)
+				console.log('data has been logged?')
+			} catch (e) {
+				console.error('something went wrong', e)
+			}
+		}
+		fetchSoasLectures();
 	}, [])
 
 	return (

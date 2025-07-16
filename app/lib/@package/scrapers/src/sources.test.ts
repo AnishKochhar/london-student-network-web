@@ -8,3 +8,4 @@ test.each(toTest)(`%s`, { timeout: 120000, concurrent: true }, async (name, host
   const result = await host.run({})
   console.log(`${name}: ${result.lectures.length}`)
 })
+

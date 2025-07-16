@@ -98,13 +98,13 @@ export default function EditDetailsPage() {
 				body: JSON.stringify({ id: session?.user?.id, data: data }),
 			});
 
-			const result = await res.json()
+			const result = (await res.json()) as { success: boolean };
 			if (result.success) {
 				toast.success('Society edited succesfully!', { id: toastId })
 				router.push('/account')
 			} else {
-				toast.error(`Error editing account: ${result.error}`, { id: toastId })
-				console.error('Error editing account:', result.error)
+				toast.error(`Error editing account`, { id: toastId })
+				console.error('Error editing account:')
 			}
 		} catch (error) {
 			toast.error(`Error during account updating: ${error.message}`, { id: toastId })
@@ -120,7 +120,7 @@ export default function EditDetailsPage() {
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(id),
 			});
-			const { description, website, tags } = await res.json();
+			const { description, website, tags } = (await res.json()) as { logo_url: string, description: string, website: string, tags: Array<string>};
 			setValue('description', description);
 			setValue('website', website);
 			setValue('tags', tags);

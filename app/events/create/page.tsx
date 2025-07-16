@@ -44,5 +44,4 @@ async function getAuthorisedOrganiserList(user: User): Promise<string[]> {
 		console.error('Failed to get authorised organiser list:', error);
 		return [];
 	}
-
 }
