@@ -1,5 +1,6 @@
 "use server";
 
+import { BASE_URL } from "@/app/lib/config";
 import { WebsiteStats } from "@/app/lib/types";
 import { FallbackStatistics } from "@/app/lib/utils";
 
@@ -10,11 +11,11 @@ const statisticsMap = [
 ]
 
 export default async function Statistics() {
-
+	// console.log(process.env)
 	let stats: WebsiteStats = FallbackStatistics
 	try {
 
-		const res = await fetch('/api/statistics', {
+		const res = await fetch(`${BASE_URL}/api/statistics`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -27,9 +28,14 @@ export default async function Statistics() {
 		stats = await res.json()
 
 	} catch (error) {
-		console.error()
+		console.error("Error fetching data:", error)
 	}
-	// console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
+	// console.log(stats[0])
+	if(Array.isArray(stats)) {
+		// unsure why, but seems sometime the json is array-wrapped
+		stats = stats[0]
+	}
+	console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
 
 	return (
 		<div className="font-bold text-lg md:text-xl text-white flex flex-col justify-center text-center">
