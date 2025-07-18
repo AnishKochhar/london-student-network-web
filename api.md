@@ -4,6 +4,29 @@ This API log follows the same [Semantic Versioning](https://semver.org/spec/v2.0
 
 For each public API route, it lists **inputs**, **outputs**, **errors thrown**, and **places invocated**
 
+# [4.1.0] # custom email sending for event organiser
+
+## 'events/check-is-organiser'
+- method: POST
+### Inputs
+- id: the id of the event of type `string`, should be uuid
+- user_id: the id of the user from session of type `string`, should be uuid
+
+### Errors:
+- missing fields (400)
+
+### Outputs:
+- success: indicate if the user is the organiser of the event
+- event: the event, just in case
+
+## 'emails/send-user-notice'
+- method: POST
+### Inputs
+- toEmail: the email of the recipient
+- fromEmail: you email, e.g. session.data.user.email
+- subject: the subject of the email
+- text: the content of the email
+
 # [4.0.0] # New non backward compatible routes introduced to workflow, and some previous routes deleted
 
 ## 'events/update'
