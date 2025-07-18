@@ -4,6 +4,15 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [4.3.0] - 2025-07-18
+
+### Added:
+- external column in the database table event registrations
+
+### Changed:
+- registration Modal UI: split the list into external and internal, and also the copy emails button
+- altered every entry of the registrations and assign them a external state correspondingly
+- refactored the edit-event.tsx click outside logic to ensure the registration modal wont be closed
 # [4.2.0] - 2025-06-24
 
 ### Added

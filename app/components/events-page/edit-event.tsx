@@ -21,6 +21,7 @@ const MAX_POSTGRES_STRING_LENGTH = 255;
 
 export default function EditEventComponent({ eventProp, onClose }: EditEventProps) {
 	const modalRef = useRef<HTMLDivElement>(null);
+	const innerRef = useRef<HTMLDivElement>(null);
 	const [viewRegistrationsModal, setViewRegistrationsModal] = useState(false)
 	const [organisers, setOrganisers] = useState([eventProp.organiser]);
 	const [registrations, setRegistrations] = useState<Registrations[]>([])
@@ -152,25 +153,31 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 	}, []);
 
 	// Disable background scroll and handle outside click detection
-	// but this closes the modal when it is covered, say opening the registration
-	// so actually, I dont think we need this
-	// useEffect(() => {
-	// 	// Prevent background scrolling
-	// 	document.body.style.overflow = 'hidden';
+	useEffect(() => {
+		// Prevent background scrolling
+		document.body.style.overflow = 'hidden';
 
-	// 	const handleClickOutside = (event: MouseEvent) => {
-	// 		if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-	// 			onClose();
-	// 		}
-	// 	};
+		const handleClickOutside = (event: MouseEvent) => {
+			const target = event.target as Node;
 
-	// 	document.addEventListener('mousedown', handleClickOutside);
+			const clickedInsideOuter = modalRef.current?.contains(target);
+			const clickedInsideInner = innerRef.current?.contains(target);
 
-	// 	return () => {
-	// 		document.body.style.overflow = '';
-	// 		document.removeEventListener('mousedown', handleClickOutside);
-	// 	};
-	// }, [onClose]);
+			console.log(clickedInsideOuter, clickedInsideInner)
+
+			if (!clickedInsideOuter && !clickedInsideInner) {
+				onClose();
+			}
+		};
+
+		document.addEventListener('mousedown', handleClickOutside);
+
+		return () => {
+			document.body.style.overflow = '';
+			document.removeEventListener('mousedown', handleClickOutside);
+		};
+	}, [onClose]);
+
 
 	const onSubmit = async (data: FormData) => {
 		const toastId = toast.loading('Updating event....')
@@ -610,7 +617,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 						</form>
 	
 						{/* Modal for Registrations */}
-						{viewRegistrationsModal && <RegistrationsModal registrations={registrations} onClose={closeModal} />}
+						{viewRegistrationsModal && <RegistrationsModal registrations={registrations} onClose={closeModal} ref={innerRef}/>}
 						{viewSendEmailsModal && <EventEmailSendingModal onClose={() => {console.log("closed");setViewSendEmailsModal(false)}} event={eventProp}/>}
 					</div>
 				</div>
@@ -618,7 +625,5 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		</div>,
 		document.body
 	);
-	
-
 };
 
