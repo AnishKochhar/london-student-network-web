@@ -20,6 +20,7 @@ const MAX_POSTGRES_STRING_LENGTH = 255;
 
 export default function EditEventComponent({ eventProp, onClose }: EditEventProps) {
 	const modalRef = useRef<HTMLDivElement>(null);
+	const innerRef = useRef<HTMLDivElement>(null);
 	const [viewRegistrationsModal, setViewRegistrationsModal] = useState(false)
 	const [organisers, setOrganisers] = useState([eventProp.organiser]);
 	const [registrations, setRegistrations] = useState<Registrations[]>([])
@@ -143,7 +144,14 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		document.body.style.overflow = 'hidden';
 
 		const handleClickOutside = (event: MouseEvent) => {
-			if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+			const target = event.target as Node;
+
+			const clickedInsideOuter = modalRef.current?.contains(target);
+			const clickedInsideInner = innerRef.current?.contains(target);
+
+			console.log(clickedInsideOuter, clickedInsideInner)
+
+			if (!clickedInsideOuter && !clickedInsideInner) {
 				onClose();
 			}
 		};
@@ -586,14 +594,12 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 						</form>
 	
 						{/* Modal for Registrations */}
-						{viewRegistrationsModal && <RegistrationsModal registrations={registrations} onClose={closeModal} />}
+						{viewRegistrationsModal && <RegistrationsModal registrations={registrations} onClose={closeModal} ref={innerRef}/>}
 					</div>
 				</div>
 			</div>
 		</div>,
 		document.body
 	);
-	
-
 };
 
