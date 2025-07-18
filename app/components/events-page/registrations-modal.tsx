@@ -81,6 +81,13 @@ const RegistrationsModal = forwardRef<HTMLDivElement, RegistrationsModalProps>(
             <div className="w-full text-black">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold">Event Registrations</h2>
+								<Button
+									variant="outline"
+									className="border border-black"
+									onClick={() => copyEmails([...internalRegistrations, ...externalRegistrations], "All")}
+								>
+									Copy All Emails (Internal first)
+								</Button>
               </div>
 
               {/* Internal Registrations */}
