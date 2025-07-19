@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres';
-import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, CompanyInformation } from './types';
+import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, CompanyInformation, GuestRegisterFormData } from './types';
 import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics } from './utils';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
@@ -507,6 +507,44 @@ export async function insertOrganiserInformation(formData: SocietyRegisterFormDa
 	}
 }
 
+export async function insertGuestIntoUsers(formData: GuestRegisterFormData) { 
+	try {
+		const hashedPassword = await bcrypt.hash(formData.password, 10);
+		// const name = formData.name.split(' ').map(capitalize).join(' ')
+		const name = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`
+
+		
+		const result = await sql`
+			INSERT INTO users (name, email, password, role)
+			VALUES (${name}, ${formData.email}, ${hashedPassword}, ${'guest'})
+			ON CONFLICT (email) DO NOTHING
+			RETURNING id
+		`;
+
+		console.log(`Created a guest with id: ${result.rows[0].id}`)
+
+		return { success: true, id: result.rows[0].id };
+	} catch (error) {
+		console.error('Error creating guest:', error);
+		return { success: false, error };
+	}
+}
+
+export async function insertGuestInformation(formData: GuestRegisterFormData, userId: string) {
+	try {
+		const name = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`
+		const university = selectUniversity(formData.university, formData.otherUniversity) // if 'other' selected, uses text input entry
+
+		await sql`
+			INSERT INTO guests (id, name, email, university)
+			VALUES (${userId}, ${name}, ${formData.email}, ${university})
+		`;
+		return { success: true }
+	} catch (error) {
+		console.log('Error inserting guest information', error)
+		return { success: false, error }
+	}
+}
 
 export async function getAllCompanyInformation() {
 	try {

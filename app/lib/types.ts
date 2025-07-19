@@ -123,6 +123,18 @@ export interface FormData {
 	forExternals?: string;
 }
 
+export interface GuestRegisterFormData {
+	email: string,
+	password: string;
+  confirmPassword: string;
+  firstname: string;
+	surname: string;
+	university: string;
+	otherUniversity: string;
+	hasAgreedToTerms: boolean;
+	isNewsletterSubscribed: boolean;
+}
+
 export interface UserRegisterFormData {
     email: string;
     password: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { UserGroupIcon, UserIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
+import { UserGroupIcon, UserIcon, BriefcaseIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default function Register() {
@@ -11,13 +11,14 @@ export default function Register() {
 				<OptionButton name='student' />
 				<OptionButton name='society' />
 				<OptionButton name='company' />
+				<OptionButton name='guest' />
 			</div>
 		</main>
 	)
 }
 
 
-function OptionButton({ name }: { name: 'student' | 'society' | 'company' }) {
+function OptionButton({ name }: { name: 'student' | 'society' | 'company' | 'guest' }) {
 	return (
 		<Link href={`/register/${name}`} className='flex flex-col border border-white/50 p-10 m-4 max-h-[400px] h-fit w-full rounded-md shadow-xl items-center justify-center transition-transform duration-300 ease-in-out hover:scale-105 hover:bg-opacity-90 bg-white/20'>
 			{name === 'society' && (
@@ -39,8 +40,13 @@ function OptionButton({ name }: { name: 'student' | 'society' | 'company' }) {
 					<h1 className='text-2xl w-full text-center p-10'>Company</h1>
 				</div>
 			)}
+			{name === 'guest' && (
+				<div className='flex flex-col items-center justify-center'>
+					<IdentificationIcon width={150} height={150} className='[&>path]:stroke-[0.4] sm:w-[200px] sm:h-[200px]' />
+					<h1 className='text-2xl w-full text-center p-10'>Guest</h1>
+				</div>
+			)}
 
 		</Link>
 	)
 }
-
