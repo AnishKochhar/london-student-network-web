@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import RegistrationsModal from './registrations-modal';
 import ToggleSwitch from '../toggle-button';
 import { createPortal } from 'react-dom';
+import EventEmailSendingModal from './email-sending-modal';
 
 
 const MAX_POSTGRES_STRING_LENGTH = 255;
@@ -24,6 +25,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 	const [viewRegistrationsModal, setViewRegistrationsModal] = useState(false)
 	const [organisers, setOrganisers] = useState([eventProp.organiser]);
 	const [registrations, setRegistrations] = useState<Registrations[]>([])
+	const [viewSendEmailsModal, setViewSendEmailsModal] = useState<boolean>(false); // this should be in conflict with viewRegistrations, only one can be true at the same time
 
 	const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm<FormData>({
 		mode: 'onChange',
@@ -58,6 +60,18 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		}
 
 		setViewRegistrationsModal(true)
+		// just in case
+		setViewSendEmailsModal(false)
+	}
+
+	useEffect(() => {
+		console.log("changed");
+	}, [viewSendEmailsModal, viewRegistrationsModal])
+
+	const viewSendEmails = () => {
+		setViewSendEmailsModal(true)
+		// just in case
+		setViewRegistrationsModal(false)
 	}
 
 	const fetchOrganisersData = async () => {
@@ -563,6 +577,14 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 									onClick={viewRegistrations}
 								>
 									View Registrations
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									className="px-10 bg-purple-400 text-gray-950 md:text-xl"
+									onClick={viewSendEmails}
+								>
+									Send Emails to attendee
 								</Button>
 								<Button
 									className="px-10 md:text-xl border-black"
