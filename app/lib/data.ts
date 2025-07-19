@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres';
-import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, CompanyInformation } from './types';
+import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, CompanyInformation, GuestRegisterFormData } from './types';
 import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics } from './utils';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
@@ -104,6 +104,20 @@ export async function fetchEventById(id: string) {
 			WHERE id::text LIKE '%' || ${id};
 		`;
 		return convertSQLEventToEvent(data.rows[0]);
+	} catch (error) {
+		console.error('Database error:', error);
+		throw new Error('Failed to fetch event');
+	}
+}
+
+export async function fetchSQLEventById(id: string) {
+	try {
+		const data = await sql<SQLEvent>`
+			SELECT *
+			FROM events
+			WHERE id::text LIKE '%' || ${id};
+		`;
+		return data.rows[0];
 	} catch (error) {
 		console.error('Database error:', error);
 		throw new Error('Failed to fetch event');
@@ -453,6 +467,29 @@ export async function insertUserInformation(formData: UserRegisterFormData, user
 	}
 }
 
+export async function getUserUniversityById(user_id: string) {
+	try {
+		const data = await sql `
+			SELECT COALESCE(
+				(SELECT university_attended FROM user_information WHERE user_id = ${user_id}),
+				(SELECT university_affiliation FROM society_information WHERE user_id = ${user_id})
+			) AS university;
+		`
+		const result = data.rows.map(it => it as {university: string}) // we are certain this is a string
+		// console.log(result)
+		if (result.length === 0) {
+			throw new Error(`The user with id ${user_id} does not exist`)
+		} else if (result.length !== 1) {
+			throw new Error(`multiple entries exist for user with id ${user_id}, it is likely the database is corrupted, contact the admin`)
+		}
+		
+		return {success: true, university: result[0].university}
+	} catch (error) {
+		console.log(`Error getting the university of user with id ${user_id}, ${error}`)
+		return {success: false, error}
+	}
+}
+
 
 export async function insertOrganiserIntoUsers(formData: SocietyRegisterFormData) { 
 	try {
@@ -491,6 +528,44 @@ export async function insertOrganiserInformation(formData: SocietyRegisterFormDa
 	}
 }
 
+export async function insertGuestIntoUsers(formData: GuestRegisterFormData) { 
+	try {
+		const hashedPassword = await bcrypt.hash(formData.password, 10);
+		// const name = formData.name.split(' ').map(capitalize).join(' ')
+		const name = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`
+
+		
+		const result = await sql`
+			INSERT INTO users (name, email, password, role)
+			VALUES (${name}, ${formData.email}, ${hashedPassword}, ${'guest'})
+			ON CONFLICT (email) DO NOTHING
+			RETURNING id
+		`;
+
+		console.log(`Created a guest with id: ${result.rows[0].id}`)
+
+		return { success: true, id: result.rows[0].id };
+	} catch (error) {
+		console.error('Error creating guest:', error);
+		return { success: false, error };
+	}
+}
+
+export async function insertGuestInformation(formData: GuestRegisterFormData, userId: string) {
+	try {
+		const name = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`
+		const university = selectUniversity(formData.university, formData.otherUniversity) // if 'other' selected, uses text input entry
+
+		await sql`
+			INSERT INTO guests (id, name, email, university)
+			VALUES (${userId}, ${name}, ${formData.email}, ${university})
+		`;
+		return { success: true }
+	} catch (error) {
+		console.log('Error inserting guest information', error)
+		return { success: false, error }
+	}
+}
 
 export async function getAllCompanyInformation() {
 	try {
@@ -680,7 +755,7 @@ export async function getEmailFromId(id: string) {
 export async function checkIfRegistered(event_id: string, user_id: string) {
 	try {
 		const result = await sql`
-			SELECT id FROM event_registrations
+			SELECT event_registration_uuid FROM event_registrations
 			WHERE event_id = ${event_id} AND user_id = ${user_id}
 			LIMIT 1
 		`;
@@ -691,11 +766,11 @@ export async function checkIfRegistered(event_id: string, user_id: string) {
 	}
 }
 
-export async function registerForEvent(user_id: string, user_email: string, user_name: string, event_id: string) {
+export async function registerForEvent(user_id: string, user_email: string, user_name: string, event_id: string, external: boolean) {
 	try {
 		await sql`
-		INSERT INTO event_registrations (event_id, user_id, name, email)
-		VALUES (${event_id}, ${user_id}, ${user_name}, ${user_email})
+		INSERT INTO event_registrations (event_id, user_id, name, email, external)
+		VALUES (${event_id}, ${user_id}, ${user_name}, ${user_email}, ${external})
 		`
 		return { success: true }
 	} catch (error) {
@@ -707,7 +782,7 @@ export async function registerForEvent(user_id: string, user_email: string, user
 export async function getRegistrationsForEvent(event_id: string) {
 	try {
 		const result = await sql<SQLRegistrations>`
-		SELECT user_id, name, email, created_at
+		SELECT user_id, name, email, created_at, external
 		FROM event_registrations
 		WHERE event_id = ${event_id}
 		`
