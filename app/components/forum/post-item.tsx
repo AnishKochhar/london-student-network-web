@@ -5,9 +5,16 @@ import { ForumPost } from '@/types/forum-types';
 
 interface PostItemProps {
   post: ForumPost;
+  onPostClick?: (postId: number) => void;
 }
 
-export default function PostItem({ post }: PostItemProps) {
+export default function PostItem({ post, onPostClick }: PostItemProps) {
+  const handlePostClick = () => {
+    if (onPostClick) {
+      onPostClick(post.id);
+    }
+  };
+
   return (
     <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
       <div className="flex gap-4">
@@ -24,7 +31,10 @@ export default function PostItem({ post }: PostItemProps) {
 
         {/* Content Section */}
         <div className="flex-1">
-          <h2 className="text-xl font-semibold mb-3 hover:text-blue-300 cursor-pointer transition-colors">
+          <h2 
+            className="text-xl font-semibold mb-3 hover:text-blue-300 cursor-pointer transition-colors"
+            onClick={handlePostClick}
+          >
             {post.title}
           </h2>
           
@@ -57,7 +67,10 @@ export default function PostItem({ post }: PostItemProps) {
               </div>
             </div>
             
-            <div className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/5 transition-colors cursor-pointer">
+            <div 
+              className="flex items-center gap-2 px-2 py-1 rounded hover:bg-white/5 transition-colors cursor-pointer"
+              onClick={handlePostClick}
+            >
               <ChatBubbleLeftIcon className="w-4 h-4 text-white/60" />
               <span className="text-white/60">{post.replies}</span>
             </div>

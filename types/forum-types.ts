@@ -9,6 +9,36 @@ export interface ForumPost {
   replies: number;
   tags: string[];
   avatar: string;
+  isUpvoted?: boolean;
+  isDownvoted?: boolean;
+}
+
+export interface Reply {
+  id: number;
+  author: string;
+  avatar: string;
+  content: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  isLiked?: boolean;
+  isUpvoted?: boolean;
+  isDownvoted?: boolean;
+}
+
+export interface ThreadData {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  avatar: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  replies: Reply[];
+  tags: string[];
+  isUpvoted?: boolean;
+  isDownvoted?: boolean;
 }
 
 export interface TrendingTopic {
@@ -18,5 +48,5 @@ export interface TrendingTopic {
 
 export interface FeaturedUser {
   username: string;
-  status: string;
+  status: 'online' | 'featured';
 }
