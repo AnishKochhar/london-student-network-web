@@ -317,7 +317,7 @@ export default function ForumPage() {
         isOpen={isNewThreadModalOpen}
         onClose={() => setIsNewThreadModalOpen(false)}
         onSubmit={handleNewThread}
-        isSubmitting={false}
+        isSubmitting={isSubmitting}
       />
     </main>
   );
