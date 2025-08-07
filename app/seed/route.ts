@@ -1,5 +1,5 @@
-// import { db } from '@vercel/postgres';
-// const client = await db.connect();
+import { db } from '@vercel/postgres';
+const client = await db.connect();
 
 /*  UNCOMMENT THE ABOVE LINES TO USE DATABASE  */
 
@@ -182,11 +182,78 @@
 // 	`;
 // }
 
+// async function seedThreadTable() {
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS threads (
+// 			id SERIAL PRIMARY KEY,
+// 			title VARCHAR(255) NOT NULL,
+// 			content TEXT NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			updated_at TIMESTAMP DEFAULT NOW(),
+// 			upvotes INT DEFAULT 0,
+// 			downvotes INT DEFAULT 0,
+// 			author_id UUID NOT NULL REFERENCES users(id)
+// 		);
+// 	`;
+// }
+
+// async function seedCommentTable() {
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS comments (
+// 			id SERIAL PRIMARY KEY,
+// 			thread_id INT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+// 			parent_id INT REFERENCES comments(id) ON DELETE CASCADE,
+// 			content TEXT NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			updated_at TIMESTAMP DEFAULT NOW(),
+// 			upvotes INT DEFAULT 0,
+// 			downvotes INT DEFAULT 0,
+// 			author_id UUID NOT NULL REFERENCES users(id)
+// 		);
+// 	`;
+// }
+
+// async function seedThreadTags(){
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS thread_tags (
+// 			id SERIAL PRIMARY KEY,
+// 			thread_id INT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+// 			tag VARCHAR(255) NOT NULL UNIQUE
+// 		);
+// 	`;
+// }
+
+// async function seedThreadVote(){
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS thread_votes (
+// 			id SERIAL PRIMARY KEY,
+// 			thread_id INT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+// 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+// 			vote_type VARCHAR(10) CHECK (vote_type IN ('upvote', 'downvote')) NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			UNIQUE (thread_id, user_id)
+// 		);
+// 	`;
+// }
+
+// async function seedCommentVote(){
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS comments_votes (
+// 			id SERIAL PRIMARY KEY,
+// 			comment_id INT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+// 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+// 			vote_type VARCHAR(10) CHECK (vote_type IN ('upvote', 'downvote')) NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			UNIQUE (comment_id, user_id)
+// 		);
+// 	`;
+// }
 
 export async function GET() {
 	// try {
 	// 	await client.sql`BEGIN`;
-	// 	await seedSocietyInformation()
+	// 	// await seedSocietyInformation()
+	// 	await seedCommentVote();
 
 	// 	await client.sql`COMMIT`;
 	// 	return Response.json({ message: 'Database updated successfully' });
@@ -197,5 +264,3 @@ export async function GET() {
 	// }
 	return Response.json({ message: 'Nothing to see here' });
 }
-
-

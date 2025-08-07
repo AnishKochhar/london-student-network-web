@@ -2,7 +2,7 @@
 
 import TrendingTopics from './trending-topics';
 import FeaturedUsers from './featured-users';
-import { TrendingTopic, FeaturedUser } from '@/types/forum-types';
+import { TrendingTopic, FeaturedUser } from '@/app/lib/types';
 
 interface SidebarProps {
   trendingTopics: TrendingTopic[];

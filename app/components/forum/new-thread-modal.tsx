@@ -11,9 +11,15 @@ interface NewThreadModalProps {
     content: string;
     tags: string[];
   }) => void;
+  isSubmitting?: boolean; // Add this prop
 }
 
-export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadModalProps) {
+export default function NewThreadModal({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  isSubmitting = false 
+}: NewThreadModalProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tagInput, setTagInput] = useState('');
@@ -37,12 +43,7 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
         content: content.trim(),
         tags
       });
-      // Reset form
-      setTitle('');
-      setContent('');
-      setTags([]);
-      setTagInput('');
-      onClose();
+      // Don't reset the form here - we'll do it when we close the modal after success
     }
   };
 
@@ -53,6 +54,15 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
     }
   };
 
+  // Reset form when closing
+  const handleClose = () => {
+    setTitle('');
+    setContent('');
+    setTags([]);
+    setTagInput('');
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -60,7 +70,7 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
       />
       
       {/* Modal */}
@@ -72,8 +82,9 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
             Start New Thread
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            disabled={isSubmitting}
           >
             <XMarkIcon className="w-6 h-6 text-white/80" />
           </button>
@@ -93,6 +104,7 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
               placeholder="What's your question or topic?"
               className="w-full px-4 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -108,6 +120,7 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
               rows={6}
               className="w-full px-4 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -126,11 +139,13 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
                 onKeyPress={handleKeyPress}
                 placeholder="Add a tag..."
                 className="flex-1 px-4 py-2 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                disabled={isSubmitting}
               />
               <button
                 type="button"
                 onClick={handleAddTag}
                 className="px-4 py-2 bg-blue-600/30 border border-blue-400/30 rounded-lg text-blue-300 hover:bg-blue-600/50 transition-colors"
+                disabled={isSubmitting}
               >
                 Add
               </button>
@@ -149,6 +164,7 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
                       className="hover:text-red-300 transition-colors"
+                      disabled={isSubmitting}
                     >
                       <XMarkIcon className="w-4 h-4" />
                     </button>
@@ -162,18 +178,26 @@ export default function NewThreadModal({ isOpen, onClose, onSubmit }: NewThreadM
           <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white hover:bg-white/20 hover:border-white/30 transition-colors"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={!title.trim() || !content.trim()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed border border-blue-500 rounded-lg text-white font-medium transition-colors"
+              disabled={!title.trim() || !content.trim() || isSubmitting}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed border border-blue-500 rounded-lg text-white font-medium transition-colors flex items-center gap-2"
             >
-              Create Thread
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Creating...
+                </>
+              ) : (
+                'Create Thread'
+              )}
             </button>
           </div>
         </div>

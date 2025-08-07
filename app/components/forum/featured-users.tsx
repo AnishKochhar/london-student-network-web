@@ -1,7 +1,7 @@
 'use client';
 
 import { StarIcon } from '@heroicons/react/24/outline';
-import { FeaturedUser } from '@/types/forum-types';
+import { FeaturedUser } from '@/app/lib/types';
 
 interface FeaturedUsersProps {
   users: FeaturedUser[];

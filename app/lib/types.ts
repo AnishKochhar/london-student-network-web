@@ -284,6 +284,57 @@ export interface WebsiteStats {
 	total_societies: string;
 }
 
+export interface ForumPost {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  avatar: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  replies: number;
+  tags: string[];
+  userVote?: 'upvote' | 'downvote' | null;
+}
+
+export interface Reply {
+  id: number;
+  author: string;
+  avatar: string;
+  content: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  userVote?: 'upvote' | 'downvote' | null;
+  parent_id?: number | null;
+  replyCount?: number;
+}
+
+export interface ThreadData {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  avatar: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  replies: Reply[];
+  tags: string[];
+  userVote?: 'upvote' | 'downvote' | null;
+}
+
+export interface TrendingTopic {
+  name: string;
+  count: number;
+}
+
+export interface FeaturedUser {
+  username: string;
+  status: 'online' | 'featured';
+}
+
 export const DefaultEvent: Event = {
 	id: '',
 	title: 'Sample Event',

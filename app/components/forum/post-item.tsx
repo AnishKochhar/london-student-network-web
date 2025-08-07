@@ -1,32 +1,64 @@
 'use client';
 
-import { ChatBubbleLeftIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/solid';
-import { ForumPost } from '@/types/forum-types';
+import { useState, useEffect } from 'react';
+import { ChatBubbleLeftIcon } from '@heroicons/react/24/solid';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { ForumPost } from '@/app/lib/types';
+import VoteButtons from './vote-buttons';
 
 interface PostItemProps {
   post: ForumPost;
   onPostClick?: (postId: number) => void;
+  onVoteChange?: (postId: number, upvotes: number, downvotes: number, userVote: string | null) => void;
 }
 
-export default function PostItem({ post, onPostClick }: PostItemProps) {
+export default function PostItem({ post, onPostClick, onVoteChange }: PostItemProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [shouldTruncate, setShouldTruncate] = useState(false);
+  
+  // Word limit for truncated content
+  const WORD_LIMIT = 40;
+  
+  // Determine if content needs truncation and prepare display content
+  const words = post.content.split(/\s+/);
+  const shouldTruncateContent = words.length > WORD_LIMIT;
+  
+  // Set truncation state on initial render
+  useEffect(() => {
+    setShouldTruncate(shouldTruncateContent);
+  }, [shouldTruncateContent]);
+  
   const handlePostClick = () => {
     if (onPostClick) {
       onPostClick(post.id);
     }
   };
+  
+  // Prevent event propagation when clicking the expand button
+  const handleExpandClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+  
+  // Format the content based on expansion state
+  const displayContent = shouldTruncate && !isExpanded
+    ? words.slice(0, WORD_LIMIT).join(' ') + '...'
+    : post.content;
 
   return (
     <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-200">
       <div className="flex gap-4">
         {/* Vote Section */}
-        <div className="flex flex-col items-center gap-2 min-w-[60px]">
-          <button className="p-1 hover:bg-white/10 rounded transition-colors">
-            <ArrowUpIcon className="w-5 h-5 text-green-400" />
-          </button>
-          <span className="text-lg font-bold">{post.upvotes}</span>
-          <button className="p-1 hover:bg-white/10 rounded transition-colors">
-            <ArrowDownIcon className="w-5 h-5 text-red-400" />
-          </button>
+        <div className="min-w-[60px]">
+          <VoteButtons
+            itemId={post.id}
+            initialUpvotes={post.upvotes}
+            initialDownvotes={post.downvotes}
+            initialUserVote={post.userVote}
+            type="thread"
+            size="medium"
+            onVoteChange={onVoteChange}
+          />
         </div>
 
         {/* Content Section */}
@@ -38,9 +70,28 @@ export default function PostItem({ post, onPostClick }: PostItemProps) {
             {post.title}
           </h2>
           
-          <p className="text-white/80 mb-4 leading-relaxed">
-            {post.content}
-          </p>
+          <div className="mb-4">
+            <p className="text-white/80 leading-relaxed whitespace-pre-line">
+              {displayContent}
+            </p>
+            
+            {shouldTruncate && (
+              <button 
+                onClick={handleExpandClick}
+                className="flex items-center gap-1 mt-2 text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium"
+              >
+                {isExpanded ? (
+                  <>
+                    Show less <ChevronUpIcon className="w-4 h-4" />
+                  </>
+                ) : (
+                  <>
+                    Read more <ChevronDownIcon className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
 
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-4">

@@ -69,6 +69,12 @@ function NavLinks({ pathname, className, onClick }: { pathname: string, classNam
 			)}>
 				Societies
 			</Link>
+			<Link href="/forum" onClick={onClick} className={clsx(
+				pathname === '/forum' ? 'underline' : 'no-underline',
+				'hover:underline transition-all md:text-xl'
+			)}>
+				Forum
+			</Link>
 			<Link href="/about" onClick={onClick} className={clsx(
 				pathname === '/about' ? 'underline' : 'no-underline',
 				'hover:underline transition-all md:text-xl'

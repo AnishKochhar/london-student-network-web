@@ -3,17 +3,14 @@
 import { useState } from 'react';
 import { PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import NewThreadModal from './new-thread-modal';
+import { on } from 'events';
 
 interface ForumControlsProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   sortBy: string;
-  setSortBy: (option: string) => void;
-  onNewThread: (threadData: {
-    title: string;
-    content: string;
-    tags: string[];
-  }) => void;
+  setSortBy: (sort: string) => void;
+  onNewThread: () => void;
 }
 
 export default function ForumControls({ 
@@ -26,10 +23,6 @@ export default function ForumControls({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const sortOptions = ["Newest First", "Most Popular", "Most Replies"];
-
-  const handleNewThread = (threadData: { title: string; content: string; tags: string[] }) => {
-    onNewThread(threadData);
-  };
 
   return (
     <>
@@ -73,7 +66,7 @@ export default function ForumControls({
           </div>
           
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={onNewThread}
             className="flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white hover:bg-white/20 hover:border-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             <PlusIcon className="w-5 h-5" />
@@ -81,12 +74,6 @@ export default function ForumControls({
           </button>
         </div>
       </div>
-
-      <NewThreadModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleNewThread}
-      />
     </>
   );
 }
