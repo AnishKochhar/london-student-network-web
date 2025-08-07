@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import { PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
-import NewThreadModal from './new-thread-modal';
-import { on } from 'events';
 
 interface ForumControlsProps {
   searchTerm: string;
@@ -21,7 +19,6 @@ export default function ForumControls({
   onNewThread
 }: ForumControlsProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const sortOptions = ["Newest First", "Most Popular", "Most Replies"];
 
   return (

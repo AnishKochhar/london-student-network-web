@@ -1,5 +1,6 @@
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { Session } from 'next-auth';
+import { ViewContext } from '@/app/lib/types';
 
 interface ReplyFormProps {
   session: Session | null;
@@ -7,7 +8,7 @@ interface ReplyFormProps {
   setNewReply: (reply: string) => void;
   isSubmitting: boolean;
   handleSubmitReply: () => void;
-  viewContext: any; // Using any here for simplicity
+  viewContext: ViewContext | null; 
 }
 
 export default function ReplyForm({ 

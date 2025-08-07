@@ -1,16 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Reply, ThreadData } from '@/app/lib/types';
-
-type ViewContext = {
-  type: 'thread';
-  threadId: number;
-} | {
-  type: 'comment';
-  threadId: number;
-  commentId: number;
-  comment: Reply;
-  parentComment?: Reply;
-};
+import { Reply, ThreadData, ViewContext } from '@/app/lib/types';
 
 export function useCommentNav(thread: ThreadData | null) {
   const [viewContext, setViewContext] = useState<ViewContext | null>(null);

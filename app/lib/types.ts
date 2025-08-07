@@ -335,6 +335,10 @@ export interface FeaturedUser {
   status: 'online' | 'featured';
 }
 
+export type ViewContext = 
+  | { type: 'thread'; threadId: number }
+  | { type: 'comment'; threadId: number; commentId: number; comment: Reply; parentComment?: Reply };
+
 export const DefaultEvent: Event = {
 	id: '',
 	title: 'Sample Event',

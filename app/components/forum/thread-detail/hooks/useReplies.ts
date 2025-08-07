@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Reply, ThreadData } from '@/app/lib/types';
+import { Reply, ThreadData, ViewContext } from '@/app/lib/types';
 
 interface UseRepliesProps {
   thread: ThreadData | null;
-  viewContext: any; // Using any here for simplicity
+  viewContext: ViewContext | null;
   setIsLoadingCommentReplies: (isLoading: boolean) => void;
   setNewReply: (reply: string) => void;
 }

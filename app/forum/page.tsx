@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ForumControls from '../components/forum/forum-controls';
 import PostList from '../components/forum/post-list';
 import Sidebar from '../components/forum/sidebar';
@@ -317,6 +317,7 @@ export default function ForumPage() {
         isOpen={isNewThreadModalOpen}
         onClose={() => setIsNewThreadModalOpen(false)}
         onSubmit={handleNewThread}
+        isSubmitting={false}
       />
     </main>
   );

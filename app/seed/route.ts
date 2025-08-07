@@ -1,5 +1,5 @@
-import { db } from '@vercel/postgres';
-const client = await db.connect();
+// import { db } from '@vercel/postgres';
+// const client = await db.connect();
 
 /*  UNCOMMENT THE ABOVE LINES TO USE DATABASE  */
 
