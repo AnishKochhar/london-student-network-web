@@ -1,0 +1,27 @@
+name: Notify Events for Tomorrow
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # This will run at 00:00 UTC every day
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  notify-event:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set environment variable for Vercel URL
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "VERCEL_URL=https://london-student-network-web.vercel.app" >> $GITHUB_ENV
+          else
+            echo "VERCEL_URL=https://your-branch-name.vercel.app" >> $GITHUB_ENV
+          fi
+
+      - name: Trigger notify-event API
+        run: |
+          echo "Using URL: $VERCEL_URL"
+          curl -X GET "$VERCEL_URL/api/events/notify-event"
