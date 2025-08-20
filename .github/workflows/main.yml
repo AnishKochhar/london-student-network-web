@@ -2,7 +2,7 @@ name: Notify Events for Tomorrow
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # This will run at 00:00 UTC every day
+    - cron: '*/5 * * * *'  # This will run at 00:00 UTC every day
   workflow_dispatch: # Allows manual triggering
 
 jobs:
