@@ -4,7 +4,6 @@ This API log follows the same [Semantic Versioning](https://semver.org/spec/v2.0
 
 For each public API route, it lists **inputs**, **outputs**, **errors thrown**, and **places invocated**
 
-<<<<<<< HEAD
 # [4.4.0] # New apis for guest creation
 
 ## 'guest/check-email'
@@ -49,7 +48,6 @@ same as user/check-email
 - fromEmail: you email, e.g. session.data.user.email
 - subject: the subject of the email
 - text: the content of the email
->>>>>>> 8891b4d13a4e7ae45bef0b118cb2fa904e5c27e2
 
 # [4.0.0] # New non backward compatible routes introduced to workflow, and some previous routes deleted
 
