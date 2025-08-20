@@ -143,6 +143,27 @@ export async function fetchEventWithUserId(event_id: string, user_id: string) {
 	}
 }
 
+// base 16 converted uuid is a truncated uuid
+export async function fetchBase16ConvertedEventWithUserId(event_id: string, user_id: string) {
+	try {
+		const pattern = `%${event_id}%`;
+		const data = await sql<SQLEvent>`
+			SELECT * FROM events
+			WHERE organiser_uid = ${user_id} AND id::text LIKE ${pattern}
+			LIMIT 1
+		`;
+		console.log('Data rows: ', data.rows);
+		if (data.rows.length === 0) {
+			return { success: false };
+		} else {
+			return { success: true, event: convertSQLEventToEvent(data.rows[0]) }
+		}
+	} catch (error) {
+		console.error('Database error:', error);
+		throw new Error('Failed to fetch event');
+	}
+}
+
 export async function insertEvent(event: SQLEvent) {
 	try {
 		await sql`

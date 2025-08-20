@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import RegistrationsModal from './registrations-modal';
 import ToggleSwitch from '../toggle-button';
 import { createPortal } from 'react-dom';
+// import EventEmailSendingModal from './email-sending-modal';
 
 
 const MAX_POSTGRES_STRING_LENGTH = 255;
@@ -24,6 +25,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 	const [viewRegistrationsModal, setViewRegistrationsModal] = useState(false)
 	const [organisers, setOrganisers] = useState([eventProp.organiser]);
 	const [registrations, setRegistrations] = useState<Registrations[]>([])
+	const [viewSendEmailsModal, setViewSendEmailsModal] = useState<boolean>(false); // this should be in conflict with viewRegistrations, only one can be true at the same time
 
 	const { register, handleSubmit, formState: { errors, isValid }, setValue, watch } = useForm<FormData>({
 		mode: 'onChange',
@@ -58,6 +60,18 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 		}
 
 		setViewRegistrationsModal(true)
+		// just in case
+		setViewSendEmailsModal(false)
+	}
+
+	useEffect(() => {
+		console.log("changed");
+	}, [viewSendEmailsModal, viewRegistrationsModal])
+
+	const viewSendEmails = () => {
+		setViewSendEmailsModal(true)
+		// just in case
+		setViewRegistrationsModal(false)
 	}
 
 	const fetchOrganisersData = async () => {
@@ -139,30 +153,32 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 	}, []);
 
 	// Disable background scroll and handle outside click detection
-	useEffect(() => {
-		// Prevent background scrolling
-		document.body.style.overflow = 'hidden';
+	// but this closes the modal when it is covered, say opening the registration
+	// so actually, I dont think we need this, there is a close anyway
+	// useEffect(() => {
+	// 	// Prevent background scrolling
+	// 	document.body.style.overflow = 'hidden';
 
-		const handleClickOutside = (event: MouseEvent) => {
-			const target = event.target as Node;
+		// const handleClickOutside = (event: MouseEvent) => {
+		// 	const target = event.target as Node;
 
-			const clickedInsideOuter = modalRef.current?.contains(target);
-			const clickedInsideInner = innerRef.current?.contains(target);
+		// 	const clickedInsideOuter = modalRef.current?.contains(target);
+		// 	const clickedInsideInner = innerRef.current?.contains(target);
 
-			console.log(clickedInsideOuter, clickedInsideInner)
+		// 	console.log(clickedInsideOuter, clickedInsideInner)
 
-			if (!clickedInsideOuter && !clickedInsideInner) {
-				onClose();
-			}
-		};
+		// 	if (!clickedInsideOuter && !clickedInsideInner) {
+		// 		onClose();
+		// 	}
+		// };
 
-		document.addEventListener('mousedown', handleClickOutside);
+	// 	document.addEventListener('mousedown', handleClickOutside);
 
-		return () => {
-			document.body.style.overflow = '';
-			document.removeEventListener('mousedown', handleClickOutside);
-		};
-	}, [onClose]);
+	// 	return () => {
+	// 		document.body.style.overflow = '';
+	// 		document.removeEventListener('mousedown', handleClickOutside);
+	// 	};
+	// }, [onClose]);
 
 	const onSubmit = async (data: FormData) => {
 		const toastId = toast.loading('Updating event....')
@@ -563,6 +579,14 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 									onClick={viewRegistrations}
 								>
 									View Registrations
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									className="px-10 bg-purple-400 text-gray-950 md:text-xl"
+									onClick={viewSendEmails}
+								>
+									Send Emails to attendee
 								</Button>
 								<Button
 									className="px-10 md:text-xl border-black"

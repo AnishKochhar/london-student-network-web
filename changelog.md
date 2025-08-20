@@ -4,6 +4,7 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+<<<<<<< HEAD
 # [4.4.0] - 2025-07-18
 
 ### Added:
@@ -30,6 +31,8 @@ This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - altered every entry of the registrations and assign them a external state correspondingly
 - refactored the edit-event.tsx click outside logic to ensure the registration modal wont be closed
 
+=======
+>>>>>>> 8891b4d13a4e7ae45bef0b118cb2fa904e5c27e2
 # [4.2.0] - 2025-06-24
 
 ### Added
