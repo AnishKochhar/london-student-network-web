@@ -123,6 +123,18 @@ export interface FormData {
 	forExternals?: string;
 }
 
+export interface GuestRegisterFormData {
+	email: string,
+	password: string;
+  confirmPassword: string;
+  firstname: string;
+	surname: string;
+	university: string;
+	otherUniversity: string;
+	hasAgreedToTerms: boolean;
+	isNewsletterSubscribed: boolean;
+}
+
 export interface UserRegisterFormData {
     email: string;
     password: string;
@@ -267,6 +279,7 @@ export interface Registrations {
 	user_name: string;
 	user_email: string;
 	date_registered: string;
+	external: boolean;
 }
 
 export interface SQLRegistrations {
@@ -276,6 +289,7 @@ export interface SQLRegistrations {
 	name: string;
 	email: string;
 	created_at: string;
+	external: boolean;
 }
 
 export interface WebsiteStats {
