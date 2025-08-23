@@ -74,17 +74,11 @@ export function VelocityScroll({
 
     const x = useTransform(baseX, (v) => `${wrap(-100 / repetitions, 0, v)}%`);
 
-    const directionFactor = React.useRef<number>(1);
+    const directionFactor = React.useRef<number>(baseVelocity > 0 ? 1 : -1);
     useAnimationFrame((t, delta) => {
-      let moveBy = directionFactor.current * baseVelocity * (delta / 1000);
-
-      if (velocityFactor.get() < 0) {
-        directionFactor.current = -1;
-      } else if (velocityFactor.get() > 0) {
-        directionFactor.current = 1;
-      }
-
-      moveBy += directionFactor.current * moveBy * velocityFactor.get();
+      let moveBy = directionFactor.current * Math.abs(baseVelocity) * (delta / 1000);
+      
+      moveBy += moveBy * Math.abs(velocityFactor.get());
 
       baseX.set(baseX.get() + moveBy);
     });
@@ -98,7 +92,7 @@ export function VelocityScroll({
           {Array.from({ length: repetitions }).map((_, i) => (
             <span key={i} ref={i === 0 ? textRef : null} className="inline-block mx-4">
               {children.map((item, idx) => (
-                <span key={idx} className="inline-block mx-8">
+                <span key={idx} className="inline-block mx-8 hover:text-blue-300 transition-colors duration-200 cursor-pointer">
                   {item}
                 </span>
               ))}

@@ -1,5 +1,6 @@
 "use client"
 
+import { TextRevealSection } from "@/app/components/text-reveal-section";
 import type React from "react"
 import Link from "next/link"
 import clsx from "clsx"
@@ -19,7 +20,7 @@ const JoinButton = ({
 	return (
 		<Link href={href} className={clsx("flex items-center space-x-2 group", className)}>
 			<div>
-				<span className="relative text-lg flex items-center space-x-2 text-white font-semibold capitalize tracking-wide">
+				<span className="relative flex items-center space-x-2 text-white font-semibold capitalize tracking-wide">
 					{text}
 					<Image
 						src="/icons/arrow-right.svg"
@@ -35,27 +36,7 @@ const JoinButton = ({
 	)
 }
 
-const AnimatedText = ({
-	children,
-	className,
-}: {
-	children: React.ReactNode
-	className?: string
-}) => {
-	const ref = useRef<HTMLParagraphElement>(null)
-	const { scrollYProgress } = useScroll({
-		target: ref,
-		offset: ["start 0.9", "start 0.25"],
-	})
 
-	const color = useTransform(scrollYProgress, [0, 1], ["rgb(107 114 128)", "rgb(255 255 255)"])
-
-	return (
-		<motion.p ref={ref} style={{ color }} className={className}>
-			{children}
-		</motion.p>
-	)
-}
 
 export default function ForSocietiesClient() {
 	const sectionRef = useRef<HTMLElement>(null)
@@ -63,7 +44,7 @@ export default function ForSocietiesClient() {
 		target: sectionRef,
 		offset: ["start end", "end start"],
 	})
-	const x = useTransform(scrollYProgress, [0, 0.5], [200, 0]) // Slides from right
+	const x = useTransform(scrollYProgress, [0, 0.3], [200, 0]) // Slides from right
 
 	return (
 		<section ref={sectionRef} className="flex flex-col items-start justify-center p-10 snap-start min-h-screen">
@@ -73,12 +54,13 @@ export default function ForSocietiesClient() {
 			>
 				<span className="text-white mr-4">2. </span>For Clubs and Societies
 			</motion.h2>
-			<AnimatedText className="text-white text-xl md:text-3xl mt-20 ml-12">
-				Showcase your society to the city. <br /> <br />
-				Student leaders work tirelessly to create exceptional events. Through LSN, every student in London can
-				experience what you have to offer.
-			</AnimatedText>
-			<JoinButton href="/register/society" className="ml-20 mt-12" text="Share your events through us today" />
+			<TextRevealSection
+				text="Showcase your society to the city. Student leaders work tirelessly to create exceptional events. Through LSN, every student in London can experience what you have to offer."
+				className="text-white text-xl md:text-3xl mt-20 mr-12 self-end"
+				unrevealedTextColor="text-white/20"
+				revealedTextColor="text-white"
+			/>
+			<JoinButton href="/register/society" className="self-end mr-20 mt-12 text-2xl px-8 py-4  rounded-lg" text="Share your events through us today" />
 		</section>
 	)
 }

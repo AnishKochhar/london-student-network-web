@@ -1,23 +1,30 @@
-'use client';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Button } from './button';
-import { useState } from 'react';
-import { ArrowRightIcon } from '@heroicons/react/24/outline';
-import { Input } from './input';
+"use client";
+
+import { useState, useRef } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Button } from "@/app/components/button"
+import { Input } from "@/app/components/input"
+import { Label } from "@/app/components/ui/label"
+import { Textarea } from "@/app/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip"
+import { Send } from "lucide-react"
+import { motion, useInView } from 'framer-motion'
 
 export default function Footer() {
-	const [email, setEmail] = useState('');
+	const [email, setEmail] = useState('')
+	const ref = useRef(null);
+	const isInView = useInView(ref, { once: false, amount: 0.1 });
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		
+		e.preventDefault()
+
 		try {
 			const data = {
 				name: 'Newsletter Subscription',
 				email: email,
 				message: `Newsletter subscription request for email: ${email}`,
-			};
+			}
 
 			const response = await fetch('/api/send-email', {
 				method: 'POST',
@@ -25,89 +32,148 @@ export default function Footer() {
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify(data),
-			});
+			})
 
 			if (response.ok) {
-				setEmail(''); 
-			} 
+				setEmail('')
+			}
 		} catch (error) {
-			console.error('Error submitting the form:', error);
+			console.error('Error submitting the form:', error)
 		}
-		
-	};
+
+	}
+
 
 	return (
-		<footer className="bg-blue-600/25 text-white px-8 py-4 border-t-2 border-gray-300 border-opacity-25">
-			<div className="mx-auto my-auto flex flex-col md:flex-row justify-between items-center h-full space-y-3">
-
-				{/* Social Links and Terms & Conditions (mobile layout) */}
-				<div className="flex flex-row md:flex-col items-center justify-between w-full md:w-auto md:space-x-8">
-					{/* Social Media Icons */}
-					<div className="flex flex-row space-x-4 mb-2">
-						<Link href="https://www.instagram.com/lsn.uk/" target="_blank" rel="noreferrer" aria-label="Instagram">
-							<Image
-								src="/icons/instagram.svg"
-								alt="Instagram"
-								width={24}
-								height={24}
-								className="w-6 h-6"
+		<footer className="relative border-t border-gray-300 border-opacity-25 bg-blue-600/25 text-white transition-colors duration-300">
+			<motion.div
+				ref={ref}
+				variants={{
+					hidden: { y: 20, opacity: 0 },
+					visible: { y: 0, opacity: 1 },
+				}}
+				initial="hidden"
+				animate={isInView ? "visible" : "hidden"}
+				transition={{ duration: 0.5, ease: "easeOut" }}
+				className="container mx-auto px-4 py-12 md:px-6 lg:px-8">
+				<div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+					<div className="relative">
+						<h2 className="mb-4 text-3xl font-bold tracking-tight">Stay Connected</h2>
+						<p className="mb-6 text-muted-foreground">
+							Join our newsletter for the latest updates and exclusive offers.
+						</p>
+						<form onSubmit={handleSubmit} className="relative">
+							<Input
+								type="email"
+								placeholder="Enter your email"
+								className="pr-12 bg-white/10 border-white/20 text-white placeholder:text-white/70"
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								required
 							/>
-						</Link>
-						<Link href="https://www.linkedin.com/company/london-student-network/mycompany" target="_blank" rel="noreferrer" aria-label="LinkedIn">
-							<Image
-								src="/icons/linkedin.svg"
-								alt="LinkedIn"
-								width={24}
-								height={24}
-								className="w-6 h-6"
-							/>
-						</Link>
-						<Link href="mailto:londonstudentnetwork@gmail.com" aria-label="Email">
-							<Image
-								src="/icons/mail.svg"
-								alt="Email"
-								width={24}
-								height={24}
-								className="w-6 h-6 mt-1"
-							/>
-						</Link>
+							<Button
+								type="submit"
+								size="icon"
+								className="absolute right-1 top-1 h-8 w-8 rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105"
+							>
+								<Send className="h-4 w-4" />
+								<span className="sr-only">Subscribe</span>
+							</Button>
+						</form>
+						<div className="absolute -right-4 top-0 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
 					</div>
-
-					{/* Terms and Conditions - visible on all screens */}
-					<Link
-						href="/terms-conditions"
-						className="text-xs md:text-sm text-center text-white underline hover:text-blue-400 mt-2"
-					>
-						Terms and Conditions
-					</Link>
+					<div>
+						<h3 className="mb-4 text-lg font-semibold">Quick Links</h3>
+						<nav className="space-y-2 text-sm">
+							<Link href="/" className="block transition-colors hover:text-primary hover:underline">
+								Home
+							</Link>
+							<Link href="/about" className="block transition-colors hover:text-primary hover:underline">
+								About Us
+							</Link>
+							<Link href="/events" className="block transition-colors hover:text-primary hover:underline">
+								Events
+							</Link>
+							<Link href="/societies" className="block transition-colors hover:text-primary hover:underline">
+								Societies
+							</Link>
+							<Link href="/contact" className="block transition-colors hover:text-primary hover:underline">
+								Contact
+							</Link>
+						</nav>
+					</div>
+					<div>
+						<h3 className="mb-4 text-lg font-semibold">Contact Us</h3>
+						<address className="space-y-2 text-sm not-italic">
+							<p>Entrepreneurship Institute</p>
+							<p> Bush House North Wing, Strand Campus, 30 Aldwych, WC2B 4BG</p>
+							<p>London, United Kingdom</p>
+							<br />
+							<p>Email: <Link href="mailto:hello@londonstudentnetwork.com" className="hover:underline font-bold">hello@londonstudentnetwork.com</Link></p>
+						</address>
+					</div>
+					<div className="relative">
+						<h3 className="mb-4 text-lg font-semibold">Follow Us</h3>
+						<div className="mb-6 flex space-x-4">
+							<TooltipProvider>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Link href="https://www.instagram.com/lsn.uk/" target="_blank" rel="noreferrer" aria-label="Instagram">
+											<Button variant="outline" size="icon" className="rounded-full w-10 h-10 flex items-center justify-center">
+												<Image src="/icons/instagram.svg" alt="Instagram" width={24} height={24} className="w-6 h-6" />
+												<span className="sr-only">Instagram</span>
+											</Button>
+										</Link>
+									</TooltipTrigger>
+									<TooltipContent>
+										<p>Follow us on Instagram</p>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+							<TooltipProvider>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Link href="https://www.linkedin.com/company/london-student-network/mycompany" target="_blank" rel="noreferrer" aria-label="LinkedIn">
+											<Button variant="outline" size="icon" className="rounded-full w-10 h-10 flex items-center justify-center">
+												<Image src="/icons/linkedin.svg" alt="LinkedIn" width={24} height={24} className="w-6 h-6" />
+												<span className="sr-only">LinkedIn</span>
+											</Button>
+										</Link>
+									</TooltipTrigger>
+									<TooltipContent>
+										<p>Connect with us on LinkedIn</p>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+							<TooltipProvider>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Link href="mailto:londonstudentnetwork@gmail.com" aria-label="Email">
+											<Button variant="outline" size="icon" className="rounded-full w-10 h-10 flex items-center justify-center">
+												<Image src="/icons/mail.svg" alt="Email" width={24} height={24} className="w-6 h-6" />
+												<span className="sr-only">Email</span>
+											</Button>
+										</Link>
+									</TooltipTrigger>
+									<TooltipContent>
+										<p>Email us</p>
+									</TooltipContent>
+								</Tooltip>
+							</TooltipProvider>
+						</div>
+					</div>
 				</div>
-
-				{/* Copyright - visible only on desktop */}
-				<h2 className="hidden md:flex text-sm text-white/70 text-center font-semibold">Copyright © 2024 London Student Network</h2>
-
-				{/* Newsletter Subscription */}
-				<div className="flex flex-col items-center justify-end">
-					<h2 className="w-full text-start text-sm lg:text-md text-white font-semibold mb-2 mt-2">SUBSCRIBE TO OUR NEWSLETTER</h2>
-					<form onSubmit={handleSubmit} className="flex items-center h-auto">
-						<Input
-							type="email"
-							placeholder="Enter your email"
-							className="h-full px-4 py-3 bg-transparent text-white outline-none ring-2 ring-white/20"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							required
-						/>
-						<Button
-							variant='outline'
-							type="submit"
-							className="h-full py-3 rounded-none border-none"
-						>
-							<ArrowRightIcon className='w-4 h-4 text-white' />
-						</Button>
-					</form>
+				<div className="mt-12 flex flex-col items-center justify-between gap-4 border-t pt-8 text-center md:flex-row">
+					<p className="text-sm text-muted-foreground">
+						© 2024 London Student Network. All rights reserved.
+					</p>
+					<nav className="flex gap-4 text-sm">
+						<Link href="/terms-conditions" className="transition-colors hover:text-primary">
+							Terms and Conditions
+						</Link>
+					</nav>
 				</div>
-			</div>
+			</motion.div>
 		</footer>
-	);
+	)
 }
-

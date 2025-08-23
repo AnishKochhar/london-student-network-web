@@ -33,7 +33,9 @@ export function Button({ variant, size = 'md', disabled, onClick, children, clas
 			disabled={disabled}
 			onClick={disabled ? undefined : onClick}
 		>
-			{children}
+			<span className="flex items-center justify-center w-full h-full shrink-0">
+				{children}
+			</span>
 		</button>
 	);
 }
