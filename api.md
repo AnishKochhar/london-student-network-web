@@ -4,6 +4,28 @@ This API log follows the same [Semantic Versioning](https://semver.org/spec/v2.0
 
 For each public API route, it lists **inputs**, **outputs**, **errors thrown**, and **places invocated**
 
+# [4.4.0] # New apis for guest creation
+
+## 'guest/check-email'
+### Inputs:
+- email: string, the email to check
+
+### Outputs:
+- success: boolean;
+- emailTaken: boolean;
+- error?: undefined;
+
+same as user/check-email
+
+## 'guest/create'
+### Inputs:
+- data: GuestRegisterFormData (see types.ts)
+
+### Output:
+- id: the id returned by psql
+- success: boolean
+- error?
+=======
 # [4.1.0] # custom email sending for event organiser
 
 ## 'events/check-is-organiser'

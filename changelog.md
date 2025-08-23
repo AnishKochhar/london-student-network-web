@@ -4,6 +4,32 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [4.4.0] - 2025-07-18
+
+### Added:
+- new table guests, only recording the id, name, email, university
+- new page /register/guest, and altered layout of /register, basically the same as studetn register, but removed some fields
+- new api /api/guest/check-email, same as /api/user/check-email, since both user and guest as in the same table
+- new api /api/guest/create. similar to /api/user/create, but the role is set to 'guest', along with storing the information into guests table
+
+### Changed:
+- /register page layout
+
+### Changed:
+- registration Modal UI: split the list into external and internal, and also the copy emails button
+- altered every entry of the registrations and assign them a external state correspondingly
+- refactored the edit-event.tsx click outside logic to ensure the registration modal wont be closed
+
+# [4.3.0] - 2025-07-18
+
+### Added:
+- external column in the database table event registrations
+
+### Changed:
+- registration Modal UI: split the list into external and internal, and also the copy emails button
+- altered every entry of the registrations and assign them a external state correspondingly
+- refactored the edit-event.tsx click outside logic to ensure the registration modal wont be closed
+
 # [4.2.0] - 2025-06-24
 
 ### Added
