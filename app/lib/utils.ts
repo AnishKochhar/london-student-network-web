@@ -50,6 +50,7 @@ export function convertSQLRegistrationsToRegistrations(registrations: SQLRegistr
 		user_email: registrations.email,
 		user_name: registrations.name,
 		date_registered: registrations.created_at,
+		external: registrations.external
 	};
 }
 

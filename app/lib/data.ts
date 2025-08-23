@@ -110,6 +110,20 @@ export async function fetchEventById(id: string) {
 	}
 }
 
+export async function fetchSQLEventById(id: string) {
+	try {
+		const data = await sql<SQLEvent>`
+			SELECT *
+			FROM events
+			WHERE id::text LIKE '%' || ${id};
+		`;
+		return data.rows[0];
+	} catch (error) {
+		console.error('Database error:', error);
+		throw new Error('Failed to fetch event');
+	}
+}
+
 export async function fetchEventWithUserId(event_id: string, user_id: string) {
 	try {
 		const data = await sql<SQLEvent>`
@@ -453,6 +467,29 @@ export async function insertUserInformation(formData: UserRegisterFormData, user
 	}
 }
 
+export async function getUserUniversityById(user_id: string) {
+	try {
+		const data = await sql `
+			SELECT COALESCE(
+				(SELECT university_attended FROM user_information WHERE user_id = ${user_id}),
+				(SELECT university_affiliation FROM society_information WHERE user_id = ${user_id})
+			) AS university;
+		`
+		const result = data.rows.map(it => it as {university: string}) // we are certain this is a string
+		// console.log(result)
+		if (result.length === 0) {
+			throw new Error(`The user with id ${user_id} does not exist`)
+		} else if (result.length !== 1) {
+			throw new Error(`multiple entries exist for user with id ${user_id}, it is likely the database is corrupted, contact the admin`)
+		}
+		
+		return {success: true, university: result[0].university}
+	} catch (error) {
+		console.log(`Error getting the university of user with id ${user_id}, ${error}`)
+		return {success: false, error}
+	}
+}
+
 
 export async function insertOrganiserIntoUsers(formData: SocietyRegisterFormData) { 
 	try {
@@ -680,7 +717,7 @@ export async function getEmailFromId(id: string) {
 export async function checkIfRegistered(event_id: string, user_id: string) {
 	try {
 		const result = await sql`
-			SELECT id FROM event_registrations
+			SELECT event_registration_uuid FROM event_registrations
 			WHERE event_id = ${event_id} AND user_id = ${user_id}
 			LIMIT 1
 		`;
@@ -691,11 +728,11 @@ export async function checkIfRegistered(event_id: string, user_id: string) {
 	}
 }
 
-export async function registerForEvent(user_id: string, user_email: string, user_name: string, event_id: string) {
+export async function registerForEvent(user_id: string, user_email: string, user_name: string, event_id: string, external: boolean) {
 	try {
 		await sql`
-		INSERT INTO event_registrations (event_id, user_id, name, email)
-		VALUES (${event_id}, ${user_id}, ${user_name}, ${user_email})
+		INSERT INTO event_registrations (event_id, user_id, name, email, external)
+		VALUES (${event_id}, ${user_id}, ${user_name}, ${user_email}, ${external})
 		`
 		return { success: true }
 	} catch (error) {
@@ -707,7 +744,7 @@ export async function registerForEvent(user_id: string, user_email: string, user
 export async function getRegistrationsForEvent(event_id: string) {
 	try {
 		const result = await sql<SQLRegistrations>`
-		SELECT user_id, name, email, created_at
+		SELECT user_id, name, email, created_at, external
 		FROM event_registrations
 		WHERE event_id = ${event_id}
 		`
