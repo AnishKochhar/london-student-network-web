@@ -1,6 +1,6 @@
 import { sql } from '@vercel/postgres';
 import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, InsertTokenResult, CompanyInformation } from './types';
-import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics } from './utils';
+import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics, properTitleCase } from './utils';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
 import { redis } from './config';
@@ -494,7 +494,7 @@ export async function getUserUniversityById(user_id: string) {
 export async function insertOrganiserIntoUsers(formData: SocietyRegisterFormData) { 
 	try {
 		const hashedPassword = await bcrypt.hash(formData.password, 10);
-		const name = formData.name.split(' ').map(capitalize).join(' ')
+		const name = properTitleCase(formData.name)
 		
 		const result = await sql`
 			INSERT INTO users (name, email, password, role)

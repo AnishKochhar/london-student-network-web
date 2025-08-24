@@ -29,7 +29,7 @@ export default function UpcomingEventsView({ events }: { events: Event[] }) {
 
 	return (
 		<motion.div
-			className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4" // Changed to grid for consistent width
+			className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 px-4 w-full" // Added sm breakpoint and full width
 			variants={containerVariants}
 			initial="hidden"
 			whileInView="visible"

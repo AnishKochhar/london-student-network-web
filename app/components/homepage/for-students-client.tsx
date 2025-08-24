@@ -60,7 +60,7 @@ export default function ForStudentsClient() {
 				unrevealedTextColor="text-white/20"
 				revealedTextColor="text-white"
 			/>
-			<JoinButton href="/register/student" className="self-start ml-20 mt-12 text-2xl px-8 py-4 rounded-lg" text="Join the London Student Network" />
+			<JoinButton href="/register/student" className="self-start ml-20 mt-12 text-lg md:text-2xl px-6 md:px-8 py-3 md:py-4 rounded-lg" text="Join the London Student Network" />
 		</section>
 	)
 }

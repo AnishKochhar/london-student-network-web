@@ -12,6 +12,7 @@ import { Suspense } from "react"
 export const metadata: Metadata = {
 	title: "London Student Network",
 	description: "For the students, by the students",
+	// viewport: "width=device-width, initial-scale=1",
 }
 
 export default function RootLayout({

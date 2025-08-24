@@ -55,12 +55,12 @@ export default function ForSponsorsClient() {
 				<span className="text-white mr-4">3. </span>For Sponsors
 			</motion.h2>
 			<TextRevealSection
-				text="We help organise events that reach the entire university student community across London. Interested in sponsoring our exciting activities? Reach out today and be a part of something extraordinary."
+				text="We help organise events that reach the entire university student community across London.\nInterested in sponsoring our exciting activities? Reach out today and be a part of something extraordinary."
 				className="text-white text-xl md:text-3xl mt-20 ml-12 self-start"
 				unrevealedTextColor="text-white/20"
 				revealedTextColor="text-white"
 			/>
-			<JoinButton href="/contact" className="self-start ml-20 mt-12 text-2xl px-8 py-4 rounded-lg" text="Contact our team" />
+			<JoinButton href="/contact" className="self-start ml-20 mt-12 text-lg md:text-2xl px-6 md:px-8 py-3 md:py-4 rounded-lg" text="Contact our team" />
 		</section>
 	)
 }

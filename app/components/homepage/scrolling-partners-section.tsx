@@ -12,10 +12,15 @@ export default function ScrollingPartnersSection() {
 	return (
 		<section className="min-h-screen w-full bg-[#041A2E] flex flex-col items-center justify-center overflow-hidden snap-start py-20 space-y-16">
 			<div className="w-full flex flex-col space-y-12">
-				<h2 className="text-4xl md:text-6xl text-center font-bold tracking-[-0.02em] text-white">Our Societies</h2>
-				<VelocityScroll items={societies} default_velocity={0.2} className="font-display text-center text-4xl font-bold tracking-[-0.02em] text-white md:text-5xl md:leading-[5rem] pointer-events-auto gap-x-8" />
-				<h2 className="text-4xl md:text-6xl text-center font-bold tracking-[-0.02em] text-white">Universities We're At</h2>
-				<VelocityScroll items={universities} default_velocity={-0.2} className="font-display text-center text-4xl font-bold tracking-[-0.02em] text-white md:text-5xl md:leading-[5rem] pointer-events-auto gap-x-8" />
+				<AnimatedShinyText className="text-4xl md:text-6xl text-center font-bold tracking-[-0.02em]">
+					Our Societies
+				</AnimatedShinyText>
+				<VelocityScroll items={societies} default_velocity={0.2} className="font-display text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-[-0.02em] text-white md:leading-[5rem] gap-x-4 md:gap-x-8" />
+				<div className="h-8" />
+				<AnimatedShinyText className="text-4xl md:text-6xl text-center font-bold tracking-[-0.02em]">
+					Universities We're At
+				</AnimatedShinyText>
+				<VelocityScroll items={universities} default_velocity={-0.2} className="font-display text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-[-0.02em] text-white md:leading-[5rem] gap-x-4 md:gap-x-8" />
 			</div>
 		</section>
 	)

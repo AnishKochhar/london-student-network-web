@@ -15,6 +15,13 @@ export const capitalizeFirst = (str: string) => {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
+export const properTitleCase = (str: string) => {
+	return str.split(' ').map(word => {
+		if (word.length === 0) return word;
+		return word.charAt(0).toUpperCase() + word.slice(1);
+	}).join(' ');
+};
+
 
 export function formattedWebsite (website: string) { // formats website to include https:// if it doesn't already
     return website.startsWith('http') ? website : `https://${website}`;

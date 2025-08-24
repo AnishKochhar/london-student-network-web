@@ -4,14 +4,33 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [4.3.0] - 2025-08-23
+
+### Added
+
+- Complete typeform-style wizard registration system for students, societies, and companies
+- Multi-step animated forms with progress indicators and smooth transitions
+- Custom ModernTagsSelect component with dropdown interface and tag chip management
+- Mobile-responsive design with adaptive layouts and sizing across all breakpoints
+
+### Changed
+
+- Migrated from single-page registration forms to modern wizard-style multi-step forms
+- Redesigned all form components (ModernInput, ModernSelect, ModernFormStep) with consistent styling
+- Enhanced UX with keyboard navigation (Enter to continue), proper focus management, and loading states
+
+### Fixed
+
+- Form validation now properly handles conditional fields and multi-step workflow
+
 # [4.2.0] - 2025-06-24
 
 ### Added
 
-- custom email sending for each event, only accessible by the organiser
-- new api events/check-is-organiser for checking if the user_id is organiser
-- new api emails/send-user-notice to distinguish sending to organiser and user
-- email sending modals and UIs
+- Custom email sending for each event, only accessible by the organiser
+- New api events/check-is-organiser for checking if the user_id is organiser
+- New api emails/send-user-notice to distinguish sending to organiser and user
+- Email sending modals and UIs
 
 # [4.1.0] - 2025-03-04
 
