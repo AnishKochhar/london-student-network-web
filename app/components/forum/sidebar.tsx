@@ -3,13 +3,9 @@
 import TrendingTopics from './trending-topics';
 import FeaturedUsers from './featured-users';
 import { useTrendingTopics } from './hooks/useTrendingTopics';
-import { FeaturedUser } from '@/app/lib/types';
 
-interface SidebarProps {
-  featuredUsers: FeaturedUser[];
-}
 
-export default function Sidebar({ featuredUsers }: SidebarProps) {
+export default function Sidebar() {
   const { topics, isLoading, error } = useTrendingTopics();
   
   return (

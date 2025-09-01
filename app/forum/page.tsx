@@ -11,10 +11,6 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 
 
-const featuredUsers = [
-  { username: "@devmaster", status: "online" as const },
-  { username: "@uiqueen", status: "featured" as const }
-];
 
 // Constants for pagination
 const INITIAL_FETCH_COUNT = 6;
@@ -384,7 +380,6 @@ export default function ForumPage() {
       </div>
       <div className="hidden lg:block lg:w-80">
         <Sidebar 
-          featuredUsers={featuredUsers} 
         />
       </div>
       {/* Thread Detail Modal */}

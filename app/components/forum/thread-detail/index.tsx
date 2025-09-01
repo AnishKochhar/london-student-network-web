@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { XMarkIcon, ChatBubbleLeftIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { ThreadData, Reply, ViewContext as ImportedViewContext } from '@/app/lib/types';
+import { ThreadData, ViewContext as ImportedViewContext } from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 
 import ThreadContent from './thread-content';
@@ -29,20 +29,6 @@ interface ThreadUpdateData {
 
 type ViewContext = ImportedViewContext;
 
-// Define view context types
-type CommentData = {
-  id: number;
-  content: string;
-  author: string;
-  authorId: string;
-  timeAgo: string;
-  upvotes: number;
-  downvotes: number;
-  userVote: 'upvote' | 'downvote' | null;
-  replyCount: number;
-  wasEdited?: boolean;
-  editedTimeAgo?: string;
-};
 
 interface ThreadDetailModalProps {
   isOpen: boolean;

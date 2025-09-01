@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     // Build query parts
     let fromClause = 'FROM threads t';
     let whereClause = '';
-    let parameters = [];
     let paramIndex = 1;
+    const parameters = [];
     
     if (searchTerm && searchTerm.trim() !== '') {
       const searchPattern = `%${searchTerm}%`;
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
           if (!normalizedTag) continue;
           
           // Check if tag exists in forum_tags
-          let tagResult = await sql`
+          const tagResult = await sql`
             SELECT id FROM forum_tags WHERE name = ${normalizedTag};
           `;
           

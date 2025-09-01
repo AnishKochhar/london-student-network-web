@@ -72,7 +72,7 @@ export async function PATCH(
           if (!normalizedTag) continue;
           
           // Check if tag exists in forum_tags
-          let tagResult = await sql`
+          const tagResult = await sql`
             SELECT id FROM forum_tags WHERE name = ${normalizedTag};
           `;
           
