@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'react-hot-toast';
 import { 
   ArrowUpIcon as ArrowUpOutline, 
   ArrowDownIcon as ArrowDownOutline 
@@ -73,7 +74,10 @@ export default function VoteButtons({
 
   const handleVote = async (voteType: 'upvote' | 'downvote') => {
     if (!session?.user) {
-      alert('You must be logged in to vote');
+      toast.error('You must be logged in to vote', {
+        icon: '🔒',
+        duration: 3000,
+      });
       return;
     }
 
@@ -144,7 +148,11 @@ export default function VoteButtons({
         onVoteChange(itemId, initialUpvotes, initialDownvotes, initialUserVote);
       }
 
-      alert('Failed to register vote. Please try again.');
+      // Replace alert with toast notification
+      toast.error('Failed to register vote. Please try again.', {
+        icon: '❌',
+        duration: 4000,
+      });
     } finally {
       setIsVoting(false);
     }
@@ -152,8 +160,9 @@ export default function VoteButtons({
 
   const { icon, text } = getButtonSize();
 
-  // Render horizontal or vertical layout
+  // Rest of the component remains the same...
   if (orientation === 'horizontal') {
+    // Horizontal layout code unchanged
     return (
       <div className="flex items-center gap-2">
         <button
@@ -193,7 +202,7 @@ export default function VoteButtons({
     );
   }
 
-  // Default vertical layout
+  // Default vertical layout code unchanged
   return (
     <div className="flex flex-col items-center gap-1">
       <button

@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
         parent_id: parentCommentId,
         content,
         author: authorName,
+        authorId: userId,
         avatar: getAvatarInitials(authorName),
         timeAgo: 'just now',
         upvotes: 0,

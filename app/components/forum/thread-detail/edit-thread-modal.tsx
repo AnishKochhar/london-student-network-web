@@ -1,50 +1,52 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { XMarkIcon, PlusIcon, TagIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PencilIcon, TagIcon } from '@heroicons/react/24/outline';
 
-interface NewThreadModalProps {
+interface EditThreadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (threadData: {
+  onUpdate: (updatedData: {
     title: string;
     content: string;
     tags: string[];
   }) => void;
-  isSubmitting?: boolean; 
+  initialData: {
+    id: number;
+    title: string;
+    content: string;
+    tags: string[];
+  };
+  isSubmitting?: boolean;
 }
 
-export default function NewThreadModal({ 
+export default function EditThreadModal({ 
   isOpen, 
   onClose, 
-  onSubmit, 
+  onUpdate, 
+  initialData,
   isSubmitting = false 
-}: NewThreadModalProps) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+}: EditThreadModalProps) {
+  const [title, setTitle] = useState(initialData.title);
+  const [content, setContent] = useState(initialData.content);
   const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [wasSubmitting, setWasSubmitting] = useState(false);
+  const [tags, setTags] = useState<string[]>(initialData.tags);
   const [mounted, setMounted] = useState(false);
-  
-  // Handle client-side only rendering for createPortal
+  const isUpdating = useRef(false);
+
   useEffect(() => {
     setMounted(true);
-    return () => setMounted(false);
   }, []);
 
-  // Track submission state changes to detect successful submission
+  // Update state when initialData changes
   useEffect(() => {
-    if (wasSubmitting && !isSubmitting) {
-      setTitle('');
-      setContent('');
-      setTags([]);
-      setTagInput('');
+    if (!isUpdating.current) {
+      setTitle(initialData.title);
+      setContent(initialData.content);
+      setTags(initialData.tags);
     }
-    
-    setWasSubmitting(isSubmitting);
-  }, [isSubmitting, wasSubmitting]);
+  }, [initialData]);
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim().toLowerCase())) {
@@ -59,11 +61,19 @@ export default function NewThreadModal({
 
   const handleSubmit = () => {
     if (title.trim() && content.trim()) {
-      onSubmit({
+      // Set the updating flag before calling onUpdate
+      isUpdating.current = true;
+      
+      onUpdate({
         title: title.trim(),
         content: content.trim(),
         tags
       });
+      
+      // Reset the flag after a brief delay (after modal closes)
+      setTimeout(() => {
+        isUpdating.current = false;
+      }, 500);
     }
   };
 
@@ -74,21 +84,14 @@ export default function NewThreadModal({
     }
   };
 
-  // Simple close without resetting form
-  const handleClose = () => {
-    onClose();
-  };
-
-  // Don't render anything if not open or not mounted (client-side)
   if (!isOpen || !mounted) return null;
-  
-  // Create the modal content
+
   const modalContent = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={handleClose}
+        onClick={onClose}
       />
       
       {/* Modal */}
@@ -96,11 +99,11 @@ export default function NewThreadModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <PlusIcon className="w-6 h-6 text-blue-400" />
-            Start New Thread
+            <PencilIcon className="w-6 h-6 text-blue-400" />
+            Edit Thread
           </h2>
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
             disabled={isSubmitting}
           >
@@ -196,7 +199,7 @@ export default function NewThreadModal({
           <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
             <button
               type="button"
-              onClick={handleClose}
+              onClick={onClose}
               className="px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white hover:bg-white/20 hover:border-white/30 transition-colors"
               disabled={isSubmitting}
             >
@@ -211,10 +214,10 @@ export default function NewThreadModal({
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Creating...
+                  Updating...
                 </>
               ) : (
-                'Create Thread'
+                'Save Changes'
               )}
             </button>
           </div>

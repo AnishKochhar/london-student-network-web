@@ -295,7 +295,10 @@ export interface ForumPost {
   downvotes: number;
   replies: number;
   tags: string[];
-  userVote?: 'upvote' | 'downvote' | null;
+  userVote?: string | null;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+  authorId?: string;
 }
 
 export interface Reply {
@@ -306,9 +309,12 @@ export interface Reply {
   timeAgo: string;
   upvotes: number;
   downvotes: number;
-  userVote?: 'upvote' | 'downvote' | null;
+  userVote?: string | null;
   parent_id?: number | null;
   replyCount?: number;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+  authorId: string;
 }
 
 export interface ThreadData {
@@ -320,9 +326,13 @@ export interface ThreadData {
   timeAgo: string;
   upvotes: number;
   downvotes: number;
-  replies: Reply[];
+  replies: Reply[] | number;
   tags: string[];
-  userVote?: 'upvote' | 'downvote' | null;
+  userVote?: string | null;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+  authorId?: string;
+  totalReplies?: number; 
 }
 
 export interface TrendingTopic {
@@ -338,6 +348,29 @@ export interface FeaturedUser {
 export type ViewContext = 
   | { type: 'thread'; threadId: number }
   | { type: 'comment'; threadId: number; commentId: number; comment: Reply; parentComment?: Reply };
+
+  export interface ThreadUpdateData {
+  title?: string;
+  content?: string;
+  tags?: string[];
+  upvotes?: number;
+  downvotes?: number;
+  userVote?: 'upvote' | 'downvote' | null;
+  replies?: number;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+}
+
+// Comment/reply update types
+export interface CommentUpdateData {
+  content?: string;
+  upvotes?: number;
+  downvotes?: number;
+  userVote?: string | null;
+  replyCount?: number;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+}
 
 export const DefaultEvent: Event = {
 	id: '',

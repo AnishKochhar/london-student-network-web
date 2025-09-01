@@ -1,158 +1,76 @@
-import { useState, useEffect } from 'react';
-import { ThreadData } from '@/app/lib/types';
+import { useState, useCallback } from 'react';
+import * as threadService from '@/app/lib/services/thread-service';
 
-export function useVotes(thread: ThreadData | null) {
-  const [threadVotes, setThreadVotes] = useState({
-    upvotes: thread?.upvotes || 0,
-    downvotes: thread?.downvotes || 0,
-    userVote: thread?.userVote || null
+interface VoteState {
+  upvotes: number;
+  downvotes: number;
+  userVote: string | null;
+}
+
+export function useVote(
+  initialUpvotes: number, 
+  initialDownvotes: number, 
+  initialUserVote: string | null,
+  itemId: number,
+  voteType: 'thread' | 'reply',
+  onVoteChange?: (itemId: number, upvotes: number, downvotes: number, userVote: string | null) => void
+) {
+  const [votes, setVotes] = useState<VoteState>({
+    upvotes: initialUpvotes,
+    downvotes: initialDownvotes,
+    userVote: initialUserVote
   });
   
-  const [replyVotes, setReplyVotes] = useState<Record<number, {
-    upvotes: number;
-    downvotes: number;
-    userVote: string | null;
-  }>>({});
-
-  // Update votes state when thread changes
-  useEffect(() => {
-    if (thread) {
-      setThreadVotes({
-        upvotes: thread.upvotes,
-        downvotes: thread.downvotes,
-        userVote: thread.userVote
-      });
+  const handleVote = useCallback(async (type: 'upvote' | 'downvote') => {
+    // Determine if this is removing an existing vote
+    const isRemovingVote = votes.userVote === type;
+    
+    // Calculate new vote state optimistically
+    const newVotes = { ...votes };
+    
+    if (isRemovingVote) {
+      // User is un-voting
+      newVotes[`${type}s`]--;
+      newVotes.userVote = null;
+    } else {
+      // User is voting or changing vote
+      if (votes.userVote) {
+        // Remove previous vote first
+        newVotes[`${votes.userVote}s`]--;
+      }
       
-      // Initialize reply votes if we have replies
-      if (Array.isArray(thread.replies) && thread.replies.length) {
-        const initialReplyVotes = thread.replies.reduce((acc, reply) => {
-          acc[reply.id] = {
-            upvotes: reply.upvotes,
-            downvotes: reply.downvotes,
-            userVote: reply.userVote || null
-          };
-          return acc;
-        }, {} as Record<number, { upvotes: number; downvotes: number; userVote: string | null; }>);
-        
-        setReplyVotes(initialReplyVotes);
+      // Add new vote
+      newVotes[`${type}s`]++;
+      newVotes.userVote = type;
+    }
+    
+    // Update UI immediately
+    setVotes(newVotes);
+    
+    // Call parent handler if provided
+    if (onVoteChange) {
+      onVoteChange(itemId, newVotes.upvotes, newVotes.downvotes, newVotes.userVote);
+    }
+    
+    // Call API
+    let success;
+    if (voteType === 'thread') {
+      success = await threadService.submitThreadVote(itemId, type, isRemovingVote);
+    } else {
+      success = await threadService.submitReplyVote(itemId, type, isRemovingVote);
+    }
+    
+    // Revert on failure
+    if (!success) {
+      setVotes(votes);
+      if (onVoteChange) {
+        onVoteChange(itemId, votes.upvotes, votes.downvotes, votes.userVote);
       }
     }
-  }, [thread]);
+  }, [votes, itemId, voteType, onVoteChange]);
 
-  const handleThreadVote = async (voteType: 'upvote' | 'downvote') => {
-    if (!thread) return;
-    
-    // Determine if this is a new vote or removing an existing vote
-    const isRemovingVote = threadVotes.userVote === voteType;
-    
-    // Optimistically update UI
-    setThreadVotes(prev => {
-      const newState = { ...prev };
-      
-      if (prev.userVote === voteType) {
-        // User is un-voting
-        newState.userVote = null;
-        newState[`${voteType}s`] = prev[`${voteType}s`] - 1;
-      } else {
-        // User is voting or changing vote
-        if (prev.userVote) {
-          // Remove previous vote first
-          newState[`${prev.userVote}s`] = prev[`${prev.userVote}s`] - 1;
-        }
-        
-        // Add new vote
-        newState.userVote = voteType;
-        newState[`${voteType}s`] = prev[`${voteType}s`] + 1;
-      }
-      
-      return newState;
-    });
-    
-    try {
-      // Make API call to record vote
-      const response = await fetch('/api/threads/vote', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          threadId: thread.id,
-          voteType: voteType,
-          action: isRemovingVote ? 'remove' : 'add'
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to register vote');
-      }
-    } catch (error) {
-      console.error('Error voting:', error);
-      // Revert on error
-      if (thread) {
-        setThreadVotes({
-          upvotes: thread.upvotes,
-          downvotes: thread.downvotes,
-          userVote: thread.userVote
-        });
-      }
-    }
+  return {
+    votes,
+    handleVote
   };
-
-  const handleReplyVote = async (replyId: number, voteType: 'upvote' | 'downvote') => {
-    if (!thread) return;
-    const current = replyVotes[replyId];
-    if (!current) return;
-    
-    // Determine if this is a new vote or removing an existing vote
-    const isRemovingVote = current.userVote === voteType;
-    
-    // Optimistically update UI
-    setReplyVotes(prev => {
-      const newState = { ...prev };
-      const currentVote = { ...prev[replyId] };
-      
-      if (currentVote.userVote === voteType) {
-        // User is un-voting
-        currentVote.userVote = null;
-        currentVote[`${voteType}s`] = currentVote[`${voteType}s`] - 1;
-      } else {
-        // User is voting or changing vote
-        if (currentVote.userVote) {
-          // Remove previous vote first
-          currentVote[`${currentVote.userVote}s`] = currentVote[`${currentVote.userVote}s`] - 1;
-        }
-        
-        // Add new vote
-        currentVote.userVote = voteType;
-        currentVote[`${voteType}s`] = currentVote[`${voteType}s`] + 1;
-      }
-      
-      newState[replyId] = currentVote;
-      return newState;
-    });
-    
-    try {
-      // Make API call to record vote
-      const response = await fetch('/api/replies/vote', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          replyId,
-          voteType,
-          action: isRemovingVote ? 'remove' : 'add'
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to register vote');
-      }
-    } catch (error) {
-      console.error('Error voting on reply:', error);
-      // Handle error recovery
-    }
-  };
-
-  return { threadVotes, replyVotes, handleThreadVote, handleReplyVote, setReplyVotes };
 }

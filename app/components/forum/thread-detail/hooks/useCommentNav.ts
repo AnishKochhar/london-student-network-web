@@ -1,22 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Reply, ThreadData, ViewContext } from '@/app/lib/types';
 
 export function useCommentNav(thread: ThreadData | null) {
   const [viewContext, setViewContext] = useState<ViewContext | null>(null);
   const [viewHistory, setViewHistory] = useState<ViewContext[]>([]);
+  // Add a ref to track initialization and thread ID changes
+  const initializedThreadId = useRef<number | null>(null);
 
-  // Initialize view context when thread changes
+  // Initialize view context ONLY when thread ID changes
   useEffect(() => {
     if (thread) {
-      // Reset to thread view
-      setViewContext({
-        type: 'thread',
-        threadId: thread.id
-      });
-      // Clear navigation history
-      setViewHistory([]);
+      // Only reset view if this is a different thread than before
+      if (initializedThreadId.current !== thread.id) {
+        // Update our ref to the new thread ID
+        initializedThreadId.current = thread.id;
+        
+        // Reset to thread view
+        setViewContext({
+          type: 'thread',
+          threadId: thread.id
+        });
+        
+        // Clear navigation history
+        setViewHistory([]);
+      } else if (!viewContext) {
+        // Safety check: if viewContext is null but thread ID hasn't changed,
+        // we should still initialize to thread view
+        setViewContext({
+          type: 'thread',
+          threadId: thread.id
+        });
+      }
     }
-  }, [thread]);
+  }, [thread, viewContext]);
 
   const navigateToComment = (comment: Reply) => {
     if (!thread) return;

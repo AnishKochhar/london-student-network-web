@@ -14,7 +14,17 @@ export async function GET(
     
     // Fetch replies for the comment
     const repliesResult = await sql`
-      SELECT c.*, u.name as author_name
+      SELECT 
+        c.id, 
+        c.thread_id, 
+        c.parent_id, 
+        c.content, 
+        c.author_id, 
+        c.upvotes, 
+        c.downvotes,
+        c.created_at AT TIME ZONE 'UTC' as created_at,
+        c.updated_at AT TIME ZONE 'UTC' as updated_at,
+        u.name as author_name
       FROM comments c
       LEFT JOIN users u ON c.author_id = u.id
       WHERE c.parent_id = ${commentId}
@@ -47,6 +57,9 @@ export async function GET(
       const replyCount = parseInt(repliesCount.rows[0].count);
       const hasReplies = replyCount > 0;
       const authorName = reply.author_name || 'Anonymous';
+
+      const wasEdited = new Date(reply.updated_at) > new Date(reply.created_at);
+
       
       return {
         id: reply.id,
@@ -54,13 +67,16 @@ export async function GET(
         parent_id: reply.parent_id,
         content: formatContent(reply.content),
         author: authorName,
+        authorId: reply.author_id,
         avatar: getAvatarInitials(authorName),
         timeAgo: getTimeAgo(reply.created_at),
         upvotes: reply.upvotes || 0,
         downvotes: reply.downvotes || 0,
         userVote,
         hasReplies,
-        replyCount
+        replyCount,
+        wasEdited,
+        editedTimeAgo: wasEdited ? getTimeAgo(reply.updated_at) : undefined,
       };
     }));
     

@@ -1,5 +1,5 @@
-// import { db } from '@vercel/postgres';
-// const client = await db.connect();
+import { db } from '@vercel/postgres';
+const client = await db.connect();
 
 /*  UNCOMMENT THE ABOVE LINES TO USE DATABASE  */
 
@@ -249,18 +249,32 @@
 // 	`;
 // }
 
+async function removeThreadIdColumn() {
+	await client.sql`
+        CREATE TABLE thread_tags (
+            id SERIAL PRIMARY KEY,
+            thread_id INTEGER NOT NULL,
+            forum_tag_id INTEGER NOT NULL,
+            FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
+            FOREIGN KEY (forum_tag_id) REFERENCES forum_tags(id) ON DELETE CASCADE,
+            UNIQUE(thread_id, forum_tag_id)
+          );
+      `;
+}
+
 export async function GET() {
-	// try {
-	// 	await client.sql`BEGIN`;
-	// 	// await seedSocietyInformation()
-	// 	await seedCommentVote();
+	try {
+		await client.sql`BEGIN`;
+		// await seedSocietyInformation()
+		await removeThreadIdColumn();
+		
 
-	// 	await client.sql`COMMIT`;
-	// 	return Response.json({ message: 'Database updated successfully' });
+		await client.sql`COMMIT`;
+		return Response.json({ message: 'Database updated successfully' });
 
-	// } catch (error) {
-	// 	await client.sql`ROLLBACK`;
-	// 	return Response.json({ error }, { status: 500 });
-	// }
+	} catch (error) {
+		await client.sql`ROLLBACK`;
+		return Response.json({ error }, { status: 500 });
+	}
 	return Response.json({ message: 'Nothing to see here' });
 }

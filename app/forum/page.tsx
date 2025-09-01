@@ -1,31 +1,30 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import ForumControls from '../components/forum/forum-controls';
 import PostList from '../components/forum/post-list';
 import Sidebar from '../components/forum/sidebar';
 import ThreadDetailModal from '../components/forum/thread-detail';
 import NewThreadModal from '../components/forum/new-thread-modal';
-import { ForumPost, ThreadData } from '../lib/types';
+import { ForumPost, ThreadData, ThreadUpdateData } from '../lib/types';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
 
-const trendingTopics = [
-  { name: "integration", count: 24 },
-  { name: "design", count: 18 },
-  { name: "api", count: 15 },
-  { name: "react", count: 12 },
-  { name: "portfolio", count: 9 }
-];
 
 const featuredUsers = [
   { username: "@devmaster", status: "online" as const },
   { username: "@uiqueen", status: "featured" as const }
 ];
 
+// Constants for pagination
+const INITIAL_FETCH_COUNT = 6;
+const LOAD_MORE_COUNT = 3;
+const SEARCH_DEBOUNCE_DELAY = 500; // 500ms debounce delay
+
 export default function ForumPage() {
   const { data: session } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('Newest First');
   const [selectedThread, setSelectedThread] = useState<ThreadData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,108 +35,162 @@ export default function ForumPage() {
   const [isRepliesLoading, setIsRepliesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [visiblePosts, setVisiblePosts] = useState<ForumPost[]>([]);
-  const [displayCount, setDisplayCount] = useState(3); // Start with 3 threads
+  const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Debounce search term changes
+  useEffect(() => {
+    // Clear the previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Set a new timeout
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, SEARCH_DEBOUNCE_DELAY);
+    
+    // Cleanup function to clear timeout if component unmounts or searchTerm changes again
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm]);
+
+  // Initial data fetch
   useEffect(() => {
     fetchThreads();
   }, []);
 
-  // Update visible posts when posts, displayCount, or searchTerm change
+  // Reset and fetch new data when debounced search or sort changes
   useEffect(() => {
-    let filtered = posts;
-    
-    // Apply search filtering if there's a search term
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = posts.filter(
-        post => 
-          post.title.toLowerCase().includes(searchLower) ||
-          post.content.toLowerCase().includes(searchLower) ||
-          post.tags.some(tag => tag.toLowerCase().includes(searchLower))
-      );
+    if (page === 1) {
+      fetchThreads();
+    } else {
+      setPage(1); // This will trigger the next useEffect
+      setPosts([]);
     }
-    
-    // Apply sorting
-    switch (sortBy) {
-      case 'Most Popular':
-        filtered = [...filtered].sort((a, b) => 
-          (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes)
-        );
-        break;
-      case 'Most Replies':
-        filtered = [...filtered].sort((a, b) => b.replies - a.replies);
-        break;
-      case 'Newest First':
-      default:
-        // The posts are already sorted by newest first from the API
-        break;
+  }, [debouncedSearchTerm, sortBy]);
+
+  // Fetch data when page changes (except the first page which is handled above)
+  useEffect(() => {
+    if (page > 1) {
+      fetchMoreThreads();
     }
-    
-    // Limit to the display count
-    setVisiblePosts(filtered.slice(0, displayCount));
-    
-    // Check if there are more posts to load
-    setHasMorePosts(displayCount < filtered.length);
-  }, [posts, displayCount, searchTerm, sortBy]);
+  }, [page]);
   
-  // Intersection Observer for infinite scrolling
+  // Setup intersection observer for infinite scrolling
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+    
+    observerRef.current = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMorePosts && !isLoadingMore) {
+        if (entries[0].isIntersecting && hasMorePosts && !isLoadingMore && !isLoading) {
           loadMorePosts();
         }
       },
-      { threshold: 1.0 }
+      { 
+        threshold: 0.1,
+        rootMargin: '200px' // Load more content before reaching the end
+      }
     );
     
     if (loaderRef.current) {
-      observer.observe(loaderRef.current);
+      observerRef.current.observe(loaderRef.current);
     }
     
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
+      if (observerRef.current) {
+        observerRef.current.disconnect();
       }
     };
-  }, [hasMorePosts, isLoadingMore]);
+  }, [hasMorePosts, isLoadingMore, isLoading]);
   
   // Function to load more posts
   const loadMorePosts = () => {
-    setIsLoadingMore(true);
-    
-    // Simulate a delay to show loading indicator
-    setTimeout(() => {
-      setDisplayCount(prevCount => prevCount + 3); // Load 3 more posts
-      setIsLoadingMore(false);
-    }, 500);
+    if (!isLoadingMore && hasMorePosts) {
+      setPage(prevPage => prevPage + 1);
+    }
   };
   
+  // Fetch initial threads
   async function fetchThreads() {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/threads');
+      setError(null);
+      
+      const url = new URL('/api/threads', window.location.origin);
+      url.searchParams.append('page', '1');
+      url.searchParams.append('limit', INITIAL_FETCH_COUNT.toString());
+      url.searchParams.append('sort', sortBy);
+      
+      if (debouncedSearchTerm) {
+        url.searchParams.append('search', debouncedSearchTerm);
+      }
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Failed to fetch threads');
       }
       
       const data = await response.json();
-      setPosts(data);
-      // Initially display first 3 posts
-      setVisiblePosts(data.slice(0, displayCount));
-      setHasMorePosts(data.length > displayCount);
+      setPosts(data.threads || []);
+      setHasMorePosts(data.pagination?.hasMore || false);
+      setPage(1);
     } catch (err) {
       console.error('Error fetching threads:', err);
       setError('Failed to load forum threads. Please try again later.');
+      setPosts([]);
     } finally {
       setIsLoading(false);
     }
   }
+
+  // Fetch more threads when scrolling
+  async function fetchMoreThreads() {
+    if (isLoadingMore || !hasMorePosts) return;
+    
+    try {
+      setIsLoadingMore(true);
+      
+      const url = new URL('/api/threads', window.location.origin);
+      url.searchParams.append('page', page.toString());
+      url.searchParams.append('limit', LOAD_MORE_COUNT.toString());
+      url.searchParams.append('sort', sortBy);
+      
+      if (debouncedSearchTerm) {
+        url.searchParams.append('search', debouncedSearchTerm);
+      }
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch more threads');
+      }
+      
+      const data = await response.json();
+      setPosts(prev => [...prev, ...(data.threads || [])]);
+      setHasMorePosts(data.pagination?.hasMore || false);
+    } catch (err) {
+      console.error('Error fetching more threads:', err);
+      toast.error('Failed to load more threads');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
+
+  // Create a debounced search handler
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+  }, []);
 
   const handlePostClick = async (postId: number) => {
     // Find the clicked post in our existing data
@@ -147,7 +200,8 @@ export default function ForumPage() {
     // Create a thread object from the post data
     const initialThreadData: ThreadData = {
       ...post,
-      replies: [] // Start with empty replies
+      replies: [], // Start with empty replies
+      totalReplies: post.replies
     };
     
     // Show the modal with the data we already have
@@ -157,16 +211,20 @@ export default function ForumPage() {
     // Now fetch the replies in the background
     setIsRepliesLoading(true);
     try {
-      const response = await fetch(`/api/threads/${postId}/replies`);
+      const response = await fetch(`/api/threads/${postId}/replies?page=1&limit=10`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch replies');
       }
       
-      const replies = await response.json();
+      const data = await response.json();
       
       // Update the thread with the fetched replies
-      setSelectedThread(prev => prev ? {...prev, replies} : null);
+      setSelectedThread(prev => prev ? {
+        ...prev, 
+        replies: data.replies || [], 
+        totalReplies: data.totalReplies || prev.totalReplies
+      } : null);
     } catch (err) {
       console.error('Error fetching replies:', err);
     } finally {
@@ -224,15 +282,41 @@ export default function ForumPage() {
     }
   };
 
-  const handleThreadVoteChange = (threadId: number, upvotes: number, downvotes: number, userVote: 'upvote' | 'downvote') => {
-  // Update the post in the posts array
-  setPosts(prevPosts => 
+  const handleThreadVoteChange = (threadId: number, upvotes: number, downvotes: number, userVote: 'upvote' | 'downvote' | null) => {
+    // Update the post in the posts array
+    setPosts(prevPosts => 
       prevPosts.map(post => 
         post.id === threadId 
           ? { ...post, upvotes, downvotes, userVote } 
           : post
       )
     );
+  };
+
+  const handleThreadContentUpdate = (threadId: number, updatedData: ThreadUpdateData) => {
+    // Update the thread content in the posts array
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === threadId 
+          ? { 
+              ...post, 
+              title: updatedData.title || post.title,
+              content: updatedData.content || post.content,
+              tags: updatedData.tags || post.tags,
+              wasEdited: updatedData.wasEdited,
+              editedTimeAgo: updatedData.editedTimeAgo
+            } 
+          : post
+      )
+    );
+  };
+
+  const handleThreadDelete = (threadId: number) => {
+    // Remove the thread from the posts list
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== threadId));
+    
+    // Close the modal if it's open
+    setIsModalOpen(false);
   };
   
   return (
@@ -241,7 +325,7 @@ export default function ForumPage() {
       <div className="flex-1 p-8 pt-8">
         <ForumControls 
           searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
+          setSearchTerm={handleSearchChange}
           sortBy={sortBy}
           setSortBy={setSortBy}
           onNewThread={handleOpenNewThreadModal}
@@ -272,13 +356,13 @@ export default function ForumPage() {
           </div>
         ) : (
           <>
-          <PostList 
-            posts={visiblePosts} 
-            onPostClick={handlePostClick}
-            onVoteChange={handleThreadVoteChange}
-          />
-          {/* Loader reference element */}
-            {hasMorePosts && (
+            <PostList 
+              posts={posts} 
+              onPostClick={handlePostClick}
+              onVoteChange={handleThreadVoteChange}
+            />
+            {/* Loader reference element */}
+            {(hasMorePosts || isLoadingMore) && (
               <div 
                 ref={loaderRef} 
                 className="py-4 flex justify-center"
@@ -295,14 +379,14 @@ export default function ForumPage() {
                 )}
               </div>
             )}
-            </>
-          )}
+          </>
+        )}
       </div>
-      <Sidebar 
-        trendingTopics={trendingTopics} 
-        featuredUsers={featuredUsers} 
-      />
-
+      <div className="hidden lg:block lg:w-80">
+        <Sidebar 
+          featuredUsers={featuredUsers} 
+        />
+      </div>
       {/* Thread Detail Modal */}
       <ThreadDetailModal
         isOpen={isModalOpen}
@@ -310,6 +394,8 @@ export default function ForumPage() {
         onClose={handleCloseModal}
         isRepliesLoading={isRepliesLoading}
         onThreadVoteChange={handleThreadVoteChange}
+        onThreadContentUpdate={handleThreadContentUpdate} 
+        onThreadDelete={handleThreadDelete}
       />
       
       {/* New Thread Modal */}

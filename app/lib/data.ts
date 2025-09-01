@@ -850,7 +850,15 @@ export async function cleanupForgottenPasswordEmails() {
 export async function getAllThreads() {
 	try {
 		const data = await sql`
-			SELECT *
+			SELECT 
+			    id,
+				title, 
+				content,
+				author_id,
+				created_at AT TIME ZONE 'UTC' as created_at,
+				updated_at AT TIME ZONE 'UTC' as updated_at,
+				upvotes,
+				downvotes
 			FROM threads
 			ORDER BY created_at DESC;
 		`;
@@ -879,9 +887,11 @@ export async function getUserbyID(userId: string) {
 export async function getTagsbyThreadId(threadId: string) {
 	try {
 		const data = await sql`
-			SELECT tag
-			FROM thread_tags
-			WHERE thread_id = ${threadId};
+			SELECT ft.id, ft.name
+			FROM thread_tags tt
+			JOIN forum_tags ft ON tt.forum_tag_id = ft.id
+			WHERE tt.thread_id = ${threadId}
+			ORDER BY ft.name ASC;
 		`;
 		return data.rows;
 	} catch (error) {
