@@ -1,11 +1,11 @@
 import { useCallback, useReducer } from 'react';
-import { ThreadData, Reply } from '@/app/lib/types';
+import { ThreadData, Reply, CommentUpdateData } from '@/app/lib/types';
 
 // Action types
 type ThreadStateAction =
   | { type: 'SET_THREAD_DATA'; payload: ThreadData }
   | { type: 'UPDATE_THREAD'; payload: { threadId: number; data: Partial<ThreadData> } }
-  | { type: 'UPDATE_REPLY'; payload: { replyId: number; data: any } }
+  | { type: 'UPDATE_REPLY'; payload: { replyId: number; data: CommentUpdateData } }
   | { type: 'ADD_REPLY'; payload: { reply: Reply; parentId: number | null } }
   | { type: 'DELETE_REPLY'; payload: { replyId: number } }
   | { type: 'SET_REPLIES'; payload: Reply[] }
@@ -122,7 +122,7 @@ export function useThreadState(initialThread: ThreadData | null) {
     dispatch({ type: 'UPDATE_THREAD', payload: { threadId, data } });
   }, []);
 
-  const updateReply = useCallback((replyId: number, data: any) => {
+  const updateReply = useCallback((replyId: number, data: CommentUpdateData) => {
     dispatch({ type: 'UPDATE_REPLY', payload: { replyId, data } });
   }, []);
 
