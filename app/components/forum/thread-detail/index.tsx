@@ -492,4 +492,6 @@ const ModalHeader = memo(({
   </div>
 ));
 
+ModalHeader.displayName = 'ModalHeader';
+
 export default memo(ThreadDetailModal);
