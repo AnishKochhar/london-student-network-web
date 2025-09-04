@@ -2,6 +2,11 @@ import { memo, useRef, useEffect, useState, useCallback } from 'react';
 import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { Reply, ViewContext } from '@/app/lib/types';
 import ReplyItem from './reply-item';
+import * as threadService from '@/app/lib/services/thread-service';
+
+// Constants for pagination
+const DISPLAY_BATCH_SIZE = 5; // Number of replies to show at once in the UI
+const FETCH_BATCH_SIZE = 10;  // Number of replies to fetch from the API at once
 
 interface ReplyListProps {
   viewContext: ViewContext | null;
@@ -12,12 +17,8 @@ interface ReplyListProps {
   onReplyUpdate: (replyId: number, data: Partial<Reply>) => void;
   onReplyDelete: (replyId: number) => void;
   onReplyVoteChange?: (replyId: number, upvotes: number, downvotes: number, userVote: string | null) => void;
-  onLoadMoreReplies?: (contextType: 'thread' | 'comment', contextId: number, page: number) => Promise<Reply[]>;
+  // Removed onLoadMoreReplies prop since we'll use thread-service directly
 }
-
-// Constants for pagination
-const DISPLAY_BATCH_SIZE = 5;  // Show 5 replies at a time
-const FETCH_BATCH_SIZE = 10;   // Fetch 10 at once for efficiency
 
 const ReplyList = ({ 
   viewContext,
@@ -28,7 +29,6 @@ const ReplyList = ({
   onReplyUpdate,
   onReplyDelete,
   onReplyVoteChange,
-  onLoadMoreReplies
 }: ReplyListProps) => {
   // Determine which replies to show based on context
   const allReplies = viewContext?.type === 'comment' ? commentReplies : threadReplies;
@@ -62,7 +62,7 @@ const ReplyList = ({
 
   // Function to fetch more replies from API
   const fetchMoreFromApi = useCallback(async () => {
-    if (!viewContext || !onLoadMoreReplies || isLoadingMore) return;
+    if (!viewContext || isLoadingMore) return;
     
     setIsLoadingMore(true);
     
@@ -70,8 +70,13 @@ const ReplyList = ({
       const contextId = viewContext.type === 'comment' ? viewContext.comment.id : viewContext.threadId;
       const contextType = viewContext.type;
       
-      // Fetch the next page of replies
-      const newReplies = await onLoadMoreReplies(contextType, contextId, page + 1);
+      // Fetch the next page of replies using thread-service
+      const newReplies = await threadService.loadMoreReplies(
+        contextType, 
+        contextId, 
+        page + 1,
+        FETCH_BATCH_SIZE
+      );
       
       if (newReplies.length > 0) {
         // Add new replies to our available pool
@@ -94,7 +99,7 @@ const ReplyList = ({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [displayedReplies.length, isLoadingMore, onLoadMoreReplies, page, viewContext]);
+  }, [page, viewContext, isLoadingMore]);
 
   // Function to load more replies
   const handleLoadMore = useCallback(() => {
@@ -116,7 +121,7 @@ const ReplyList = ({
       
       // If we've used most of our pre-fetched replies, fetch more in the background
       const remainingReplies = availableReplies.length - (currentDisplayCount + DISPLAY_BATCH_SIZE);
-      if (remainingReplies < DISPLAY_BATCH_SIZE && onLoadMoreReplies && hasMoreReplies) {
+      if (remainingReplies < DISPLAY_BATCH_SIZE && hasMoreReplies) {
         fetchMoreFromApi();
       }
       
@@ -124,13 +129,13 @@ const ReplyList = ({
     }
     
     // If we don't have more pre-fetched replies, fetch from API
-    if (onLoadMoreReplies && hasMoreReplies) {
+    if (hasMoreReplies) {
       fetchMoreFromApi();
     } else {
-      // If no API handler provided, we've shown all replies
+      // If we know there are no more replies
       setHasMoreReplies(false);
     }
-  }, [displayedReplies.length, fetchMoreFromApi, hasMoreReplies, isLoadingMore, isRepliesLoading, onLoadMoreReplies, viewContext]);
+  }, [displayedReplies.length, fetchMoreFromApi, hasMoreReplies, isLoadingMore, isRepliesLoading, viewContext]);
 
   // Setup intersection observer for infinite scrolling
   useEffect(() => {

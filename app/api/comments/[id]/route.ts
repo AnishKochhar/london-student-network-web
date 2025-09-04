@@ -58,13 +58,12 @@ export async function PATCH(
     `;
     
     const updatedComment = updatedCommentResult.rows[0];
-    const wasEdited = new Date(updatedComment.updated_at) > new Date(updatedComment.created_at);
     
     return NextResponse.json({
       id: updatedComment.id,
       content: formatContent(updatedComment.content),
-      wasEdited,
-      editedTimeAgo: wasEdited ? getTimeAgo(updatedComment.updated_at) : null
+      wasEdited: true,
+      editedTimeAgo: 'just now',
     });
     
   } catch (error) {

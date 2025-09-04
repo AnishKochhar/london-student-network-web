@@ -124,7 +124,7 @@ export default function PostItem({ post, onPostClick, onVoteChange }: PostItemPr
               onClick={handlePostClick}
             >
               <ChatBubbleLeftIcon className="w-4 h-4 text-white/60" />
-              <span className="text-white/60">{post.replies}</span>
+              <span className="text-white/60">{post.replyCount}</span>
             </div>
           </div>
         </div>
@@ -209,7 +209,7 @@ export default function PostItem({ post, onPostClick, onVoteChange }: PostItemPr
             onClick={handlePostClick}
           >
             <ChatBubbleLeftIcon className="w-3.5 h-3.5 text-white/60" />
-            <span className="text-white/60">{post.replies}</span>
+            <span className="text-white/60">{post.replyCount}</span>
           </div>
         </div>
       </div>

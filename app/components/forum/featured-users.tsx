@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { StarIcon, ChatBubbleLeftRightIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { FeaturedUser } from '@/app/lib/types';
+import * as userService from '@/app/lib/services/thread-service';
 
 interface FeaturedUsersProps {
   users?: FeaturedUser[];
@@ -32,23 +33,18 @@ export default function FeaturedUsers({ users: initialUsers }: FeaturedUsersProp
       return;
     }
 
-    async function fetchTopUsers() {
+    async function loadTopUsers() {
       try {
-        const response = await fetch('/api/featured-users');
-        if (!response.ok) {
-          throw new Error('Failed to fetch top users');
-        }
-        const data = await response.json();
+        const data = await userService.fetchTopUsers();
         setUsers(data);
       } catch (err) {
-        console.error('Error fetching top users:', err);
         setError('Could not load top contributors');
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchTopUsers();
+    loadTopUsers();
   }, [initialUsers]);
 
   if (isLoading) {

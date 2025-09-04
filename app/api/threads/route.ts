@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         orderByClause = 'ORDER BY popularity_score DESC, created_at DESC';
         break;
       case 'Most Replies':
-        additionalSelect = ', (SELECT COUNT(*) FROM comments c WHERE c.thread_id = t.id) as reply_count';
+        additionalSelect = ', (SELECT COUNT(*) FROM comments c WHERE c.thread_id = t.id AND c.parent_id IS NULL) as reply_count';
         orderByClause = 'ORDER BY reply_count DESC, created_at DESC';
         break;
       case 'Newest First':
@@ -86,9 +86,9 @@ export async function GET(request: NextRequest) {
         t.created_at AT TIME ZONE 'UTC' as created_at, 
         t.updated_at AT TIME ZONE 'UTC' as updated_at
         ${additionalSelect}
-      ${fromClause}
-      ${whereClause}
-      ${orderByClause}
+        ${fromClause}
+        ${whereClause}
+        ${orderByClause}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
         let replyCount = thread.reply_count;
         if (replyCount === undefined) {
           const replyCountResult = await sql.query(
-            'SELECT COUNT(*) as count FROM comments WHERE thread_id = $1',
+            'SELECT COUNT(*) as count FROM comments WHERE thread_id = $1 AND parent_id IS NULL',
             [thread.id]
           );
           replyCount = parseInt(replyCountResult.rows[0].count);
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
           timeAgo: getTimeAgo(thread.created_at),
           upvotes: thread.upvotes || 0,
           downvotes: thread.downvotes || 0,
-          replies: replyCount || 0,
+          replyCount: replyCount || 0,
           tags: tags || [],
           avatar: getAvatarInitials(authorName),
           userVote: userId ? userVotes[thread.id] || null : null,
@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
         timeAgo: getTimeAgo(createdAt),
         upvotes: 0,
         downvotes: 0,
-        replies: 0,
+        replyCount: 0,
         tags: tags,
         created_at: createdAt,
         updated_at: updatedAt,

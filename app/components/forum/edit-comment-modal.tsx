@@ -1,134 +1,111 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { PencilIcon } from '@heroicons/react/24/outline';
+import BaseModal from './base-modal';
+import FormTextarea from './form-text-area';
+import * as threadService from '@/app/lib/services/thread-service';
 
+// Update the interface to match how it's being used in comment-content.tsx and reply-item.tsx
 interface EditCommentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (updatedData: {
-    content: string;
-  }) => void;
+  onUpdate: (updatedData: { content: string }) => Promise<void>;
   initialData: {
     id: number;
     content: string;
   };
   isSubmitting?: boolean;
+  type?: 'comment' | 'reply';
 }
 
 export default function EditCommentModal({ 
   isOpen, 
   onClose, 
-  onUpdate, 
+  onUpdate,
   initialData,
-  isSubmitting = false 
+  isSubmitting: externalSubmitting = false,
+  type = 'comment'
 }: EditCommentModalProps) {
-  const [content, setContent] = useState(initialData.content);
-  const [mounted, setMounted] = useState(false);
+  const [content, setContent] = useState(initialData?.content || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isUpdating = useRef(false);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isUpdating.current) {
-      setContent(initialData.content);
+    if (!isUpdating.current && initialData) {
+      setContent(initialData.content || '');
     }
   }, [initialData]);
 
-  const handleSubmit = () => {
-    if (content.trim()) {
-      isUpdating.current = true;
+  const handleSubmit = async () => {
+    if (!content?.trim()) return;
+    
+    isUpdating.current = true;
+    setIsSubmitting(true);
+    
+    try {
+      await onUpdate({ content: content.trim() });
+    } finally {
+      setIsSubmitting(false);
       
-      onUpdate({
-        content: content.trim()
-      });
-      
-      // Reset the flag after a brief delay (after modal closes)
+      // Reset the flag after a brief delay
       setTimeout(() => {
         isUpdating.current = false;
       }, 500);
     }
   };
 
-  if (!isOpen || !mounted) return null;
+  const isContentValid = content?.trim() ? true : false;
+  const submitting = isSubmitting || externalSubmitting;
 
-  const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+  const footerContent = (
+    <>
+      <button
+        type="button"
         onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className="relative w-full max-w-xl bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] border border-white/20 rounded-xl shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <PencilIcon className="w-6 h-6 text-blue-400" />
-            Edit Comment
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-            disabled={isSubmitting}
-          >
-            <XMarkIcon className="w-6 h-6 text-white/80" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <div className="p-6 space-y-6">
-          {/* Content Textarea */}
-          <div>
-            <label className="block text-sm font-medium text-white/90 mb-2">
-              Content
-            </label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Your comment..."
-              rows={4}
-              className="w-full px-4 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
-              required
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white hover:bg-white/20 hover:border-white/30 transition-colors"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={!content.trim() || isSubmitting}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed border border-blue-500 rounded-lg text-white font-medium transition-colors flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Updating...
-                </>
-              ) : (
-                'Save Changes'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+        className="px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white hover:bg-white/20 hover:border-white/30 transition-colors"
+        disabled={submitting}
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        onClick={handleSubmit}
+        disabled={!isContentValid || submitting}
+        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed border border-blue-500 rounded-lg text-white font-medium transition-colors flex items-center gap-2"
+      >
+        {submitting ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            Updating...
+          </>
+        ) : (
+          'Save Changes'
+        )}
+      </button>
+    </>
   );
 
-  // Use portal to render at document body level
-  return createPortal(modalContent, document.body);
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Edit ${type === 'reply' ? 'Reply' : 'Comment'}`}
+      icon={<PencilIcon className="w-6 h-6 text-blue-400" />}
+      isSubmitting={submitting}
+      footer={footerContent}
+    >
+      <div className="space-y-6">
+        <FormTextarea
+          label="Content"
+          value={content || ''}
+          onChange={setContent}
+          placeholder={`Your ${type === 'reply' ? 'reply' : 'comment'}...`}
+          rows={4}
+          required
+          disabled={submitting}
+        />
+      </div>
+    </BaseModal>
+  );
 }

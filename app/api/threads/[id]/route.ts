@@ -58,7 +58,7 @@ export async function PATCH(
         UPDATE threads 
         SET title = ${title.trim()}, content = ${content.trim()}, updated_at = NOW() AT TIME ZONE 'UTC'
         WHERE id = ${threadId}
-        RETURNING id, title, content, created_at, updated_at
+        RETURNING id, title, content, created_at AT TIME ZONE 'UTC', updated_at AT TIME ZONE 'UTC'
       `;
       
       // Delete existing tags
@@ -105,15 +105,14 @@ export async function PATCH(
       await sql`COMMIT`;
       
       const updatedThread = updatedThreadResult.rows[0];
-      const wasEdited = new Date(updatedThread.updated_at) > new Date(updatedThread.created_at);
       
       return NextResponse.json({
         id: updatedThread.id,
         title: updatedThread.title,
         content: formatContent(updatedThread.content),
-        wasEdited,
-        editedTimeAgo: wasEdited ? getTimeAgo(updatedThread.updated_at) : null,
-        tags: tags // Return just the tag names for backward compatibility
+        wasEdited: true,
+        editedTimeAgo: 'just now',
+        tags: tags
       });
       
     } catch (error) {

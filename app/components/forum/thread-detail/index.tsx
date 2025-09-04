@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { XMarkIcon, ChatBubbleLeftIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { ThreadData, ViewContext as ImportedViewContext } from '@/app/lib/types';
+import { ThreadData, ViewContext as ImportedViewContext, Reply, CommentUpdateData} from '@/app/lib/types';
 import { useSession } from 'next-auth/react';
 
 import ThreadContent from './thread-content';
@@ -14,21 +14,21 @@ import { useCommentNav } from './hooks/useCommentNav';
 import { useThreadState } from '@/app/lib/hooks/useThreadState';
 import * as threadService from '@/app/lib/services/thread-service';
 
-// Define proper types for thread updates
-interface ThreadUpdateData {
+// Types
+export interface ThreadUpdateData {
   title?: string;
   content?: string;
   tags?: string[];
   upvotes?: number;
   downvotes?: number;
   userVote?: 'upvote' | 'downvote' | null;
-  replies?: number; 
+  replies?: Reply[]; 
+  replyCount?: number;
   wasEdited?: boolean;
   editedTimeAgo?: string;
 }
 
 type ViewContext = ImportedViewContext;
-
 
 interface ThreadDetailModalProps {
   isOpen: boolean;
@@ -49,18 +49,17 @@ const ThreadDetailModal = ({
   onThreadContentUpdate,
   onThreadDelete
 }: ThreadDetailModalProps) => {
+  // Hooks
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
   const [newReply, setNewReply] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingCommentReplies, setIsLoadingCommentReplies] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  // Use our centralized thread state management
+  
+  // Use a ref to track which threads we've already fetched replies for
+  const fetchedThreadReplies = useRef(new Set<number>());
+  
+  // Thread state management
   const {
     threadData,
     commentReplies,
@@ -73,10 +72,7 @@ const ThreadDetailModal = ({
     setCommentReplies
   } = useThreadState(initialThread);
   
-  // Use a ref to keep track of which threads we've already fetched replies for
-  const fetchedThreadReplies = useRef(new Set<number>());
-  
-  // Custom hooks
+  // Comment navigation
   const { 
     viewContext, 
     navigateToComment, 
@@ -84,19 +80,24 @@ const ThreadDetailModal = ({
     setViewContext
   } = useCommentNav(threadData);
   
+  // Effect for client-side rendering
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+  
   // Initialize thread data when the prop changes
   useEffect(() => {
     if (initialThread) {
-      // First check if the thread ID is changing - if so, clear the fetched replies set
+      // Reset fetched replies if thread ID changes
       if (threadData?.id !== initialThread.id) {
         fetchedThreadReplies.current = new Set();
       }
-      
       setThreadData(initialThread);
     }
   }, [initialThread, threadData?.id, setThreadData]);
   
-  // This effect runs after threadData is set and checks if we need to fetch replies
+  // Fetch thread replies if needed
   useEffect(() => {
     const fetchRepliesIfNeeded = async () => {
       if (
@@ -105,11 +106,8 @@ const ThreadDetailModal = ({
         !fetchedThreadReplies.current.has(threadData.id) && 
         (!threadData.replies || !Array.isArray(threadData.replies))
       ) {
-        // Mark this thread ID as having had its replies fetched
         fetchedThreadReplies.current.add(threadData.id);
-        
-        // Now fetch the replies
-        const replies = await threadService.fetchThreadReplies(threadData.id);
+        const { replies } = await threadService.fetchThreadReplies(threadData.id);
         setReplies(replies);
       }
     };
@@ -117,7 +115,7 @@ const ThreadDetailModal = ({
     fetchRepliesIfNeeded();
   }, [threadData, setReplies]);
 
-  // When the view context changes to a comment view, fetch its replies
+  // Fetch comment replies when view context changes
   useEffect(() => {
     const fetchCommentRepliesIfNeeded = async () => {
       if (viewContext?.type === 'comment') {
@@ -130,26 +128,22 @@ const ThreadDetailModal = ({
     
     fetchCommentRepliesIfNeeded();
   }, [viewContext, setCommentReplies]);
-    
-  const handleVoteChange = useCallback((threadId: number, upvotes: number, downvotes: number, userVote: 'upvote' | 'downvote') => {
-    // Update thread in state
+  
+  // Handler functions
+  const handleVoteChange = useCallback((threadId: number, upvotes: number, downvotes: number, userVote: 'upvote' | 'downvote' | null) => {
     updateThread(threadId, { upvotes, downvotes, userVote });
     
-    // Propagate to parent component
     if (onThreadVoteChange) {
       onThreadVoteChange(threadId, upvotes, downvotes, userVote);
     }
   }, [updateThread, onThreadVoteChange]);
   
-  // Update handleSubmitReply to increment reply count of parent thread
   const handleSubmitReply = useCallback(async (replyContent: string) => {
     if (!threadData || !replyContent.trim()) return;
     
     setIsSubmitting(true);
     
-    // Determine the parentId based on the current view context
     const parentId = viewContext?.type === 'comment' ? viewContext.commentId : null;
-    
     const newReply = await threadService.submitReply(
       threadData.id, 
       replyContent.trim(),
@@ -157,223 +151,185 @@ const ThreadDetailModal = ({
     );
     
     if (newReply) {
-      // Add to the appropriate list
+      // Add reply to appropriate list
       addReply(newReply, parentId);
       
-      // If we're in a comment view, also update the comment's reply count
+      // Update comment reply count if needed
       if (viewContext?.type === 'comment' && viewContext.comment) {
-        const updatedComment = { ...viewContext.comment };
-        updatedComment.replyCount = (updatedComment.replyCount || 0) + 1;
+        const updatedReplyCount = (viewContext.comment.replyCount || 0) + 1;
         
-        // Update the comment in our state
-        updateReply(updatedComment.id, { 
-          replyCount: updatedComment.replyCount,
+        updateReply(viewContext.comment.id, { 
+          replyCount: updatedReplyCount,
         });
         
-        // Update view context
         setViewContext({
           ...viewContext,
-          comment: updatedComment
+          comment: {
+            ...viewContext.comment,
+            replyCount: updatedReplyCount
+          }
         });
       }
       
-      // If it's a thread reply, increment thread reply count for parent component
+      // Update thread reply count if needed
       if (parentId === null && onThreadContentUpdate && threadData) {
         const newReplyCount = (typeof threadData.replies === 'number' ? 
           threadData.replies + 1 : 
           (Array.isArray(threadData.replies) ? threadData.replies.length + 1 : 1));
         
-        onThreadContentUpdate(threadData.id, { replies: newReplyCount });
+        onThreadContentUpdate(threadData.id, { replyCount: newReplyCount });
       }
       
-      // Clear the input
       setNewReply('');
     }
     
     setIsSubmitting(false);
-  }, [threadData, viewContext, addReply, updateReply, setViewContext, onThreadContentUpdate, setNewReply]);
+  }, [threadData, viewContext, addReply, updateReply, setViewContext, onThreadContentUpdate]);
 
-  // Update the deleteReply functionality to propagate the count change
-  const handleReplyDelete = useCallback(async (replyId: number) => {
-    // Find the reply to check if it's a thread reply
+  const handleReplyDelete = useCallback((replyId: number) => {
+    // Check if the deleted reply is the one currently being viewed
+    const isCurrentlyViewedComment = viewContext?.type === 'comment' && viewContext.commentId === replyId;
+    
+    // Check if it's a thread reply
     const isThreadReply = threadData?.replies && 
       Array.isArray(threadData.replies) && 
       threadData.replies.some(r => r.id === replyId);
     
-    // Call the existing delete handler
     deleteReply(replyId);
     
-    // If it was a thread reply, decrement the thread's reply count
+    // Update thread reply count
     if (isThreadReply && onThreadContentUpdate && threadData) {
       const newReplyCount = (typeof threadData.replies === 'number' ? 
         Math.max(0, threadData.replies - 1) : 
         (Array.isArray(threadData.replies) ? Math.max(0, threadData.replies.length - 1) : 0));
       
-      onThreadContentUpdate(threadData.id, { replies: newReplyCount });
+      onThreadContentUpdate(threadData.id, { replyCount: newReplyCount });
     }
     
-    // If we're viewing comment replies, update the parent comment's reply count
-    if (viewContext?.type === 'comment') {
-      // Find if the deleted reply was a direct child of the current comment
+    // Update comment reply count
+    if (viewContext?.type === 'comment' && viewContext.commentId !== replyId) {
       const isDirectChild = commentReplies.some(r => r.id === replyId);
       
       if (isDirectChild && viewContext.comment.replyCount > 0) {
-        const updatedComment = { ...viewContext.comment };
-        updatedComment.replyCount = Math.max(0, updatedComment.replyCount - 1);
+        const updatedReplyCount = Math.max(0, viewContext.comment.replyCount - 1);
         
-        // Update in state
-        updateReply(updatedComment.id, {
-          replyCount: updatedComment.replyCount,
+        updateReply(viewContext.comment.id, {
+          replyCount: updatedReplyCount,
         });
         
-        // Update view context
         setViewContext({
           ...viewContext,
-          comment: updatedComment
+          comment: {
+            ...viewContext.comment,
+            replyCount: updatedReplyCount
+          }
         });
       }
     }
-  }, [threadData, commentReplies, viewContext, deleteReply, updateReply, setViewContext, onThreadContentUpdate]);
+    
+    // If the deleted comment is the one currently being viewed, navigate back
+    if (isCurrentlyViewedComment) {
+      navigateBack();
+    }
+  }, [threadData, commentReplies, viewContext, deleteReply, updateReply, setViewContext, onThreadContentUpdate, navigateBack]);
 
-  const handleThreadUpdate = useCallback(async (threadId: number, updatedData: ThreadUpdateData) => {
+  const handleThreadUpdate = useCallback((threadId: number, updatedData: ThreadUpdateData) => {
     if (threadData?.id !== threadId) return;
     
     updateThread(threadId, updatedData);
     
-    // Propagate to parent
     if (onThreadContentUpdate) {
       onThreadContentUpdate(threadId, updatedData);
     }
   }, [threadData, updateThread, onThreadContentUpdate]);
 
-  const handleThreadDelete = useCallback(async (threadId: number) => {
-    // Close the modal
+  const handleThreadDelete = useCallback((threadId: number) => {
     onClose();
     
-    // Propagate to parent if handler exists
     if (onThreadDelete) {
       onThreadDelete(threadId);
     }
   }, [onClose, onThreadDelete]);
 
-  const handleReplyVoteChange = useCallback((replyId: number, upvotes: number, downvotes: number, userVote: string | null) => {
-    updateReply(replyId, { 
-      upvotes, 
-      downvotes, 
-      userVote 
-    });
+  const handleCommentUpdate = useCallback((commentId: number, updatedData: CommentUpdateData) => {
+  // Update the reply in the replies array
+    updateReply(commentId, updatedData);
     
-    // If this is the header comment in the current view, update view context as well
-    if (viewContext?.type === 'comment' && viewContext.commentId === replyId) {
-      // This ensures the header always shows current vote state
-      const updatedComment = {
-        ...viewContext.comment,
-        upvotes,
-        downvotes,
-        userVote
-      };
-      
-      // Update the view context
-      setViewContext({
-        ...viewContext,
-        comment: updatedComment
+    // If this is the current comment being viewed, update it in the viewContext as well
+    if (viewContext?.type === 'comment' && viewContext.commentId === commentId) {
+      setViewContext(prev => {
+        if (!prev || prev.type !== 'comment') return prev;
+        return {
+          ...prev,
+          comment: {
+            ...prev.comment,
+            ...updatedData
+          }
+        };
       });
     }
+  }, [updateReply, viewContext, setViewContext]);
 
-    if (viewContext?.type === 'comment' && commentReplies.some(reply => reply.id === replyId)) {
-      // Do nothing - maintain current view
+  const handleReplyVoteChange = useCallback((replyId: number, upvotes: number, downvotes: number, userVote: string | null) => {
+    updateReply(replyId, { upvotes, downvotes, userVote });
+    
+    // Update view context if this is the current comment
+    if (viewContext?.type === 'comment' && viewContext.commentId === replyId) {
+      setViewContext({
+        ...viewContext,
+        comment: {
+          ...viewContext.comment,
+          upvotes,
+          downvotes,
+          userVote
+        }
+      });
     }
-  }, [updateReply, viewContext, setViewContext, commentReplies]);
+  }, [updateReply, viewContext, setViewContext]);
 
   const handleCommentVote = useCallback((voteType: 'upvote' | 'downvote') => {
     if (viewContext?.type !== 'comment' || !viewContext.comment) return;
     
-    const commentId = viewContext.comment.id;
-    const currentVotes = {
-      upvotes: viewContext.comment.upvotes || 0,
-      downvotes: viewContext.comment.downvotes || 0,
-      userVote: viewContext.comment.userVote
-    };
+    const { comment } = viewContext;
+    const { upvotes = 0, downvotes = 0, userVote } = comment;
     
-    // Calculate new vote values based on current state
-    let newUpvotes = currentVotes.upvotes;
-    let newDownvotes = currentVotes.downvotes;
-    let newUserVote = voteType;
+    // Calculate new vote state
+    let newUpvotes = upvotes;
+    let newDownvotes = downvotes;
+    let newUserVote: 'upvote' | 'downvote' | null = voteType;
     
-    // CASE 1: User clicks the same vote button they already selected (toggle off)
-    if (currentVotes.userVote === voteType) {
-      // Remove the vote
+    if (userVote === voteType) {
+      // Removing vote
       if (voteType === 'upvote') newUpvotes = Math.max(0, newUpvotes - 1);
-      if (voteType === 'downvote') newDownvotes = Math.max(0, newDownvotes - 1);
+      else newDownvotes = Math.max(0, newDownvotes - 1);
       newUserVote = null;
-    } 
-    // CASE 2: User changes their vote from one type to another
-    else if (currentVotes.userVote) {
-      // Remove the old vote
-      if (currentVotes.userVote === 'upvote') {
-        newUpvotes = Math.max(0, newUpvotes - 1);
-      } else if (currentVotes.userVote === 'downvote') {
-        newDownvotes = Math.max(0, newDownvotes - 1);
-      }
+    } else if (userVote) {
+      // Changing vote
+      if (userVote === 'upvote') newUpvotes = Math.max(0, newUpvotes - 1);
+      else newDownvotes = Math.max(0, newDownvotes - 1);
       
-      // Add the new vote
       if (voteType === 'upvote') newUpvotes++;
-      if (voteType === 'downvote') newDownvotes++;
-    } 
-    // CASE 3: User had no vote before (adding new vote)
-    else {
-      // Just add the new vote
+      else newDownvotes++;
+    } else {
+      // New vote
       if (voteType === 'upvote') newUpvotes++;
-      if (voteType === 'downvote') newDownvotes++;
+      else newDownvotes++;
     }
     
-    // Update both the reply in our central state
-    updateReply(commentId, {
-      upvotes: newUpvotes,
-      downvotes: newDownvotes,
-      userVote: newUserVote
-    });
+    // Update state
+    const updatedVotes = { upvotes: newUpvotes, downvotes: newDownvotes, userVote: newUserVote };
+    updateReply(comment.id, updatedVotes);
     
-    // CRITICAL: Also update the view context to keep header in sync
-    const updatedComment = {
-      ...viewContext.comment,
-      upvotes: newUpvotes,
-      downvotes: newDownvotes,
-      userVote: newUserVote
-    };
-    
-    // This maintains our current view state with updated vote info
     setViewContext({
       ...viewContext,
-      comment: updatedComment
+      comment: {
+        ...comment,
+        ...updatedVotes
+      }
     });
   }, [viewContext, updateReply, setViewContext]);
 
-  const loadMoreReplies = async (contextType: 'thread' | 'comment', contextId: number, page: number) => {
-    try {
-      // Calculate offset based on page (0-indexed)
-      const offset = (page - 1) * 10; // Assuming 10 items per page
-      
-      const url = contextType === 'thread' 
-        ? `/api/threads/${contextId}/replies?offset=${offset}&limit=10`
-        : `/api/comments/${contextId}/replies?offset=${offset}&limit=10`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load ${contextType} replies`);
-      }
-      
-      const data = await response.json();
-      
-      // Return just the replies array for the reply-list component
-      return data.replies || [];
-    } catch (error) {
-      console.error('Error loading more replies:', error);
-      return [];
-    }
-  };
-
+  
   // Early return if modal is not open or no thread data
   if (!isOpen || !threadData || !mounted) return null;
 
@@ -417,8 +373,8 @@ const ThreadDetailModal = ({
                     }}
                     handleVote={handleCommentVote}
                     replyCount={commentReplies.length}
-                    onCommentUpdate={updateReply}
-                    onCommentDelete={deleteReply}
+                    onCommentUpdate={handleCommentUpdate}
+                    onCommentDelete={handleReplyDelete}
                   />
                 ) : null}
               </div>
@@ -433,7 +389,6 @@ const ThreadDetailModal = ({
                 onReplyUpdate={updateReply}
                 onReplyDelete={handleReplyDelete}
                 onReplyVoteChange={handleReplyVoteChange}
-                onLoadMoreReplies={loadMoreReplies}
               />
             </div>
           </div>
@@ -455,7 +410,7 @@ const ThreadDetailModal = ({
   return createPortal(modalContent, document.body);
 };
 
-// Update ModalHeader component
+// Modal header component
 interface ModalHeaderProps {
   viewContext: ViewContext | null;
   navigateBack: () => void;

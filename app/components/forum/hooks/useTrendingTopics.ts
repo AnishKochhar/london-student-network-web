@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TrendingTopic } from '@/app/lib/types';
+import * as topicService from '@/app/lib/services/thread-service';
 
 export function useTrendingTopics() {
   const [topics, setTopics] = useState<TrendingTopic[]>([]);
@@ -9,28 +10,21 @@ export function useTrendingTopics() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchTrendingTopics() {
+    async function loadTopics() {
       try {
         setIsLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/trending-topics');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch trending topics');
-        }
-        
-        const data = await response.json();
+        const data = await topicService.fetchTrendingTopics();
         setTopics(data);
+        setError(null);
       } catch (err) {
-        console.error('Error fetching trending topics:', err);
+        console.error('Error in useTrendingTopics:', err);
         setError('Failed to load trending topics');
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchTrendingTopics();
+    loadTopics();
   }, []);
 
   return { topics, isLoading, error };

@@ -293,7 +293,8 @@ export interface ForumPost {
   timeAgo: string;
   upvotes: number;
   downvotes: number;
-  replies: number;
+  replies: Reply[];
+  replyCount: number;
   tags: string[];
   userVote?: string | null;
   wasEdited?: boolean;
@@ -326,7 +327,8 @@ export interface ThreadData {
   timeAgo: string;
   upvotes: number;
   downvotes: number;
-  replies: Reply[] | number;
+  replies: Reply[];
+  replyCount: number;
   tags: string[];
   userVote?: string | null;
   wasEdited?: boolean;
@@ -356,7 +358,8 @@ export type ViewContext =
   upvotes?: number;
   downvotes?: number;
   userVote?: 'upvote' | 'downvote' | null;
-  replies?: number;
+  replies?: Reply[];
+  replyCount?: number;
   wasEdited?: boolean;
   editedTimeAgo?: string;
 }

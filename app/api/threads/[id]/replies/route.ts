@@ -12,11 +12,14 @@ export async function GET(
     const session = await auth();
     const userId = session?.user?.id;
     
-    // Parse URL to get pagination params
+    // Parse URL to get page-based pagination params
     const url = new URL(request.url);
-    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1')); // Default to page 1
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '10'), 50); // Cap at 50
     
+    // Calculate the offset from page number
+    const offset = (page - 1) * limit;
+        
     // Get total count for pagination
     const totalCountResult = await sql`
       SELECT COUNT(*) as count
@@ -94,14 +97,21 @@ export async function GET(
       };
     }));
     
-    // Return the replies along with pagination info
+    // Calculate if there are more pages
+    const hasMore = offset + limit < totalCount;
+    const nextPage = hasMore ? page + 1 : null;
+    const totalPages = Math.ceil(totalCount / limit);
+    
+    // Return the replies with page-based pagination info
     return NextResponse.json({
       replies,
       pagination: {
-        total: totalCount,
-        offset,
+        page,
         limit,
-        hasMore: offset + limit < totalCount
+        total: totalCount,
+        totalPages,
+        hasMore,
+        nextPage
       }
     });
     

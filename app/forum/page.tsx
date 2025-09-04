@@ -1,194 +1,52 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import ForumControls from '../components/forum/forum-controls';
 import PostList from '../components/forum/post-list';
 import Sidebar from '../components/forum/sidebar';
 import ThreadDetailModal from '../components/forum/thread-detail';
 import NewThreadModal from '../components/forum/new-thread-modal';
-import { ForumPost, ThreadData, ThreadUpdateData } from '../lib/types';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
+import { useDebounce } from '../components/forum/hooks/useDebounce';
+import { useForumThreads } from '../components/forum/hooks/useForumThreads';
+import * as threadService from '@/app/lib/services/thread-service';
+import { ThreadData, ThreadUpdateData } from '@/app/lib/types';
 
-
-
-// Constants for pagination
-const INITIAL_FETCH_COUNT = 6;
-const LOAD_MORE_COUNT = 3;
-const SEARCH_DEBOUNCE_DELAY = 500; // 500ms debounce delay
+const SEARCH_DEBOUNCE_DELAY = 300;
 
 export default function ForumPage() {
   const { data: session } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, SEARCH_DEBOUNCE_DELAY);
   const [sortBy, setSortBy] = useState('Newest First');
+  
+  // Thread modals state
   const [selectedThread, setSelectedThread] = useState<ThreadData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isNewThreadModalOpen, setIsNewThreadModalOpen] = useState(false);
-  const [posts, setPosts] = useState<ForumPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRepliesLoading, setIsRepliesLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [page, setPage] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMorePosts, setHasMorePosts] = useState(true);
-  const loaderRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Debounce search term changes
-  useEffect(() => {
-    // Clear the previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    // Set a new timeout
-    searchTimeoutRef.current = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, SEARCH_DEBOUNCE_DELAY);
-    
-    // Cleanup function to clear timeout if component unmounts or searchTerm changes again
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchTerm]);
-
-  // Initial data fetch
-  useEffect(() => {
-    fetchThreads();
-  }, []);
-
-  // Reset and fetch new data when debounced search or sort changes
-  useEffect(() => {
-    if (page === 1) {
-      fetchThreads();
-    } else {
-      setPage(1); // This will trigger the next useEffect
-      setPosts([]);
-    }
-  }, [debouncedSearchTerm, sortBy]);
-
-  // Fetch data when page changes (except the first page which is handled above)
-  useEffect(() => {
-    if (page > 1) {
-      fetchMoreThreads();
-    }
-  }, [page]);
   
-  // Setup intersection observer for infinite scrolling
-  useEffect(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-    
-    observerRef.current = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && hasMorePosts && !isLoadingMore && !isLoading) {
-          loadMorePosts();
-        }
-      },
-      { 
-        threshold: 0.1,
-        rootMargin: '200px' // Load more content before reaching the end
-      }
-    );
-    
-    if (loaderRef.current) {
-      observerRef.current.observe(loaderRef.current);
-    }
-    
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [hasMorePosts, isLoadingMore, isLoading]);
-  
-  // Function to load more posts
-  const loadMorePosts = () => {
-    if (!isLoadingMore && hasMorePosts) {
-      setPage(prevPage => prevPage + 1);
-    }
-  };
-  
-  // Fetch initial threads
-  async function fetchThreads() {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const url = new URL('/api/threads', window.location.origin);
-      url.searchParams.append('page', '1');
-      url.searchParams.append('limit', INITIAL_FETCH_COUNT.toString());
-      url.searchParams.append('sort', sortBy);
-      
-      if (debouncedSearchTerm) {
-        url.searchParams.append('search', debouncedSearchTerm);
-      }
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch threads');
-      }
-      
-      const data = await response.json();
-      setPosts(data.threads || []);
-      setHasMorePosts(data.pagination?.hasMore || false);
-      setPage(1);
-    } catch (err) {
-      console.error('Error fetching threads:', err);
-      setError('Failed to load forum threads. Please try again later.');
-      setPosts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  // Forum threads state and handlers using custom hook
+  const { 
+    posts, 
+    setPosts, 
+    isLoading, 
+    error, 
+    hasMorePosts, 
+    isLoadingMore, 
+    loaderRef, 
+    loadMorePosts,
+    fetchThreads
+  } = useForumThreads(debouncedSearchTerm, sortBy);
 
-  // Fetch more threads when scrolling
-  async function fetchMoreThreads() {
-    if (isLoadingMore || !hasMorePosts) return;
-    
-    try {
-      setIsLoadingMore(true);
-      
-      const url = new URL('/api/threads', window.location.origin);
-      url.searchParams.append('page', page.toString());
-      url.searchParams.append('limit', LOAD_MORE_COUNT.toString());
-      url.searchParams.append('sort', sortBy);
-      
-      if (debouncedSearchTerm) {
-        url.searchParams.append('search', debouncedSearchTerm);
-      }
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch more threads');
-      }
-      
-      const data = await response.json();
-      setPosts(prev => [...prev, ...(data.threads || [])]);
-      setHasMorePosts(data.pagination?.hasMore || false);
-    } catch (err) {
-      console.error('Error fetching more threads:', err);
-      toast.error('Failed to load more threads');
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }
-
-  // Create a debounced search handler
+  // Handle search term changes
   const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
   }, []);
 
-  const handlePostClick = async (postId: number) => {
+  // Thread actions
+  const handlePostClick = useCallback(async (postId: number) => {
     // Find the clicked post in our existing data
     const post = posts.find(p => p.id === postId);
     if (!post) return;
@@ -196,8 +54,8 @@ export default function ForumPage() {
     // Create a thread object from the post data
     const initialThreadData: ThreadData = {
       ...post,
-      replies: [], // Start with empty replies
-      totalReplies: post.replies
+      replies: [],
+      replyCount: post.replyCount || 0
     };
     
     // Show the modal with the data we already have
@@ -207,79 +65,40 @@ export default function ForumPage() {
     // Now fetch the replies in the background
     setIsRepliesLoading(true);
     try {
-      const response = await fetch(`/api/threads/${postId}/replies?page=1&limit=10`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch replies');
-      }
-      
-      const data = await response.json();
+      const { replies, topLevelCount } = await threadService.fetchThreadReplies(postId, 0, 10);
       
       // Update the thread with the fetched replies
       setSelectedThread(prev => prev ? {
         ...prev, 
-        replies: data.replies || [], 
-        totalReplies: data.totalReplies || prev.totalReplies
+        replies: replies,
+        replyCount: topLevelCount
       } : null);
-    } catch (err) {
-      console.error('Error fetching replies:', err);
     } finally {
       setIsRepliesLoading(false);
     }
-  };
+  }, [posts]);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedThread(null);
-  };
+  }, []);
 
-  const handleOpenNewThreadModal = () => {
+  const handleOpenNewThreadModal = useCallback(() => {
     if (!session) {
       toast.error('You must be logged in to create a thread');
       return;
     }
     setIsNewThreadModalOpen(true);
-  };
+  }, [session]);
 
-  const handleNewThread = async (threadData: { title: string; content: string; tags: string[] }) => {
-    if (!session) {
-      toast.error('You must be logged in to create a thread');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      const response = await fetch('/api/threads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(threadData),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create thread');
-      }
-      
-      const newThread = await response.json();
-      
-      // Add the new thread to our posts list
-      setPosts(prevPosts => [newThread, ...prevPosts]);
-      
-      toast.success('Thread created successfully!');
-      setIsNewThreadModalOpen(false);
-    } catch (err) {
-      console.error('Error creating thread:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to create thread');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleThreadCreated = useCallback((newThread: ThreadData) => {
+    // Add the new thread to our posts list
+    setPosts(prevPosts => [newThread, ...prevPosts]);
+    setIsNewThreadModalOpen(false);
+  }, [setPosts]);
 
-  const handleThreadVoteChange = (threadId: number, upvotes: number, downvotes: number, userVote: 'upvote' | 'downvote' | null) => {
-    // Update the post in the posts array
+  // Thread update handlers
+  const handleThreadVoteChange = useCallback((threadId: number, upvotes: number, downvotes: number, userVote: string | null) => {
     setPosts(prevPosts => 
       prevPosts.map(post => 
         post.id === threadId 
@@ -287,10 +106,9 @@ export default function ForumPage() {
           : post
       )
     );
-  };
+  }, [setPosts]);
 
-  const handleThreadContentUpdate = (threadId: number, updatedData: ThreadUpdateData) => {
-    // Update the thread content in the posts array
+  const handleThreadContentUpdate = useCallback((threadId: number, updatedData: ThreadUpdateData) => {
     setPosts(prevPosts => 
       prevPosts.map(post => 
         post.id === threadId 
@@ -305,15 +123,12 @@ export default function ForumPage() {
           : post
       )
     );
-  };
+  }, [setPosts]);
 
-  const handleThreadDelete = (threadId: number) => {
-    // Remove the thread from the posts list
+  const handleThreadDelete = useCallback((threadId: number) => {
     setPosts(prevPosts => prevPosts.filter(post => post.id !== threadId));
-    
-    // Close the modal if it's open
     setIsModalOpen(false);
-  };
+  }, [setPosts]);
   
   return (
     <main className='relative flex min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] text-white'>
@@ -334,7 +149,7 @@ export default function ForumPage() {
           <div className="text-center py-12 text-red-300">
             <p>{error}</p>
             <button 
-              onClick={() => fetchThreads()} 
+              onClick={fetchThreads} 
               className="mt-4 px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 transition"
             >
               Retry
@@ -379,9 +194,9 @@ export default function ForumPage() {
         )}
       </div>
       <div className="hidden lg:block lg:w-80">
-        <Sidebar 
-        />
+        <Sidebar />
       </div>
+      
       {/* Thread Detail Modal */}
       <ThreadDetailModal
         isOpen={isModalOpen}
@@ -397,8 +212,7 @@ export default function ForumPage() {
       <NewThreadModal 
         isOpen={isNewThreadModalOpen}
         onClose={() => setIsNewThreadModalOpen(false)}
-        onSubmit={handleNewThread}
-        isSubmitting={isSubmitting}
+        onThreadCreated={handleThreadCreated}
       />
     </main>
   );

@@ -1,34 +1,80 @@
-import { Reply, ThreadData } from '@/app/lib/types';
+import { Reply, ThreadData, TrendingTopic } from '@/app/lib/types';
 import { toast } from 'react-hot-toast';
 
 // Fetch thread replies
-export async function fetchThreadReplies(threadId: number, offset = 0, limit = 10): Promise<Reply[]> {
+export async function fetchThreadReplies(threadId: number, page: number = 1, limit: number = 10): Promise<{replies: Reply[], topLevelCount: number}> {
   try {
-    const response = await fetch(`/api/threads/${threadId}/replies?offset=${offset}&limit=${limit}`);
+    const url = new URL(`/api/threads/${threadId}/replies`, window.location.origin);
+    url.searchParams.append('page', page.toString());
+    url.searchParams.append('limit', limit.toString());
+    
+    const response = await fetch(url);
+    
     if (!response.ok) {
       throw new Error('Failed to fetch thread replies');
     }
-    const data = await response.json();
     
-    // Return just the replies array from the paginated response
-    return data.replies || [];
+    const data = await response.json();
+    const replies = data.replies || [];
+    const topLevelCount = replies.filter(reply => reply.parentId === null).length;
+    
+    return { replies, topLevelCount };
   } catch (error) {
     console.error('Error fetching thread replies:', error);
+    toast.error('Failed to load replies. Please try again.');
+    return { replies: [], topLevelCount: 0 };
+  }
+}
+
+// Fetch comment replies
+export async function fetchCommentReplies(commentId: number, page: number = 1, limit: number = 10): Promise<Reply[]> {
+  try {
+    const url = new URL(`/api/comments/${commentId}/replies`, window.location.origin);
+    url.searchParams.append('page', page.toString());
+    url.searchParams.append('limit', limit.toString());
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch comment replies');
+    }
+    
+    const data = await response.json();
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching comment replies:', error);
     toast.error('Failed to load replies. Please try again.');
     return [];
   }
 }
 
-// Fetch comment replies
-export async function fetchCommentReplies(commentId: number): Promise<Reply[]> {
+export async function loadMoreReplies(
+  contextType: 'thread' | 'comment', 
+  contextId: number, 
+  page: number,
+  limit: number = 10
+): Promise<Reply[]> {
   try {
-    const response = await fetch(`/api/comments/${commentId}/replies`);
+    const endpoint = contextType === 'thread' 
+      ? `/api/threads/${contextId}/replies` 
+      : `/api/comments/${contextId}/replies`;
+    
+    const url = new URL(endpoint, window.location.origin);
+    url.searchParams.append('page', page.toString());
+    url.searchParams.append('limit', limit.toString());
+    
+    const response = await fetch(url);
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch comment replies');
+      throw new Error(`Failed to load more ${contextType} replies`);
     }
-    return await response.json();
+    
+    const data = await response.json();
+    return data.replies || [];
   } catch (error) {
-    console.error('Error fetching comment replies:', error);
+    console.error('Error loading more replies:', error);
+    toast.error('Failed to load more replies. Please try again.');
     return [];
   }
 }
@@ -56,6 +102,31 @@ export async function submitReply(threadId: number, content: string, parentId: n
   } catch (error) {
     console.error('Error submitting reply:', error);
     toast.error('Failed to submit reply. Please try again.');
+    return null;
+  }
+}
+
+export async function createThread(data: { title: string; content: string; tags: string[] }): Promise<ThreadData> {
+  try {
+    const response = await fetch('/api/threads', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create thread');
+    }
+    
+    const newThread = await response.json();
+    toast.success('Thread created successfully!');
+    return newThread;
+  } catch (error) {
+    console.error('Error creating thread:', error);
+    toast.error(error instanceof Error ? error.message : 'Failed to create thread');
     return null;
   }
 }
@@ -200,5 +271,76 @@ export async function submitReplyVote(replyId: number, voteType: 'upvote' | 'dow
   } catch (error) {
     console.error('Error voting on reply:', error);
     return false;
+  }
+}
+
+export async function fetchTopUsers() {
+  try {
+    const response = await fetch('/api/featured-users');
+    if (!response.ok) {
+      throw new Error('Failed to fetch top users');
+    }
+    return await response.json();
+  } catch (err) {
+    console.error('Error fetching top users:', err);
+    toast.error('Could not load top contributors');
+    return [];
+  }
+}
+
+export async function fetchTrendingTopics(): Promise<TrendingTopic[]> {
+  try {
+    const response = await fetch('/api/trending-topics');
+    if (!response.ok) {
+      throw new Error('Failed to fetch trending topics');
+    }
+    return await response.json();
+  } catch (err) {
+    console.error('Error fetching trending topics:', err);
+    return [];
+  }
+}
+
+
+export async function fetchUserProfile(userId: string) {
+  try {
+    const response = await fetch(`/api/users/${userId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+    return await response.json();
+  } catch (err) {
+    console.error('Error fetching user profile:', err);
+    return null;
+  }
+}
+
+
+export async function createReply(threadId: number, content: string, parentId: number | null = null) {
+  try {
+    const response = await fetch('/api/comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        threadId,
+        content,
+        parentId
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create reply');
+    }
+    
+    const newReply = await response.json();
+    toast.success('Reply posted successfully!');
+    return newReply;
+  } catch (error) {
+    console.error('Error creating reply:', error);
+    toast.error(error instanceof Error ? error.message : 'Failed to post reply');
+    return null;
   }
 }
