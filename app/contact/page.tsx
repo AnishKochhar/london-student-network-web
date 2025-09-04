@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -48,6 +47,7 @@ export default function ContactPage() {
 
 	const [status, setStatus] = useState<string | null>(null);
 
+	
 	const onSubmit = async (data: ContactFormData) => {
 		setStatus('Sending...');
 		try {

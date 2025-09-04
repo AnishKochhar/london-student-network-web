@@ -7,6 +7,10 @@ import ResetEmailPayload from '../components/templates/reset-password';
 import ResetEmailPayloadFallback from '../components/templates/reset-password-fallback';
 import VerificationEmailPayload from '../components/templates/verification-email';
 import VerificationEmailPayloadFallback from '../components/templates/verification-email-fallback';
+import UserRegistrationConfirmationEmail from '../components/templates/user-registration';
+import UserRegistrationConfirmationEmailFallback from '../components/templates/user-registration-fallback';
+import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
+import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
 
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
@@ -26,13 +30,13 @@ export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData
 
 		const msg = {
 			to,
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: 'New communication from the London Student Network',
 			text: customPayloadFallback, // Sendgrid uses text only as a fallback
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending or fetching logic. Error message:", error.message);
@@ -78,13 +82,13 @@ export const sendResetPasswordEmail = async (email: string, token: string) => {
 
 		const msg = {
 			to: email,
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: '🥁🥁🥁 Reset Password request with the London Student Network 🥁🥁🥁',
 			text: customPayloadFallback, // Sendgrid uses text only as a fallback
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendEmail(msg);
 
 	} catch (error) {
 		console.error("Error occurred during email sending of reset email. Error message:", error.message);
@@ -102,18 +106,70 @@ export const sendEmailVerificationEmail = async (email: string, token: string) =
 
 		const msg = {
 			to: email,
-			from: 'hello@londonstudentnetwork.com',
+			// from: 'hello@londonstudentnetwork.com',
 			subject: '🥁🥁🥁 Verify your email with the London Student Network 🥁🥁🥁',
 			text: customPayloadFallback, // Sendgrid uses text only as a fallback,
 			html: customPayload,
 		};
 
-		await sgMail.send(msg);
+		await sendEmail(msg);
+		return { success: true };
 
 	} catch (error) {
 		console.error("Error occurred during email sending of verification email. Error message:", error.message);
 		console.error("Stack trace:", error.stack);
 
-		throw new Error("Failed to send email to verify email");
+		// throw new Error("Failed to send email to verify email");
+		return { success: false };
 	};
+}
+
+export const sendUserRegistrationEmail = async (email: string, user_name: string, event: Event, ticketDetails: Tickets[], ticket_to_quantity: Record<string, number>, organiser_uid: string) => {
+	try {
+		const customPayload = UserRegistrationConfirmationEmail(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
+		const customPayloadFallback = UserRegistrationConfirmationEmailFallback(user_name, event, ticketDetails, ticket_to_quantity, organiser_uid);
+
+		const msg = {
+			to: email, 
+			// from: 'hello@londonstudentnetwork.com',
+			subject: `🧧 Tickets for ${event.title}`,
+			text: customPayloadFallback, 
+			html: customPayload,
+		};
+
+		await sendEmail(msg);
+		return { success: true };
+
+	} catch (error) {
+		console.error("Error occurred during email sending of registration email. Error message:", error.message);
+		console.error("Stack trace:", error.stack);
+
+		return { success: false };
+
+		// throw new Error("Failed to send email to verify email");
+	}
+}
+
+export const sendOrganiserRegistrationEmail = async (organiserEmail: string, userEmail: string, userName: string, eventTitle: string) => {
+	try {
+		const customPayload = OrganiserRegistrationConfirmationEmail(organiserEmail, userEmail, userName)
+		const customPayloadFallback = OrganiserRegistrationConfirmationEmailFallback(organiserEmail, userEmail, userName)
+
+		const msg = {
+			to: organiserEmail, 
+			// from: 'hello@londonstudentnetwork.com',
+			subject: `🧧 New registration for ${eventTitle}`, 
+			text: customPayloadFallback, 
+			html: customPayload,
+		}
+
+		await sendEmail(msg);
+		return { success: true };
+
+	} catch (error) {
+		console.error("Error occurred during email sending of registration email. Error message:", error.message);
+		console.error("Stack trace:", error.stack);
+
+		return { success: false };
+	}
 }

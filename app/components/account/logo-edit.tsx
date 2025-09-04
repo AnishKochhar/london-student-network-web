@@ -60,7 +60,7 @@ const ImageUpload = ({ id, register, setValue }: { id: string, register: UseForm
 
             {/* Upload Button */}
             <button
-                className="flex flex-row self-start my-2 w-fit px-4 items-center font-light text-white border border-gray-300 hover:bg-gray-200 rounded-sm text-sm h-10"
+                className="flex flex-row self-start my-2 w-fit px-4 items-center font-light text-white border border-gray-300 hover:bg-slate-500 rounded-sm text-sm h-10"
                 onClick={handleButtonClick}
             >
                 <ArrowUpTrayIcon width={15} height={15} className="mr-2" /> Upload your logo here

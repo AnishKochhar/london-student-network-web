@@ -1,0 +1,24 @@
+'get server'
+
+
+// All exports are centralized here for easy imports in other files.
+// Functions are defined in individual config files for maintainability.
+
+import getRedisClient from "./config/private/redis";
+import sendSendGridEmail from "./config/private/sendgrid";
+import getSecretStripe from "./config/private/stripe-secret";
+
+export async function getSecretStripePromise() {
+    return getSecretStripe();
+}
+
+
+export async function sendEmail({ to, from='hello@londonstudentnetwork.com', subject, text, html }) {
+    return sendSendGridEmail({ to, from, subject, text, html });
+}
+
+
+export async function getRedisClientInstance() {
+    return getRedisClient();
+}
+

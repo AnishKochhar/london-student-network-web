@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline"
 import { Column } from "@tanstack/react-table"
 
-import { cn } from "@/app/lib/utils"
+import { cn } from "@/app/lib/utils/general"
 import { Button } from "../button"
 import {
 	DropdownMenu,

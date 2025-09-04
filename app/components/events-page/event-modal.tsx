@@ -5,10 +5,11 @@ import { useEffect, useRef } from 'react';
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import { EventModalProps } from "@/app/lib/types";
 import { createPortal } from 'react-dom';
-import { formatDateString, EVENT_TAG_TYPES, returnLogo } from '@/app/lib/utils';
+import { EVENT_TAG_TYPES, returnLogo } from '@/app/lib/utils/events';
+import { formatDateString } from '@/app/lib/utils/time';
 import { Button } from '../button';
 import { useRouter } from 'next/navigation';
-import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import { base16ToBase62 } from '@/app/lib/utils/type-manipulation';
 
 
 export default function EventModal({ event, onClose }: EventModalProps) {
@@ -116,8 +117,46 @@ export default function EventModal({ event, onClose }: EventModalProps) {
 						<p className="text-sm :text-lg text-gray-600">{event.location_area}</p>
 						<p className="text-sm :text-lg text-gray-500">{event.location_address}</p>
 
-						{event.capacity && (
+						{/* {event.capacity && (
 							<p className="text-sm :text-lg text-gray-900 mt-1">Venue capacity: {event.capacity}</p>
+						)} */}
+
+						{event.tickets_info?.length > 0 && (
+							<div className="mt-4 space-y-2">
+								<h3 className="text-sm font-semibold text-gray-900">Tickets Available:</h3>
+								<div className="space-y-1">
+								{event.tickets_info.map((ticket, index) => (
+									<div key={index} className="flex justify-between items-center">
+									<span className="text-sm text-gray-700">
+										{ticket.ticketName}
+										{ticket.price !== null && ticket.price > 0 ? (
+										<span className="ml-2 text-gray-500">
+											(£{(ticket.price)})
+										</span>
+										) : (
+										<span className="ml-2 text-gray-500">(Free)</span>
+										)}
+									</span>
+									<span className="text-sm text-gray-700">
+										{ticket.capacity !== null ? 
+										ticket.capacity.toLocaleString() : 
+										'Unlimited'}
+									</span>
+									</div>
+								))}
+								</div>
+
+								{/* Total Capacity */}
+								{event.tickets_info.some(t => t.capacity !== null) && (
+								<p className="text-sm text-gray-900 pt-2 border-t mt-2">
+									Minimum venue capacity: {
+									event.tickets_info.reduce((sum, ticket) => 
+										sum + (ticket.capacity || 0), 0
+									).toLocaleString()
+									}
+								</p>
+								)}
+							</div>
 						)}
 
 						<div className="mt-6">

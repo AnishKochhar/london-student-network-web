@@ -1,7 +1,7 @@
 "use server";
 
 import CreateEventPage from "@/app/components/events-page/create-event";
-import { SocietyLogos } from "@/app/lib/utils";
+import { SocietyLogos } from "@/app/lib/utils/events";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { User } from "next-auth";

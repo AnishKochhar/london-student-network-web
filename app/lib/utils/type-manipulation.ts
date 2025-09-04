@@ -1,0 +1,181 @@
+import { SQLTicketResult } from "../data";
+import { SQLEvent, Event, IncompleteEvent, FormData, Registrations, SQLRegistrations, Partner, Tag, TicketInfo } from "../types";
+
+// ==============================================
+// STRIPE CONNECT
+// ==============================================
+
+export function extractPriceStringToTwoDecimalPlaces(input: string): { value?: string, error?: string } {
+    const parsed = parseFloat(input);
+  
+    if (isNaN(parsed)) {
+        return { error: 'Invalid number format' };
+    }
+  
+    const roundedValue = Math.round(parsed * 100) / 100; // Round to 2 decimal places
+    const formattedValue = roundedValue.toFixed(2); // Format to 2 decimal places
+    return { value: formattedValue };
+}
+
+
+export function convertToSubCurrency(amount: string | number): { value?: number, error?: string } {
+    if (typeof amount === 'string') {
+        if (amount === '') {
+            return {value: 0};
+        }
+        if (amount === '0') {
+            return {value: 0};
+        }
+        const parsed = parseFloat(amount);
+    
+        // Check if parsed is a valid number
+        if (isNaN(parsed)) {
+          return { error: 'Invalid input: Not a valid number' };
+        }
+      
+        // Ensure the number is rounded to 2 decimal places
+        const rounded = Math.round(parsed * 100)
+    
+        return {value: rounded};
+    } else if (typeof amount === 'number') {
+        return {value: Math.round(amount * 100)};
+    }
+
+
+}
+
+// ==============================================
+// UUID
+// ==============================================
+
+const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+// currently the best solution is to use base62, which can make the uuid 22 digits shortest
+// so we clip only the 20 numbers of the 32-digit uuid-v4, it should not have any conflict until 100000 activities(or maybe I am wrong)
+
+
+export function base16ToBase62(hex: string): string {
+	const last20Hex = hex.replace(/-/g, '').slice(-20); // Get the last 20 hex digits
+	let bigInt = BigInt(`0x${last20Hex}`);
+
+	let base62 = '';
+	while (bigInt > 0) {
+		const remainder = Number(bigInt % BigInt(62));
+		base62 = BASE62_CHARS[remainder] + base62;
+		bigInt = bigInt / BigInt(62);
+	}
+
+	return base62;
+}
+
+
+export function base62ToBase16(base62: string): string {
+
+	let bigInt = BigInt(0);
+	for (const char of base62) {
+		bigInt = bigInt * BigInt(62) + BigInt(BASE62_CHARS.indexOf(char));
+	}
+
+	const hex = bigInt.toString(16).padStart(20, '0');
+	const formattedHex = hex.toLowerCase();
+
+	return `${formattedHex.slice(0, 4)}-${formattedHex.slice(4, 8)}-${formattedHex.slice(8)}`;
+}
+
+// EXAMPLE USAGE
+// ------------------------------------------------------------------------
+// const uuid = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID
+// const base62 = base16ToBase62(last20Hex);
+// console.log(`Last 20 Hex of UUID: ${last20Hex} -> Base62: ${base62}`);
+
+// const hexBack = base62ToBase16(base62);
+// console.log(`Base62: ${base62} -> Last 20 Hex of UUID: ${hexBack}`);
+
+// ==============================================
+// EVENTS
+// ==============================================
+
+export function convertSQLEventToEvent(sqlEvent: SQLEvent): IncompleteEvent {
+	const date = `${String(sqlEvent.day).padStart(2, '0')}/${String(sqlEvent.month).padStart(2, '0')}/${sqlEvent.year}`;
+	const time = `${sqlEvent.start_time} - ${sqlEvent.end_time}`;
+
+	return {
+		id: sqlEvent.id,
+		title: sqlEvent.title,
+		description: sqlEvent.description,
+		organiser: sqlEvent.organiser,
+		time: time,
+		date: date,
+		location_building: sqlEvent.location_building,
+		location_area: sqlEvent.location_area,
+		location_address: sqlEvent.location_address,
+		image_url: sqlEvent.image_url,
+		image_contain: sqlEvent.image_contain,
+		event_type: sqlEvent.event_type,
+		sign_up_link: sqlEvent.sign_up_link,
+		for_externals: sqlEvent.for_externals,
+	};
+}
+
+export function convertSQLTicketResultToTicketInfo(sqlTickets: SQLTicketResult[]): TicketInfo[] {
+    return sqlTickets.map(ticket => ({
+      ticket_uuid: ticket.ticket_uuid,
+      ticketName: ticket.ticket_name,
+      price: ticket.ticket_price,
+      capacity: ticket.tickets_available,
+    }));
+  }
+
+export function convertSQLRegistrationsToRegistrations(registrations: SQLRegistrations): Registrations {
+    return {
+        user_id: registrations.user_id,
+        user_email: registrations.email,
+        user_name: registrations.name,
+        date_registered: registrations.created_at,
+    };
+}
+
+export function createEventObject(data: FormData): Event {
+    return {
+        id: "",
+        title: data.title,
+        description: data.description,
+        organiser: data.organiser,
+        time: `${data.time.startHour}:${data.time.startMinute} - ${data.time.endHour}:${data.time.endMinute}`,
+        date: `${data.date.day}/${data.date.month}/${data.date.year}`,
+        location_building: data.location.building,
+        location_area: data.location.area,
+        location_address: data.location.address,
+        image_url: data.selectedImage,
+        image_contain: data.image_contain,
+        event_type: data.event_tag || 0, 
+        sign_up_link: data.signupLink || undefined,
+        for_externals: data.forExternals || undefined,
+        tickets_info: data.tickets_info,
+    };
+}
+
+export async function createSQLEventObject(data: FormData): Promise<SQLEvent> {
+    return {
+        id: "", // Generated by Postgres
+        title: data.title,
+        description: data.description,
+        organiser: data.organiser,
+        organiser_uid: data.organiser_uid,
+        start_time: `${data.time.startHour}:${data.time.startMinute}`,
+        end_time: `${data.time.endHour}:${data.time.endMinute}`,
+        day: data.date.day,
+        month: data.date.month,
+        year: data.date.year,
+        location_building: data.location.building,
+        location_area: data.location.area,
+        location_address: data.location.address,
+        image_url: data.selectedImage,
+        image_contain: data.image_contain,
+        event_type: data.event_tag || 0,
+        sign_up_link: data.signupLink || undefined,
+        for_externals: data.forExternals || undefined,
+    };
+    
+}
+

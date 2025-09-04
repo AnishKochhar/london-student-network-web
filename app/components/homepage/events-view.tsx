@@ -1,6 +1,6 @@
 import { Event } from "@/app/lib/types"
 import EventCard from "../events-page/event-card"
-import { sortEventsByDate } from "@/app/lib/utils"
+import { sortEventsByDate } from "@/app/lib/utils/events"
 
 interface UpcomingEventsProps {
 	events: Event[]

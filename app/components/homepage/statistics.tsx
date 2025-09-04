@@ -2,7 +2,7 @@
 
 import { BASE_URL } from "@/app/lib/config";
 import { WebsiteStats } from "@/app/lib/types";
-import { FallbackStatistics } from "@/app/lib/utils";
+import { FallbackStatistics } from "@/app/lib/utils/general";
 
 const statisticsMap = [
 	{ text: 'universities', json: 'total_universities' },
