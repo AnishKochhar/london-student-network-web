@@ -12,7 +12,12 @@ import { Suspense } from "react"
 export const metadata: Metadata = {
 	title: "London Student Network",
 	description: "For the students, by the students",
-	// viewport: "width=device-width, initial-scale=1",
+}
+
+export const viewport = {
+	width: 'device-width',
+	initialScale: 1,
+	viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -27,7 +32,7 @@ export default function RootLayout({
 					<Suspense fallback={<div>Loading...</div>}>
 						<div className="flex flex-col min-h-screen">
 							<Header />
-							<main className="flex-grow">{children}</main>
+							<div className="flex-grow">{children}</div>
 							<Footer />
 						</div>
 					</Suspense>

@@ -1,95 +1,129 @@
 'use client';
 
-// This page occassionally has a bug due to the pagination, where the same societies are fetched in the next page, causing 
-// some societies to be missed out. Spotted during development on 31/12/2024. Likely because the db doesn't return societies in
-// a particular order. Likely solution is ordering the societies by id or name in the db query.
-
-// Second bug, when the user scrolls very quickly on initial render, only some 23 of the 33 societies are rendered/fetched.
-// This was spotted during development on 6/1/2025. For now, pagination is removed until it is
-// more thoroughly tested and fixed.
-
-import { useState, useEffect, useMemo,useCallback } from 'react';
-import { fetchAllPartners } from '@/app/lib/utils';
-import Partners from '@/app/components/societies/partners';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { fetchPartners } from '@/app/lib/utils';
+import SocietyCard from '@/app/components/societies/society-card';
+import { CardSkeleton } from '@/app/components/societies/skeletons';
 import { FormattedPartner } from '@/app/lib/types';
+import { Search } from 'lucide-react';
+
+const PARTNERS_PER_PAGE = 100;
 
 export default function SocietyPage() {
-	// Search feature will search the whole dataset, and we'll paginate it
-	const [partners, setPartners] = useState<FormattedPartner[]>([]);
-	const [loading, setLoading] = useState<boolean>(true);
-	const [searchQuery, setSearchQuery] = useState<string>('');
-	const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+    const [partners, setPartners] = useState<FormattedPartner[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+    const [page, setPage] = useState<number>(1);
+    const [hasMore, setHasMore] = useState<boolean>(true);
 
-	useEffect(() => {
-		const handler = setTimeout(() => {
-			setDebouncedQuery(searchQuery);
-		}, 300);
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 300);
 
-		return () => {
-			clearTimeout(handler);
-		};
-	}, [searchQuery]);
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchQuery]);
 
-	// Fetch partners for the current page
-	const fetchPartnersData = useCallback(async () => {
-		setLoading(true);
-		// await new Promise((resolve) => setTimeout(resolve, 2000)); // for testing purposes
-		const result = await fetchAllPartners(60);
-		if (result.length !== 0) {
-			// setPartners((prev) => [...prev, ...result]); // this causes a bug where duplicate societies are rendered on page reloads/back navigation
-			setPartners(result);
-		}
-		setLoading(false);
-	}, [setPartners]);
+    const fetchPartnersData = useCallback(async (pageNum: number) => {
+        setLoading(true);
+        const result = await fetchPartners(pageNum, PARTNERS_PER_PAGE);
+        if (result && result.length > 0) {
+            setPartners(prev => [...prev, ...result]);
+            setPage(pageNum);
+            if (result.length < PARTNERS_PER_PAGE) {
+                setHasMore(false);
+            }
+        } else {
+            setHasMore(false);
+        }
+        setLoading(false);
+    }, []);
 
-	// Filter partners based on debounced query
-	const filteredPartners = useMemo(() => {
-		if (!debouncedQuery) return partners;
-		return partners.filter(partner =>
-			partner.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-			partner.description?.toLowerCase().includes(debouncedQuery.toLowerCase())
-		);
-	}, [partners, debouncedQuery]);
+    useEffect(() => {
+        fetchPartnersData(1);
+    }, [fetchPartnersData]);
 
+    const filteredPartners = useMemo(() => {
+        if (!debouncedQuery) return partners;
+        return partners.filter(partner =>
+            partner.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+            partner.description?.toLowerCase().includes(debouncedQuery.toLowerCase())
+        );
+    }, [partners, debouncedQuery]);
 
-	useEffect(() => {
-		fetchPartnersData();
-	}, [fetchPartnersData]);
+    const loadMore = () => {
+        if (hasMore && !loading) {
+            fetchPartnersData(page + 1);
+        }
+    };
 
+    return (
+        <main className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10 relative">
+            <div className="flex flex-col items-center w-full max-w-[1000px] mb-10">
+                <h1 className="text-4xl font-semibold text-white">Our Partners</h1>
 
-	return (
-		<main className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10 relative">
-			<div className="flex flex-col w-full max-w-[1000px] mb-10">
-				<h1 className="self-start text-4xl font-semibold text-white">Our Partners</h1>
+                <div className="mt-8 w-full flex justify-center">
+                    <div className="relative group w-full md:w-2/3 lg:w-1/2">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Search className="h-5 w-5 text-blue-300 group-focus-within:text-blue-400 transition-colors duration-300" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search societies and partners..."
+                            className="w-full pl-12 pr-4 py-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 shadow-md hover:bg-white/10"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
+                            >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                </div>
+                {debouncedQuery && (
+                    <p className="text-blue-300 text-sm mt-2 text-center w-full">
+                        {filteredPartners.length} result{filteredPartners.length !== 1 ? 's' : ''} found
+                    </p>
+                )}
+            </div>
 
-				{/* Search Box */}
-				<div className="self-end bg-transparent backdrop-blur-lg bg-opacity-30 rounded-lg mt-16">
-					<input
-						type="text"
-						placeholder="Search partners..."
-						className="rounded-full border-[1px] border-white bg-transparent px-6 py-3 w-[300px] min-w-[50px] text-gray-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-300 sm:w-[250px] md:w-[300px]"
-						// value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-					/>
-				</div>
-			</div>
+            <div className="relative w-full mt-3 grid partner-grid gap-8">
+                {filteredPartners.map(partner => (
+                    <SocietyCard key={partner.id} partner={partner} />
+                ))}
+                {loading && Array.from({ length: PARTNERS_PER_PAGE }).map((_, index) => (
+                    <CardSkeleton key={`skeleton-${index}`} />
+                ))}
+            </div>
 
-			{/* Skeletons on Initial Render */}
-			{/* {loading && (
-				<div className="flex flex-col space-y-8 w-full max-w-[1000px] overflow-x-auto mt-16">
-					{Array.from({ length: 30 }).map((_, index) => (
-						<CardSkeleton key={index} />
-					))}
-				</div>
-			)} */}
+            {hasMore && !loading && (
+                <div className="mt-10 text-center">
+                    <button
+                        onClick={loadMore}
+                        className="px-8 py-3 bg-blue-600/80 text-white font-semibold rounded-full hover:bg-blue-700/80 transition-colors duration-300"
+                    >
+                        Load More
+                    </button>
+                </div>
+            )}
 
-			{/* Partners List */}
-			{/* notice that partner grid is defined in global.css */}
-			<div className="relative w-full mt-3 grid partner-grid gap-8">
-				{/* <Partners filteredPartners={[...(partner.map(it => {it.logo = null;return it})), ...filteredPartners]} skeleton={loading}/> only for testing */}
-				<Partners filteredPartners={filteredPartners} skeleton={loading}/>
-			</div>
-
-		</main>
-	);
+            {!hasMore && !loading && partners.length === 0 && (
+                 <div className="text-center py-12">
+                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p className="text-gray-400 text-lg">No partners found.</p>
+                </div>
+            )}
+        </main>
+    );
 }

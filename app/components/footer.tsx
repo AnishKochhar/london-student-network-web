@@ -45,7 +45,7 @@ export default function Footer() {
 
 
 	return (
-		<footer className="relative border-t border-gray-300 border-opacity-25 bg-blue-600/25 text-white transition-colors duration-300">
+		<footer className="relative border-t border-gray-300 border-opacity-25 bg-[#041A2E] text-white transition-colors duration-300 z-10">
 			<motion.div
 				ref={ref}
 				variants={{

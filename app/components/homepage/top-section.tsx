@@ -8,6 +8,7 @@ import NotificationView from "./notification-view"
 import UpcomingEventsSection from "./events-section"
 import { Suspense } from "react"
 import Statistics from "./statistics"
+import BackgroundImage from "@/app/components/background-image"
 
 import ForStudentsClient from "./for-students-client"
 import ForSocietiesClient from "./for-societies-client"
@@ -15,7 +16,7 @@ import ForSponsorsClient from "./for-sponsors-client"
 
 export default function HomePageTopSection() {
 	return (
-		<div className="flex flex-col bg-black bg-opacity-50">
+		<div className="flex flex-col bg-black bg-opacity-50 text-white">
 			<NotificationView />
 			<Title />
 			<UpcomingEventsSection />

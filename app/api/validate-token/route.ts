@@ -1,4 +1,4 @@
-import { validateToken } from "@/app/lib/data";
+import { validateToken } from "@/app/lib/redis-operations";
 import { NextResponse, NextRequest } from "next/server";
 
 // Validate token for resetting a password

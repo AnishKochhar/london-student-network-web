@@ -1,5 +1,4 @@
 import Redis from 'ioredis';
-import sgMail from '@sendgrid/mail';
 
 // ================================
 // redis initialization
@@ -22,20 +21,7 @@ redis.on('error', (error) => {
 console.error('Error connecting to Redis:', error);
 });
 
-// ================================
-// sendgrid initialization
-// ================================
-
-if (!process.env.SENDGRID_API_KEY) {
-	console.error('SendGrid API key is missing!');
-	throw new Error('SENDGRID_API_KEY environment variable not set');
-}
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
-
-
 export { redis };
-export { sgMail };
 export const BASE_URL =
 	process.env.VERCEL_URL
 		? `https://${process.env.VERCEL_URL}`

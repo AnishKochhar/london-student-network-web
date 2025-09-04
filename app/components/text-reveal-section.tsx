@@ -1,19 +1,19 @@
 'use client';
 
-import { FC, ReactNode, useRef } from "react";
+import { FC, ReactNode, useRef, Fragment } from "react";
 import { motion, MotionValue, useScroll, useTransform } from "framer-motion";
 
-import { cn } from "@/app/lib/utils"; // Adjusted import path for cn
+import { cn } from "@/app/lib/utils";
 
 interface TextRevealSectionProps {
-	text: string;
+	texts: string[];
 	className?: string;
 	unrevealedTextColor?: string;
 	revealedTextColor?: string;
 }
 
 const TextRevealSection: FC<TextRevealSectionProps> = ({
-	text,
+	texts,
 	className,
 	unrevealedTextColor = "text-black/20 dark:text-white/20",
 	revealedTextColor = "text-white",
@@ -24,31 +24,32 @@ const TextRevealSection: FC<TextRevealSectionProps> = ({
 		target: targetRef,
 		offset: ["start 0.9", "start 0.25"],
 	});
-	const segments = text.split(/(\n)/).filter(segment => segment !== '');
-	const words = segments.flatMap(segment => 
-		segment === '\n' ? [{ type: 'break' }] : segment.split(' ').map(word => ({ type: 'word', content: word }))
-	);
+
+	const allWords = texts.flatMap(text => text.split(' '));
+    let wordCounter = 0;
 
 	return (
-		<div ref={targetRef} className={cn("relative z-0 h-[50vh] flex items-center justify-center w-full max-w-[70%] md:max-w-[70%] sm:max-w-full", className)}> {/* Full width on mobile */}
+		<div ref={targetRef} className={cn("relative z-0 h-[50vh] flex items-center justify-center w-full max-w-[70%] md:max-w-[70%] sm:max-w-full", className)}>
 			<div
 				className={
 					"flex flex-wrap p-5 text-black/20 dark:text-white/20 md:p-8 lg:p-10 text-center text-xl md:text-4xl"
-				} // Removed whitespace-pre-line since we're handling breaks manually
+				}
 			>
-				{words.map((item, i) => {
-					if (item.type === 'break') {
-						return <div key={i} className="w-full h-4" />;
-					}
-					
-					const start = i / words.length;
-					const end = start + 1 / words.length;
-					return (
-						<Word key={i} progress={scrollYProgress} range={[start, end]} unrevealedTextColor={unrevealedTextColor} revealedTextColor={revealedTextColor}>
-							{item.content}
-						</Word>
-					);
-				})}
+				{texts.map((text, i) => (
+                    <Fragment key={i}>
+                        {text.split(' ').map((word, j) => {
+                            const start = wordCounter / allWords.length;
+                            const end = start + 1 / allWords.length;
+                            wordCounter++;
+                            return (
+                                <Word key={j} progress={scrollYProgress} range={[start, end]} unrevealedTextColor={unrevealedTextColor} revealedTextColor={revealedTextColor}>
+                                    {word}
+                                </Word>
+                            );
+                        })}
+                        {i < texts.length - 1 && <div className="basis-full h-8"></div>} 
+                    </Fragment>
+                ))}
 			</div>
 		</div>
 	);

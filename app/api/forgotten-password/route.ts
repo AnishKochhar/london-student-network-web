@@ -1,6 +1,6 @@
 import { sendResetPasswordEmail } from "@/app/lib/send-email";
 import { NextResponse, NextRequest } from "next/server";
-import { insertToken } from '@/app/lib/data';
+import { insertToken } from '@/app/lib/redis-operations';
 import { generateToken } from '@/app/lib/utils';
 
 // Reset a password from an email

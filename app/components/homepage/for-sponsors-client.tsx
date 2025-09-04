@@ -1,6 +1,6 @@
 "use client"
 
-import { TextRevealSection } from "@/app/components/text-reveal-section";
+import { TextRevealSection } from "@/app/components/text-reveal-section"
 import type React from "react"
 import Link from "next/link"
 import clsx from "clsx"
@@ -55,8 +55,8 @@ export default function ForSponsorsClient() {
 				<span className="text-white mr-4">3. </span>For Sponsors
 			</motion.h2>
 			<TextRevealSection
-				text="We help organise events that reach the entire university student community across London.\nInterested in sponsoring our exciting activities? Reach out today and be a part of something extraordinary."
-				className="text-white text-xl md:text-3xl mt-20 ml-12 self-start"
+				texts={["We help organise events that reach the entire university student community across London.", "Interested in sponsoring our exciting activities? Reach out today and be a part of something extraordinary."]}
+				className="text-white text-xl md:text-3xl mt-20 ml-12 self-start mb-12"
 				unrevealedTextColor="text-white/20"
 				revealedTextColor="text-white"
 			/>

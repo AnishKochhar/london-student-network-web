@@ -55,7 +55,7 @@ export default function ForStudentsClient() {
 				<span className="text-white mr-4">1. </span>For Students
 			</motion.h2>
 			<TextRevealSection
-				text="Every event, opportunity, group and skill all in one place. Become a student of the city."
+				texts={["Every event, opportunity, group and skill all in one place. Become a student of the city."]}
 				className="text-white text-xl md:text-3xl mt-20 mr-12 self-start ml-20"
 				unrevealedTextColor="text-white/20"
 				revealedTextColor="text-white"

@@ -30,12 +30,12 @@ export default async function Statistics() {
 	} catch (error) {
 		console.error("Error fetching data:", error)
 	}
-	// console.log(stats[0])
+
 	if(Array.isArray(stats)) {
 		// unsure why, but seems sometime the json is array-wrapped
 		stats = stats[0]
 	}
-	console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
+	// console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
 
 	return (
 		<div className="font-bold text-lg md:text-xl text-white flex flex-col justify-center text-center">

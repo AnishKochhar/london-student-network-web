@@ -1,4 +1,5 @@
-import { getEmailFromToken, updatePassword } from "@/app/lib/data";
+import { getEmailFromToken } from "@/app/lib/redis-operations";
+import { updatePassword } from "@/app/lib/data";
 import { NextResponse, NextRequest } from "next/server";
 
 // Reset password associated with token and new password from body

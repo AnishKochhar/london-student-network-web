@@ -20,7 +20,7 @@ import Image from 'next/image';
 
 export default function ModernSocietyRegistration() {
 	const router = useRouter();
-	const [currentStep, setCurrentStep] = useState(4);
+	const [currentStep, setCurrentStep] = useState(1);
 	const [showPassword, setShowPassword] = useState(false);
 	const [showOtherUniversity, setShowOtherUniversity] = useState(false);
 	const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '' });

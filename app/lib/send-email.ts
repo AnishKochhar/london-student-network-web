@@ -1,4 +1,4 @@
-import { sgMail } from './config';
+import { sgMail } from './sendgrid-config';
 import { EmailData } from './types';
 import { getEmailFromId } from './data';
 import EmailPayload from '../components/templates/user-to-society-email'; // this might have security issues because of user inputs.

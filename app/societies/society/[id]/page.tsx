@@ -216,15 +216,7 @@ export default function SocietyPage() {
 									height={280}
 									className="w-[280px] h-[280px] object-contain rounded"
 								/>
-							) : (
-								<NextImage
-									src="/images/no-image-found.png"
-									alt="No logo found"
-									width={280}
-									height={280}
-									className="w-[280px] h-[280px] object-contain rounded"
-								/>
-							)}
+							) : null}
 						</div>
 					</div>
 
@@ -246,21 +238,19 @@ export default function SocietyPage() {
 							<skeletons.UniqueSocietyTagsSkeleton />
 						) : (
 							<div className='mt-2'>
-								<span>|</span>
+								{tags.length > 0 && <span>|</span>}
 								{tags.map((tag, index) => (
 									<>
 										<span
-											key={`${index}-${tag}`} // keep keys unique
+											key={`${index}-${tag}`}
 											className="text-white px-2 py-1 rounded-full text-sm hover:cursor-default"
-											style={{
-												backgroundColor: 'transparent', // change if you want background colour like society cards
-											}}
 										>
 											{tag}
 										</span>
-										<span>|</span>
+										{index < tags.length - 1 && <span>|</span>}
 									</>
 								))}
+								{tags.length > 0 && <span>|</span>}
 							</div>
 						)}
 					</div>
@@ -276,7 +266,7 @@ export default function SocietyPage() {
 			<section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
 
 				{/* Left Section (SendEmailPage Component) */}
-				<div className="bg-transparent shadow-lg p-4 rounded-lg order-2 md:order-1 w-full min-w-[350px]">
+				<div className="bg-transparent shadow-lg p-4 rounded-lg order-2 md:order-1 w-full min-w-[350px] text-center">
 					<SendEmailPage className="min-w-[350px] flex flex-col justify-start p-10 bg-transparent" />
 				</div>
 

@@ -55,7 +55,7 @@ export default function ForSocietiesClient() {
 				<span className="text-white mr-4">2. </span>For Clubs and Societies
 			</motion.h2>
 			<TextRevealSection
-				text="Showcase your society to the city. \n Student leaders work tirelessly to create exceptional events. Through LSN, every student in London can experience what you have to offer."
+				texts={["Showcase your society to the city.", "Student leaders work tirelessly to create exceptional events. Through LSN, every student in London can experience what you have to offer."]}
 				className="text-white text-xl md:text-3xl mt-20 mr-12 self-end"
 				unrevealedTextColor="text-white/20"
 				revealedTextColor="text-white"

@@ -7,81 +7,72 @@ export default function TeamSection() {
             title: "Founder and CEO",
             image: "/images/about/josh-robinson.png",
         },
-        // {
-        //     name: "Zain Ahmad",
-        //     title: "Chief Strategy Officer",
-        //     image: "/images/about/zain-ahmad.png",
-        // },
-        {
-            name: "Patrick Schnecker",
-            title: "Head of Outreach",
-            image: "/images/about/patrick-schnecker.jpeg",
-        },
-        {
-            name: "Manon Martin",
-            title: "Head of Events",
-            image: "/images/about/manon-martin.png",
-        },
 		{
 			name: "Anish Kochhar",
 			title: "Chief Technology Officer",
 			image: "/images/about/anish-kochhar.jpg",
 		},
-		{
-			name: "Ileana Oprescu",
-			title: "Social Media Manager",
-			image: "/images/about/ileana-oprescu.jpeg",
-		},
-		{
-			name: "Julie Beaulieu",
-			title: "Head of Marketing",
-			image: "/images/about/julie-beaulieu.jpg",
-		},
+        {
+            name: "Zain Ahmad",
+            title: "Chief Strategy Officer",
+            image: "/images/about/zain-ahmad.png",
+        },
 		{
 			name: "Amber Ella",
-			title: "Outreach Officer",
+			title: "Chief Operating Officer",
 			image: "/images/about/amber-ella.jpeg",
 		},
-        {
-            name: "Nela Duniova",
-            title: "Events Officer",
-            image: "/images/about/nela-deniova.png",
-        },
-        {
-            name: "Daryus Marchant",
-            title: "Events Officer",
-            image: "/images/about/daryus-marchant.png",
-        },
 		{
 			name: "Caspia Nadapdap",
-			title: "Events Officer",
+			title: "Head of Events",
 			image: "/images/about/caspia-nadapdap.jpeg",
 		},
 		{
-			name: "Harry S. Dove",
-			title: "Events Officer",
-			image: "/images/about/harry-dove.jpeg",
+			name: "Nour Zalaquett",
+			title: "Head of Outreach",
+			image: "/images/about/nour-zalaquett.jpeg",
 		},
-        {
-            name: "Ollie Callon Hine",
-            title: "Multimedia Officer",
-            image: "/images/about/ollie-callon-hine.png",
-        },
-        {
-            name: "Seddig Mohamed",
-            title: "Multimedia Officer",
-            image: "/images/about/seddig-mohamed.png",
-        },
+
+		{
+			name: "Daryus Marchant",
+			title: "Corporate Outreach Officer",
+			image: "/images/about/daryus-marchant.jpeg",
+		},
 		{
 			name: "Mikael Bashir",
-			title: "Web Developer",
+			title: "Senior Developer",
 			image: "/images/about/mikhael-bashir.jpeg",
 		},
+		{
+			name: "Honglei Gu",
+			title: "Web Developer",
+			image: "/images/about/honglei-gu.jpeg",
+		},
+		{
+			name: "Gurvir Singh",
+			title: "Web Developer",
+			image: "/images/about/gurvir-singh.jpeg",
+		},
+		{
+			name: "Valeria Centola",
+			title: "Marketing Officer",
+			image: "/images/about/valeria-centola.jpeg",
+		},
+		{
+			name: "Leyan Jiang",
+			title: "Marketing Officer",
+			image: "/images/about/leyan-jiang.jpeg",
+		},
         {
-            name: "Alan Jiang",
-            title: "Web Developer",
-            image: "/images/about/alan-jiang.jpg",
+            name: "Emily Li",
+            title: "Outreach Officer",
+            image: "/images/about/emily-li.jpeg",
         },
+		{
+			name: "Scarlett Phillips",
+			title: "Marketing Officer",
+			image: "/images/about/scarlett-phillips.jpeg",
+		},
     ];
 
     return (
