@@ -142,14 +142,13 @@ export async function GET(request: NextRequest) {
         const tags = tagObjects.map(tagObj => tagObj.name);
         
         // Get reply count for this thread (if not already fetched)
-        let replyCount = thread.reply_count;
-        if (replyCount === undefined) {
-          const replyCountResult = await sql.query(
-            'SELECT COUNT(*) as count FROM comments WHERE thread_id = $1 AND parent_id IS NULL',
-            [thread.id]
-          );
-          replyCount = parseInt(replyCountResult.rows[0].count);
-        }
+
+        const replyCountResult = await sql.query(
+          'SELECT COUNT(*) as count FROM comments WHERE thread_id = $1 AND parent_id IS NULL',
+          [thread.id]
+        );
+        const replyCount = parseInt(replyCountResult.rows[0].count);
+        
         
         const authorName = user?.name || 'Anonymous';
         const wasEdited = new Date(thread.updated_at) > new Date(thread.created_at);

@@ -14,6 +14,7 @@ export default function ThreadContent({ thread, onVoteChange, onThreadUpdate, on
     <ContentItem 
       item={thread}
       type="thread"
+      replyCount={thread.replyCount}
       onVoteChange={onVoteChange}
       onItemUpdate={onThreadUpdate}
       onItemDelete={onThreadDelete}

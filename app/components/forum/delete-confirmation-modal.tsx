@@ -3,16 +3,14 @@
 import { useState } from 'react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import BaseModal from './base-modal';
-import * as threadService from '@/app/lib/services/thread-service';
 
-// Update the interface to match how it's being used in the components
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   itemType: 'thread' | 'comment' | 'reply';
   onConfirm: () => Promise<void>;
   isDeleting?: boolean;
-  itemId?: number; // Make it optional since we're not using it directly anymore
+  itemId?: number;
 }
 
 export default function DeleteConfirmationModal({ 

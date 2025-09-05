@@ -89,6 +89,7 @@ export async function GET(
         timeAgo: getTimeAgo(reply.created_at),
         upvotes: reply.upvotes || 0,
         downvotes: reply.downvotes || 0,
+        totalReplies: totalCount,
         userVote,
         hasReplies,
         replyCount,

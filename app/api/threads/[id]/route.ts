@@ -1,7 +1,7 @@
 import { sql } from '@vercel/postgres';
 import { auth } from '@/auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { formatContent, getTimeAgo } from '@/app/lib/forum-utils';
+import { formatContent } from '@/app/lib/forum-utils';
 
 export async function PATCH(
   request: NextRequest,

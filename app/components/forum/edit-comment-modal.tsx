@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { PencilIcon } from '@heroicons/react/24/outline';
 import BaseModal from './base-modal';
 import FormTextarea from './form-text-area';
-import * as threadService from '@/app/lib/services/thread-service';
 
-// Update the interface to match how it's being used in comment-content.tsx and reply-item.tsx
+
 interface EditCommentModalProps {
   isOpen: boolean;
   onClose: () => void;

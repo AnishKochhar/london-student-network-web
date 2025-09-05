@@ -118,11 +118,8 @@ export default function ContentItem({
   // For thread-specific rendering
   if (type === 'thread') {
     const thread = item as ThreadData;
-    const replyCount = thread.totalReplies !== undefined 
-      ? thread.totalReplies 
-      : (typeof thread.replies === 'number' 
-        ? thread.replies 
-        : (Array.isArray(thread.replies) ? thread.replies.length : 0));
+
+    console.log(replyCount, thread);
 
     return (
       <>

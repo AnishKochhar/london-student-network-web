@@ -4,6 +4,19 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [4.4.0] - 2025-09-05
+
+### Added
+
+- Thread creation, editing, and deletion
+- Thread upvote/downvote functionality
+- Comment system with nested replies
+- Comment upvote/downvote functionality
+- Thread search and sorting functionality
+- Thread tagging system
+- Pagination for threads and comments
+- Forum API endpoints
+
 # [4.3.0] - 2025-07-23
 
 ### Added

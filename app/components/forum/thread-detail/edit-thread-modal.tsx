@@ -4,10 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { PencilIcon, TagIcon } from '@heroicons/react/24/outline';
 import BaseModal from '../base-modal';
 import FormTextarea from '../form-text-area';
-import * as threadService from '@/app/lib/services/thread-service';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
-// Update the interface to match how it's being used in thread-content.tsx
+
 interface EditThreadModalProps {
   isOpen: boolean;
   onClose: () => void;
