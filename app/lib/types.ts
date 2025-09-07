@@ -159,6 +159,7 @@ export interface SocietyRegisterFormData {
     hasAgreedToTerms: boolean;
 	uploadedImage: File | null;
 	imageUrl: string | null;
+	instagramRefreshToken: string | null;
 }
 
 export interface CompanyRegisterFormData {
