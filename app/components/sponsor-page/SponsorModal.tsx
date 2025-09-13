@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CompanyInformation } from '@/app/lib/types';
 import { X } from 'lucide-react';
+import { Button } from '@/app/components/button';
+
 
 interface SponsorModalProps {
     sponsor: CompanyInformation;
@@ -38,12 +40,13 @@ export default function SponsorModal({ sponsor, onClose }: SponsorModalProps) {
                 ref={modalRef}
                 className="bg-gradient-to-br from-[#064580] to-[#041A2E] rounded-2xl shadow-2xl p-8 max-w-2xl w-full relative border border-white/20 transform animate-scale-in overflow-y-auto max-h-[90vh]"
             >
-                <button 
+                                <Button 
+                    variant="ghost"
                     onClick={onClose} 
-                    className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                    className="absolute top-4 right-4 text-gray-400 hover:text-white"
                 >
                     <X className="h-6 w-6" />
-                </button>
+                </Button>
                 <div className="flex flex-col md:flex-row gap-8 items-center">
                     {sponsor.logo_url && (
                         <div className="w-32 h-32 flex-shrink-0 bg-white/10 rounded-lg flex items-center justify-center p-4">

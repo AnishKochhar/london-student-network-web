@@ -1,3 +1,4 @@
+import { Slot } from '@radix-ui/react-slot';
 import clsx from 'clsx';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -6,11 +7,13 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	size?: 'sm' | 'md' | 'lg';
 	disabled?: boolean;
 	onClick?: () => void;
+	asChild?: boolean;
 }
 
-export function Button({ variant, size = 'md', disabled, onClick, children, className, ...rest }: ButtonProps) {
+export function Button({ variant, size = 'md', disabled, onClick, children, className, asChild = false, ...rest }: ButtonProps) {
+	const Comp = asChild ? Slot : 'button';
 	return (
-		<button
+		<Comp
 			{...rest}
 			className={clsx(
 				'flex items-center rounded-lg px-4 text-sm font-light transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
@@ -33,9 +36,7 @@ export function Button({ variant, size = 'md', disabled, onClick, children, clas
 			disabled={disabled}
 			onClick={disabled ? undefined : onClick}
 		>
-			<span className="flex items-center justify-center w-full h-full shrink-0">
-				{children}
-			</span>
-		</button>
+			{children}
+		</Comp>
 	);
 }

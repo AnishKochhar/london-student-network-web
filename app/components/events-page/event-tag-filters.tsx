@@ -1,5 +1,7 @@
 "use client";
 import { EVENT_TAG_TYPES } from "@/app/lib/utils/events";
+import { Button } from '@/app/components/button';
+
 
 interface TagButtonsProps {
 	activeTags: number[];
@@ -15,9 +17,9 @@ export default function TagButtons({ activeTags, toggleTag }: TagButtonsProps) {
 				const { label, color } = EVENT_TAG_TYPES[tagNumber];
 
 				return (
-					<button
+										<Button
 						key={tag}
-						className="flex items-center space-x-2 focus:outline-none"
+						variant="ghost"
 						onClick={() => toggleTag(tagNumber)}
 					>
 						<span className={`w-4 h-4 rounded-full border ${color} ${isActive ? '' : 'opacity-30'}`} />
@@ -25,7 +27,7 @@ export default function TagButtons({ activeTags, toggleTag }: TagButtonsProps) {
 						<span className={`text-lg capitalize ${isActive ? 'text-white' : 'text-gray-400 line-through'}`}>
 							{label.toLowerCase()}
 						</span>
-					</button>
+					</Button>
 				);
 			})}
 		</div>

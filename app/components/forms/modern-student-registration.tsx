@@ -6,12 +6,14 @@ import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { UserRegisterFormData } from "@/app/lib/types";
-import { LondonUniversities, SocietyLogos } from "@/app/lib/utils";
+import { LondonUniversities, SocietyLogos } from "@/app/lib/utils/events";
 import ModernFormStep from "./modern-form-step";
 import { ModernInput } from "./modern-input";
 import { ModernSelect } from "./modern-select";
 import ErrorModal from "./error-modal";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { Button } from '@/app/components/button';
+
 
 export default function ModernStudentRegistration() {
 	const router = useRouter();
@@ -287,18 +289,19 @@ export default function ModernStudentRegistration() {
 							})}
 						/>
 						<div className="flex justify-center mt-4">
-							<button
+														<Button
 								type="button"
+								variant="ghost"
 								onClick={() => setShowPassword(!showPassword)}
-								className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors text-sm sm:text-base"
+								className="text-sm sm:text-base"
 							>
 								{showPassword ? (
 									<EyeSlashIcon className="w-5 h-5" />
 								) : (
 									<EyeIcon className="w-5 h-5" />
 								)}
-								<span>{showPassword ? 'Hide password' : 'Show password'}</span>
-							</button>
+								<span className="ml-2">{showPassword ? 'Hide password' : 'Show password'}</span>
+							</Button>
 						</div>
 					</div>
 				</ModernFormStep>

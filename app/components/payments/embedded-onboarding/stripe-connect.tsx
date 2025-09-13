@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { getPublicStripeConnectPromise } from '@/app/lib/singletons-public';
 import { ConnectAccountOnboarding, ConnectComponentsProvider } from '@stripe/react-connect-js';
 import { StripeConnectInstance } from '@stripe/connect-js';
+import { Button } from '@/app/components/button';
+
 
 export default function EmbeddedStripeConnectOnboardingForm({userId} : {userId: string}) {
     const [error, setError] = useState<string | null>(null);
@@ -53,7 +55,10 @@ export default function EmbeddedStripeConnectOnboardingForm({userId} : {userId: 
                 </ConnectComponentsProvider>
             ) : (
                 <div className="text-center">
-                    <button className="btn loading btn-primary w-full text-white">Loading...</button>
+                                    <Button variant="filled" className="w-full" disabled>
+                    <span className="loading loading-spinner"></span>
+                    Loading...
+                </Button>
                 </div>
             )}
         </div>

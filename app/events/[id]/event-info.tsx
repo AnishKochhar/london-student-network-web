@@ -14,6 +14,9 @@ import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
 import EventEmailSendingModal from "@/app/components/events-page/email-sending-modal";
+import EmbeddedCheckoutButton from '@/app/components/payments/checkout-button';
+import { Button } from '@/app/components/button';
+
 
 export default function EventInfo() {
 	const { id } = useParams() as { id: string };
@@ -62,10 +65,10 @@ export default function EventInfo() {
 
 	const methods = useForm<FormValues>({
 		defaultValues: {
-		  tickets: {}
+			tickets: {}
 		}
 	});
-  	const [totalSelected, setTotalSelected] = useState(0);
+	const [totalSelected, setTotalSelected] = useState(0);
 
 
 	useEffect(() => {
@@ -88,28 +91,28 @@ export default function EventInfo() {
 
 	useEffect(() => {
 		if (event) {
-		  const initialValues = event.tickets_info.reduce((acc, ticket) => {
-			acc[ticket.ticket_uuid] = 0;
-			return acc;
-		  }, {} as Record<string, number>);
-		  
-		  methods.reset({ tickets: initialValues });
-		  setRequiresPayment(event.tickets_info.some(t => (t.price || 0) > 0));
-		}
-	  }, [event]);
+			const initialValues = event.tickets_info.reduce((acc, ticket) => {
+				acc[ticket.ticket_uuid] = 0;
+				return acc;
+			}, {} as Record<string, number>);
 
-	  useEffect(() => {
+			methods.reset({ tickets: initialValues });
+			setRequiresPayment(event.tickets_info.some(t => (t.price || 0) > 0));
+		}
+	}, [event]);
+
+	useEffect(() => {
 		const subscription = methods.watch((value) => {
-		  const total = Object.values(value.tickets || {}).reduce((sum, quantity) => sum + (quantity || 0), 0);
-		  setTotalSelected(total);
+			const total = Object.values(value.tickets || {}).reduce((sum, quantity) => sum + (quantity || 0), 0);
+			setTotalSelected(total);
 		});
 		return () => subscription.unsubscribe();
-	  }, [methods.watch]);
+	}, [methods.watch]);
 
 
-    // const handleSelect = () => {
-    //     setTicketSelected(!ticketSelected);
-    // };
+	const handleSelect = () => {
+		setTicketSelected(!ticketSelected);
+	};
 
 
 	async function fetchEventInformation(id: string) {
@@ -202,9 +205,9 @@ export default function EventInfo() {
 	}
 
 	const handleCloseModal = () => {
-        setShowCheckout(false);
-        modalref.current?.close();
-    }
+		setShowCheckout(false);
+		modalref.current?.close();
+	}
 
 	const getTags = (eventType: number) => {
 		const tags = [];
@@ -216,38 +219,35 @@ export default function EventInfo() {
 		return tags;
 	};
 
-	// function SelectTicketComponent({event_id}: {event_id: string}) {
-	// 	useEffect(() => {
-
-	// 	})
-	// 	return (
-	// 		<div className="mt-6">
-	// 			<div className="w-full flex flex-row justify-center">
-	// 				<div className="flex flex-col items-center">
-	// 					<h4 className="text-md font-semibold mb-2 text-gray-500">Select Ticket Type</h4>
-	// 					<div className="flex items-center mb-4">
-	// 						<input
-	// 							type="checkbox"
-	// 							id="ticket"
-	// 							checked={ticketSelected}
-	// 							onChange={handleSelect}
-	// 							className="hidden"
-	// 						/>
-	// 						<label
-	// 							htmlFor="ticket"
-	// 							className={`flex items-center cursor-pointer p-2 border-2 rounded-full ${ticketSelected ? 'bg-green-500' : 'bg-white'}`}
-	// 						>
-	// 							<span className="text-gray-700">Standard Ticket - £{ticketPrice}</span> 
-	// 							{/* show the different ticket types dynamically from api call */}
-	// 							{/* capture the user selection of tickets + quantities with react hook form */}
-	// 						</label>
-	// 					</div>
-	// 					<EmbeddedCheckoutButton event_id={event_id} ticketSelected={ticketSelected}/>
-	// 				</div>
-	// 			</div>
-	// 		</div>
-	// 	)
-	// }
+	function SelectTicketComponent({ event_id }: { event_id: string }) {
+		return (
+			<div className="mt-6">
+				<div className="w-full flex flex-row justify-center">
+					<div className="flex flex-col items-center">
+						<h4 className="text-md font-semibold mb-2 text-gray-500">Select Ticket Type</h4>
+						<div className="flex items-center mb-4">
+							<input
+								type="checkbox"
+								id="ticket"
+								checked={ticketSelected}
+								onChange={handleSelect}
+								className="hidden"
+							/>
+							<label
+								htmlFor="ticket"
+								className={`flex items-center cursor-pointer p-2 border-2 rounded-full ${ticketSelected ? 'bg-green-500' : 'bg-white'}`}
+							>
+								<span className="text-gray-700">Standard Ticket - £{ticketPrice}</span>
+								{/* show the different ticket types dynamically from api call */}
+								{/* capture the user selection of tickets + quantities with react hook form */}
+							</label>
+						</div>
+						<EmbeddedCheckoutButton event_id={event_id} ticketSelected={ticketSelected} />
+					</div>
+				</div>
+			</div>
+		)
+	}
 
 
 	const handleCheckout = async (data: FormValues) => {
@@ -263,24 +263,23 @@ export default function EventInfo() {
 			const ticketSelections = Object.entries(data.tickets)
 				.filter(([_, quantity]) => quantity > 0)
 				.reduce((acc, [ticketId, quantity]) => {
-				acc[ticketId] = quantity;
-				return acc;
+					acc[ticketId] = quantity;
+					return acc;
 				}, {} as Record<string, number>);
-	
+
 			console.log(ticketSelections);
-			
+
 			const response = await fetch('/api/events/register', {
 				method: 'POST',
 				headers: {
-				'Content-Type': 'application/json',
+					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
 					event_id: event.id,
-					user_id: session.data.user.id,
-					ticket_id_to_quantity: ticketSelections
+					user_information: session.data.user
 				}),
 			});
-	
+
 			const result = await response.json()
 			if (!result.success) {
 				toast.error(result.error, { id: toastId })
@@ -290,11 +289,11 @@ export default function EventInfo() {
 					setShowCheckout(true);
 					modalref.current?.showModal();
 					toast.success('Please complete registration via secure checkout.', { id: toastId })
-				} else { 
+				} else {
 					toast.success('Successfully registered for event! Please check your email.', { id: toastId })
 				}
 			}
-		} catch(error) {
+		} catch (error) {
 			console.error('Error with checkout, when trying to register for an event');
 			toast.error('Registration flow failed. Please get in touch if this was not expected.')
 		}
@@ -363,36 +362,36 @@ export default function EventInfo() {
 						<div className="mt-4 space-y-2">
 							<h3 className="text-sm font-semibold text-gray-900">Tickets Available:</h3>
 							<div className="space-y-1">
-							{event.tickets_info.map((ticket, index) => (
-								<div key={index} className="flex justify-between items-center">
-								<span className="text-sm text-gray-700">
-									{ticket.ticketName}
-									{ticket.price !== null && ticket.price > 0 ? (
-									<span className="ml-2 text-gray-500">
-										(£{(ticket.price)})
-									</span>
-									) : (
-									<span className="ml-2 text-gray-500">(Free)</span>
-									)}
-								</span>
-								<span className="text-sm text-gray-700">
-									{ticket.capacity !== null ? 
-									ticket.capacity.toLocaleString() : 
-									'Unlimited'}
-								</span>
-								</div>
-							))}
+								{event.tickets_info.map((ticket, index) => (
+									<div key={index} className="flex justify-between items-center">
+										<span className="text-sm text-gray-700">
+											{ticket.ticketName}
+											{ticket.price !== null && ticket.price > 0 ? (
+												<span className="ml-2 text-gray-500">
+													(£{(ticket.price)})
+												</span>
+											) : (
+												<span className="ml-2 text-gray-500">(Free)</span>
+											)}
+										</span>
+										<span className="text-sm text-gray-700">
+											{ticket.capacity !== null ?
+												ticket.capacity.toLocaleString() :
+												'Unlimited'}
+										</span>
+									</div>
+								))}
 							</div>
 
 							{/* Minimum Capacity */}
 							{event.tickets_info.some(t => t.capacity !== null) && (
-							<p className="text-sm text-gray-900 pt-2 border-t mt-2">
-								Minimum venue capacity: {
-								event.tickets_info.reduce((sum, ticket) => 
-									sum + (ticket.capacity || 0), 0
-								).toLocaleString()
-								}
-							</p>
+								<p className="text-sm text-gray-900 pt-2 border-t mt-2">
+									Minimum venue capacity: {
+										event.tickets_info.reduce((sum, ticket) =>
+											sum + (ticket.capacity || 0), 0
+										).toLocaleString()
+									}
+								</p>
 							)}
 						</div>
 					)}
@@ -470,47 +469,52 @@ export default function EventInfo() {
 						<hr className="border-t-1 border-gray-300 m-2" />
 						<div className="w-full flex flex-row justify-center">
 							{!loggedIn ? (
-								<button 
-								className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
-								onClick={registerForEvent}>
+								<Button
+									variant="outline"
+									size="lg"
+									onClick={registerForEvent}
+									className="text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
+								>
 									<LockClosedIcon width={20} height={20} className='pr-2' />
 									Press here to register
-								</button>
+								</Button>
 							) : (
 								<>
 									<FormProvider {...methods}>
 										<form onSubmit={methods.handleSubmit(handleCheckout)} className="w-full">
-										<SelectTicketComponent event={event!} />
-										<button
-											type="submit"
-											disabled={totalSelected === 0}
-											className="btn btn-primary w-full mt-4"
-										>
-											{requiresPayment ? 'Proceed to Checkout ' : 'Complete Registration '} 
-											({totalSelected} selected)
-										</button>
+											<SelectTicketComponent event_id={event_id} />
+											<Button
+												type="submit"
+												variant="filled"
+												size="lg"
+												disabled={totalSelected === 0}
+												className="w-full mt-4"
+											>
+												{requiresPayment ? 'Proceed to Checkout ' : 'Complete Registration '}
+												({totalSelected} selected)
+											</Button>
 										</form>
 									</FormProvider>
 									<dialog ref={modalref} className="modal">
 										<div className="modal-box flex flex-col">
 											<div className="modal-action">
-												<button
-													className="btn" 
+												<Button
+													variant="outline"
 													onClick={() => {
-													handleCloseModal();
-													modalref.current?.close();
+														handleCloseModal();
+														modalref.current?.close();
 													}}
 												>
 													Close
-												</button>
+												</Button>
 											</div>
 											{(showCheckout && clientSecret) && (
-											<EmbeddedCheckoutProvider 
-												stripe={stripePromise} 
-												options={{ clientSecret }}
-											>
-												<EmbeddedCheckout className="h-full" />
-											</EmbeddedCheckoutProvider>
+												<EmbeddedCheckoutProvider
+													stripe={stripePromise}
+													options={{ clientSecret }}
+												>
+													<EmbeddedCheckout className="h-full" />
+												</EmbeddedCheckoutProvider>
 											)}
 										</div>
 									</dialog>
@@ -519,26 +523,30 @@ export default function EventInfo() {
 						</div>
 						<hr className="border-t-1 border-gray-300 m-2" />
 						<div className="w-full flex flex-row justify-center">
-							<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
+							<Button
+								variant="outline"
+								size="lg"
 								onClick={
 									() => {
 										if (isOrganiser.current) {
-											setViewEmailSending(true)} 
+											setViewEmailSending(true)
+										}
 										else {
 											toast.error("Only the organiser of the event can send emails to attendees")
 										}
 									}
 								}
+								className="text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
 							>
 								{!isOrganiser.current && <LockClosedIcon width={20} height={20} className='pr-2' />}
 								Press here to send emails to all the attendees
 								{isOrganiser.current && <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />}
-							</button>
+							</Button>
 						</div>
 					</div>
 				</div>
 			</div>
-			{viewEmailSending && <EventEmailSendingModal onClose={() => setViewEmailSending(false)} event={event}/>}
+			{viewEmailSending && <EventEmailSendingModal onClose={() => setViewEmailSending(false)} event={event} />}
 		</div>
 	);
 }

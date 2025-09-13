@@ -95,12 +95,13 @@ export default function AccountPage() {
 								Edit Details
 							</Button> */}
 							{/* Edit Account Details Button */}
-							<button
+														<Button
+								variant="filled"
 								onClick={() => router.push('/account/edit-details')}
-								className="btn btn-primary mt-4"
-								>
+								className="mt-4"
+							>
 								Edit Account Details
-							</button>
+							</Button>
 						</div>
 					</div>
 

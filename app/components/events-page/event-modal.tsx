@@ -56,7 +56,7 @@ export default function EventModal({ event, onClose }: EventModalProps) {
 				ref={modalRef}
 				className="relative bg-white w-[90vw] h-[80vh] p-8 border-2 border-black overflow-hidden"
 			>
-				<button onClick={onClose} className="absolute top-4 right-4 transition" >
+								<Button variant="ghost" onClick={onClose} className="absolute top-4 right-4">
 					<Image
 						src="/icons/close.svg"
 						alt="Close"
@@ -64,7 +64,7 @@ export default function EventModal({ event, onClose }: EventModalProps) {
 						height={12}
 						className="hover:brightness-75"
 					/>
-				</button>
+				</Button>
 
 				<div className="flex flex-col md:flex-row h-full overflow-y-auto">
 					{/* Event Image  */}
@@ -101,14 +101,15 @@ export default function EventModal({ event, onClose }: EventModalProps) {
 								))}
 
 							</div>
-							<button 
-								className="flex items-center rounded-lg px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider  hover:text-black transition-transform duration-300 ease-in-out"
+														<Button
+								variant="ghost"
+								size="lg"
 								onClick={jumpToEvent}
-							>							
+								className="text-gray-700 uppercase tracking-wider hover:text-black"
+							>
 								Go To Event
 								<ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
-							
-							</button>
+							</Button>
 						</div>
 
 						<h2 className="text-2xl font-bold text-gray-900 mb-2">{event.title}</h2>

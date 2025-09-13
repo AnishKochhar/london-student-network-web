@@ -15,6 +15,7 @@ import RegistrationsModal from './registrations-modal';
 import ToggleSwitch from '../toggle-button';
 import { createPortal } from 'react-dom';
 import EventEmailSendingModal from './email-sending-modal';
+import { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption } from '../table';
 
 
 const MAX_POSTGRES_STRING_LENGTH = 255;
@@ -453,9 +454,9 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 
 
 					<div className='self-end flex flex-col w-full'>
-						<button className='my-2 self-end w-fit px-4 items-center font-light text-gray-700 border border-gray-300 hover:bg-gray-200 rounded-sm text-sm h-10' onClick={handleButtonClick}>
+												<Button variant="outline" size="sm" onClick={handleButtonClick} className="my-2 self-end w-fit">
 							... or upload your own
-						</button>
+						</Button>
 						<input
 							ref={inputRef}
 							type='file'
@@ -561,32 +562,32 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 	<div className="mb-8">
 		<div className="flex justify-between items-center mb-4">
 		<h2 className="text-2xl p-6 font-semibold">Tickets</h2>
-		<button
+				<Button
 			type="button"
+			variant="filled"
 			onClick={() => {
 				// const currentTickets = watch("tickets_info");
 				// console.log(currentTickets);
 				append({ ticketName: "", price: null, capacity: null });
 			}}
-			className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
 		>
 			Add Ticket
-		</button>
+		</Button>
 		</div>
 
-		<TableComponents.Table>
-		<TableComponents.TableHeader>
-			<TableComponents.TableRow>
-			<TableComponents.TableHead className="w-[35%]">Ticket Name</TableComponents.TableHead>
-			<TableComponents.TableHead className="w-[25%]">Price</TableComponents.TableHead>
-			<TableComponents.TableHead className="w-[25%]">Tickets Available</TableComponents.TableHead>
-			<TableComponents.TableHead className="w-[15%]">Actions</TableComponents.TableHead>
-			</TableComponents.TableRow>
-		</TableComponents.TableHeader>
-		<TableComponents.TableBody>
+		<Table>
+		<TableHeader>
+			<TableRow>
+			<TableHead className="w-[35%]">Ticket Name</TableHead>
+			<TableHead className="w-[25%]">Price</TableHead>
+			<TableHead className="w-[25%]">Tickets Available</TableHead>
+			<TableHead className="w-[15%]">Actions</TableHead>
+			</TableRow>
+		</TableHeader>
+		<TableBody>
 			{fields.map((field, index) => (
-			<TableComponents.TableRow key={field.id}>
-				<TableComponents.TableCell>
+			<TableRow key={field.id}>
+				<TableCell>
 				<input
 					{...register(`tickets_info.${index}.ticketName`, {
 					required: "Name is required",
@@ -603,9 +604,9 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 					{errors.tickets_info[index]?.ticketName?.message}
 					</p>
 				)}
-				</TableComponents.TableCell>
+				</TableCell>
 
-				<TableComponents.TableCell>
+				<TableCell>
 				<input
 					type="number"
 					step="0.01"
@@ -625,9 +626,9 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 					{errors.tickets_info[index]?.price?.message}
 					</p>
 				)}
-				</TableComponents.TableCell>
+				</TableCell>
 
-				<TableComponents.TableCell>
+				<TableCell>
 				<input
 					type="number"
 					step="1"
@@ -647,21 +648,22 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 					{errors.tickets_info[index]?.capacity?.message}
 					</p>
 				)}
-				</TableComponents.TableCell>
+				</TableCell>
 
-				<TableComponents.TableCell>
-				<button
+				<TableCell>
+								<Button
 					type="button"
+					variant="ghost"
 					onClick={() => remove(index)}
 					className="text-red-500 hover:text-red-700"
 				>
 					Remove
-				</button>
-				</TableComponents.TableCell>
-			</TableComponents.TableRow>
+				</Button>
+				</TableCell>
+			</TableRow>
 			))}
-		</TableComponents.TableBody>
-		</TableComponents.Table>
+		</TableBody>
+		</Table>
 	</div>
 	);
 
@@ -698,7 +700,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 				ref={modalRef}
 				className="relative bg-white w-[90vw] h-[80vh] p-8 border-2 border-black overflow-hidden"
 			>
-				<button onClick={onClose} className="absolute top-4 right-4 transition">
+								<Button variant="ghost" onClick={onClose} className="absolute top-4 right-4">
 					<Image
 						src="/icons/close.svg"
 						alt="Close"
@@ -706,7 +708,7 @@ export default function EditEventComponent({ eventProp, onClose }: EditEventProp
 						height={12}
 						className="hover:brightness-75"
 					/>
-				</button>
+				</Button>
 				<div className="flex flex-col md:flex-row h-full">
 					<div className="relative bg-white p-10 text-black h-full w-full overflow-y-auto">
 						{/* Fixed Header Section */}

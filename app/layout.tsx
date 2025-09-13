@@ -73,7 +73,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${inria.className} antialiased text-foreground bg-background`}>
+			<body className={`${inria.className} antialiased text-foreground`}>
 				<SessionProviderWrapper>
 					<Suspense fallback={<div>Loading...</div>}>
 						<div className="flex flex-col min-h-screen">

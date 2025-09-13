@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import paymentProcessingAndServiceFulfilment from '@/app/actions/paid-events/payment-processing-and-service-fulfilment';
+import { Button } from '@/app/components/button';
+
 
 function wait(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -66,12 +68,13 @@ export default function CheckoutReturn({ searchParams }: { searchParams: { [key:
             Payment Verification Failed
           </h2>
           <p className="text-red-500 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.href = '/support'}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-          >
-            Contact Support
-          </button>
+          			<Button
+				variant="filled"
+				onClick={() => window.location.href = '/support'}
+				className="bg-red-600 hover:bg-red-700"
+			>
+				Contact Support
+			</Button>
         </div>
       </div>
     );

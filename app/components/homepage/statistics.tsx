@@ -11,7 +11,6 @@ const statisticsMap = [
 ]
 
 export default async function Statistics() {
-	// console.log(process.env)
 	let stats: WebsiteStats = FallbackStatistics
 	try {
 
@@ -20,7 +19,7 @@ export default async function Statistics() {
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			next: { revalidate: 86400 }, // Enable ISR (revalidate every 24 hours)
+			 // Enable ISR (revalidate every 24 hours)
 		});
 		if (!res.ok) {
 			throw new Error("Failed to fetch statistics");

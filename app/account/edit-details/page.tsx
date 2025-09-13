@@ -242,42 +242,47 @@ export default function EditDetailsPage() {
 			{(alreadyStartedStripeConnectOnboarding === 'loading') ? ( // for some reason, the daisyui button spans the whole width with <></>, but behaves nicely with a div parent
 				<div className="pb-4 mb-10 space-y-6">		
 					{/* Loading Button */}
-					<button
-						className="btn btn-outline mt-4"
+										<Button
+						variant="outline"
+						className="mt-4"
+						disabled
 					>
 						Loading your details...
-					</button>
+					</Button>
 				</div>
 
 			) : (alreadyStartedStripeConnectOnboarding === false) ? (
 				<div className="pb-4 mb-10 space-y-6">		
 					{/* New Application Button */}
-					<button
+										<Button
+						variant="filled"
 						onClick={() => setShowStripeEmboarding(true)}
-						className="btn btn-primary mt-4"
+						className="mt-4"
 					>
 						Register for Stripe Connect <FlagIcon className='ml-2' width={15} height={15} />
-					</button>
+					</Button>
 				</div>
 			) : (alreadyStartedStripeConnectOnboarding === true) ? (
 				<div className="pb-4 mb-10 space-y-6">		
 					{/* Continue Application Button */}
-					<button
+										<Button
+						variant="filled"
 						onClick={() => setShowStripeEmboarding(true)}
-						className="btn btn-primary mt-4"
+						className="mt-4"
 					>
 						Add information for Stripe Connect <FlagIcon className='ml-2' width={15} height={15} />
-					</button>
+					</Button>
 				</div>
 			) : (
 				<div>
 					{/* Error Button */}
-					<button
-						className="btn btn-info mt-4"
+										<Button
+						variant="filled"
+						className="mt-4 bg-blue-400"
 						disabled
 					>
 						Please try again later
-					</button>
+					</Button>
 				</div>
 			)}
 

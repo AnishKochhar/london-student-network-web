@@ -8,6 +8,8 @@ import { CollapsibleToggle } from "../../general/toggle";
 import { getStripeConnectPromiseForStandardDashboard } from "@/app/lib/singletons-public";
 import { ConnectComponentsProvider, ConnectAccountManagement, ConnectBalances, ConnectDocuments, ConnectPayments, ConnectPayouts, ConnectNotificationBanner, ConnectTaxRegistrations, ConnectTaxSettings } from "@stripe/react-connect-js";
 import { StripeConnectInstance } from "@stripe/connect-js";
+import { Button } from '@/app/components/button';
+
 
 // Define types for basic statuses
 type CardPaymentsStatus = 'loading' | 'inconclusive' | 'active' | 'inactive' | 'pending';
@@ -281,22 +283,26 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
         {/* Toggle Button with State Management */}
         <div>
           {requirementsDetails.detailsSubmitted === NOT_FOUND ? (
-            <button
-              className="btn btn-error mt-4 cursor-not-allowed"
+                        <Button
+              variant="filled"
+              className="mt-4 cursor-not-allowed bg-red-500"
               disabled
             >
               ⚠️ Error: Required Details Not Found
-            </button>
+            </Button>
           ) : requirementsDetails.detailsSubmitted === 'loading' ? (
-            <button
-              className="btn btn-info mt-4 cursor-progress"
+                        <Button
+              variant="filled"
+              className="mt-4 cursor-progress bg-blue-400"
+              disabled
             >
               <span className="loading loading-spinner"></span>
               Processing Details...
-            </button>
+            </Button>
           ) : (
-            <button
-              className={`btn ${requirementsDetails.detailsSubmitted ? 'btn-success' : 'btn-warning'} mt-4`}
+                        <Button
+              variant="filled"
+              className={`mt-4 ${requirementsDetails.detailsSubmitted ? 'bg-green-500' : 'bg-yellow-500'}`}
               onClick={() => {
                 if (requirementsDetails.detailsSubmitted === true) {
                   setShowDetails(false);
@@ -311,7 +317,7 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                 ? (showStripeDashboard ? "Hide Dashboard" : "Show Dashboard")
                 : (showDetails ? "Hide Details" : "Show Details")
               }
-            </button>
+            </Button>
           )}
         </div>
 
@@ -474,9 +480,9 @@ export default function StripeConnectDetailedStatus({ id }: { id: string }) {
                   {pendingVerificationBadge.badgeLabel !== null ? (
                     <p>{pendingVerificationBadge.badgeLabel}</p>
                   ) : (
-                    <button onClick={() => setShowPendingVerification(!showPendingVerification)}>
+                                        <Button variant="ghost" onClick={() => setShowPendingVerification(!showPendingVerification)}>
                       <p>{showPendingVerification ? "Hide Pending" : "Show Pending"}</p>
-                    </button>
+                    </Button>
                   )}
                 </span>
               </h3>

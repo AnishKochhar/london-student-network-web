@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { Button } from '@/app/components/button';
+
 
 export default function LogoutForm() {
 	const [isLoading, setIsLoading] = useState(false);
@@ -49,8 +51,8 @@ export default function LogoutForm() {
 			)}
 
 			<div className="flex space-x-4">
-				<button
-					className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+								<Button
+					variant="filled"
 					onClick={handleLogout}
 					disabled={isLoading}
 				>
@@ -81,14 +83,15 @@ export default function LogoutForm() {
 					) : (
 						"Log Out"
 					)}
-				</button>
-				<button
-					className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+				</Button>
+								<Button
+					variant="filled"
 					onClick={returnHome}
 					disabled={isLoading}
+					className="bg-gray-300 text-gray-700 hover:bg-gray-400"
 				>
 					Cancel
-				</button>
+				</Button>
 			</div>
 		</div>
 	);

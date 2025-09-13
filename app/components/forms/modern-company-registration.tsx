@@ -10,6 +10,8 @@ import ModernFormStep from "./modern-form-step";
 import { ModernInput } from "./modern-input";
 import ErrorModal from "./error-modal";
 import { EyeIcon, EyeSlashIcon, ArrowUpTrayIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { Button } from '@/app/components/button';
+
 import { upload } from '@vercel/blob/client';
 import Image from 'next/image';
 
@@ -343,18 +345,19 @@ export default function ModernCompanyRegistration() {
 							})}
 						/>
 						<div className="flex justify-center mt-4">
-							<button
+														<Button
 								type="button"
+								variant="ghost"
 								onClick={() => setShowPassword(!showPassword)}
-								className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors text-sm sm:text-base"
+								className="text-sm sm:text-base"
 							>
 								{showPassword ? (
 									<EyeSlashIcon className="w-5 h-5" />
 								) : (
 									<EyeIcon className="w-5 h-5" />
 								)}
-								<span>{showPassword ? 'Hide password' : 'Show password'}</span>
-							</button>
+								<span className="ml-2">{showPassword ? 'Hide password' : 'Show password'}</span>
+							</Button>
 						</div>
 					</div>
 				</ModernFormStep>
@@ -446,15 +449,16 @@ export default function ModernCompanyRegistration() {
 											placeholder="e.g. To recruit interns"
 										/>
 									</div>
-									<button
+																		<Button
 										type="button"
+										variant="filled"
 										onClick={handleAddMotivation}
 										disabled={!newMotivation.trim()}
-										className="flex-shrink-0 px-4 py-3 sm:py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-xl transition-all w-full sm:w-auto flex items-center justify-center"
+										className="w-full sm:w-auto"
 									>
 										<PlusIcon className="w-5 h-5 sm:mr-0 mr-2" />
 										<span className="sm:hidden">Add Motivation</span>
-									</button>
+									</Button>
 								</div>
 								{newMotivation.trim() && (
 									<p className="text-gray-400 text-xs mt-2">This will be added to your motivations list</p>
@@ -465,14 +469,15 @@ export default function ModernCompanyRegistration() {
 						<div className="space-y-4">
 							<label className="text-gray-300 text-left block">Company Logo (optional)</label>
 							<div className="flex flex-col items-center space-y-4">
-								<button 
+																<Button 
 									type="button"
+									variant="outline"
 									onClick={() => inputRef.current?.click()}
-									className="flex items-center justify-center space-x-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20 w-full sm:w-auto"
+									className="bg-white/10 hover:bg-white/20 text-white border-white/20 w-full sm:w-auto"
 								>
 									<ArrowUpTrayIcon className="w-5 h-5" />
-									<span>Upload Logo</span>
-								</button>
+									<span className='ml-2'>Upload Logo</span>
+								</Button>
 								<input
 									ref={inputRef}
 									type="file"
@@ -491,14 +496,15 @@ export default function ModernCompanyRegistration() {
 												className="object-cover"
 											/>
 										</div>
-										<button
+																				<Button
 											type="button"
+											variant="ghost"
 											onClick={clearUploadedImage}
-											className="flex items-center space-x-1 text-red-400 hover:text-red-300 transition-colors text-sm"
+											className="text-red-400 hover:text-red-300 text-sm"
 										>
 											<TrashIcon className="w-4 h-4" />
-											<span>Remove</span>
-										</button>
+											<span className='ml-1'>Remove</span>
+										</Button>
 									</div>
 								)}
 							</div>

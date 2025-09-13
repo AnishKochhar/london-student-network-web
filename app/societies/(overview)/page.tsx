@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchPartners } from '@/app/lib/utils';
+import { fetchPartners } from '@/app/lib/utils/events';
 import SocietyCard from '@/app/components/societies/society-card';
 import { CardSkeleton } from '@/app/components/societies/skeletons';
 import { FormattedPartner } from '@/app/lib/types';
 import { Search } from 'lucide-react';
+import { Button } from '@/app/components/button';
+
 
 const PARTNERS_PER_PAGE = 100;
 
@@ -78,14 +80,15 @@ export default function SocietyPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
-                            >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            							<Button
+								variant="ghost"
+								onClick={() => setSearchQuery('')}
+								className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white"
+							>
+								<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</Button>
                         )}
                     </div>
                 </div>
@@ -107,12 +110,13 @@ export default function SocietyPage() {
 
             {hasMore && !loading && (
                 <div className="mt-10 text-center">
-                    <button
-                        onClick={loadMore}
-                        className="px-8 py-3 bg-blue-600/80 text-white font-semibold rounded-full hover:bg-blue-700/80 transition-colors duration-300"
-                    >
-                        Load More
-                    </button>
+                    					<Button
+						variant="filled"
+						onClick={loadMore}
+						className="bg-blue-600/80 hover:bg-blue-700/80"
+					>
+						Load More
+					</Button>
                 </div>
             )}
 

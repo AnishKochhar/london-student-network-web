@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import { ReactNode, KeyboardEvent, useEffect, useState } from "react";
+import { Button } from '@/app/components/button';
+
 
 interface ModernFormStepProps {
 	title: string;
@@ -63,12 +65,13 @@ export default function ModernFormStep({
 				</div>
 
 				<div className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0 pt-6 sm:pt-8">
-					<button
+										<Button
+						variant="filled"
 						onClick={onBack}
-						className="px-4 sm:px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition-all text-sm sm:text-base"
+						className="bg-gray-700 hover:bg-gray-600 text-white rounded-xl text-sm sm:text-base"
 					>
 						Back
-					</button>
+					</Button>
 
 					<div className="flex space-x-1.5 sm:space-x-2 justify-center">
 						{Array.from({ length: totalSteps }).map((_, i) => {
@@ -96,13 +99,14 @@ export default function ModernFormStep({
 					</div>
 
 					<div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3">
-						<button
+												<Button
+							variant="filled"
 							onClick={onNext}
 							disabled={!canContinue}
-							className="w-full sm:w-auto px-4 sm:px-6 py-3 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-xl transition-all text-sm sm:text-base"
+							className="bg-white hover:bg-gray-100 text-black rounded-xl text-sm sm:text-base w-full sm:w-auto"
 						>
 							{isLastStep ? "Submit" : "Continue"}
-						</button>
+						</Button>
 						{!isLastStep && (
 							<span className="text-xs sm:text-sm text-gray-400 hidden sm:block">Press Enter ⏎</span>
 						)}

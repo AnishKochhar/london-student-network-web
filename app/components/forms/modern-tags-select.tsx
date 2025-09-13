@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Button } from '@/app/components/button';
+
 
 interface Tag {
 	value: string;
@@ -92,8 +94,9 @@ export default function ModernTagsSelect({
 								className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 bg-blue-500 text-white rounded-lg text-xs sm:text-sm"
 							>
 								{tag.label}
-								<button
+																<Button
 									type="button"
+									variant="ghost"
 									onClick={(e) => {
 										e.stopPropagation();
 										removeTag(tag.value);
@@ -101,7 +104,7 @@ export default function ModernTagsSelect({
 									className="hover:bg-blue-600 rounded-full p-0.5"
 								>
 									<XMarkIcon className="w-3 h-3" />
-								</button>
+								</Button>
 							</span>
 						))}
 						<input
@@ -138,9 +141,10 @@ export default function ModernTagsSelect({
 								</div>
 							) : (
 								filteredOptions.map((option) => (
-								<button
+																<Button
 									key={option.value}
 									type="button"
+									variant="ghost"
 									onClick={() => handleTagToggle(option.value)}
 									disabled={!value.includes(option.value) && value.length >= maxTags}
 									className={`w-full px-3 sm:px-4 py-2 sm:py-3 text-left hover:bg-gray-50 transition-colors flex items-center justify-between text-sm sm:text-base ${
@@ -157,7 +161,7 @@ export default function ModernTagsSelect({
 											</svg>
 										</div>
 									)}
-								</button>
+								</Button>
 								))
 							)}
 						</motion.div>

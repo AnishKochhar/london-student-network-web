@@ -212,7 +212,6 @@ export function validateEvent(formData: FormData): string | undefined {
 
 export function convertEventsToMonthYearGroupings(events: Event[]) {
     const months: { [key: string]: Event[] } = {}
-    console.log(events);
     events.forEach((event) => {
         const monthYear = `${event.date.substring(3)}`
 

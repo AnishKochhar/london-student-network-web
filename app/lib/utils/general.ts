@@ -18,9 +18,16 @@ export const capitalizeFirst = (str: string) => {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
+export const properTitleCase = (str: string) => {
+	return str.split(' ').map(word => {
+		if (word.length === 0) return word;
+		return word.charAt(0).toUpperCase() + word.slice(1);
+	}).join(' ');
+};
+
 export const FallbackStatistics = {
-	total_events: '90',
-	total_universities: '20',
+	total_events: '150',
+	total_universities: '30',
 	total_societies: '50'
 }
 

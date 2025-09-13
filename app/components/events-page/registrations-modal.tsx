@@ -1,11 +1,12 @@
 "use client";
 
+import toast from "react-hot-toast";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { Registrations } from "@/app/lib/types";
 import { createPortal } from 'react-dom';
-import toast from "react-hot-toast";
-import { Button } from "../button";
+import { Button } from '@/app/components/button';
+
 
 interface RegistrationsModalProps {
 	registrations: Registrations[]
@@ -53,7 +54,7 @@ export default function RegistrationsModal({ registrations, onClose }: Registrat
 				ref={modalRef}
 				className="relative bg-white w-[90vw] h-[80vh] p-8 border-2 border-black overflow-y-auto flex flex-col items-center"
 			>
-				<button onClick={onClose} className="absolute top-4 right-4 transition" >
+								<Button variant="ghost" onClick={onClose} className="absolute top-4 right-4">
 					<Image
 						src="/icons/close.svg"
 						alt="Close"
@@ -61,7 +62,7 @@ export default function RegistrationsModal({ registrations, onClose }: Registrat
 						height={12}
 						className="hover:brightness-75"
 					/>
-				</button>
+				</Button>
 				
 				{registrations.length === 0 ? (
 					<div className="text-center text-gray-500 my-auto">There are no registrations for this event yet!</div>

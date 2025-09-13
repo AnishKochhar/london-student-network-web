@@ -1,5 +1,7 @@
 import Image from "next/image";
 import React from "react";
+import { Button } from '@/app/components/button';
+
 
 type CollapsibleToggleProps = {
   show: boolean;
@@ -14,17 +16,17 @@ export const CollapsibleToggle: React.FC<CollapsibleToggleProps> = ({
   labelShow,
   labelHide,
 }) => (
-  <button
+  <Button
+    variant="ghost"
     onClick={onClick}
-    className="flex items-center gap-1"
-    aria-label={show ? labelHide : labelShow} // Added aria-label for better accessibility
+    aria-label={show ? labelHide : labelShow}
   >
-    <span>{show ? labelHide : labelShow}</span> {/* Replaced <p> with <span> */}
+    <span>{show ? labelHide : labelShow}</span>
     <Image
       src={show ? "/icons/collapse-arrow-up.png" : "/icons/collapse-arrow-down.png"}
-      alt={show ? "Collapse up" : "Collapse down"} // Providing alternative text for the image
+      alt={show ? "Collapse up" : "Collapse down"}
       width={16}
       height={16}
     />
-  </button>
+  </Button>
 );

@@ -121,7 +121,7 @@ export function convertSQLTicketResultToTicketInfo(sqlTickets: SQLTicketResult[]
     return sqlTickets.map(ticket => ({
       ticket_uuid: ticket.ticket_uuid,
       ticketName: ticket.ticket_name,
-      price: ticket.ticket_price,
+      price: Number(ticket.ticket_price),
       capacity: ticket.tickets_available,
     }));
   }

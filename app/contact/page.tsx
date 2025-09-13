@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { ChevronDownIcon, UserIcon, EnvelopeIcon, BuildingOfficeIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { Button } from '@/app/components/button';
+
 
 interface ContactFormData {
 	inquiryPurpose: string;
@@ -268,16 +270,17 @@ export default function ContactPage() {
 
 						{/* Submit Button */}
 						<div className="flex justify-end">
-							<button
+														<Button
 								type="submit"
+								variant="filled"
 								disabled={status === 'Sending...'}
-								className="inline-flex items-center px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+								className="shadow-lg hover:shadow-xl"
 							>
 								Submit Form
 								<svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
 								</svg>
-							</button>
+							</Button>
 						</div>
 
 						{/* Status Message */}

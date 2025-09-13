@@ -5,6 +5,8 @@ import { CompanyInformation } from '@/app/lib/types';
 import { Search, ArrowRight } from 'lucide-react';
 import SponsorModal from './SponsorModal';
 import Image from 'next/image';
+import { Button } from '@/app/components/button';
+
 
 interface Sponsor extends CompanyInformation {}
 
@@ -53,14 +55,15 @@ export default function SponsorsPageClient({ initialSponsors }: SponsorsPageClie
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                         {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
-                            >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            							<Button
+								onClick={() => setSearchQuery('')}
+								className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white"
+								variant="ghost"
+							>
+								<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</Button>
                         )}
                     </div>
                 </div>

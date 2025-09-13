@@ -1,7 +1,7 @@
 "use server"
 
 import { fetchUpcomingEvents } from "@/app/lib/data"
-import { sortEventsByDate } from "@/app/lib/utils"
+import { sortEventsByDate } from "@/app/lib/utils/events";
 import UpcomingEventsView from "./upcoming-events"
 
 export default async function UpcomingEventsSection() {

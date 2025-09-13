@@ -6,14 +6,16 @@ import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { SocietyRegisterFormData } from "@/app/lib/types";
-import { LondonUniversities } from "@/app/lib/utils";
-import getPredefinedTags from "@/app/lib/utils";
+import { LondonUniversities } from "@/app/lib/utils/events";
+import getPredefinedTags from "@/app/lib/utils/events";
 import ModernFormStep from "./modern-form-step";
 import { ModernInput } from "./modern-input";
 import { ModernSelect } from "./modern-select";
 import ModernTagsSelect from "./modern-tags-select";
 import ErrorModal from "./error-modal";
 import { EyeIcon, EyeSlashIcon, ArrowUpTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Button } from '@/app/components/button';
+
 import { upload } from '@vercel/blob/client';
 import Select from 'react-select';
 import Image from 'next/image';
@@ -342,18 +344,18 @@ export default function ModernSocietyRegistration() {
 							})}
 						/>
 						<div className="flex justify-center mt-4">
-							<button
+														<Button
 								type="button"
+								variant="ghost"
 								onClick={() => setShowPassword(!showPassword)}
-								className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
 							>
 								{showPassword ? (
 									<EyeSlashIcon className="w-5 h-5" />
 								) : (
 									<EyeIcon className="w-5 h-5" />
 								)}
-								<span>{showPassword ? 'Hide password' : 'Show password'}</span>
-							</button>
+								<span className="ml-2">{showPassword ? 'Hide password' : 'Show password'}</span>
+							</Button>
 						</div>
 					</div>
 				</ModernFormStep>
@@ -447,14 +449,15 @@ export default function ModernSocietyRegistration() {
 						<div className="space-y-4">
 							<label className="text-gray-300 text-left block">Logo (optional)</label>
 							<div className="flex flex-col items-center space-y-4">
-								<button 
+																<Button 
 									type="button"
+									variant="outline"
 									onClick={() => inputRef.current?.click()}
-									className="flex items-center space-x-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20"
+									className="bg-white/10 hover:bg-white/20 text-white border-white/20"
 								>
 									<ArrowUpTrayIcon className="w-5 h-5" />
-									<span>Upload Logo</span>
-								</button>
+									<span className='ml-2'>Upload Logo</span>
+								</Button>
 								<input
 									ref={inputRef}
 									type="file"
@@ -473,14 +476,15 @@ export default function ModernSocietyRegistration() {
 												className="object-cover"
 											/>
 										</div>
-										<button
+																				<Button
 											type="button"
+											variant="ghost"
 											onClick={clearUploadedImage}
-											className="flex items-center space-x-1 text-red-400 hover:text-red-300 transition-colors text-sm"
+											className="text-red-400 hover:text-red-300 text-sm"
 										>
 											<TrashIcon className="w-4 h-4" />
-											<span>Remove</span>
-										</button>
+											<span className="ml-1">Remove</span>
+										</Button>
 									</div>
 								)}
 							</div>

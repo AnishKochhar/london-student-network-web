@@ -340,9 +340,9 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 
 
 					<div className='self-end flex flex-col w-full'>
-						<button className='my-2 self-end w-fit px-4 items-center font-light text-gray-700 border border-gray-300 hover:bg-gray-200 rounded-sm text-sm h-10' onClick={handleButtonClick}>
+												<Button variant="outline" size="sm" onClick={handleButtonClick} className="my-2 self-end w-fit">
 							... or upload your own
-						</button>
+						</Button>
 						<input
 							ref={inputRef}
 							type='file'
@@ -456,17 +456,17 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 	<div className="mb-8">
 		<div className="flex justify-between items-center mb-4">
 		<h2 className="text-2xl p-6 font-semibold">Tickets</h2>
-		<button
+				<Button
 			type="button"
+			variant="filled"
 			onClick={() => {
 				// const currentTickets = watch("tickets_info");
 				// console.log(currentTickets);
 				append({ ticketName: "", price: null, capacity: null });
 			}}
-			className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
 		>
 			Add Ticket
-		</button>
+		</Button>
 		</div>
 
 		<TableComponents.Table>
@@ -544,13 +544,14 @@ export default function CreateEventPage({ organiser_id, organiserList }: CreateE
 				</TableComponents.TableCell>
 
 				<TableComponents.TableCell>
-				<button
+								<Button
 					type="button"
+					variant="ghost"
 					onClick={() => remove(index)}
 					className="text-red-500 hover:text-red-700"
 				>
 					Remove
-				</button>
+				</Button>
 				</TableComponents.TableCell>
 			</TableComponents.TableRow>
 			))}

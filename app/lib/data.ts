@@ -1,13 +1,15 @@
 import { sql } from '@vercel/postgres';
 import { SQLEvent, ContactFormInput, SocietyRegisterFormData, UserRegisterFormData, SQLRegistrations, OrganiserAccountEditFormData, CompanyRegisterFormData, CompanyInformation } from './types';
-import { convertSQLEventToEvent, formatDOB, selectUniversity, capitalize, convertSQLRegistrationsToRegistrations, capitalizeFirst, FallbackStatistics, properTitleCase } from './utils';
+import { createSQLEventObject, convertSQLEventToEvent, convertSQLRegistrationsToRegistrations, convertSQLTicketResultToTicketInfo } from './utils/type-manipulation';
+import { capitalize, capitalizeFirst, FallbackStatistics, properTitleCase } from './utils/general';
+import { formatDOB } from './utils/events';
+import { selectUniversity } from './utils/events';
 import bcrypt from 'bcrypt';
 import { Tag } from './types';
 
 // TODO: Organise based on usecases
 
 export async function fetchWebsiteStats(): Promise<WebsiteStats> {
-	// return FallbackStatistics
 	try {
 		const result = await sql`
         SELECT
@@ -15,8 +17,8 @@ export async function fetchWebsiteStats(): Promise<WebsiteStats> {
             (SELECT COUNT(DISTINCT university_attended) FROM user_information) AS total_universities,
             (SELECT COUNT(*) FROM users WHERE role = 'organiser' AND is_test_account = FALSE) AS total_societies
     	`;
-		// console.log("fetched stats:", stats.rows)
-		return stats.rows
+		// console.log("fetched stats:", result.row)
+		return result.rows[0]
 
 	} catch (error) {
 		console.error('Database error:', error)
@@ -947,13 +949,13 @@ export async function fetchEventTickets(eventId: string): Promise<
 
 export async function fetchPriceId(eventId: string) {
 	try {
-
+		console.log('[data.ts] Fetching price_id for event', eventId);
 		const result = await sql`
 		SELECT price_id
 		FROM tickets
 		WHERE event_uuid::text LIKE '%' || ${eventId}
 		`
-
+		console.log('[data.ts] Price_id fetched for event', eventId, result.rows[0].price_id);
 		return { success: true, priceId: result.rows[0].price_id }
 	} catch (error) {
 		console.error('Error fetching price_id from tickets table:', eventId, error);
@@ -1417,11 +1419,11 @@ export async function getAllCompanyInformation() {
 					c.id,
 					u.name AS company_name, 
 					COALESCE(c.contact_email, u.email) AS contact_email,
-					COALESCE(c.description, u.description) AS description,
+					c.description,
 					c.motivation,
 					c.contact_name,
-					COALESCE(c.website, u.website) AS website,
-					COALESCE(c.logo_url, u.logo_url) AS logo_url
+					c.website,
+					c.logo_url
 			FROM 
 					users AS u 
 			JOIN 

@@ -1,6 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from '@/app/components/button';
+
 
 interface ErrorModalProps {
 	isOpen: boolean;
@@ -36,12 +38,13 @@ export default function ErrorModal({ isOpen, title, message, onClose }: ErrorMod
 							</div>
 							<h3 className="text-xl font-bold text-gray-900">{title}</h3>
 							<p className="text-gray-600">{message}</p>
-							<button
+														<Button
+								variant="filled"
 								onClick={onClose}
-								className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl transition-all"
+								className="bg-gray-900 hover:bg-gray-800 text-white rounded-xl"
 							>
 								OK
-							</button>
+							</Button>
 						</div>
 					</motion.div>
 				</div>

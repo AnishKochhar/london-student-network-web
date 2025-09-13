@@ -6,6 +6,8 @@ import { z } from "zod";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import { Event, Registrations } from "@/app/lib/types";
+import { Button } from '@/app/components/button';
+
 
 interface Props {
   onClose: () => void;
@@ -159,12 +161,13 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-black">Send Custom Email</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-600 hover:text-black text-sm underline"
-          >
-            Close
-          </button>
+          			<Button
+				variant="ghost"
+				onClick={onClose}
+				className="text-gray-600 hover:text-black text-sm underline"
+			>
+				Close
+			</Button>
         </div>
 
         <form
@@ -252,19 +255,21 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
           </div>
 
           <div className="mt-4 flex justify-end gap-2">
-            <button
+            			<Button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-400 rounded hover:bg-gray-100 text-sm"
+              variant="outline"
+              className="border-gray-400 hover:bg-gray-100 text-sm"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            			<Button
               type="submit"
-              className="px-4 py-2 bg-black text-white rounded hover:opacity-90 text-sm"
+              variant="filled"
+              className="bg-black hover:opacity-90 text-sm"
             >
               Send Email
-            </button>
+            </Button>
           </div>
         </form>
       </div>
