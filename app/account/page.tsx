@@ -13,6 +13,7 @@ import UserEventsList from '../components/account/user-events-list';
 import AccountFields from '../components/account/account-fields';
 import AccountLogo from '../components/account/account-logo';
 import ForgottenPasswordModal from '../components/login/reset-password-modal';
+import InstagramConnection from '../components/integrations/connect-instagram';
 
 
 export default function AccountPage() {
@@ -75,12 +76,17 @@ export default function AccountPage() {
 						}
 					</div>
 					{user.role === 'organiser' && < AccountFields id={user.id} role={user.role} />}
+					{/* {user.role === 'organiser' && <InstagramConnection />} */}
+					<InstagramConnection />
 				</div>
 
-				<div className="border-b border-gray-300 pb-4 ml-4 mb-10 space-y-6">
-					<h2 className="text-2xl italic mb-2 ml-2">Your events</h2>
-					<UserEventsList user_id={user.id} editEvent={true}/>
-				</div>
+				{user.role === 'organiser' &&
+					<div className="border-b border-gray-300 pb-4 ml-4 mb-10 space-y-6">
+						<h2 className="text-2xl italic mb-2 ml-2">Your events</h2>
+						<UserEventsList user_id={user.id} editEvent={true}/>
+					</div>
+				}
+
 
 				<div className="flex justify-end self-end space-x-2">
 					<Button

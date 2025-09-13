@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { SQLEvent, Event, FormData, Registrations, SQLRegistrations, Partner, Tag } from "./types";
 import { v4 as uuidv4 } from 'uuid';
+import { ExtractedEvent } from "./redis-helpers";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs))
@@ -417,4 +418,10 @@ export function generateToken(): string {
 	}
 
 	return token;
+}
+
+export function validateAndFormatEvent(event: ExtractedEvent) {
+	if (!event.title || event.organiser) {
+		return null
+	}
 }

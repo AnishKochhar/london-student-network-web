@@ -16,6 +16,8 @@ import { FlagIcon, ArrowUpTrayIcon, TrashIcon } from "@heroicons/react/24/outlin
 import { upload } from "@vercel/blob/client"
 import Select from "react-select" // For tag selection
 import getPredefinedTags, { LondonUniversities } from "@/app/lib/utils"
+import { signIn } from "next-auth/react"
+import InstagramConnection from "@/app/components/integrations/connect-instagram"
 
 export default function SocietyRegistrationForm() {
   const {
@@ -36,8 +38,8 @@ export default function SocietyRegistrationForm() {
   const [showPassword, setShowPassword] = useState(false)
   const totalSteps = 2
   const [predefinedTags, setPredefinedTags] = useState([])
-  const [isConnectingInstagram, setIsConnectingInstagram] = useState(false)
-  const [instagramConnected, setInstagramConnected] = useState(false)
+  // const [isConnectingInstagram, setIsConnectingInstagram] = useState(false)
+  // const [instagramConnected, setInstagramConnected] = useState(false)
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -56,63 +58,63 @@ export default function SocietyRegistrationForm() {
     return (step / totalSteps) * 100
   }
 
-  useEffect(() => { // to catch instagram oauth redirect
-    // This effect runs once on page load to check if we've been redirected from Instagram
-    const handleInstagramRedirect = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
+  // useEffect(() => { // to catch instagram oauth redirect
+  //   // This effect runs once on page load to check if we've been redirected from Instagram
+  //   const handleInstagramRedirect = async () => {
+  //     const params = new URLSearchParams(window.location.search);
+  //     const code = params.get('code');
 
-      // If a 'code' is present in the URL, the user has just authorized our app
-      if (code) {
-        // It's good practice to clean the URL so this doesn't re-run on a refresh
-        window.history.replaceState({}, document.title, window.location.pathname);
+  //     // If a 'code' is present in the URL, the user has just authorized our app
+  //     if (code) {
+  //       // It's good practice to clean the URL so this doesn't re-run on a refresh
+  //       window.history.replaceState({}, document.title, window.location.pathname);
 
-        setIsConnectingInstagram(true); // Show a loading indicator
-        const toastId = toast.loading("Finalizing Instagram connection...");
+  //       setIsConnectingInstagram(true); // Show a loading indicator
+  //       const toastId = toast.loading("Finalizing Instagram connection...");
 
-        try {
-          // Send this temporary code to our backend to be exchanged for a real token
-          const response = await fetch('/api/integrations/instagram/exchange-code', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // In a real app, you might also send the societyId/userId here
-            body: JSON.stringify({ code }), 
-          });
+  //       try {
+  //         // Send this temporary code to our backend to be exchanged for a real token
+  //         const response = await fetch('/api/integrations/instagram/exchange-code', {
+  //           method: 'POST',
+  //           headers: { 'Content-Type': 'application/json' },
+  //           // In a real app, you might also send the societyId/userId here
+  //           body: JSON.stringify({ code }), 
+  //         });
 
-          if (response.ok) {
-            setInstagramConnected(true);
-            toast.success("Instagram connected successfully!", { id: toastId });
-          } else {
-            // Handle errors from our backend
-            const errorData = await response.json();
-            toast.error(errorData.error || "Failed to finalize connection.", { id: toastId });
-          }
-        } catch (error) {
-          toast.error("An error occurred. Please try again.", { id: toastId });
-        } finally {
-          setIsConnectingInstagram(false);
-        }
-      }
-    };
+  //         if (response.ok) {
+  //           setInstagramConnected(true);
+  //           toast.success("Instagram connected successfully!", { id: toastId });
+  //         } else {
+  //           // Handle errors from our backend
+  //           const errorData = await response.json();
+  //           toast.error(errorData.error || "Failed to finalize connection.", { id: toastId });
+  //         }
+  //       } catch (error) {
+  //         toast.error("An error occurred. Please try again.", { id: toastId });
+  //       } finally {
+  //         setIsConnectingInstagram(false);
+  //       }
+  //     }
+  //   };
 
-    handleInstagramRedirect();
-  }, []); // The empty array [] ensures this hook only runs once when the component mounts
+  //   handleInstagramRedirect();
+  // }, []); // The empty array [] ensures this hook only runs once when the component mounts
 
-  const handleInstagramConnect = async () => {
-    setIsConnectingInstagram(true)
+  // const handleInstagramConnect = async () => {
+  //   setIsConnectingInstagram(true)
 
-    try {
+  //   try {
 
-      // const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
-      const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=2556277784715839&redirect_uri=https://0e26c9e1feb8.ngrok-free.app/register/society&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
-      // Redirect the user to Instagram to authorize the app
-      window.location.href = authUrl;
-    } catch (error) {
-      toast.error("Error connecting to Instagram. Please try again.")
-    } finally {
-      setIsConnectingInstagram(false)
-    }
-  }
+  //     // const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID}&redirect_uri=${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+  //     const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=2556277784715839&redirect_uri=https://d101aac4d1da.ngrok-free.app/register/society&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+  //     // Redirect the user to Instagram to authorize the app
+  //     window.location.href = authUrl;
+  //   } catch (error) {
+  //     toast.error("Error connecting to Instagram. Please try again.")
+  //   } finally {
+  //     setIsConnectingInstagram(false)
+  //   }
+  // }
 
   const onSubmit = async (data: SocietyRegisterFormData) => {
     const toastId = toast.loading("Creating your society's account...")
@@ -181,6 +183,13 @@ export default function SocietyRegistrationForm() {
       const result = await res.json()
       if (result.success) {
         toast.success("Society successfully created!", { id: toastId })
+        try {
+          await signIn('credentials', {
+            redirect: false,
+            email: data.email,
+            password: data.password
+          });
+        } catch {}
         nextStep()
         sendVerificationEmail(data)
       } else {
@@ -445,48 +454,6 @@ export default function SocietyRegistrationForm() {
             />
           </div>
         </div>
-        <div className="mt-10 p-6 border border-gray-300 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10">
-          <h3 className="text-lg font-semibold text-white mb-3">Instagram Integration</h3>
-          <p className="text-gray-300 text-sm mb-4">
-            Connect your Instagram account to enable automatic event posting. Our AI will analyze your Instagram posts
-            and automatically create event listings for your society, saving you time and ensuring your events reach a
-            wider audience.
-          </p>
-          {!instagramConnected ? (
-            <Button
-			  variant="ghost"
-              type="button"
-              onClick={handleInstagramConnect}
-              disabled={isConnectingInstagram}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
-            >
-              {isConnectingInstagram ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
-                  </svg>
-                  Connect Instagram
-                </>
-              )}
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 text-green-400">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Instagram Connected Successfully!
-            </div>
-          )}
-        </div>
         <div className="mt-10">
           <label className="flex items-start">
             <input
@@ -517,6 +484,61 @@ export default function SocietyRegistrationForm() {
     )
   }
 
+  // const InstagramConnection = () => {
+  //   const { data: session, status } = useSession()
+  //   if (status != "authenticated") {
+  //     return <></>
+  //   }
+
+  //   useEffect(() => {
+
+  //   })
+  //   return (
+  //       <div className="mt-10 p-6 border border-gray-300 rounded-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+  //         <h3 className="text-lg font-semibold text-white mb-3">Instagram Integration</h3>
+  //         <p className="text-gray-300 text-sm mb-4">
+  //           Connect your Instagram account to enable automatic event posting. Our AI will analyze your Instagram posts
+  //           and automatically create event listings for your society, saving you time and ensuring your events reach a
+  //           wider audience.
+  //         </p>
+  //         {!instagramConnected ? (
+  //           <Button
+	// 		  variant="ghost"
+  //             type="button"
+  //             onClick={handleInstagramConnect}
+  //             disabled={isConnectingInstagram}
+  //             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+  //           >
+  //             {isConnectingInstagram ? (
+  //               <>
+  //                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+  //                 Connecting...
+  //               </>
+  //             ) : (
+  //               <>
+  //                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+  //                   <path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+  //                 </svg>
+  //                 Connect Instagram
+  //               </>
+  //             )}
+  //           </Button>
+  //         ) : (
+  //           <div className="flex items-center gap-2 text-green-400">
+  //             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+  //               <path
+  //                 fillRule="evenodd"
+  //                 d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+  //                 clipRule="evenodd"
+  //               />
+  //             </svg>
+  //             Instagram Connected Successfully!
+  //           </div>
+  //         )}
+  //       </div>
+  //   )
+  // }
+
   return (
     <main className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10">
       <div className="w-screen p-12 md:px-28">
@@ -527,9 +549,12 @@ export default function SocietyRegistrationForm() {
         {step === totalSteps && (
           <div className="text-center items-center flex flex-col">
             <h2 className="text-4xl font-semibold">Thank you for registering!</h2>
-            <p className="mt-4 text-gray-300">
+            <p className="mt-4 mb-10 text-gray-300">
               Please verify your email with the link we sent for full access to the LSN.
             </p>
+            <InstagramConnection />
+            <p className="mt-4">Do not worry if you cannot connect Instagram now - </p>
+            <p>you can always do it later from your account dashboard.</p>
           </div>
         )}
         {step !== totalSteps && (

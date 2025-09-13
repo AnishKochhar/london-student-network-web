@@ -883,3 +883,21 @@ export async function cleanupForgottenPasswordEmails() {
 		return { success: false, error: error.message };
 	}
 }
+
+export async function storeInstagramTokenInDatabase(userId: string, longLivedToken: string) {
+	try {
+		const result = await sql`
+			UPDATE society_information
+			SET long_term_access_token = ${longLivedToken}
+			WHERE user_id = ${userId}
+		`
+		if (result.rowCount && result.rowCount > 0) {
+			return { success: true };
+		} else {
+			return { success: false, error: 'No rows updated (user_id not found)' };
+		}
+	} catch (error) {
+		console.error('Error storing long term instagram token into database:', error);
+		return { success: false, error: error.message };		
+	}
+}

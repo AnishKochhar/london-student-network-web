@@ -1,10 +1,39 @@
+// import { storeInstagramToken, addUserToPollingList } from "@/lib/redis-helpers"
+import { storeInstagramTokenInRedis, addUserToPollingList } from "@/app/lib/redis-helpers"
+import { storeInstagramTokenInDatabase } from "@/app/lib/data"
+import { auth } from "@/auth";
+import { NextResponse } from "next/server";
+
 export async function POST(request: Request) {
   try {
-    const { code } = await request.json()
+    const { code, redirect_uri } = await request.json()
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (session.user?.role !== "organiser") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    console.log("THIS IS THE REDIRECT URI!!!", redirect_uri)
+
+    const userId = session.user?.id;
+    const name = session.user?.name;
 
     if (!code) {
-      return Response.json({ error: "Authorization code is missing." }, { status: 400 })
+      return NextResponse.json({ error: "Authorization code is missing." }, { status: 400 })
     }
+
+    if (!userId) {
+      return NextResponse.json({ error: "Please try again later. If the problem persists, contact us." }, { status: 400 })
+    }
+
+    if (!name) {
+      return NextResponse.json({ error: "Please try again later. If the problem persists, contact us." }, { status: 400 })
+    }
+
     console.log(code)
 
     // Step 1: Exchange the code for a short-lived access token
@@ -12,7 +41,7 @@ export async function POST(request: Request) {
       client_id: process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID!,
       client_secret: process.env.INSTAGRAM_APP_SECRET!,
       grant_type: "authorization_code",
-      redirect_uri: process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI!,
+      redirect_uri,
       code: code,
     })
 
@@ -42,17 +71,29 @@ export async function POST(request: Request) {
 
     const longLivedToken = longLivedTokenData.access_token
     console.log(longLivedToken)
-    // The long-lived token is valid for 60 days and can be refreshed.
 
-    // --- IMPORTANT ---
-    // At this point, you would securely save the `longLivedToken`
-    // in your database, associated with the current user/society.
-    // e.g., await db.updateSociety({ where: { id: societyId }, data: { instagramToken: longLivedToken } });
-    // ---
+    const currentTimestamp = Math.floor(Date.now() / 1000).toString()
+    const storedToken = await storeInstagramTokenInRedis(userId, name, longLivedToken, currentTimestamp)
 
-    return Response.json({ success: true })
+    if (!storedToken) {
+      throw new Error("Failed to store Instagram token in redis")
+    }
+
+    const result = await storeInstagramTokenInDatabase(userId, longLivedToken)
+    if (!result.success) {
+      throw new Error("Failed to store Instagram token in database")
+    }
+    // Add user to the polling list
+    const addedToPolling = await addUserToPollingList(userId)
+    if (!addedToPolling) {
+      console.warn(`Failed to add user ${userId} to polling list, but token was stored`)
+    }
+
+    console.log(`[v0] Successfully stored Instagram token for user ${userId} and added to polling list`)
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Instagram token exchange error:", error)
-    return Response.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Internal Server Error" }, { status: 500 })
   }
 }
