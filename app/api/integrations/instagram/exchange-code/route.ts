@@ -72,9 +72,21 @@ export async function POST(request: Request) {
     const longLivedToken = longLivedTokenData.access_token
     console.log(longLivedToken)
 
-    const currentTimestamp = Math.floor(Date.now() / 1000).toString()
-    const storedToken = await storeInstagramTokenInRedis(userId, name, longLivedToken, currentTimestamp)
+    // const currentTimestamp = Math.floor(Date.now() / 1000).toString()
+    // const storedToken = await storeInstagramTokenInRedis(userId, name, longLivedToken, currentTimestamp)
 
+    const expiresInSeconds = longLivedTokenData.expires_in;
+    const expiryTimestamp = Math.floor(Date.now() / 1000) + expiresInSeconds;
+    console.log(`Long-lived token acquired. Expires in: ${expiresInSeconds} seconds.`);
+
+    const currentTimestamp = Math.floor(Date.now() / 1000).toString()
+    const storedToken = await storeInstagramTokenInRedis(
+        userId,
+        name,
+        longLivedToken,
+        expiryTimestamp.toString(), // <-- Pass expiry timestamp
+        currentTimestamp
+    );
     if (!storedToken) {
       throw new Error("Failed to store Instagram token in redis")
     }

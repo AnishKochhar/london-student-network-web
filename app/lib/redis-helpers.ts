@@ -1,16 +1,26 @@
 import { redis } from "./config"
+import { FormData } from "./types"
 
 export interface InstagramJob {
+  media_url: string
   user_id: string
   post_id: string
   post_url: string
   caption: string
+  post_timestamp: string
+}
+
+export interface InstagramUserInfo {
+  access_token: string
+  last_polled_timestamp: string
+  name: string
+  unix_expiration_time: string
 }
 
 export interface ExtractedEvent {
   title: string
   description: string
-  organiser: string
+  organiser: string | null
   date: string
   start_time: string
   end_time: string
@@ -65,6 +75,7 @@ export async function storeInstagramTokenInRedis(
   userId: string,
   name: string,
   accessToken: string,
+  expiry: string,
   lastPolledTimestamp?: string,
 ): Promise<boolean> {
   try {
@@ -72,6 +83,7 @@ export async function storeInstagramTokenInRedis(
     const pipeline = redis.pipeline()
     pipeline.hset(userCacheKey, "access_token", accessToken)
     pipeline.hset(userCacheKey, "name", name)
+    pipeline.hset(userCacheKey, "unix_expiration_stamp", expiry)
     if (lastPolledTimestamp) {
       pipeline.hset(userCacheKey, "last_polled_timestamp", lastPolledTimestamp)
     } else {
@@ -87,10 +99,25 @@ export async function storeInstagramTokenInRedis(
 
 export async function getInstagramUserData(
   userId: string,
-): Promise<{ access_token?: string; last_polled_timestamp?: string } | null> {
+): Promise<{ access_token: string; last_polled_timestamp: string; name: string; unix_expiration_time: string } | null> {
   try {
     const userCacheKey = `user:${userId}:instagram`
-    return await redis.hgetall(userCacheKey)
+    const data = await redis.hgetall(userCacheKey)
+    // Validate that all required keys exist
+    if (
+      typeof data.access_token === "string" &&
+      typeof data.last_polled_timestamp === "string" &&
+      typeof data.name === "string" &&
+      typeof data.unix_expiration_stamp === "string"
+    ) {
+      return {
+        access_token: data.access_token,
+        last_polled_timestamp: data.last_polled_timestamp,
+        name: data.name,
+        unix_expiration_time: data.unix_expiration_stamp,
+      }
+    }
+    return null
   } catch (error) {
     console.error("Error getting Instagram user data:", error)
     return null
@@ -123,10 +150,32 @@ export async function getNextInstagramJob(): Promise<InstagramJob | null> {
   try {
     const jobData = await redis.rpop("instagram_jobs_queue")
     if (!jobData) return null
-    return JSON.parse(jobData)
+    return JSON.parse(jobData);
   } catch (error) {
     console.error("Error getting next Instagram job:", error)
     return null
+  }
+}
+
+export async function getGeminiInvocationStamp(): Promise<number> {
+  try {
+    const data = await redis.get("gemini:last_invocation");
+    if (!data) return null
+    const unixStamp = Number(data);
+    return isNaN(unixStamp) ? 0 : unixStamp;
+  } catch(error) {
+    console.error("Error getting gemini invocation timestamp:", error)
+    return null
+  }
+}
+
+export async function setGeminiInvocationStamp(unixStamp: number): Promise<boolean> {
+  try {
+    await redis.set("gemini:last_invocation", unixStamp.toString());
+    return true;
+  } catch (error) {
+    console.error("Error setting gemini invocation timestamp:", error);
+    return false;
   }
 }
 
@@ -140,7 +189,7 @@ export async function getInstagramJobsCount(): Promise<number> {
 }
 
 // Events Queue Management
-export async function addExtractedEvent(event: ExtractedEvent): Promise<boolean> {
+export async function addExtractedEvent(event: FormData): Promise<boolean> {
   try {
     await redis.lpush("extracted_events_queue", JSON.stringify(event))
     return true
@@ -150,7 +199,7 @@ export async function addExtractedEvent(event: ExtractedEvent): Promise<boolean>
   }
 }
 
-export async function getNextExtractedEvent(): Promise<ExtractedEvent | null> {
+export async function getNextExtractedEvent(): Promise<FormData | null> {
   try {
     const eventData = await redis.rpop("extracted_events_queue")
     if (!eventData) return null

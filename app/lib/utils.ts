@@ -419,9 +419,3 @@ export function generateToken(): string {
 
 	return token;
 }
-
-export function validateAndFormatEvent(event: ExtractedEvent) {
-	if (!event.title || event.organiser) {
-		return null
-	}
-}
