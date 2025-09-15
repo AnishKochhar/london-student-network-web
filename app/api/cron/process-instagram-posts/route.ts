@@ -5,7 +5,6 @@ import { GoogleGenAI, Type, Schema } from "@google/genai"
 import { FormData } from "@/app/lib/types"
 
 // Environment variables for authentication and AI
-const CRON_SECRET = process.env.CRON_SECRET
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
 
 const eventSchema: Schema = {
@@ -31,12 +30,12 @@ const eventSchema: Schema = {
 
 // const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null
 const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest) { // cron requests must be GET
   // Verify cron secret for security
   // const authHeader = request.headers.get("authorization")
-  // const expectedAuth = `Bearer ${CRON_SECRET}`
+  // const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
 
-  // if (!CRON_SECRET || authHeader !== expectedAuth) {
+  // if (!process.env.CRON_SECRET || authHeader !== expectedAuth) {
   //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   // }
 
@@ -52,17 +51,19 @@ export async function GET(request: NextRequest) {
 
   const GEMINI_RATE_LIMIT_KEY = "gemini:last_invocation";
   const TWO_MINUTES = 2 * 60; // seconds
+  const EIGHT_MINUTES = 8 * 60;
   const ONE_SECOND = 1
 
   // Get last invocation unix timestamp from Redis
   const lastInvocationUnix = await getGeminiInvocationStamp();
   const currentUnix = Math.floor(Date.now() / 1000);
 
+  // if (currentUnix - lastInvocationUnix < EIGHT_MINUTES) {
   // if (currentUnix - lastInvocationUnix < TWO_MINUTES) {
   if (currentUnix - lastInvocationUnix < ONE_SECOND) {
     return NextResponse.json({
       status: "internal limiter avoided gemini call",
-      message: `Gemini invocation allowed only once every 1.49 minutes. Last run: ${lastInvocationUnix}, now: ${currentUnix}`,
+      message: `Gemini invocation allowed only once every 6 minutes. Last run: ${lastInvocationUnix}, now: ${currentUnix}. Please wait a full 8 minutes for safety.`,
       next_allowed_unix: lastInvocationUnix + TWO_MINUTES,
       processed_posts: 0,
     }, { status: 429 });

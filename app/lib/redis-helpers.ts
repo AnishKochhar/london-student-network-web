@@ -229,3 +229,14 @@ export async function checkRedisConnection(): Promise<boolean> {
     return false
   }
 }
+
+export async function disconnectInstagram(userId: string): Promise<{ success: boolean }> {
+  try {
+    await redis.lrem("polling_list", 0, userId);
+    await redis.del(`user:${userId}:instagram`);
+    return { success: true }
+  } catch (error) {
+    console.error("Error trying to disconnect:", error);
+    return { success: false }
+  }
+}

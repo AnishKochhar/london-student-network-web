@@ -51,10 +51,33 @@ export async function fetchEvents() {
 	}
 }
 
+// export interface SQLEvent {
+// 	id: string;
+// 	title: string;
+// 	description: string;
+// 	organiser: string;
+// 	organiser_uid: string;
+// 	start_time: string;
+// 	end_time: string;
+// 	day: number;
+// 	month: number;
+// 	year: number;
+// 	location_building: string;
+// 	location_area: string;
+// 	location_address: string;
+// 	image_url: string;
+// 	image_contain: boolean;
+// 	event_type: number;
+// 	capacity?: number;
+// 	sign_up_link?: string;
+// 	for_externals?: string;
+// }
+
 export async function fetchAllUpcomingEvents() {
 	try {
 		const data = await sql<SQLEvent>`
-			SELECT * FROM events
+			SELECT id, title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, image_contain, event_type, capacity, sign_up_link, for_externals 
+			FROM events
 			WHERE (year, month, day) >= (EXTRACT(YEAR FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_DATE))
 			ORDER BY year, month, day
 		`;
@@ -68,7 +91,8 @@ export async function fetchAllUpcomingEvents() {
 export async function fetchUpcomingEvents() {
 	try {
 		const data = await sql<SQLEvent>`
-			SELECT * FROM events
+			SELECT id, title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, image_contain, event_type, capacity, sign_up_link, for_externals 
+			FROM events
 			WHERE (year, month, day) >= (EXTRACT(YEAR FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_DATE))
 			ORDER BY year, month, day
 			LIMIT 5
@@ -82,8 +106,9 @@ export async function fetchUpcomingEvents() {
 
 export async function fetchUserEvents(organiser_uid: string) {
 	try {
-        const events = await sql`
-            SELECT * FROM events
+        const events = await sql<SQLEvent>`
+			SELECT id, title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, image_contain, event_type, capacity, sign_up_link, for_externals 
+			FROM events
             WHERE organiser_uid = ${organiser_uid}
             ORDER BY start_time ASC
         `;
@@ -99,7 +124,7 @@ export async function fetchUserEvents(organiser_uid: string) {
 export async function fetchEventById(id: string) {
 	try {
 		const data = await sql<SQLEvent>`
-			SELECT *
+			SELECT id, title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, image_contain, event_type, capacity, sign_up_link, for_externals 
 			FROM events
 			WHERE id::text LIKE '%' || ${id};
 		`;
@@ -113,7 +138,7 @@ export async function fetchEventById(id: string) {
 export async function fetchSQLEventById(id: string) {
 	try {
 		const data = await sql<SQLEvent>`
-			SELECT *
+			SELECT id, title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, image_contain, event_type, capacity, sign_up_link, for_externals 
 			FROM events
 			WHERE id::text LIKE '%' || ${id};
 		`;
@@ -127,7 +152,8 @@ export async function fetchSQLEventById(id: string) {
 export async function fetchEventWithUserId(event_id: string, user_id: string) {
 	try {
 		const data = await sql<SQLEvent>`
-			SELECT * FROM events
+			SELECT id, title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, image_contain, event_type, capacity, sign_up_link, for_externals 
+			FROM events
 			WHERE organiser_uid = ${user_id} AND id = ${event_id}
 			LIMIT 1
 		`;
@@ -148,7 +174,8 @@ export async function fetchBase16ConvertedEventWithUserId(event_id: string, user
 	try {
 		const pattern = `%${event_id}%`;
 		const data = await sql<SQLEvent>`
-			SELECT * FROM events
+			SELECT id, title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, image_contain, event_type, capacity, sign_up_link, for_externals 
+			FROM events
 			WHERE organiser_uid = ${user_id} AND id::text LIKE ${pattern}
 			LIMIT 1
 		`;
@@ -164,12 +191,19 @@ export async function fetchBase16ConvertedEventWithUserId(event_id: string, user
 	}
 }
 
-export async function insertEvent(event: SQLEvent) {
+export async function insertEvent(event: SQLEvent, fromInstagram: boolean = false) {
 	try {
-		await sql`
-		INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals, capacity, image_contain)
-		VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null}, ${event.capacity ?? null}, ${event.image_contain})
-		`
+		if (fromInstagram) {
+			await sql`
+				INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals, capacity, image_contain, from_instagram)
+				VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null}, ${event.capacity ?? null}, ${event.image_contain}, true)
+			` 
+		} else {
+			await sql`
+				INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals, capacity, image_contain)
+				VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null}, ${event.capacity ?? null}, ${event.image_contain})
+			`
+		}
 		return { success: true };
 	} catch (error) {
 		console.error('Error creating event:', error);
@@ -529,6 +563,34 @@ export async function insertOrganiserInformation(formData: SocietyRegisterFormDa
 }
 
 
+// export async function getAllCompanyInformation() {
+// 	try {
+// 		const data = await sql`
+// 			SELECT
+// 					c.id,
+// 					u.name AS company_name, 
+// 					COALESCE(c.contact_email, u.email) AS contact_email,
+// 					COALESCE(c.description, u.description) AS description,
+// 					c.motivation,
+// 					c.contact_name,
+// 					COALESCE(c.website, u.website) AS website,
+// 					COALESCE(c.logo_url, u.logo_url) AS logo_url
+// 			FROM 
+// 					users AS u 
+// 			JOIN 
+// 					company_information AS c ON u.id = c.user_id
+// 			WHERE 
+// 					u.role = 'company'
+// 			AND u.name != 'TEST COMPANY';
+// 		`
+// 		return data.rows.map(it => it as CompanyInformation)
+// 	}
+// 	catch (error) {
+// 		console.log("Database error:", error)
+// 		throw new Error("Error fetching all company information")
+// 	}
+// }
+
 export async function getAllCompanyInformation() {
 	try {
 		const data = await sql`
@@ -536,11 +598,11 @@ export async function getAllCompanyInformation() {
 					c.id,
 					u.name AS company_name, 
 					COALESCE(c.contact_email, u.email) AS contact_email,
-					COALESCE(c.description, u.description) AS description,
+					c.description,
 					c.motivation,
 					c.contact_name,
-					COALESCE(c.website, u.website) AS website,
-					COALESCE(c.logo_url, u.logo_url) AS logo_url
+					c.website,
+					c.logo_url
 			FROM 
 					users AS u 
 			JOIN 
@@ -900,4 +962,46 @@ export async function storeInstagramTokenInDatabase(userId: string, longLivedTok
 		console.error('Error storing long term instagram token into database:', error);
 		return { success: false, error: error.message };		
 	}
+}
+
+export async function disconnectInstagramDB(userId: string): Promise<{ success: boolean }> {
+	try {
+		await sql`
+			UPDATE society_information
+			SET long_term_access_token = NULL
+			WHERE user_id = ${userId}
+		`;
+		return { success: true }
+	} catch (error) {
+		console.error("Error trying to delete database data:", error);
+		return { success: false }
+	}
+}
+
+// export async function deleteInstagramDataDB(userId: string): Promise<{ success: boolean }> {
+// 	try {
+// 		await sql`
+// 			UPDATE society_information
+// 			SET long_term_access_token = NULL
+// 			WHERE user_id = ${userId}
+// 		`;
+// 		return { success: true }
+// 	} catch (error) {
+// 		console.error("Error trying to delete database data:", error);
+// 		return { success: false }
+// 	}
+// }
+
+export async function deleteInstagramDataDB(userId: string): Promise<{ success: boolean }> {
+    try {
+        await sql`
+            DELETE FROM events
+            WHERE organiser_uid = ${userId} AND from_instagram = true
+        `;
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error trying to delete Instagram database data:", error);
+        return { success: false };
+    }
 }

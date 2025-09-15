@@ -1,30 +1,49 @@
 import { insertEvent } from '@/app/lib/data';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { createSQLEventObject } from '@/app/lib/utils';
 import { FormData } from '@/app/lib/types';
-import { redis } from '@/app/lib/redis-helpers';
+import { getNextExtractedEvent } from '@/app/lib/redis-helpers';
 
-export async function POST(req: Request) {
-  // Get up to 10 events from the Redis list
+export async function GET(request: NextRequest) { // cron requests must be GET
+  try {
+//   Verify cron secret for security
+//   const authHeader = request.headers.get("authorization")
+//   const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
+
+//   if (!process.env.CRON_SECRET || authHeader !== expectedAuth) {
+//     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+//   }
   const events: FormData[] = [];
-  for (let i = 0; i < 10; i++) {
-    const raw = await redis.lpop('extracted_events_queue');
-    if (!raw) break;
+  const maxEventsToPush = 10;
+  for (let i = 0; i < maxEventsToPush; i++) {
+    const event = await getNextExtractedEvent();
+    if (!event) {
+        console.error('Error with getting next extracted event, to push to LSN db.');
+        break;
+    }
     try {
-      events.push(JSON.parse(raw));
+      events.push(event);
     } catch (e) {
       console.error('Failed to parse event from queue:', e);
     }
   }
 
   // Insert each event into the database
-  const results = [];
+  let successful = 0;
+  let totalAttempted = 0;
   for (const data of events) {
     const sqlEvent = await createSQLEventObject(data);
-    const response = await insertEvent(sqlEvent);
-    results.push(response.success);
+    const response = await insertEvent(sqlEvent, true);
+    if (response.success) {
+        successful++;
+    }
+    totalAttempted++;
     console.log(response.success);
   }
 
-  return NextResponse.json({ inserted: results.length, results }, { status: 200 });
+  return NextResponse.json({ successfulAttempts: successful, totalAttempts: totalAttempted }, { status: 200 });
+  } catch (error) {
+    console.error("Error in push-extracted-events route:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
