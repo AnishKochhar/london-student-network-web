@@ -288,6 +288,97 @@ export interface WebsiteStats {
 	total_societies: string;
 }
 
+export interface ForumPost {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  avatar: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  replies: Reply[];
+  replyCount: number;
+  tags: string[];
+  userVote?: string | null;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+  authorId?: string;
+}
+
+export interface Reply {
+  id: number;
+  author: string;
+  avatar: string;
+  content: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  userVote?: string | null;
+  parent_id?: number | null;
+  replyCount?: number;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+  authorId: string;
+}
+
+export interface ThreadData {
+  id: number;
+  title: string;
+  content: string;
+  author: string;
+  avatar: string;
+  timeAgo: string;
+  upvotes: number;
+  downvotes: number;
+  replies: Reply[];
+  replyCount: number;
+  tags: string[];
+  userVote?: string | null;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+  authorId?: string;
+  totalReplies?: number; 
+}
+
+export interface TrendingTopic {
+  name: string;
+  count: number;
+}
+
+export interface FeaturedUser {
+  username: string;
+  status: 'online' | 'featured';
+}
+
+export type ViewContext = 
+  | { type: 'thread'; threadId: number }
+  | { type: 'comment'; threadId: number; commentId: number; comment: Reply; parentComment?: Reply };
+
+  export interface ThreadUpdateData {
+  title?: string;
+  content?: string;
+  tags?: string[];
+  upvotes?: number;
+  downvotes?: number;
+  userVote?: 'upvote' | 'downvote' | null;
+  replies?: Reply[];
+  replyCount?: number;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+}
+
+// Comment/reply update types
+export interface CommentUpdateData {
+  content?: string;
+  upvotes?: number;
+  downvotes?: number;
+  userVote?: string | null;
+  replyCount?: number;
+  wasEdited?: boolean;
+  editedTimeAgo?: string;
+}
+
 export const DefaultEvent: Event = {
 	id: '',
 	title: 'Sample Event',

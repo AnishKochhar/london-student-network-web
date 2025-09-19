@@ -768,3 +768,144 @@ export async function cleanupForgottenPasswordEmails() {
 		return { success: false, error: error.message };
 	}
 }
+
+export async function getAllThreads() {
+	try {
+		const data = await sql`
+			SELECT 
+			    id,
+				title, 
+				content,
+				author_id,
+				created_at AT TIME ZONE 'UTC' as created_at,
+				updated_at AT TIME ZONE 'UTC' as updated_at,
+				upvotes,
+				downvotes
+			FROM threads
+			ORDER BY created_at DESC;
+		`;
+		return data.rows;
+	} catch (error) {
+		console.error('Error fetching all threads:', error);
+		throw new Error('Failed to fetch threads');
+	}
+}
+
+export async function getUserbyID(userId: string) {
+	try {
+		const data = await sql`
+			SELECT id, name, email
+			FROM users
+			WHERE id = ${userId}
+			LIMIT 1;
+		`;
+		return data.rows[0];
+	} catch (error) {
+		console.error('Error fetching user by ID:', error);
+		throw new Error('Failed to fetch user by ID');
+	}
+}
+
+export async function getTagsbyThreadId(threadId: string) {
+	try {
+		const data = await sql`
+			SELECT ft.id, ft.name
+			FROM thread_tags tt
+			JOIN forum_tags ft ON tt.forum_tag_id = ft.id
+			WHERE tt.thread_id = ${threadId}
+			ORDER BY ft.name ASC;
+		`;
+		return data.rows;
+	} catch (error) {
+		console.error('Error fetching tags by thread ID:', error);
+		throw new Error('Failed to fetch tags for thread');
+	}
+}
+
+export async function addVotetoThread(threadId: string, userId: string, voteType: 'upvote' | 'downvote') {
+  try {
+    // First, check if the user has already voted on this thread
+    const existingVote = await sql`
+      SELECT vote_type FROM thread_votes 
+      WHERE thread_id = ${threadId} AND user_id = ${userId}
+    `;
+    
+    const hasExistingVote = existingVote.rows.length > 0;
+    const existingVoteType = hasExistingVote ? existingVote.rows[0].vote_type : null;
+    
+    // Begin transaction
+    await sql`BEGIN`;
+    
+    if (hasExistingVote) {
+      if (existingVoteType === voteType) {
+        // User is un-voting (clicking the same button again)
+
+		// Decrement the vote count
+		await sql`
+		  UPDATE threads
+		  SET upvotes = upvotes - 1
+		  WHERE id = ${threadId}
+		`;
+
+        await sql`
+          DELETE FROM thread_votes
+          WHERE thread_id = ${threadId} AND user_id = ${userId}
+        `;
+        
+      } else {
+        // User is changing their vote
+        await sql`
+          UPDATE thread_votes
+          SET vote_type = ${voteType}
+          WHERE thread_id = ${threadId} AND user_id = ${userId}
+        `;
+        
+        // Decrement old vote type and increment new vote type
+        await sql`
+          UPDATE threads
+          SET 
+            ${existingVoteType === 'upvote' ? `upvotes = upvotes - 1` : `downvotes = downvotes - 1`},
+            ${voteType === 'upvote' ? `upvotes = upvotes + 1` : `downvotes = downvotes + 1`}
+          WHERE id = ${threadId}
+        `;
+      }
+    } else {
+      // User is voting for the first time
+      await sql`
+        INSERT INTO thread_votes (thread_id, user_id, vote_type)
+        VALUES (${threadId}, ${userId}, ${voteType})
+      `;
+      
+      // Increment vote count
+	await sql`
+		UPDATE threads
+		SET upvotes = upvotes + 1
+		WHERE id = ${threadId}
+	`;
+    }
+    
+    // Commit transaction
+    await sql`COMMIT`;
+    
+    return { success: true };
+  } catch (error) {
+    // Rollback on error
+    await sql`ROLLBACK`;
+    console.error('Error adding vote to thread:', error);
+    return { success: false, error };
+  }
+}
+
+export async function getReplyCountByThreadId(threadId: string) {
+	try {
+		const data = await sql`
+			SELECT COUNT(*) AS reply_count
+			FROM comments
+			WHERE thread_id = ${threadId} AND parent_id IS NULL;
+		`;
+		return data.rows[0].reply_count;
+	} catch (error) {
+		console.error('Error fetching reply count by thread ID:', error);
+		throw new Error('Failed to fetch reply count for thread');
+	}
+}

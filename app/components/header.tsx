@@ -15,18 +15,24 @@ const navLinks = [
 	{ href: "/events", label: "Events" },
 	{ href: "/sponsors", label: "Sponsors" },
 	{ href: "/societies", label: "Societies" },
-	{ href: "/jobs", label: "Jobs" },
+	{ href: "/forum", label: "Forum" },
+	{ href: "/jobs", label: "Jobs", hideOnMedium: true },
 	{ href: "/about", label: "About" },
-	{ href: "/contact", label: "Contact Us" },
+	{ href: "/contact", label: "Contact Us", hideOnMedium: true },
 ]
 
-function NavLinks({ className, onClick }: { className?: string; onClick?: () => void }) {
+function NavLinks({ className, onClick, showAll = false }: { className?: string; onClick?: () => void; showAll?: boolean }) {
 	const pathname = usePathname()
+
+	// Filter links based on showAll prop (for mobile menu vs desktop nav)
+	const visibleLinks = showAll
+		? navLinks
+		: navLinks.filter(link => !link.hideOnMedium)
 
 	return (
 		<LayoutGroup>
 			<ul className={clsx(className, "items-center text-white")}>
-				{navLinks.map((link) => (
+				{visibleLinks.map((link) => (
 					<motion.li
 						key={link.href}
 						className="relative"
@@ -37,7 +43,7 @@ function NavLinks({ className, onClick }: { className?: string; onClick?: () => 
 							href={link.href}
 							onClick={onClick}
 							className={clsx(
-								"block py-2 transition-all md:text-xl",
+								"block py-2 transition-all md:text-lg lg:text-xl",
 								pathname === link.href ? "underline" : "no-underline",
 								"hover:underline",
 							)}
@@ -71,11 +77,11 @@ function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
 				</Button>
 			</div>
 			<div className="flex-grow flex flex-col justify-center">
-				<NavLinks onClick={closeMenu} className="flex flex-col items-start space-y-6 text-3xl" />
+				<NavLinks onClick={closeMenu} showAll={true} className="flex flex-col items-start space-y-6 text-2xl" />
 			</div>
 			<div className="flex flex-col items-end py-8 space-y-4">
 				{session?.user && (
-					<Link href="/account" onClick={closeMenu} className="py-2 text-xl text-#[a3a3a3] hover:cursor-pointer hover:text-gray-100">
+					<Link href="/account" onClick={closeMenu} className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100">
 							My Account
 						</Link>
 				)}
@@ -92,11 +98,11 @@ export default function Header() {
 	const closeMenu = () => setIsMenuOpen(false)
 
 	return (
-		<header className="sticky top-0 left-0 w-full backdrop-blur border-b-2 border-gray-300 border-opacity-25 flex justify-between items-center px-8 shadow-md text-white bg-[#041A2E]/80 z-40">
+		<header className="sticky top-0 left-0 w-full backdrop-blur border-b-2 border-gray-300 border-opacity-25 flex justify-between items-center px-4 md:px-6 lg:px-8 shadow-md text-white bg-[#041A2E]/80 z-40">
 			<Logo closeMenu={closeMenu} />
 
 			<nav className="hidden md:flex">
-				<NavLinks className="flex space-x-8" />
+				<NavLinks className="flex space-x-4 lg:space-x-6 xl:space-x-8" />
 			</nav>
 
 			<div className="flex items-center space-x-4">
