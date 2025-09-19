@@ -60,7 +60,7 @@ function ReplyForm({
                         >
                             {isSubmitting ? (
                                 <>
-                                    <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-white/30 border-b-white rounded-full animate-spin"></div>
                                     Sending...
                                 </>
                             ) : (

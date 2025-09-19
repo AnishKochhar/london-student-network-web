@@ -199,10 +199,11 @@ export default function ForumPage() {
                     activeFilters={activeFilters}
                     onAddFilter={handleAddFilter}
                     onRemoveFilter={handleRemoveFilter}
+                    isLoggedIn={!!session}
                 />
                 {isLoading ? (
                     <div className="flex justify-center items-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                     </div>
                 ) : error ? (
                     <div className="text-center py-12 text-red-300">
@@ -241,7 +242,7 @@ export default function ForumPage() {
                                 className="py-4 flex justify-center"
                             >
                                 {isLoadingMore ? (
-                                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                                 ) : (
                                     <button
                                         onClick={loadMorePosts}

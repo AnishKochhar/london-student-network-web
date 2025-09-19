@@ -208,7 +208,7 @@ const ReplyList = ({
                     {listTitle}
                 </h3>
                 <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                 </div>
             </div>
         );
@@ -259,7 +259,7 @@ const ReplyList = ({
                     <div ref={loadMoreRef} className="py-4 text-center">
                         {isLoadingMore ? (
                             <div className="flex justify-center items-center">
-                                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
+                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                             </div>
                         ) : (
                             <button

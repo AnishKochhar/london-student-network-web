@@ -24,6 +24,7 @@ interface ForumControlsProps {
     activeFilters?: ActiveFilter[];
     onAddFilter?: (filter: ActiveFilter) => void;
     onRemoveFilter?: (filterId: string) => void;
+    isLoggedIn?: boolean;
 }
 
 export default function ForumControls({
@@ -35,12 +36,17 @@ export default function ForumControls({
     activeFilters = [],
     onAddFilter,
     onRemoveFilter,
+    isLoggedIn = false,
 }: ForumControlsProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const sortOptions = ["Newest First", "Most Popular", "Most Replies"];
 
     const handleAddMyThreadsFilter = () => {
+        if (!isLoggedIn) {
+            // Do nothing if not logged in - the button should be disabled
+            return;
+        }
         if (onAddFilter && !activeFilters.some((f) => f.type === "myThreads")) {
             onAddFilter({
                 id: "my-threads",
@@ -55,14 +61,22 @@ export default function ForumControls({
         <div className="flex flex-col gap-3 mb-6 relative z-20">
             <div className="flex flex-col sm:flex-row gap-3 items-center">
                 {/* Search input - takes remaining space */}
-                <div className="w-full flex-1">
+                <div className="w-full flex-1 relative">
                     <input
                         type="text"
                         placeholder="Search threads, topics, or users..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full px-3 py-2 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="w-full px-3 py-2 pr-10 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm("")}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                        >
+                            <XMarkIcon className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Advanced Filters Toggle */}
@@ -148,15 +162,22 @@ export default function ForumControls({
             {showAdvancedFilters && (
                 <div className="bg-white/5 backdrop-blur border border-white/20 rounded-lg p-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <button
-                            onClick={handleAddMyThreadsFilter}
-                            disabled={activeFilters.some(
-                                (f) => f.type === "myThreads",
-                            )}
-                            className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            My Threads
-                        </button>
+                        <div className="relative">
+                            <button
+                                onClick={handleAddMyThreadsFilter}
+                                disabled={!isLoggedIn || activeFilters.some((f) => f.type === "myThreads")}
+                                className={`w-full px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                                    !isLoggedIn
+                                        ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
+                                        : activeFilters.some((f) => f.type === "myThreads")
+                                        ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
+                                        : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
+                                }`}
+                                title={!isLoggedIn ? "Log in to use" : undefined}
+                            >
+                                My Threads
+                            </button>
+                        </div>
                         <div className="text-white/60 text-sm flex items-center justify-center">
                             More filters coming soon...
                         </div>
