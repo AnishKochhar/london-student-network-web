@@ -15,7 +15,7 @@ import ModernTagsSelect from "./modern-tags-select";
 import ErrorModal from "./error-modal";
 import { EyeIcon, EyeSlashIcon, ArrowUpTrayIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { upload } from '@vercel/blob/client';
-import Select from 'react-select';
+
 import Image from 'next/image';
 
 export default function ModernSocietyRegistration() {
@@ -26,7 +26,7 @@ export default function ModernSocietyRegistration() {
 	const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '' });
 	const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
 	const [predefinedTags, setPredefinedTags] = useState([]);
-	const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+	
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const totalSteps = 5;
 
@@ -110,13 +110,13 @@ export default function ModernSocietyRegistration() {
 	const canContinue = () => {
 		switch (currentStep) {
 			case 1:
-				return watchedValues.name && watchedValues.hasAgreedToTerms;
+				return !!(watchedValues.name && watchedValues.hasAgreedToTerms);
 			case 2:
-				return watchedValues.email && !errors.email;
+				return !!(watchedValues.email && !errors.email);
 			case 3:
-				return watchedValues.password && watchedValues.confirmPassword && !errors.password && !errors.confirmPassword;
+				return !!(watchedValues.password && watchedValues.confirmPassword && !errors.password && !errors.confirmPassword);
 			case 4:
-				return watchedValues.university && (watchedValues.university !== 'Other (please specify)' || watchedValues.otherUniversity);
+				return !!(watchedValues.university && (watchedValues.university !== 'Other (please specify)' || watchedValues.otherUniversity));
 			case 5:
 				return true;
 			default:
@@ -127,14 +127,14 @@ export default function ModernSocietyRegistration() {
 	const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
 		if (file) {
-			setUploadedImage(file);
+			
 			setValue('uploadedImage', file);
 			setPreviewImage(URL.createObjectURL(file));
 		}
 	};
 
 	const clearUploadedImage = () => {
-		setUploadedImage(null);
+		
 		setValue('uploadedImage', null);
 		setPreviewImage(null);
 	};

@@ -97,17 +97,17 @@ export default function ModernStudentRegistration() {
 	const canContinue = () => {
 		switch (currentStep) {
 			case 1:
-				return watchedValues.firstname && watchedValues.surname && watchedValues.hasAgreedToTerms;
+				return !!(watchedValues.firstname && watchedValues.surname && watchedValues.hasAgreedToTerms);
 			case 2:
-				return watchedValues.email && !errors.email;
+				return !!(watchedValues.email && !errors.email);
 			case 3:
-				return watchedValues.password && watchedValues.confirmPassword && !errors.password && !errors.confirmPassword;
+				return !!(watchedValues.password && watchedValues.confirmPassword && !errors.password && !errors.confirmPassword);
 			case 4:
-				return watchedValues.gender && watchedValues.dob;
+				return !!(watchedValues.gender && watchedValues.dob);
 			case 5:
-				return watchedValues.university && (watchedValues.university !== 'Other (please specify)' || watchedValues.otherUniversity);
+				return !!(watchedValues.university && (watchedValues.university !== 'Other (please specify)' || watchedValues.otherUniversity));
 			case 6:
-				return watchedValues.graduationYear && watchedValues.degreeCourse && watchedValues.levelOfStudy;
+				return !!(watchedValues.graduationYear && watchedValues.degreeCourse && watchedValues.levelOfStudy);
 			case 7:
 				return true;
 			default:

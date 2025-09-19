@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from 'react';
-import { motion, useScroll, useSpring, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 
 function VelocityItem({ children }: { children: React.ReactNode }) {
   return (
@@ -14,16 +14,11 @@ function VelocityItem({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function VelocityScroll({ items, default_velocity = 5, ...props }: { items: { name: string }[], default_velocity?: number, [key: string]: any }) {
+export function VelocityScroll({ items, ...props }: { items: { name: string }[], [key: string]: unknown }) {
   const { scrollY } = useScroll();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const smoothVelocity = useSpring(useTransform(scrollY, [0, 1000], [0, 5], { clamp: false }), {
-    damping: 50,
-    stiffness: 400,
-  });
-
-  const velocity = useTransform(smoothVelocity, [0, 1000], [0, 5], { clamp: false });
+  
 
   const x = useTransform(scrollY, (v) => `${-v}px`);
 

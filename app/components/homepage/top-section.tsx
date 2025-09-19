@@ -3,12 +3,12 @@ import { AnimatedShinyText } from "@/app/components/animated-shiny-text";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import Link from "next/link"
 import clsx from "clsx"
-import Image from "next/image"
+
 import NotificationView from "./notification-view"
 import UpcomingEventsSection from "./events-section"
 import { Suspense } from "react"
 import Statistics from "./statistics"
-import BackgroundImage from "@/app/components/background-image"
+
 
 import ForStudentsClient from "./for-students-client"
 import ForSocietiesClient from "./for-societies-client"

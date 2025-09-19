@@ -5,9 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from "@/app/components/button"
 import { Input } from "@/app/components/input"
-import { Label } from "@/app/components/ui/label"
-import { Textarea } from "@/app/components/ui/textarea"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip"
+
 import { Send } from "lucide-react"
 import { motion, useInView } from 'framer-motion'
 
@@ -74,6 +72,7 @@ export default function Footer() {
 							<Button
 								type="submit"
 								size="sm"
+								variant="filled"
 								className="absolute right-1 top-1 px-2 rounded-md hover:bg-blue-700 transition-all flex items-center"
 							>
 								<Send className="h-3 w-3" />

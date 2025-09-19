@@ -1,7 +1,6 @@
 "use client";
 
-import { SocietyLogos, SponsorsInformation, LondonUniversities } from "@/app/lib/utils"
-import { cn } from "@/app/lib/utils"
+import { SocietyLogos, LondonUniversities } from "@/app/lib/utils"
 import { VelocityScroll } from "../velocity-scroll";
 import { AnimatedShinyText } from "@/app/components/animated-shiny-text";
 
@@ -18,7 +17,7 @@ export default function ScrollingPartnersSection() {
 				<VelocityScroll items={societies} default_velocity={0.2} className="font-display text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-[-0.02em] text-white md:leading-[5rem] gap-x-4 md:gap-x-8" />
 				<div className="h-8" />
 				<AnimatedShinyText className="text-4xl md:text-6xl text-center font-bold tracking-[-0.02em]">
-					Universities We're At
+					Universities We&apos;re At
 				</AnimatedShinyText>
 				<VelocityScroll items={universities} default_velocity={-0.2} className="font-display text-center text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-[-0.02em] text-white md:leading-[5rem] gap-x-4 md:gap-x-8" />
 			</div>

@@ -227,24 +227,19 @@ export default function EventInfo() {
 							</button>
 
 						</div>
-						<hr className="border-t-1 border-gray-300 m-2" />
-						<div className="w-full flex flex-row justify-center">
-							<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
-								onClick={
-									() => {
-										if (isOrganiser.current) {
-											setViewEmailSending(true)} 
-										else {
-											toast.error("Only the organiser of the event can send emails to attendees")
-										}
-									}
-								}
-							>
-								{!isOrganiser.current && <LockClosedIcon width={20} height={20} className='pr-2' />}
-								Press here to send emails to all the attendees
-								{isOrganiser.current && <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />}
-							</button>
-						</div>
+						{isOrganiser.current && (
+							<>
+								<hr className="border-t-1 border-gray-300 m-2" />
+								<div className="w-full flex flex-row justify-center">
+									<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
+										onClick={() => setViewEmailSending(true)}
+									>
+										Press here to send emails to all the attendees
+										<ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
+									</button>
+								</div>
+							</>
+						)}
 					</div>
 				</div>
 			</div>

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CompanyInformation } from '@/app/lib/types';
 import { X } from 'lucide-react';
+import Image from 'next/image';
 
 interface SponsorModalProps {
     sponsor: CompanyInformation;
@@ -47,10 +48,12 @@ export default function SponsorModal({ sponsor, onClose }: SponsorModalProps) {
                 <div className="flex flex-col md:flex-row gap-8 items-center">
                     {sponsor.logo_url && (
                         <div className="w-32 h-32 flex-shrink-0 bg-white/10 rounded-lg flex items-center justify-center p-4">
-                            <img 
+                            <Image 
                                 src={sponsor.logo_url} 
                                 alt={`${sponsor.company_name} logo`} 
-                                className="max-w-full max-h-full object-contain"
+                                width={128}
+                                height={128}
+                                className="object-contain"
                             />
                         </div>
                     )}

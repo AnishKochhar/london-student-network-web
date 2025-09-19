@@ -1,7 +1,7 @@
 import { Badge, type BadgeProps } from '@/app/components/ui/badge';
 import { cn } from '@/app/lib/utils';
 import { type HTMLAttributes, createContext, useContext } from 'react';
-import { motion } from 'framer-motion';
+
 
 type BadgeContextType = {
 	themed: boolean;
@@ -40,7 +40,7 @@ export const Announcement = ({
 				themed && 'border-foreground/5',
 				className
 			)}
-			whileHover={{ y: 5 }}
+			
 			{...props}
 		/>
 	</BadgeContext.Provider>

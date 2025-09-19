@@ -75,11 +75,9 @@ function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
 			</div>
 			<div className="flex flex-col items-end py-8 space-y-4">
 				{session?.user && (
-					<Button variant="ghost" asChild>
-						<Link href="/account" onClick={closeMenu} className="py-2 text-xl">
+					<Link href="/account" onClick={closeMenu} className="py-2 text-xl text-#[a3a3a3] hover:cursor-pointer hover:text-gray-100">
 							My Account
 						</Link>
-					</Button>
 				)}
 				<AuthButton onClick={closeMenu} />
 			</div>

@@ -137,6 +137,8 @@ export interface UserRegisterFormData {
     degreeCourse: string;
     levelOfStudy: string;
 	referrer: string;
+	societyReferrer: string;
+	otherSocietyReferrer: string;
     hasAgreedToTerms: boolean;
     isNewsletterSubscribed: boolean;
 }

@@ -7,13 +7,13 @@ export async function POST(req: Request) {
 	// step1: find the user
 	const userUniversity = await getUserUniversityById(user.id)
 	if (!userUniversity.success) {
-		return NextResponse.json({success: false, error: userUniversity.error})
+		return NextResponse.json({ success: false, error: userUniversity.error })
 	}
 	const event = await fetchSQLEventById(event_id)
 	const eventOrganiser = event.organiser_uid
 	const eventOrganiserUniversity = await getUserUniversityById(eventOrganiser)
 	if (!eventOrganiserUniversity.success) {
-		return NextResponse.json({success: false, error: eventOrganiserUniversity.error})
+		return NextResponse.json({ success: false, error: eventOrganiserUniversity.error })
 	}
 	const alreadyRegistered = await checkIfRegistered(event_id, user.id)
 	if (alreadyRegistered) {

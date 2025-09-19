@@ -28,46 +28,43 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
   const [sendToAll, setSendToAll] = useState<boolean>(true); // State to toggle between "Send to All" and "Single Recipient"
   const [customEmail, setCustomEmail] = useState<string>(""); // Custom email input for a single user
 
-  // useEffect(() => {
-  //   const handleClickOutside = (event: MouseEvent) => {
-  //     if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-  //       onClose();
-  //     }
-  //   };
-  //   document.addEventListener("mousedown", handleClickOutside);
-  //   return () => document.removeEventListener("mousedown", handleClickOutside);
-  // }, [onClose]);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
 
   useEffect(() => {
-    const helper = async () => {
-      await getRegistrations();
-    };
-    helper();
-  }, []);
-
-  const getRegistrations = async () => {
-    const toastId = toast.loading("Fetching event registration data...");
-    try {
-      const res = await fetch("/api/events/registrations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          event_id: event.id,
-        }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        toast.success("Event registrations loaded!", { id: toastId });
-        setRegistrations(result.registrations);
-      } else {
+    const getRegistrations = async () => {
+      const toastId = toast.loading("Fetching event registration data...");
+      try {
+        const res = await fetch("/api/events/registrations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            event_id: event.id,
+          }),
+        });
+        const result = await res.json();
+        if (result.success) {
+          toast.success("Event registrations loaded!", { id: toastId });
+          setRegistrations(result.registrations);
+        } else {
+          toast.error("Error fetching event registrations!", { id: toastId });
+        }
+      } catch (error) {
         toast.error("Error fetching event registrations!", { id: toastId });
       }
-    } catch (error) {
-      toast.error("Error fetching event registrations!", { id: toastId });
-    }
-  };
+    };
+
+    getRegistrations();
+  }, [event.id]);
 
   const sendEmail = async (recipientEmail: string) => {
     try {

@@ -19,7 +19,7 @@ export default function ModernCompanyRegistration() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [errorModal, setErrorModal] = useState({ isOpen: false, title: '', message: '' });
 	const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
-	const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+	
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const [newMotivation, setNewMotivation] = useState("");
 	const [motivationOptions, setMotivationOptions] = useState<string[]>([
@@ -110,14 +110,14 @@ export default function ModernCompanyRegistration() {
 	const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
 		if (file) {
-			setUploadedImage(file);
+			
 			setValue('uploadedImage', file);
 			setPreviewImage(URL.createObjectURL(file));
 		}
 	};
 
 	const clearUploadedImage = () => {
-		setUploadedImage(null);
+		
 		setValue('uploadedImage', null);
 		setPreviewImage(null);
 	};

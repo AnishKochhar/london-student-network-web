@@ -535,10 +535,10 @@ export async function getAllCompanyInformation() {
 					c.id,
 					u.name AS company_name, 
 					COALESCE(c.contact_email, u.email) AS contact_email,
-					COALESCE(c.description, u.description) AS description,
+					c.description,
 					c.motivation,
 					c.contact_name,
-					COALESCE(c.website, u.website) AS website,
+					c.website,
 					COALESCE(c.logo_url, u.logo_url) AS logo_url
 			FROM 
 					users AS u 

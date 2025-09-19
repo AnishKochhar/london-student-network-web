@@ -21,21 +21,6 @@ const config: Config = {
           '0%': { backgroundPosition: '0% 50%' },
           '100%': { backgroundPosition: '100% 50%' },
         },
-      },
-      animation: {
-        shimmer: 'shimmer 1.5s infinite linear',
-        glow: 'glow 2s infinite linear',
-        "shiny-text": "shiny-text 4s infinite",
-      },
-      keyframes: {
-        shimmer: {
-          '0%': { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
-        glow: {
-          '0%': { backgroundPosition: '0% 50%' },
-          '100%': { backgroundPosition: '100% 50%' },
-        },
         "shiny-text": {
           "0%, 90%, 100%": {
             "background-position": "calc(-100% - var(--shiny-width)) 0",
@@ -44,6 +29,11 @@ const config: Config = {
             "background-position": "calc(100% + var(--shiny-width)) 0",
           },
         },
+      },
+      animation: {
+        shimmer: 'shimmer 1.5s infinite linear',
+        glow: 'glow 2s infinite linear',
+        "shiny-text": "shiny-text 4s infinite",
       },
       backgroundImage: {
         'gradient-shimmer': 'linear-gradient(90deg, #ccc 25%, #e0e0e0 50%, #ccc 75%)',

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ReactNode, KeyboardEvent, useEffect, useState } from "react";
+import { ReactNode, KeyboardEvent } from "react";
 
 interface ModernFormStepProps {
 	title: string;

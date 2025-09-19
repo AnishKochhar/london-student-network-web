@@ -9,10 +9,7 @@ import ResetEmailPayload from '../components/templates/reset-password';
 import ResetEmailPayloadFallback from '../components/templates/reset-password-fallback';
 import VerificationEmailPayload from '../components/templates/verification-email';
 import VerificationEmailPayloadFallback from '../components/templates/verification-email-fallback';
-import UserRegistrationConfirmationEmail from '../components/templates/user-registration';
-import UserRegistrationConfirmationEmailFallback from '../components/templates/user-registration-fallback';
-import OrganiserRegistrationConfirmationEmailFallback from '../components/templates/organiser-registration-fallback';
-import OrganiserRegistrationConfirmationEmail from '../components/templates/organiser-registration';
+
 
 export const sendOrganiserEmail = async ({ id, email, subject, text }: EmailData) => {
 	try {

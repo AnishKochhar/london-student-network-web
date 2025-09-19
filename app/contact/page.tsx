@@ -43,7 +43,7 @@ export default function ContactPage() {
 		handleSubmit,
 		formState: { errors },
 		reset,
-		watch,
+		
 	} = useForm<ContactFormData>();
 
 	const [status, setStatus] = useState<string | null>(null);
@@ -91,11 +91,11 @@ export default function ContactPage() {
 				<div className="max-w-7xl mx-auto px-6 lg:px-8">
 					<div className="flex flex-col justify-center items-center text-center mb-6 sm:mb-0 space-y-6">
 						<h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white">
-							Let's Get In Touch
+							Let&apos;s Get In Touch
 						</h1>
 						<div className="hidden sm:flex flex-col items-center text-center justify-center">
 							<p className="text-lg mb-4 w-5/6 text-center text-gray-200">
-								Whether you have questions about how we operate, enquiries about the team, or are interested in sponsoring an event, we&#39;d love to hear from you.
+								Whether you have questions about how we operate, enquiries about the team, or are interested in sponsoring an event, we&apos;d love to hear from you.
 							</p>
 							<p className="text-lg text-gray-200">
 								Please reach us by filling out the form, and one of the team will get back to you as soon as possible.

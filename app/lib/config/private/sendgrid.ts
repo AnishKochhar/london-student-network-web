@@ -34,13 +34,35 @@ export default async function sendSendGridEmail({ to, from, subject, text, html 
     try {
         await sgMail.send(msg);
         return { success: true };
-    } catch(err) {
-        const response = await requestFallbackEmailService({ to: msg.to, subject: msg.subject, ...(text && { text }), ...(html && { html }) })
-        if (!response.success) {
-            throw new Error(`LSN email service failed to send email: ${response.error}`);
+    } catch(sendGridError) {
+        console.warn('SendGrid failed, attempting fallback email service:', sendGridError.message);
+
+        try {
+            const response = await requestFallbackEmailService({
+                to: msg.to as string,
+                subject: msg.subject,
+                ...(text && { text }),
+                ...(html && { html })
+            });
+
+            if (!response.success) {
+                throw new Error(`LSN fallback email service failed: ${response.error}`);
+            }
+
+            console.log('Email sent successfully via fallback service');
+            return { success: true };
+        } catch(fallbackError) {
+            console.error('Both SendGrid and fallback service failed');
+            console.error('SendGrid error:', sendGridError.message);
+            console.error('Fallback error:', fallbackError.message);
+
+            // Return the most relevant error to the user
+            if (fallbackError.message.includes('Unauthorized')) {
+                throw new Error('Email services unavailable: Authentication failed for both primary and backup services');
+            }
+            throw new Error(`Failed to send email: Primary service - ${sendGridError.message}, Fallback service - ${fallbackError.message}`);
         }
     }
-    // on failure, an error is raised that should be catched wherever this function is used
 }
 
 export const requestFallbackEmailService = async (emailData: { 
