@@ -1,9 +1,7 @@
-
 const VerificationEmailPayloadFallback = (email: string, token: string) => {
-
     const verificationLink = `https://londonstudentnetwork.com/verify-email?token=${encodeURIComponent(token)}`;
-  
-    return`
+
+    return `
 Hey ${email},
 
 We're not gonna lie, we're kinda suspicious of you. You just signed up for the LSN, but did you really mean it? Are you a robot? A cat? A mischievous squirrel? We need proof!
@@ -21,5 +19,5 @@ Many thanks,
     The LSN team
     `.trim();
 };
-  
-  export default VerificationEmailPayloadFallback;
+
+export default VerificationEmailPayloadFallback;

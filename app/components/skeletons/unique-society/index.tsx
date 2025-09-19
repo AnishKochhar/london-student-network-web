@@ -1,5 +1,3 @@
-
-
 export function UniqueSocietyNameSkeleton() {
     return (
         <div className="flex justify-center items-center p-6">
@@ -7,7 +5,6 @@ export function UniqueSocietyNameSkeleton() {
         </div>
     );
 }
-
 
 export function UniqueSocietyTagsSkeleton() {
     return (
@@ -17,7 +14,6 @@ export function UniqueSocietyTagsSkeleton() {
     );
 }
 
-
 export function UniqueSocietyLogoSkeleton() {
     return (
         <div className="flex justify-center items-center p-6">
@@ -25,7 +21,3 @@ export function UniqueSocietyLogoSkeleton() {
         </div>
     );
 }
-
-
-
-

@@ -8,8 +8,10 @@ export default function SignPage() {
             <div className="flex flex-col md:flex-row items-center rounded-md w-full max-w-5xl">
                 {/* Left Section */}
                 <div className="flex flex-col items-center space-y-4 p-12">
-                    <h2 className="text-3xl font-medium text-center pb-20">Already got an account?</h2>
-					<JoinButton href="/login" text="Sign in" />
+                    <h2 className="text-3xl font-medium text-center pb-20">
+                        Already got an account?
+                    </h2>
+                    <JoinButton href="/login" text="Sign in" />
                 </div>
 
                 {/* Divider */}
@@ -17,31 +19,44 @@ export default function SignPage() {
 
                 {/* Right Section */}
                 <div className="flex flex-col items-center space-y-4 p-12">
-                    <h2 className="text-3xl font-medium text-center pb-20">New to LSN?</h2>
+                    <h2 className="text-3xl font-medium text-center pb-20">
+                        New to LSN?
+                    </h2>
 
-					<JoinButton href="/register" text="Create an account" />
+                    <JoinButton href="/register" text="Create an account" />
                 </div>
             </div>
         </div>
     );
 }
 
-function JoinButton({ text, className, href }: { text: string, className?: string, href: string }) {
-	return (
-		<Link href={href} className={clsx("flex items-center space-x-2 group", className)}>
-			<div>
-				<span className="relative text-lg font-medium flex items-center space-x-2 text-white">
-					{text}
-					<Image
-						src="/icons/arrow-right.svg"
-						alt="next"
-						width={20}
-						height={12}
-						className="h-4 ml-2 transition-transform duration-300 ease-in-out group-hover:translate-x-2"
-					/>
-				</span>
-				<span className="block w-full h-px bg-white mt-1"></span>
-			</div>
-		</Link>
-	)
+function JoinButton({
+    text,
+    className,
+    href,
+}: {
+    text: string;
+    className?: string;
+    href: string;
+}) {
+    return (
+        <Link
+            href={href}
+            className={clsx("flex items-center space-x-2 group", className)}
+        >
+            <div>
+                <span className="relative text-lg font-medium flex items-center space-x-2 text-white">
+                    {text}
+                    <Image
+                        src="/icons/arrow-right.svg"
+                        alt="next"
+                        width={20}
+                        height={12}
+                        className="h-4 ml-2 transition-transform duration-300 ease-in-out group-hover:translate-x-2"
+                    />
+                </span>
+                <span className="block w-full h-px bg-white mt-1"></span>
+            </div>
+        </Link>
+    );
 }

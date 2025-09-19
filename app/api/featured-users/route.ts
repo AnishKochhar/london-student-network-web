@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
-import { getAvatarInitials } from '@/app/lib/forum-utils';
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@vercel/postgres";
+import { getAvatarInitials } from "@/app/lib/forum-utils";
 
 export async function GET(request: NextRequest) {
-  try {
-    // Get the limit parameter from the URL, default to 5
-    const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '5');
-    
-    // Query to get users with the most activity (threads + comments)
-    const result = await sql`
+    try {
+        // Get the limit parameter from the URL, default to 5
+        const searchParams = request.nextUrl.searchParams;
+        const limit = parseInt(searchParams.get("limit") || "5");
+
+        // Query to get users with the most activity (threads + comments)
+        const result = await sql`
       WITH user_activity AS (
         -- Count threads per user
         SELECT 
@@ -67,28 +67,27 @@ export async function GET(request: NextRequest) {
         total_activity DESC
       LIMIT ${limit};
     `;
-    
-    // Format the result for the client
-    const topUsers = result.rows.map(user => ({
-      username: user.username || 'Anonymous',
-      displayName: user.username || 'Anonymous',
-      userId: user.id,
-      avatar: getAvatarInitials(user.username || 'Anonymous'),
-      status: user.status,
-      stats: {
-        threads: parseInt(user.threads),
-        comments: parseInt(user.comments),
-        totalActivity: parseInt(user.total_activity)
-      }
-    }));
-    
-    return NextResponse.json(topUsers);
-    
-  } catch (error) {
-    console.error('Error fetching top users:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch top users' },
-      { status: 500 }
-    );
-  }
+
+        // Format the result for the client
+        const topUsers = result.rows.map((user) => ({
+            username: user.username || "Anonymous",
+            displayName: user.username || "Anonymous",
+            userId: user.id,
+            avatar: getAvatarInitials(user.username || "Anonymous"),
+            status: user.status,
+            stats: {
+                threads: parseInt(user.threads),
+                comments: parseInt(user.comments),
+                totalActivity: parseInt(user.total_activity),
+            },
+        }));
+
+        return NextResponse.json(topUsers);
+    } catch (error) {
+        console.error("Error fetching top users:", error);
+        return NextResponse.json(
+            { error: "Failed to fetch top users" },
+            { status: 500 },
+        );
+    }
 }

@@ -5,18 +5,16 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function LogoutPage() {
+    const router = useRouter();
+    const session = useSession();
 
-	const router = useRouter()
-	const session = useSession();
+    if (!session) {
+        router.push("/login");
+    }
 
-	if (!session) {
-		router.push('/login')
-	}
-
-	return (
-		<main className="flex items-center justify-center h-screen bg-gradient-to-b from-[#083157]  to-[#064580]">
-			<LogoutForm />
-		</main>
-	)
-
+    return (
+        <main className="flex items-center justify-center h-screen bg-gradient-to-b from-[#083157]  to-[#064580]">
+            <LogoutForm />
+        </main>
+    );
 }

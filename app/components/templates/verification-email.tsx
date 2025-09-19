@@ -1,10 +1,8 @@
-
 // Creates a link to /reset-password with token as a query parameter
 const VerificationEmailPayload = (email: string, token: string) => {
-	
-	const verificationLink = `https://londonstudentnetwork.com/verify-email?token=${encodeURIComponent(token)}`;
+    const verificationLink = `https://londonstudentnetwork.com/verify-email?token=${encodeURIComponent(token)}`;
 
-	return `
+    return `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
             <p>Hey ${email},</p>
             <p>We're not gonna lie, we're kinda suspicious of you. You just signed up for the LSN, but did you really mean it? Are you a robot? A cat? A mischievous squirrel? We need proof!</p>

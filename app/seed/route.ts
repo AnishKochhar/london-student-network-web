@@ -1,11 +1,10 @@
-import { db } from '@vercel/postgres';
+import { db } from "@vercel/postgres";
 const client = await db.connect();
 
 /*  UNCOMMENT THE ABOVE LINES TO USE DATABASE  */
 
 //import bcrypt from 'bcrypt';
 //import { users } from '../lib/placeholder-data';
-
 
 // async function seedUsers() {
 // 	await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
@@ -34,14 +33,13 @@ const client = await db.connect();
 // 	return insertedUsers;
 // }
 
-
 // async function seedEvents() {
 // await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 // await client.sql`
 //   CREATE TABLE IF NOT EXISTS events (
 // 	id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
 // 	title VARCHAR(255) NOT NULL,
-// 	description TEXT, 
+// 	description TEXT,
 // 	organiser VARCHAR(225) NOT NULL,
 // 	organiser_uid UUID NOT NULL,
 // 	start_time VARCHAR(255),
@@ -78,7 +76,7 @@ const client = await db.connect();
 
 // 	await client.sql`
 // 	ALTER TABLE users
-// 	DROP COLUMN IF EXISTS referrer 
+// 	DROP COLUMN IF EXISTS referrer
 // 	`
 // }
 
@@ -250,7 +248,7 @@ const client = await db.connect();
 // }
 
 async function removeThreadIdColumn() {
-	await client.sql`
+    await client.sql`
         CREATE TABLE thread_tags (
             id SERIAL PRIMARY KEY,
             thread_id INTEGER NOT NULL,
@@ -263,18 +261,16 @@ async function removeThreadIdColumn() {
 }
 
 export async function GET() {
-	try {
-		await client.sql`BEGIN`;
-		// await seedSocietyInformation()
-		await removeThreadIdColumn();
-		
+    try {
+        await client.sql`BEGIN`;
+        // await seedSocietyInformation()
+        await removeThreadIdColumn();
 
-		await client.sql`COMMIT`;
-		return Response.json({ message: 'Database updated successfully' });
-
-	} catch (error) {
-		await client.sql`ROLLBACK`;
-		return Response.json({ error }, { status: 500 });
-	}
-	return Response.json({ message: 'Nothing to see here' });
+        await client.sql`COMMIT`;
+        return Response.json({ message: "Database updated successfully" });
+    } catch (error) {
+        await client.sql`ROLLBACK`;
+        return Response.json({ error }, { status: 500 });
+    }
+    return Response.json({ message: "Nothing to see here" });
 }

@@ -2,7 +2,7 @@ import { EmailPayloadType } from "@/app/lib/types";
 
 const EmailPayload = ({ email, subject, text }: EmailPayloadType) => {
     // Replace newline characters with <br/> to preserve line breaks in HTML
-    const formattedText = text.replace(/\n/g, '<br/>');
+    const formattedText = text.replace(/\n/g, "<br/>");
 
     return `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">

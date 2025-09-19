@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { CompanyInformation } from '@/app/lib/types';
-import { X } from 'lucide-react';
-import Image from 'next/image';
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { CompanyInformation } from "@/app/lib/types";
+import { X } from "lucide-react";
+import Image from "next/image";
 
 interface SponsorModalProps {
     sponsor: CompanyInformation;
@@ -15,32 +15,33 @@ export default function SponsorModal({ sponsor, onClose }: SponsorModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = "hidden";
 
         const handleClickOutside = (event: MouseEvent) => {
-            if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+            if (
+                modalRef.current &&
+                !modalRef.current.contains(event.target as Node)
+            ) {
                 onClose();
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener("mousedown", handleClickOutside);
 
         return () => {
-            document.body.style.overflow = '';
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.body.style.overflow = "";
+            document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [onClose]);
 
     return createPortal(
-        <div 
-            className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fade-in"
-        >
-            <div 
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div
                 ref={modalRef}
                 className="bg-gradient-to-br from-[#064580] to-[#041A2E] rounded-2xl shadow-2xl p-8 max-w-2xl w-full relative border border-white/20 transform animate-scale-in overflow-y-auto max-h-[90vh]"
             >
-                <button 
-                    onClick={onClose} 
+                <button
+                    onClick={onClose}
                     className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
                 >
                     <X className="h-6 w-6" />
@@ -48,9 +49,9 @@ export default function SponsorModal({ sponsor, onClose }: SponsorModalProps) {
                 <div className="flex flex-col md:flex-row gap-8 items-center">
                     {sponsor.logo_url && (
                         <div className="w-32 h-32 flex-shrink-0 bg-white/10 rounded-lg flex items-center justify-center p-4">
-                            <Image 
-                                src={sponsor.logo_url} 
-                                alt={`${sponsor.company_name} logo`} 
+                            <Image
+                                src={sponsor.logo_url}
+                                alt={`${sponsor.company_name} logo`}
                                 width={128}
                                 height={128}
                                 className="object-contain"
@@ -58,11 +59,13 @@ export default function SponsorModal({ sponsor, onClose }: SponsorModalProps) {
                         </div>
                     )}
                     <div className="text-center md:text-left">
-                        <h2 className="text-3xl font-bold text-white mb-2">{sponsor.company_name}</h2>
+                        <h2 className="text-3xl font-bold text-white mb-2">
+                            {sponsor.company_name}
+                        </h2>
                         {sponsor.website && (
-                            <a 
-                                href={sponsor.website} 
-                                target="_blank" 
+                            <a
+                                href={sponsor.website}
+                                target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-400 hover:underline break-all"
                             >
@@ -73,11 +76,13 @@ export default function SponsorModal({ sponsor, onClose }: SponsorModalProps) {
                 </div>
                 {sponsor.description && (
                     <div className="mt-6 pt-6 border-t border-white/10">
-                        <p className="text-gray-300 leading-relaxed">{sponsor.description}</p>
+                        <p className="text-gray-300 leading-relaxed">
+                            {sponsor.description}
+                        </p>
                     </div>
                 )}
             </div>
         </div>,
-        document.body
+        document.body,
     );
 }

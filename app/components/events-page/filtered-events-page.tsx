@@ -7,24 +7,35 @@ import { EVENT_TAG_TYPES } from "@/app/lib/utils";
 import FilteredEventsList from "./filtered-events-list";
 
 interface FilteredEventsPageProps {
-	allEvents: Event[]
-	editEvent?: boolean
+    allEvents: Event[];
+    editEvent?: boolean;
 }
 
-export default function FilteredEventsPage({ allEvents, editEvent }: FilteredEventsPageProps) {
-	const initialActiveTags = Object.keys(EVENT_TAG_TYPES).map(tag => parseInt(tag, 10));
-	const [activeTags, setActiveTags] = useState<number[]>(initialActiveTags);
+export default function FilteredEventsPage({
+    allEvents,
+    editEvent,
+}: FilteredEventsPageProps) {
+    const initialActiveTags = Object.keys(EVENT_TAG_TYPES).map((tag) =>
+        parseInt(tag, 10),
+    );
+    const [activeTags, setActiveTags] = useState<number[]>(initialActiveTags);
 
-	const toggleTag = (tag: number) => {
-		setActiveTags((prevTags) =>
-			prevTags.includes(tag) ? prevTags.filter((t) => t !== tag) : [...prevTags, tag]
-		);
-	};
+    const toggleTag = (tag: number) => {
+        setActiveTags((prevTags) =>
+            prevTags.includes(tag)
+                ? prevTags.filter((t) => t !== tag)
+                : [...prevTags, tag],
+        );
+    };
 
-	return (
-		<>
-			<TagButtons activeTags={activeTags} toggleTag={toggleTag} />
-			<FilteredEventsList allEvents={allEvents} activeTags={activeTags} editEvent={editEvent} />
-		</>
-	)
+    return (
+        <>
+            <TagButtons activeTags={activeTags} toggleTag={toggleTag} />
+            <FilteredEventsList
+                allEvents={allEvents}
+                activeTags={activeTags}
+                editEvent={editEvent}
+            />
+        </>
+    );
 }

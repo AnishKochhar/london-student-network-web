@@ -11,11 +11,14 @@ export default function ProblemSection() {
                 A Heartfelt Thank You.
             </h3>
             <p className="text-2xl text-left font-light mb-8 mt-8 text-gray-300">
-                We extend our gratitude to our sponsors, who play a vital role in supporting LSN.
+                We extend our gratitude to our sponsors, who play a vital role
+                in supporting LSN.
             </p>
             <p className="text-2xl text-left font-light mb-8 mt-8 text-gray-300">
-                Their commitment to enhancing the student experience empowers us to connect students across the UK with a vibrant array of activities and societies.
+                Their commitment to enhancing the student experience empowers us
+                to connect students across the UK with a vibrant array of
+                activities and societies.
             </p>
         </>
     );
-};
+}

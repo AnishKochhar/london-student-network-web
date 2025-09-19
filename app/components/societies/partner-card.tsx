@@ -1,24 +1,34 @@
-"use client"
+"use client";
 
-import { FormattedPartner } from "@/app/lib/types"
-import Image from "next/image"
-import Link from "next/link"
+import { FormattedPartner } from "@/app/lib/types";
+import Image from "next/image";
+import Link from "next/link";
 import { formattedWebsite } from "@/app/lib/utils";
 import PartnerTags from "./partner-tags";
 import PartnerWebsite from "./partner-website";
 import PartnerMessage from "./partner-message";
 
-export default function PartnerCard({ partner }: { partner: FormattedPartner }) {
-    const handleMessageClick = (e: React.MouseEvent<HTMLButtonElement>, id: number) => {
+export default function PartnerCard({
+    partner,
+}: {
+    partner: FormattedPartner;
+}) {
+    const handleMessageClick = (
+        e: React.MouseEvent<HTMLButtonElement>,
+        id: number,
+    ) => {
         e.preventDefault();
         e.stopPropagation();
-        window.open(`/societies/message/${id.toString()}`, '_blank')?.focus();
+        window.open(`/societies/message/${id.toString()}`, "_blank")?.focus();
     };
 
-    const handleWebsiteClick = (e: React.MouseEvent<HTMLButtonElement>, website: string) => {
+    const handleWebsiteClick = (
+        e: React.MouseEvent<HTMLButtonElement>,
+        website: string,
+    ) => {
         e.preventDefault();
         e.stopPropagation();
-        window.open(formattedWebsite(website), '_blank');
+        window.open(formattedWebsite(website), "_blank");
     };
 
     return (
@@ -30,7 +40,10 @@ export default function PartnerCard({ partner }: { partner: FormattedPartner }) 
             {/* Image Container */}
             <div className="h-40 w-full mb-4 flex items-center justify-center">
                 <Image
-                    src={partner.logo || '/images/placeholders/pretty-logo-not-found.jpg'}
+                    src={
+                        partner.logo ||
+                        "/images/placeholders/pretty-logo-not-found.jpg"
+                    }
                     alt={partner.name}
                     width={200}
                     height={200}
@@ -53,7 +66,7 @@ export default function PartnerCard({ partner }: { partner: FormattedPartner }) 
                 {/* Tags and Buttons */}
                 <div className="mt-4 space-y-2">
                     <PartnerTags keywords={partner.keywords} />
-                    
+
                     <div className="grid grid-cols-2 gap-2">
                         <PartnerWebsite
                             handleWebsiteClick={handleWebsiteClick}
@@ -67,5 +80,5 @@ export default function PartnerCard({ partner }: { partner: FormattedPartner }) 
                 </div>
             </div>
         </Link>
-    )
+    );
 }

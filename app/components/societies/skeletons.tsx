@@ -1,4 +1,3 @@
-
 export function CardSkeleton() {
     return (
         <div className="group bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10">

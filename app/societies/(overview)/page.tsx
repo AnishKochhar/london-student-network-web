@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { fetchPartners } from '@/app/lib/utils';
-import SocietyCard from '@/app/components/societies/society-card';
-import { CardSkeleton } from '@/app/components/societies/skeletons';
-import { FormattedPartner } from '@/app/lib/types';
-import { Search } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { fetchPartners } from "@/app/lib/utils";
+import SocietyCard from "@/app/components/societies/society-card";
+import { CardSkeleton } from "@/app/components/societies/skeletons";
+import { FormattedPartner } from "@/app/lib/types";
+import { Search } from "lucide-react";
 
 const PARTNERS_PER_PAGE = 100;
 
 export default function SocietyPage() {
     const [partners, setPartners] = useState<FormattedPartner[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [searchQuery, setSearchQuery] = useState<string>('');
-    const [debouncedQuery, setDebouncedQuery] = useState<string>('');
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [debouncedQuery, setDebouncedQuery] = useState<string>("");
     const [page, setPage] = useState<number>(1);
     const [hasMore, setHasMore] = useState<boolean>(true);
 
@@ -31,7 +31,7 @@ export default function SocietyPage() {
         setLoading(true);
         const result = await fetchPartners(pageNum, PARTNERS_PER_PAGE);
         if (result && result.length > 0) {
-            setPartners(prev => [...prev, ...result]);
+            setPartners((prev) => [...prev, ...result]);
             setPage(pageNum);
             if (result.length < PARTNERS_PER_PAGE) {
                 setHasMore(false);
@@ -48,9 +48,14 @@ export default function SocietyPage() {
 
     const filteredPartners = useMemo(() => {
         if (!debouncedQuery) return partners;
-        return partners.filter(partner =>
-            partner.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-            partner.description?.toLowerCase().includes(debouncedQuery.toLowerCase())
+        return partners.filter(
+            (partner) =>
+                partner.name
+                    .toLowerCase()
+                    .includes(debouncedQuery.toLowerCase()) ||
+                partner.description
+                    ?.toLowerCase()
+                    .includes(debouncedQuery.toLowerCase()),
         );
     }, [partners, debouncedQuery]);
 
@@ -63,7 +68,9 @@ export default function SocietyPage() {
     return (
         <main className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10 relative">
             <div className="flex flex-col items-center w-full max-w-[1000px] mb-10">
-                <h1 className="text-4xl font-semibold text-white">Our Partners</h1>
+                <h1 className="text-4xl font-semibold text-white">
+                    Our Partners
+                </h1>
 
                 <div className="mt-8 w-full flex justify-center">
                     <div className="relative group w-full md:w-2/3 lg:w-1/2">
@@ -79,11 +86,21 @@ export default function SocietyPage() {
                         />
                         {searchQuery && (
                             <button
-                                onClick={() => setSearchQuery('')}
+                                onClick={() => setSearchQuery("")}
                                 className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors"
                             >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                <svg
+                                    className="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
                                 </svg>
                             </button>
                         )}
@@ -91,18 +108,22 @@ export default function SocietyPage() {
                 </div>
                 {debouncedQuery && (
                     <p className="text-blue-300 text-sm mt-2 text-center w-full">
-                        {filteredPartners.length} result{filteredPartners.length !== 1 ? 's' : ''} found
+                        {filteredPartners.length} result
+                        {filteredPartners.length !== 1 ? "s" : ""} found
                     </p>
                 )}
             </div>
 
             <div className="relative w-full mt-3 grid partner-grid gap-8">
-                {filteredPartners.map(partner => (
+                {filteredPartners.map((partner) => (
                     <SocietyCard key={partner.id} partner={partner} />
                 ))}
-                {loading && Array.from({ length: PARTNERS_PER_PAGE }).map((_, index) => (
-                    <CardSkeleton key={`skeleton-${index}`} />
-                ))}
+                {loading &&
+                    Array.from({ length: PARTNERS_PER_PAGE }).map(
+                        (_, index) => (
+                            <CardSkeleton key={`skeleton-${index}`} />
+                        ),
+                    )}
             </div>
 
             {hasMore && !loading && (
@@ -117,9 +138,19 @@ export default function SocietyPage() {
             )}
 
             {!hasMore && !loading && partners.length === 0 && (
-                 <div className="text-center py-12">
-                    <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <div className="text-center py-12">
+                    <svg
+                        className="mx-auto h-12 w-12 text-gray-400 mb-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
                     </svg>
                     <p className="text-gray-400 text-lg">No partners found.</p>
                 </div>
