@@ -6,11 +6,13 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
-import { LockClosedIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
 import EventEmailSendingModal from "@/app/components/events-page/email-sending-modal";
+import RegistrationChoiceModal from "@/app/components/events-page/registration-choice-modal";
+import GuestRegistrationModal from "@/app/components/events-page/guest-registration-modal";
 
 export default function EventInfo() {
     const { id } = useParams() as { id: string };
@@ -22,6 +24,8 @@ export default function EventInfo() {
     const loggedIn = session.status === "authenticated";
     const isOrganiser = useRef<boolean>(false);
     const [viewEmailSending, setViewEmailSending] = useState<boolean>(false);
+    const [showRegistrationChoice, setShowRegistrationChoice] = useState<boolean>(false);
+    const [showGuestRegistration, setShowGuestRegistration] = useState<boolean>(false);
 
     // dont know why the event type does not include organiser_uid, defaulting to this instead
     async function checkIsOrganiser(id: string, user_id: string) {
@@ -119,11 +123,15 @@ export default function EventInfo() {
         );
     }
 
-    const registerForEvent = async () => {
+    const handleRegisterClick = () => {
         if (!loggedIn) {
-            toast.error("Please log in to register for events");
+            setShowRegistrationChoice(true);
             return;
         }
+        registerForEvent();
+    };
+
+    const registerForEvent = async () => {
         const toastId = toast.loading("Registering for event...");
         // Check if they are already registered
         try {
@@ -159,6 +167,16 @@ export default function EventInfo() {
                 id: toastId,
             });
         }
+    };
+
+    const handleGuestRegister = () => {
+        setShowRegistrationChoice(false);
+        setShowGuestRegistration(true);
+    };
+
+    const handleGuestRegistrationSuccess = () => {
+        // Optionally refresh event data or show success state
+        toast.success("Registration successful! Check your email for confirmation details.");
     };
 
     const getTags = (eventType: number) => {
@@ -272,19 +290,10 @@ export default function EventInfo() {
                         <div className="w-full flex flex-row justify-center">
                             <button
                                 className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
-                                onClick={registerForEvent}
+                                onClick={handleRegisterClick}
                             >
-                                {!loggedIn && (
-                                    <LockClosedIcon
-                                        width={20}
-                                        height={20}
-                                        className="pr-2"
-                                    />
-                                )}
-                                Press here to register to this event
-                                {loggedIn && (
-                                    <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
-                                )}
+                                Register For Event
+                                <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
                             </button>
                         </div>
                         {isOrganiser.current && (
@@ -313,6 +322,21 @@ export default function EventInfo() {
                     event={event}
                 />
             )}
+
+            <RegistrationChoiceModal
+                isOpen={showRegistrationChoice}
+                onClose={() => setShowRegistrationChoice(false)}
+                onGuestRegister={handleGuestRegister}
+                eventTitle={event?.title || "Event"}
+            />
+
+            <GuestRegistrationModal
+                isOpen={showGuestRegistration}
+                onClose={() => setShowGuestRegistration(false)}
+                eventId={event_id}
+                eventTitle={event?.title || "Event"}
+                onSuccess={handleGuestRegistrationSuccess}
+            />
         </div>
     );
 }

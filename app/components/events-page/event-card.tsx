@@ -9,7 +9,7 @@ import EventModal from "./event-modal";
 import EventManagementModal from "./event-management-modal";
 import { EyeSlashIcon } from "@heroicons/react/24/outline";
 
-export default function EventCard({ event, editEvent }: EventCardProps) {
+export default function EventCard({ event, editEvent, onEventUpdate }: EventCardProps & { onEventUpdate?: () => void }) {
     const [modalChoice, setModalChoice] = useState<"edit" | "view" | "manage" | "waiting">(
         "waiting",
     );
@@ -75,7 +75,7 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                 <EventModal event={event} onClose={closeModal} />
             )}
             {modalChoice === "manage" && (
-                <EventManagementModal event={event} onClose={closeModal} />
+                <EventManagementModal event={event} onClose={closeModal} onUpdate={onEventUpdate} />
             )}
         </>
     );

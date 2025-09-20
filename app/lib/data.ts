@@ -839,7 +839,6 @@ export async function getRegistrationsForEvent(event_id: string) {
         const registrations = result.rows.map(
             convertSQLRegistrationsToRegistrations,
         );
-        console.log(`Got back ${registrations}`);
         return { success: true, registrations: registrations };
     } catch (error) {
         return { success: false };

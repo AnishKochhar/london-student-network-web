@@ -35,6 +35,7 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 	const [isHidden, setIsHidden] = useState(event.is_hidden || false);
 	const [showEmailModal, setShowEmailModal] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [showHideConfirm, setShowHideConfirm] = useState(false);
 	const [showRegistrationDetails, setShowRegistrationDetails] = useState<'all' | 'internal' | 'external' | null>(null);
 	const [copiedField, setCopiedField] = useState<string | null>(null);
 	const modalRef = useRef<HTMLDivElement>(null);
@@ -53,7 +54,7 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
 			// Don't close if any child modal is open
-			if (showRegistrationDetails || showDeleteConfirm || showEmailModal) {
+			if (showRegistrationDetails || showDeleteConfirm || showHideConfirm || showEmailModal) {
 				return;
 			}
 
@@ -66,7 +67,7 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 		return () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 		};
-	}, [onClose, showRegistrationDetails, showDeleteConfirm, showEmailModal]);
+	}, [onClose, showRegistrationDetails, showDeleteConfirm, showHideConfirm, showEmailModal]);
 
 	useEffect(() => {
 		const loadRegistrations = async () => {
@@ -106,7 +107,19 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 		router.push(`/events/${base62Id}`);
 	};
 
-	const handleToggleVisibility = async () => {
+	const handleToggleVisibility = () => {
+		const newHiddenState = !isHidden;
+
+		// If hiding the event, show confirmation modal
+		if (newHiddenState) {
+			setShowHideConfirm(true);
+		} else {
+			// If showing the event, do it directly
+			performToggleVisibility();
+		}
+	};
+
+	const performToggleVisibility = async () => {
 		const newHiddenState = !isHidden;
 		const toastId = toast.loading(
 			newHiddenState ? "Hiding event..." : "Showing event..."
@@ -561,6 +574,44 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 										)}
 									</button>
 								</div>
+							</div>
+						</div>
+					</div>
+				</>
+			)}
+
+			{/* Hide Confirmation Modal */}
+			{showHideConfirm && (
+				<>
+					<div
+						className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+						onClick={() => setShowHideConfirm(false)}
+					/>
+					<div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+						<div
+							className="bg-white rounded-xl p-6 max-w-md w-full"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<h3 className="text-lg font-semibold text-gray-900 mb-2">Hide Event?</h3>
+							<p className="text-gray-600 mb-6">
+								Are you sure you want to hide &quot;{event.title}&quot;? This will make the event invisible to the public, but it will remain in your dashboard and can be shown again later.
+							</p>
+							<div className="flex gap-3">
+								<button
+									onClick={() => setShowHideConfirm(false)}
+									className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+								>
+									Cancel
+								</button>
+								<button
+									onClick={() => {
+										setShowHideConfirm(false);
+										performToggleVisibility();
+									}}
+									className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+								>
+									Hide Event
+								</button>
 							</div>
 						</div>
 					</div>

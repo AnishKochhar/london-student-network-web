@@ -9,6 +9,7 @@ interface EventSectionProps {
     year: string;
     events: Event[];
     editEvent?: boolean;
+    onEventUpdate?: () => void;
 }
 
 export default function EventSection({
@@ -16,6 +17,7 @@ export default function EventSection({
     year,
     events,
     editEvent,
+    onEventUpdate,
 }: EventSectionProps) {
     const sortedEvents = sortEventsByDate(events);
 
@@ -76,6 +78,7 @@ export default function EventSection({
                         <EventCard
                             event={event}
                             editEvent={editEvent}
+                            onEventUpdate={onEventUpdate}
                         />
                     </motion.div>
                 ))}

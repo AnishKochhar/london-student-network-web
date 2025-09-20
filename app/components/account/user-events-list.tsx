@@ -10,7 +10,8 @@ import { UserEventsListProps } from "@/app/lib/types";
 export default function UserEventsList({
     user_id,
     editEvent = false,
-}: UserEventsListProps) {
+    onEventUpdate,
+}: UserEventsListProps & { onEventUpdate?: () => void }) {
     const [userEvents, setUserEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -45,24 +46,30 @@ export default function UserEventsList({
         fetchUserEvents();
     }, [fetchUserEvents]);
 
-    // Refetch data when page becomes visible again (e.g., returning from edit page)
+    // Only refetch data when returning from edit page or after a significant time away
     useEffect(() => {
+        let lastFetch = Date.now();
+
         const handleVisibilityChange = () => {
-            if (!document.hidden) {
+            // Only refetch if hidden for more than 30 seconds (likely navigated away to edit)
+            if (!document.hidden && Date.now() - lastFetch > 30000) {
                 fetchUserEvents();
+                lastFetch = Date.now();
             }
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        // Also listen for focus events (when user switches back to tab)
-        window.addEventListener('focus', fetchUserEvents);
-
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', fetchUserEvents);
         };
     }, [fetchUserEvents]);
+
+    // Combined update handler for when events are modified
+    const handleEventUpdate = useCallback(() => {
+        fetchUserEvents();
+        if (onEventUpdate) onEventUpdate();
+    }, [fetchUserEvents, onEventUpdate]);
 
     if (loading) {
         return <p>Loading events...</p>;
@@ -88,6 +95,7 @@ export default function UserEventsList({
                 editEvent={editEvent}
                 reverseOrder={true} // Show most recent events first on account page
                 showAllEvents={true} // Show ALL events regardless of tags
+                onEventUpdate={handleEventUpdate}
             />
         </div>
     );
