@@ -16,9 +16,16 @@ export async function POST(request: Request): Promise<NextResponse> {
                     return {
                         allowedContentTypes: [
                             "image/jpeg",
+                            "image/jpg",
                             "image/png",
+                            "image/webp",
+                            "image/avif",
                             "image/gif",
+                            "image/svg+xml",
+                            "image/bmp",
+                            "image/tiff",
                         ],
+                        maximumSizeInBytes: 10 * 1024 * 1024, // 10MB limit
                     };
                 },
             onUploadCompleted: async ({ blob, tokenPayload }) => {

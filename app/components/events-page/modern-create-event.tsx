@@ -1164,7 +1164,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
                                                 {...register("uploaded_image")}
                                                 ref={fileInputRef}
                                                 type="file"
-                                                accept="image/*"
+                                                accept="image/jpeg,image/jpg,image/png,image/webp,image/avif,image/gif,image/svg+xml,image/bmp,image/tiff"
                                                 className="hidden"
                                                 onChange={(e) => {
                                                     const files = e.target.files;

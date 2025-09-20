@@ -90,8 +90,11 @@ export default function EventModal({ event, onClose, isPreview = false }: EventM
                         <Image
                             src={event.image_url}
                             alt={event.title}
-                            width={200}
-                            height={200}
+                            width={500}
+                            height={320}
+                            sizes="(max-width: 768px) 90vw, 45vw"
+                            quality={95}
+                            priority
                             className="w-[90%] h-64 object-contain"
                         />
                         <div className="flex flex-col">

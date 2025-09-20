@@ -42,8 +42,10 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                     <Image
                         src={event.image_url}
                         alt={event.title}
-                        width={200}
-                        height={40}
+                        width={400}
+                        height={160}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        quality={90}
                         className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} border border-gray-200 transition-transform duration-500 group-hover:scale-110`}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
