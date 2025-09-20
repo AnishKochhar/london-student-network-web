@@ -1,5 +1,3 @@
-"use server";
-
 import { fetchUpcomingEvents } from "@/app/lib/data";
 import { sortEventsByDate } from "@/app/lib/utils";
 import UpcomingEventsView from "./upcoming-events";

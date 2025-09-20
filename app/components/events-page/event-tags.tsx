@@ -11,11 +11,11 @@ export default function EventCardTags({ eventType }: EventCardTagsProps) {
         .map((key) => EVENT_TAG_TYPES[key]);
 
     return (
-        <div className="absolute top-1 right-2 flex space-x-1">
+        <div className="absolute top-2 right-2 flex gap-1 z-10 bg-white/95 backdrop-blur-sm rounded-full px-2 py-1">
             {tags.map((tag, index) => (
                 <span
                     key={index}
-                    className={`w-5 h-5 rounded-full ${tag.color} border-white border-2 drop-shadow-sm`}
+                    className={`w-4 h-4 rounded-full ${tag.color} opacity-100`}
                     title={tag.label}
                 ></span>
             ))}

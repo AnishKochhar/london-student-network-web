@@ -201,6 +201,31 @@ export async function insertEvent(event: SQLEvent) {
     }
 }
 
+export async function insertModernEvent(eventData: import('./types').SQLEventData) {
+    try {
+        await sql`
+            INSERT INTO events (
+                title, description, organiser, organiser_uid,
+                start_datetime, end_datetime, is_multi_day,
+                location_building, location_area, location_address,
+                image_url, image_contain, external_forward_email,
+                capacity, sign_up_link, for_externals, event_type
+            )
+            VALUES (
+                ${eventData.title}, ${eventData.description}, ${eventData.organiser}, ${eventData.organiser_uid},
+                ${eventData.start_datetime}::timestamptz, ${eventData.end_datetime}::timestamptz, ${eventData.is_multi_day},
+                ${eventData.location_building}, ${eventData.location_area}, ${eventData.location_address},
+                ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
+                ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type}
+            )
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Error creating modern event:", error);
+        return { success: false, error: error.message || "Unknown database error" };
+    }
+}
+
 export async function updateEvent(event: SQLEvent) {
     // console.log('SQL query for ', event.id)
     try {

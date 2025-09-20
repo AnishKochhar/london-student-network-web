@@ -34,31 +34,34 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
     return (
         <>
             <div
-                className="flex flex-col p-4 rounded-sm shadow-lg relative transition-transform duration-300 ease-in-out hover:scale-105 hover:bg-opacity-90 bg-white"
+                className="flex flex-col p-4 rounded-lg shadow-lg relative cursor-pointer overflow-hidden bg-white hover:shadow-xl transition-all duration-300 group"
                 onClick={handleCardClick}
             >
                 <EventCardTags eventType={event.event_type} />
-                <Image
-                    src={event.image_url}
-                    alt={event.title}
-                    width={200}
-                    height={40}
-                    className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} mb-1 border border-black`}
-                />
+                <div className="relative overflow-hidden rounded-md mb-1">
+                    <Image
+                        src={event.image_url}
+                        alt={event.title}
+                        width={200}
+                        height={40}
+                        className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} border border-gray-200 transition-transform duration-500 group-hover:scale-110`}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
                 <div className="flex flex-col justify-between flex-grow">
                     <div>
-                        <p className="text-gray-700 text-sm uppercase">
+                        <p className="text-gray-600 text-sm uppercase tracking-wide">
                             {formatDateString(event.date)} | {event.time}
                         </p>
-                        <h3 className="text-slate-700 text-xl font-bold mt-2 mb-2 line-clamp-3">
+                        <h3 className="text-slate-700 text-xl font-bold mt-2 mb-2 line-clamp-3 group-hover:text-blue-600 transition-colors duration-200">
                             {event.title}
                         </h3>
                     </div>
                     <div>
-                        <p className="text-gray-500 text-xs ">
+                        <p className="text-gray-500 text-xs">
                             {event.location_area}
                         </p>
-                        <p className="text-black text-right mt-2 truncate text-ellipsis">
+                        <p className="text-black text-right mt-2 truncate text-ellipsis font-medium">
                             {event.organiser}
                         </p>
                     </div>

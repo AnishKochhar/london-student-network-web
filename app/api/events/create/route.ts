@@ -1,11 +1,32 @@
-import { insertEvent } from "@/app/lib/data";
+import { insertModernEvent } from "@/app/lib/data";
 import { NextResponse } from "next/server";
-import { createSQLEventObject } from "@/app/lib/utils";
-import { FormData } from "@/app/lib/types";
+import { createSQLEventData } from "@/app/lib/utils";
+import { EventFormData } from "@/app/lib/types";
 
 export async function POST(req: Request) {
-    const data: FormData = await req.json();
-    const sqlEvent = await createSQLEventObject(data);
-    const response = await insertEvent(sqlEvent);
-    return NextResponse.json(response);
+	try {
+		const data: EventFormData = await req.json();
+
+		// Validate required fields
+		if (!data.title || !data.description || !data.organiser || !data.start_datetime || !data.end_datetime) {
+			return NextResponse.json(
+				{ success: false, error: "Missing required fields" },
+				{ status: 400 }
+			);
+		}
+
+		// Convert form data to SQL format
+		const sqlEventData = createSQLEventData(data);
+
+		// Insert into database
+		const response = await insertModernEvent(sqlEventData);
+
+		return NextResponse.json(response);
+	} catch (error) {
+		console.error("Error creating event:", error);
+		return NextResponse.json(
+			{ success: false, error: "Internal server error" },
+			{ status: 500 }
+		);
+	}
 }

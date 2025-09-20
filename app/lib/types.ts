@@ -122,6 +122,49 @@ export interface FormData {
     forExternals?: string;
 }
 
+export interface EventFormData {
+    title: string;
+    description: string;
+    organiser: string;
+    organiser_uid: string;
+    start_datetime: string; // Date in YYYY-MM-DD format
+    end_datetime: string;   // Date in YYYY-MM-DD format
+    start_time: string;     // Time in HH:MM format
+    end_time: string;       // Time in HH:MM format
+    is_multi_day: boolean;
+    location_building: string;
+    location_area: string;
+    location_address: string;
+    image_url: string;
+    uploaded_image?: File;
+    image_contain: boolean;
+    tags: number; // Bitmask for tag selections
+    external_forward_email?: string;
+    capacity?: number;
+    sign_up_link?: string;
+    for_externals?: string;
+}
+
+export interface SQLEventData {
+    title: string;
+    description: string;
+    organiser: string;
+    organiser_uid: string;
+    start_datetime: string; // PostgreSQL TIMESTAMPTZ
+    end_datetime: string;   // PostgreSQL TIMESTAMPTZ
+    is_multi_day: boolean;
+    location_building: string;
+    location_area: string;
+    location_address: string;
+    image_url: string;
+    image_contain: boolean;
+    event_type: number; // Bitmask for tag selections
+    external_forward_email?: string;
+    capacity?: number;
+    sign_up_link?: string;
+    for_externals?: string;
+}
+
 export interface UserRegisterFormData {
     email: string;
     password: string;

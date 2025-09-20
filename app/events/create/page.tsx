@@ -1,6 +1,6 @@
 "use server";
 
-import CreateEventPage from "@/app/components/events-page/create-event";
+import ModernCreateEvent from "@/app/components/events-page/modern-create-event";
 import { SocietyLogos } from "@/app/lib/utils";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -19,12 +19,10 @@ export default async function CreatePage() {
     const organiserList = await getAuthorisedOrganiserList(user);
 
     return (
-        <main className="min-h-screen w-screen bg-gradient-to-b from-[#083157]  to-[#064580]">
-            <CreateEventPage
-                organiser_id={user_id}
-                organiserList={organiserList}
-            />
-        </main>
+        <ModernCreateEvent
+            organiser_id={user_id}
+            organiserList={organiserList}
+        />
     );
 }
 

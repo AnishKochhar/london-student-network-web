@@ -1,14 +1,16 @@
 "use client";
 
-import { Button } from "../../components/button";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
+import { LiquidButton } from "../ui/liquid-button";
+import { useState } from "react";
 
 export default function CreateEventButton() {
     const router = useRouter();
-
     const session = useSession();
+    const [isHovered, setIsHovered] = useState(false);
 
     const handleCreateEvent = async () => {
         if (session) {
@@ -19,17 +21,39 @@ export default function CreateEventButton() {
     };
 
     return (
-        <div className="self-center mb-12 md:mb-2 md:self-end">
-            <Button
-                variant="ghost"
+        <motion.div
+            className="self-center mb-8 md:mb-4 md:self-end"
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{
+                duration: 0.5,
+                delay: 0.3,
+                type: "spring",
+                stiffness: 200,
+                damping: 15
+            }}
+        >
+            <LiquidButton
                 size="lg"
-                className="text-xl  text-white hover:bg-slate-800"
                 onClick={handleCreateEvent}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className="group font-semibold text-white hover:text-blue-200 transition-colors duration-300"
             >
-                <PlusIcon width={18} height={18} className="mr-2" />
-                Create An Event
-            </Button>
-            <hr className="border-t-1 border-gray-300" />
-        </div>
+                <motion.div
+                    className="flex items-center justify-center"
+                    animate={{
+                        rotate: isHovered ? 90 : 0,
+                    }}
+                    transition={{
+                        duration: 0.3,
+                        ease: "easeInOut"
+                    }}
+                >
+                    <PlusIcon className="w-6 h-6" />
+                </motion.div>
+                <span className="text-base">Create An Event</span>
+            </LiquidButton>
+        </motion.div>
     );
 }
