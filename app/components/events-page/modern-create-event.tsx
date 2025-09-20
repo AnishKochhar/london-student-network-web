@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
@@ -48,28 +47,6 @@ const sectionVariants = {
     }
 };
 
-const modalVariants = {
-    hidden: {
-        opacity: 0,
-        scale: 0.8
-    },
-    visible: {
-        opacity: 1,
-        scale: 1,
-        transition: {
-            duration: 0.3,
-            ease: "easeOut"
-        }
-    },
-    exit: {
-        opacity: 0,
-        scale: 0.8,
-        transition: {
-            duration: 0.2
-        }
-    }
-};
-
 // Custom Dropdown Component
 const CustomDropdown = ({ value, onChange, options, placeholder, className = "" }: {
     value: string;
@@ -112,7 +89,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, className = "" 
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-60 overflow-y-auto"
+                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-30 max-h-60 overflow-y-auto"
                     >
                         {options.map((option) => (
                             <button
@@ -143,9 +120,7 @@ const CustomImageDropdown = ({ value, onChange, options, placeholder, className 
     className?: string;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const buttonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -157,16 +132,6 @@ const CustomImageDropdown = ({ value, onChange, options, placeholder, className 
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    useEffect(() => {
-        if (isOpen && buttonRef.current) {
-            const rect = buttonRef.current.getBoundingClientRect();
-            setDropdownPosition({
-                top: rect.bottom + window.scrollY + 8,
-                left: rect.left + window.scrollX,
-                width: rect.width
-            });
-        }
-    }, [isOpen]);
 
     const selectedOption = options.find(option => option.value === value);
 
@@ -174,52 +139,10 @@ const CustomImageDropdown = ({ value, onChange, options, placeholder, className 
         setIsOpen(!isOpen);
     };
 
-    const dropdownContent = (
-        <AnimatePresence>
-            {isOpen && (
-                <motion.div
-                    ref={dropdownRef}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="fixed bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-y-auto z-[9999]"
-                    style={{
-                        top: dropdownPosition.top,
-                        left: dropdownPosition.left,
-                        width: dropdownPosition.width
-                    }}
-                >
-                    {options.map((option) => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => {
-                                onChange(option.value);
-                                setIsOpen(false);
-                            }}
-                            className="w-full px-4 py-3 text-left text-gray-900 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none first:rounded-t-lg last:rounded-b-lg flex items-center gap-3"
-                        >
-                            <div className="w-12 h-12 rounded overflow-hidden flex-shrink-0">
-                                <Image
-                                    src={option.value}
-                                    alt={option.label}
-                                    width={48}
-                                    height={48}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <span className="font-medium">{option.label}</span>
-                        </button>
-                    ))}
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
 
     return (
-        <div className={`relative ${className}`}>
+        <div ref={dropdownRef} className={`relative ${className}`}>
             <button
-                ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
                 className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur flex items-center justify-between"
@@ -243,7 +166,39 @@ const CustomImageDropdown = ({ value, onChange, options, placeholder, className 
                 <ChevronDownIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {typeof document !== 'undefined' && createPortal(dropdownContent, document.body)}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-30 max-h-60 overflow-y-auto"
+                    >
+                        {options.map((option) => (
+                            <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => {
+                                    onChange(option.value);
+                                    setIsOpen(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-gray-900 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none first:rounded-t-lg last:rounded-b-lg flex items-center gap-3"
+                            >
+                                <div className="w-12 h-12 rounded overflow-hidden flex-shrink-0">
+                                    <Image
+                                        src={option.value}
+                                        alt={option.label}
+                                        width={48}
+                                        height={48}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                                <span className="font-medium">{option.label}</span>
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
@@ -631,6 +586,33 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
     const [selectedTags, setSelectedTags] = useState<number>(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Calculate default date and times
+    const tomorrow = useMemo(() => {
+        const date = new Date();
+        date.setDate(date.getDate() + 1);
+        return date;
+    }, []);
+
+    const defaultTimes = useMemo(() => {
+        const now = new Date();
+        const roundToNearest15 = (date: Date) => {
+            const minutes = date.getMinutes();
+            const roundedMinutes = Math.ceil(minutes / 15) * 15;
+            const newDate = new Date(date);
+            newDate.setMinutes(roundedMinutes, 0, 0);
+            return newDate;
+        };
+
+        const roundedNow = roundToNearest15(now);
+        const oneHourLater = new Date(roundedNow.getTime() + 60 * 60 * 1000);
+
+        return {
+            startTime: `${roundedNow.getHours().toString().padStart(2, '0')}:${roundedNow.getMinutes().toString().padStart(2, '0')}`,
+            endTime: `${oneHourLater.getHours().toString().padStart(2, '0')}:${oneHourLater.getMinutes().toString().padStart(2, '0')}`,
+            defaultDate: tomorrow.toISOString().slice(0, 10)
+        };
+    }, [tomorrow]);
+
     const {
         register,
         handleSubmit,
@@ -644,6 +626,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
             image_contain: false,
             image_url: placeholderImages[0].src,
             organiser_uid: organiser_id,
+            start_datetime: defaultTimes.defaultDate,
+            end_datetime: defaultTimes.defaultDate,
+            start_time: defaultTimes.startTime,
+            end_time: defaultTimes.endTime,
+            is_multi_day: false
         }
     });
 
@@ -1266,30 +1253,14 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
                 </motion.div>
             </div>
 
-            {/* Animated Event Modal */}
+            {/* Event Modal - now handles its own animation */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <motion.div
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                        variants={modalVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                    >
-                        <motion.div
-                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setIsModalOpen(false)}
-                        />
-                        <motion.div
-                            className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-auto"
-                            variants={modalVariants}
-                        >
-                            <EventModal event={eventData} onClose={() => setIsModalOpen(false)} />
-                        </motion.div>
-                    </motion.div>
+                    <EventModal
+                        event={eventData}
+                        onClose={() => setIsModalOpen(false)}
+                        isPreview={true}
+                    />
                 )}
             </AnimatePresence>
         </div>

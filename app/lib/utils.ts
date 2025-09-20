@@ -58,7 +58,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		image_contain: sqlEvent.image_contain,
 		event_type: sqlEvent.event_type,
 		sign_up_link: sqlEvent.sign_up_link,
-		capacity: sqlEvent.capacity,
+		capacity: sqlEvent.capacity && !isNaN(Number(sqlEvent.capacity)) && Number(sqlEvent.capacity) > 0 ? Number(sqlEvent.capacity) : undefined,
 		for_externals: sqlEvent.for_externals,
 	};
 }
@@ -262,6 +262,57 @@ export function formatDateString(
 	return `${dayOfWeek}, ${dayInMonth} ${monthName}`;
 }
 
+// New function for formatting modern events with timestamp support
+export function formatEventDateTime(event: import('./types').Event): string {
+	// Use new timestamp fields if available, fallback to legacy fields
+	if (event.start_datetime && event.end_datetime) {
+		const startDate = new Date(event.start_datetime);
+		const endDate = new Date(event.end_datetime);
+
+		const startDay = startDate.toLocaleString("en-US", { weekday: "long" });
+		const startDayNum = startDate.getDate();
+		const startMonth = startDate.toLocaleString("en-US", { month: "long" });
+		const startTime = startDate.toLocaleString("en-US", {
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false
+		});
+
+		const endDay = endDate.toLocaleString("en-US", { weekday: "long" });
+		const endDayNum = endDate.getDate();
+		const endMonth = endDate.toLocaleString("en-US", { month: "long" });
+		const endTime = endDate.toLocaleString("en-US", {
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false
+		});
+
+		// Helper function to add ordinal suffix
+		const getOrdinal = (day: number): string => {
+			const j = day % 10;
+			const k = day % 100;
+			if (j === 1 && k !== 11) return day + "st";
+			if (j === 2 && k !== 12) return day + "nd";
+			if (j === 3 && k !== 13) return day + "rd";
+			return day + "th";
+		};
+
+		// Check if it's multi-day (different dates)
+		const isSameDay = startDate.toDateString() === endDate.toDateString();
+
+		if (isSameDay) {
+			// Same day: "Sunday, 21st September | 10:00 - 20:00"
+			return `${startDay}, ${getOrdinal(startDayNum)} ${startMonth} | ${startTime} - ${endTime}`;
+		} else {
+			// Multi-day: "Sunday, 21st September 10:00 - Monday, 22nd September 20:00"
+			return `${startDay}, ${getOrdinal(startDayNum)} ${startMonth} ${startTime} - ${endDay}, ${getOrdinal(endDayNum)} ${endMonth} ${endTime}`;
+		}
+	}
+
+	// Fallback to legacy format
+	return `${formatDateString(event.date, false)} | ${event.time}`;
+}
+
 export function formatDOB(dob: string) {
 	console.log(dob);
 	return dob;
@@ -456,6 +507,11 @@ export function createModernEventObject(data: EventFormData): Event {
 	const startDateTime = new Date(`${data.start_datetime}T${data.start_time}`);
 	const endDateTime = new Date(`${data.end_datetime}T${data.end_time}`);
 
+	// Check if it's multi-day by comparing dates (not time)
+	const startDateOnly = new Date(data.start_datetime);
+	const endDateOnly = new Date(data.end_datetime);
+	const isMultiDay = startDateOnly.toDateString() !== endDateOnly.toDateString();
+
 	// Format time
 	const formatTime = (date: Date) => {
 		return date.toLocaleTimeString('en-GB', {
@@ -487,9 +543,13 @@ export function createModernEventObject(data: EventFormData): Event {
 		image_url: data.image_url,
 		image_contain: data.image_contain,
 		event_type: 0, // Default type
-		capacity: data.capacity,
+		capacity: data.capacity && !isNaN(Number(data.capacity)) && Number(data.capacity) > 0 ? Number(data.capacity) : undefined,
 		sign_up_link: data.sign_up_link || undefined,
 		for_externals: data.for_externals || undefined,
+		// New timestamp fields for multi-day support
+		start_datetime: startDateTime.toISOString(),
+		end_datetime: endDateTime.toISOString(),
+		is_multi_day: isMultiDay,
 	};
 }
 
@@ -511,10 +571,10 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		image_url: data.image_url,
 		image_contain: data.image_contain,
 		event_type: data.tags,
-		external_forward_email: data.external_forward_email,
-		capacity: data.capacity,
-		sign_up_link: data.sign_up_link,
-		for_externals: data.for_externals,
+		external_forward_email: data.external_forward_email || undefined,
+		capacity: data.capacity && !isNaN(Number(data.capacity)) && Number(data.capacity) > 0 ? Number(data.capacity) : undefined,
+		sign_up_link: data.sign_up_link || undefined,
+		for_externals: data.for_externals || undefined,
 	};
 }
 
@@ -609,6 +669,9 @@ export const SocietyLogos = [
 	},
 	{ name: "Imperial College Law Society", src: "/societies/icl-law.png" },
 	{ name: "European Affairs Institute", src: "/societies/LSN.png" },
+	{ name: "Imperial College Union", src: "/societies/imperial-union.png" },
+	{ name: "UCL Students' Union", src: "/societies/ucl-union.png" },
+	{ name: "KCLSU (King's College London Students' Union)", src: "/societies/kclsu.png" },
 ];
 
 export const SponsorsInformation = [

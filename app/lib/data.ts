@@ -203,10 +203,21 @@ export async function insertEvent(event: SQLEvent) {
 
 export async function insertModernEvent(eventData: import('./types').SQLEventData) {
     try {
+        // Extract legacy fields from new timestamp fields for backward compatibility
+        const startDateTime = new Date(eventData.start_datetime);
+        const endDateTime = new Date(eventData.end_datetime);
+
+        const day = startDateTime.getDate();
+        const month = startDateTime.getMonth() + 1; // getMonth() returns 0-11
+        const year = startDateTime.getFullYear();
+        const startTime = `${startDateTime.getHours().toString().padStart(2, '0')}:${startDateTime.getMinutes().toString().padStart(2, '0')}`;
+        const endTime = `${endDateTime.getHours().toString().padStart(2, '0')}:${endDateTime.getMinutes().toString().padStart(2, '0')}`;
+
         await sql`
             INSERT INTO events (
                 title, description, organiser, organiser_uid,
                 start_datetime, end_datetime, is_multi_day,
+                day, month, year, start_time, end_time,
                 location_building, location_area, location_address,
                 image_url, image_contain, external_forward_email,
                 capacity, sign_up_link, for_externals, event_type
@@ -214,6 +225,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
             VALUES (
                 ${eventData.title}, ${eventData.description}, ${eventData.organiser}, ${eventData.organiser_uid},
                 ${eventData.start_datetime}::timestamptz, ${eventData.end_datetime}::timestamptz, ${eventData.is_multi_day},
+                ${day}, ${month}, ${year}, ${startTime}, ${endTime},
                 ${eventData.location_building}, ${eventData.location_area}, ${eventData.location_address},
                 ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
                 ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type}

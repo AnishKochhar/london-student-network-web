@@ -15,6 +15,17 @@ export async function POST(req: Request) {
 			);
 		}
 
+		// Validate optional email field if provided
+		if (data.external_forward_email && data.external_forward_email.trim() !== '') {
+			const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+			if (!emailRegex.test(data.external_forward_email.trim())) {
+				return NextResponse.json(
+					{ success: false, error: "Invalid email format for external forward email" },
+					{ status: 400 }
+				);
+			}
+		}
+
 		// Convert form data to SQL format
 		const sqlEventData = createSQLEventData(data);
 

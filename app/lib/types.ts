@@ -3,8 +3,8 @@ export interface Event {
     title: string;
     description: string;
     organiser: string;
-    time: string;
-    date: string;
+    time: string; // Legacy field
+    date: string; // Legacy field
     location_building: string;
     location_area: string;
     location_address: string;
@@ -14,6 +14,10 @@ export interface Event {
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;
+    // New timestamp fields
+    start_datetime?: string; // PostgreSQL TIMESTAMPTZ
+    end_datetime?: string;   // PostgreSQL TIMESTAMPTZ
+    is_multi_day?: boolean;
 }
 
 export interface EditEventProps {
