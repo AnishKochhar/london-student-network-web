@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView } from "framer-motion";
 import toast from "react-hot-toast";
 import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { upload } from "@vercel/blob/client";
@@ -20,33 +20,42 @@ interface ModernCreateEventProps {
     existingEvent?: Event;
 }
 
-// Animation variants for progressive reveal
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.15,
-            delayChildren: 0.1
-        }
-    }
-};
-
+// Animation variants for scroll-triggered animations
 const sectionVariants = {
     hidden: {
         opacity: 0,
-        x: -30,
-        scale: 0.98
+        x: -100,
+        scale: 0.95
     },
     visible: {
         opacity: 1,
         x: 0,
         scale: 1,
         transition: {
-            duration: 0.6,
-            ease: [0.25, 0.46, 0.45, 0.94]
+            type: "spring",
+            damping: 20,
+            stiffness: 100,
+            duration: 0.8
         }
     }
+};
+
+// Animated Section Component
+const AnimatedSection = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+    return (
+        <motion.section
+            ref={ref}
+            variants={sectionVariants}
+            initial="hidden"
+            animate={isInView ? "visible" : "hidden"}
+            className={className}
+        >
+            {children}
+        </motion.section>
+    );
 };
 
 // Custom Dropdown Component
@@ -693,6 +702,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
         }
     });
 
+
     // Watch for image changes
     const watchedImage = watch("uploaded_image");
     const selectedPlaceholder = watch("image_url");
@@ -735,7 +745,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
         const newTagValue = selectedTags ^ tagKey; // XOR to toggle the bit
         setSelectedTags(newTagValue);
-        setValue("tags", newTagValue);
+        setValue("tags", newTagValue, { shouldValidate: true });
     };
 
     // Form submission
@@ -877,15 +887,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
             {/* Main Content */}
             <div className="w-full px-4 sm:px-6 lg:px-8 pb-12">
-                <motion.div
-                    variants={containerVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="max-w-6xl mx-auto"
-                >
+                <div className="max-w-6xl mx-auto">
                     <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12 sm:space-y-16">
                         {/* Basic Information */}
-                        <motion.section variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
                                 <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Basic Information</h2>
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">Tell us about your event</p>
@@ -958,10 +963,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     </div>
                                 </div>
                             </div>
-                        </motion.section>
+                        </AnimatedSection>
 
                         {/* Date & Time */}
-                        <motion.section variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
                                 <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Date & Time</h2>
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">When is your event happening?</p>
@@ -1015,10 +1020,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     </motion.div>
                                 )}
                             </div>
-                        </motion.section>
+                        </AnimatedSection>
 
                         {/* Location */}
-                        <motion.section variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
                                 <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Location</h2>
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">Where will your event take place?</p>
@@ -1069,16 +1074,26 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     </div>
                                 </div>
                             </div>
-                        </motion.section>
+                        </AnimatedSection>
 
                         {/* Tags */}
-                        <motion.section variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Tags</h2>
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">
+                                    Tags <span className="text-red-300">*</span>
+                                </h2>
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">Help people find your event</p>
                             </div>
 
                             <div className="lg:col-span-9 space-y-4">
+                                {/* Hidden field for tags validation */}
+                                <input
+                                    {...register("tags", {
+                                        validate: (value) => value > 0 || "Please select at least one tag"
+                                    })}
+                                    type="hidden"
+                                    value={selectedTags}
+                                />
                                 {/* Tag selection counter */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -1128,11 +1143,14 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                         );
                                     })}
                                 </div>
+                                {errors.tags && (
+                                    <p className="mt-2 text-sm text-red-300">{errors.tags.message}</p>
+                                )}
                             </div>
-                        </motion.section>
+                        </AnimatedSection>
 
                         {/* Additional Details */}
-                        <motion.section variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
                                 <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Additional Details</h2>
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">Optional information to help attendees</p>
@@ -1199,10 +1217,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     />
                                 </div>
                             </div>
-                        </motion.section>
+                        </AnimatedSection>
 
                         {/* Event Image */}
-                        <motion.section variants={sectionVariants} className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
                                 <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Event Image</h2>
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">Choose an image to represent your event</p>
@@ -1313,9 +1331,9 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     )}
                                 </div>
                             </div>
-                        </motion.section>
+                        </AnimatedSection>
                     </form>
-                </motion.div>
+                </div>
             </div>
 
             {/* Event Modal - now handles its own animation */}
