@@ -8,15 +8,15 @@ import toast from "react-hot-toast";
 export default function NotificationView() {
     useEffect(() => {
         // Remove Previous Notifications
-        localStorage.removeItem("passwordReset");
+		localStorage.removeItem("newLook");
 
         setTimeout(() => {
-            const hasSeenToast = localStorage.getItem("eventURL");
+            const hasSeenToast = localStorage.getItem("forum");
             if (!hasSeenToast) {
                 toast(
                     <span className="text-center">
-                        Every single event now has its <b>own unique page</b>{" "}
-                        for you to share with your friends!
+                        LSN has a new look! Introducing our
+						newest feature - our student <b>forum</b>{" "}!
                     </span>,
                     {
                         icon: "🚨",
@@ -29,7 +29,7 @@ export default function NotificationView() {
                     },
                 );
                 // Set a flag in localStorage
-                localStorage.setItem("eventURL", "true");
+                localStorage.setItem("forum", "true");
             }
         }, 500);
     }, []);
