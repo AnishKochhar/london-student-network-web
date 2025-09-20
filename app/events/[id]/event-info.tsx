@@ -113,7 +113,7 @@ export default function EventInfo() {
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Event Not Found</h2>
-                    <p className="text-gray-600">The event you're looking for doesn't exist or has been removed.</p>
+                    <p className="text-gray-600">The event you&apos;re looking for doesn&apos;t exist or has been removed.</p>
                 </div>
             </div>
         );

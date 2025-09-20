@@ -65,7 +65,7 @@ const ReplyList = ({
             // If there are more replies to show, keep hasMoreReplies true
             setHasMoreReplies(allReplies.length > DISPLAY_BATCH_SIZE);
         }
-    }, [viewContext?.type, commentReplies, threadReplies, allReplies.length]);
+    }, [viewContext?.type, commentReplies, threadReplies, allReplies]);
 
     // Function to fetch more replies from API
     const fetchMoreFromApi = useCallback(async () => {

@@ -123,7 +123,7 @@ export default function PostItem({
                     >
                         {post.tags.map((tag) => (
                             <span
-                                key={tag}
+                                key={`${post.id}-${tag}`}
                                 className="px-3 py-1 bg-blue-600/30 border border-blue-400/30 rounded-full text-sm text-blue-300 hover:bg-blue-600/50 cursor-pointer transition-colors truncate max-w-full"
                             >
                                 {tag}
@@ -220,7 +220,7 @@ export default function PostItem({
                 >
                     {post.tags.map((tag) => (
                         <span
-                            key={tag}
+                            key={`${post.id}-${tag}`}
                             className="px-2 py-0.5 bg-blue-600/30 border border-blue-400/30 rounded-full text-xs text-blue-300 hover:bg-blue-600/50 cursor-pointer transition-colors truncate max-w-full"
                         >
                             {tag}

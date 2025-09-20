@@ -34,29 +34,36 @@ function GlassFilter() {
 			<defs>
 				<filter
 					id="liquid-glass"
-					x="0%"
-					y="0%"
-					width="100%"
-					height="100%"
+					x="-20%"
+					y="-20%"
+					width="140%"
+					height="140%"
 					colorInterpolationFilters="sRGB"
 				>
 					<feTurbulence
 						type="fractalNoise"
-						baseFrequency="0.02 0.02"
-						numOctaves="1"
-						seed="1"
+						baseFrequency="0.015 0.025"
+						numOctaves="2"
+						seed="2"
 						result="turbulence"
-					/>
-					<feGaussianBlur in="turbulence" stdDeviation="1.5" result="blurredNoise" />
+					>
+						<animate
+							attributeName="baseFrequency"
+							values="0.015 0.025;0.025 0.015;0.015 0.025"
+							dur="8s"
+							repeatCount="indefinite"
+						/>
+					</feTurbulence>
+					<feGaussianBlur in="turbulence" stdDeviation="2" result="blurredNoise" />
 					<feDisplacementMap
 						in="SourceGraphic"
 						in2="blurredNoise"
-						scale="50"
+						scale="30"
 						xChannelSelector="R"
-						yChannelSelector="B"
+						yChannelSelector="G"
 						result="displaced"
 					/>
-					<feGaussianBlur in="displaced" stdDeviation="3" result="finalBlur" />
+					<feGaussianBlur in="displaced" stdDeviation="1.5" result="finalBlur" />
 					<feComposite in="finalBlur" in2="finalBlur" operator="over" />
 				</filter>
 			</defs>
@@ -82,39 +89,58 @@ const LiquidButton = React.forwardRef<HTMLButtonElement, LiquidButtonProps>(
 					onMouseLeave={() => setIsHovered(false)}
 					{...props}
 				>
-					{/* Glass morphism background - more transparent */}
-					<div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/5 to-white/[0.1] backdrop-blur-lg" />
+					{/* Enhanced glass morphism background */}
+					<div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/[0.05] via-white/[0.02] to-white/[0.08] backdrop-blur-xl" />
 
-					{/* Liquid glass effect layer */}
+					{/* Liquid glass effect layer with enhanced distortion */}
 					<div
 						className="absolute inset-0 rounded-full overflow-hidden"
 						style={{
-							backdropFilter: isHovered ? 'url("#liquid-glass")' : 'blur(8px)',
-							transition: 'all 0.3s ease'
+							backdropFilter: isHovered ? 'url("#liquid-glass") blur(4px)' : 'blur(12px)',
+							transition: 'backdrop-filter 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
 						}}
 					/>
 
-					{/* Inner glass reflections */}
+					{/* Enhanced inner glass reflections */}
 					<div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent via-white/[0.03] to-white/[0.08]" />
 
-					{/* Inner shadow for depth */}
-					<div className="absolute inset-0 rounded-full shadow-[inset_0_2px_20px_rgba(255,255,255,0.05),inset_0_-2px_20px_rgba(0,0,0,0.1)]" />
+					{/* Additional glass layer for depth */}
+					<div className="absolute inset-0 rounded-full bg-gradient-to-br from-transparent via-transparent to-white/[0.04]" />
 
-					{/* Animated gold border with pulse */}
-					<div className="absolute -inset-[1px] rounded-full bg-gradient-to-r from-amber-400/30 via-yellow-300/40 to-amber-400/30 animate-pulse blur-sm" />
+					{/* Enhanced inner shadow for more depth */}
+					<div className="absolute inset-0 rounded-full shadow-[inset_0_3px_24px_rgba(255,255,255,0.08),inset_0_-3px_24px_rgba(0,0,0,0.15),inset_0_0_32px_rgba(255,255,255,0.02)]" />
 
-					{/* Glass edge highlight */}
-					<div className="absolute inset-0 rounded-full ring-1 ring-white/10 group-hover:ring-white/20 transition-all duration-300" />
+					{/* Animated gold border ring with pulse - disabled for now */}
+					{/* <div className="absolute inset-0 rounded-full animate-pulse"
+						 style={{
+							 boxShadow: '0 0 0 2px transparent, 0 0 0 3px rgba(251, 191, 36, 0.5), 0 0 8px rgba(253, 224, 71, 0.3)'
+						 }} /> */}
 
-					{/* Refraction effect */}
-					<div className="absolute inset-[1px] rounded-full ring-1 ring-black/5" />
+					{/* Enhanced glass edge highlight */}
+					<div className="absolute inset-0 rounded-full ring-1 ring-white/15 group-hover:ring-white/30 transition-all duration-400" />
 
-					{/* Shine effect on hover - diagonal glass shine */}
-					<div className={cn(
-						"absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700",
-						"bg-gradient-to-tr from-transparent via-white/[0.07] to-transparent",
-						"bg-[length:200%_200%] bg-[position:-100%_-100%] group-hover:bg-[position:200%_200%] transition-[background-position] duration-1000"
-					)} />
+					{/* Enhanced refraction effect */}
+					<div className="absolute inset-[1px] rounded-full ring-1 ring-black/8 group-hover:ring-black/4 transition-all duration-400" />
+
+					{/* Enhanced shine effect on hover - more prominent glass shine */}
+					<div
+						className="absolute inset-0 rounded-full transition-all duration-500 ease-out"
+						style={{
+							opacity: isHovered ? 1 : 0,
+							background: 'linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%)',
+							transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+						}}
+					/>
+
+					{/* Additional subtle shimmer effect */}
+					<div
+						className="absolute inset-0 rounded-full transition-all duration-700 ease-in-out"
+						style={{
+							opacity: isHovered ? 0.4 : 0,
+							background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent)',
+							transform: isHovered ? 'translateX(100%)' : 'translateX(-100%)',
+						}}
+					/>
 
 					{/* Content */}
 					<div className="relative z-10 flex items-center justify-center gap-2">
