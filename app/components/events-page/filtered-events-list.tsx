@@ -27,7 +27,7 @@ export default function FilteredEventsList({
         const [monthB, yearB] = b.split("/");
         const dateA = new Date(`${yearA}-${monthA}-01`);
         const dateB = new Date(`${yearB}-${monthB}-01`);
-        return dateA.getTime() - dateB.getTime();
+        return dateB.getTime() - dateA.getTime(); // Reversed: most recent first
     });
 
     return (

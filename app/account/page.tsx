@@ -1,10 +1,6 @@
 "use client";
 
-// note for improvement, use suspense or similar library to handle initial loading of tags, as it shows an unpleasent
-// unknown(number) value, while the tags are loaded in in the initial render. It only shows for less than a second however.
-// You can also just remove the fetch-predefined-tags component and couple the logic where it is needed.
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
@@ -15,16 +11,75 @@ import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
 
 export default function AccountPage() {
-    const [showForgottenPasswordModal, setShowForgottenPasswordModal] =
-        useState(false);
+    const [showForgottenPasswordModal, setShowForgottenPasswordModal] = useState(false);
+    const [activeSection, setActiveSection] = useState("personal");
     const { data: session, status } = useSession();
-
+    const contentRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+
+    // Navigation sections
+    const sections = useMemo(() => [
+        { id: "personal", label: "Personal information", icon: "👤" },
+        { id: "events", label: "Your events", icon: "📅" },
+        { id: "account", label: "Account settings", icon: "⚙️" },
+    ], []);
 
     useEffect(() => {
         if (status === "loading") return;
         if (!session) router.push("/login");
     }, [session, status, router]);
+
+    // Scroll spy functionality using window scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            const sectionElements = sections.map(section =>
+                document.getElementById(section.id)
+            ).filter(Boolean) as HTMLElement[];
+
+            if (sectionElements.length === 0) return;
+
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const offset = 150; // Offset for better UX
+
+            // Find the section that's currently in view
+            let currentSection = sections[0].id;
+
+            for (let i = 0; i < sectionElements.length; i++) {
+                const element = sectionElements[i];
+                if (element) {
+                    const elementTop = element.offsetTop;
+
+                    if (elementTop <= scrollTop + offset) {
+                        currentSection = sections[i].id;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            setActiveSection(currentSection);
+        };
+
+        // Use window scroll events
+        window.addEventListener('scroll', handleScroll);
+        // Initial call to set active section
+        setTimeout(handleScroll, 100); // Delay to ensure DOM is ready
+
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [sections]);
+
+    const scrollToSection = (sectionId: string) => {
+        const element = document.getElementById(sectionId);
+
+        if (element) {
+            // Use scrollIntoView with window scroll
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+                inline: 'nearest'
+            });
+        }
+    };
 
     const handleForgottenPasswordPress = () => {
         setShowForgottenPasswordModal(true);
@@ -32,84 +87,153 @@ export default function AccountPage() {
 
     if (status === "loading") {
         return (
-            <div className="flex justify-center items-center h-screen">
-                <p>Loading your account details...</p>
+            <div className="flex justify-center items-center h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
+                <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-white">Loading your account details...</p>
+                </div>
             </div>
         );
     }
 
     if (session) {
         const { user } = session;
-        console.log(session);
 
         return (
-            <div className="min-h-screen flex flex-col justify-start p-10 bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] overflow-x-hidden">
-                <h1 className="text-4xl font-semibold mb-6">Your account</h1>
-
-                <div className="border-b border-gray-300 pb-4 ml-4 mb-10 space-y-6">
-                    <h2 className="text-2xl italic mb-2 ml-2">Your details</h2>
-                    <div className="flex flex-col md:flex-row">
-                        <div className="w-full">
-                            <p className="text-sm">
-                                <h3 className="text-lg font-semibold mb-2 text-white">
-                                    Name
-                                </h3>
-                                <hr className="border-t-1 border-gray-300 w-[80%] mt-2 mb-4" />
-                                <p className="text-gray-100 whitespace-pre-wrap font-bold">
-                                    {user?.name || "Test User"}
-                                </p>
-                            </p>
-                            <p className="text-sm mt-6">
-                                <h3 className="text-lg font-semibold mb-2 text-white">
-                                    Email
-                                </h3>
-                                <hr className="border-t-1 border-gray-300 w-[80%] mt-2 mb-4" />
-                                <p className="text-gray-100 whitespace-pre-wrap font-bold">
-                                    {user?.email || "test@lsn.co.uk"}
-                                </p>
-                            </p>
-                            <p className="text-sm capitalize mt-6">
-                                <h3 className="text-lg font-semibold mb-2 text-white">
-                                    Role
-                                </h3>
-                                <hr className="border-t-1 border-gray-300 w-[80%] mt-2 mb-4" />
-                                <p className="text-gray-100 whitespace-pre-wrap font-bold">
-                                    {user?.role || "user"}
-                                </p>
-                            </p>
-                        </div>
-                        {user.role === "organiser" && (
-                            <div className="w-full order-first md:order-none md:ml-auto flex justify-center items-center">
-                                <AccountLogo id={user.id} role={user.role} />
+            <div className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
+                <div className="flex max-w-7xl mx-auto min-h-screen">
+                    {/* Left Sidebar - Table of Contents */}
+                    <div className="hidden md:flex md:w-64 lg:w-80 xl:w-96 bg-white/5 backdrop-blur-sm border-r border-white/10 flex-shrink-0">
+                        <div className="sticky top-0 p-4 lg:p-8 w-full flex flex-col h-screen">
+                            {/* Header */}
+                            <div className="mb-8 flex-shrink-0">
+                                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/10 rounded-full flex items-center justify-center mb-4">
+                                    <AccountLogo id={user.id} role={user.role} sidebar={true} />
+                                </div>
+                                <h1 className="text-lg lg:text-2xl font-semibold text-white mb-2 truncate">{user?.name || "Your Account"}</h1>
+                                <p className="text-gray-300 text-xs lg:text-sm truncate">{user?.email}</p>
                             </div>
-                        )}
+
+                            {/* Navigation */}
+                            <nav className="space-y-2 flex-grow">
+                                {sections.map((section) => (
+                                    <button
+                                        key={section.id}
+                                        onClick={() => scrollToSection(section.id)}
+                                        className={`w-full text-left px-3 lg:px-4 py-2 lg:py-3 rounded-lg transition-all duration-200 flex items-center gap-2 lg:gap-3 ${
+                                            activeSection === section.id
+                                                ? "bg-white/20 text-white border border-white/20"
+                                                : "text-gray-300 hover:bg-white/10 hover:text-white"
+                                        }`}
+                                    >
+                                        <span className="text-base lg:text-lg flex-shrink-0">{section.icon}</span>
+                                        <span className="font-medium text-sm lg:text-base truncate">{section.label}</span>
+                                    </button>
+                                ))}
+                            </nav>
+
+                            {/* Sign Out Button - Pinned to bottom */}
+                            <div className="mt-auto pt-4 lg:pt-8 border-t border-white/10 flex-shrink-0">
+                                <Button
+                                    variant="ghost"
+                                    className="w-full text-red-300 hover:text-red-200 hover:bg-red-500/10 justify-start px-3 lg:px-4 text-sm lg:text-base"
+                                    onClick={() => router.push("/logout")}
+                                >
+                                    Sign out
+                                </Button>
+                            </div>
+                        </div>
                     </div>
-                    {user.role === "organiser" && (
-                        <AccountFields id={user.id} role={user.role} />
-                    )}
+
+                    {/* Right Content Area */}
+                    <div className="flex-1 min-h-screen" ref={contentRef}>
+                        <div className="p-4 md:p-8 space-y-8 md:space-y-16">
+                                {/* Personal Information Section */}
+                                <section id="personal" className="scroll-mt-8">
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Personal information</h2>
+                                    <p className="text-gray-300 mb-4 md:mb-8">View your personal information and contact details</p>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                                        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 opacity-75">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Name
+                                            </label>
+                                            <div className="bg-white/5 rounded-lg px-4 py-3 text-gray-300 font-medium cursor-not-allowed" aria-disabled="true">
+                                                {user?.name || "Not provided"}
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 opacity-75">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Email
+                                            </label>
+                                            <div className="bg-white/5 rounded-lg px-4 py-3 text-gray-300 font-medium cursor-not-allowed" aria-disabled="true">
+                                                {user?.email || "Not provided"}
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 opacity-75">
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Role
+                                            </label>
+                                            <div className="bg-white/5 rounded-lg px-4 py-3 text-gray-300 font-medium capitalize cursor-not-allowed" aria-disabled="true">
+                                                {user?.role || "User"}
+                                            </div>
+                                        </div>
+
+                                        {user.role === "organiser" && (
+                                            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 lg:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-300 mb-2">Organization Logo</label>
+                                                <div className="mt-2">
+                                                    <AccountLogo id={user.id} role={user.role} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {user.role === "organiser" && (
+                                        <div className="mt-8">
+                                            <AccountFields id={user.id} role={user.role} />
+                                        </div>
+                                    )}
+                                </section>
+
+                                {/* Your Events Section */}
+                                <section id="events" className="scroll-mt-8">
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Your events</h2>
+                                    <p className="text-gray-300 mb-4 md:mb-8">View and manage events you&apos;ve created or are organising</p>
+
+                                    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
+                                        <UserEventsList user_id={user.id} editEvent={true} />
+                                    </div>
+                                </section>
+
+                                {/* Account Settings Section */}
+                                <section id="account" className="scroll-mt-8">
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Account settings</h2>
+                                    <p className="text-gray-300 mb-4 md:mb-8">Manage your account security and preferences</p>
+
+                                    <div className="space-y-4 md:space-y-6">
+                                        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
+                                            <h3 className="text-lg font-semibold text-white mb-4">Security</h3>
+                                            <p className="text-gray-300 mb-4">Update your password to keep your account secure</p>
+                                            <Button
+                                                variant="ghost"
+                                                className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 text-sm md:text-base"
+                                                onClick={handleForgottenPasswordPress}
+                                            >
+                                                Reset Your Password
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Bottom padding for scroll */}
+                                <div className="h-32"></div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="border-b border-gray-300 pb-4 ml-4 mb-10 space-y-6">
-                    <h2 className="text-2xl italic mb-2 ml-2">Your events</h2>
-                    <UserEventsList user_id={user.id} editEvent={true} />
-                </div>
-
-                <div className="flex justify-end self-end space-x-2">
-                    <Button
-                        variant="filled"
-                        className="bg-sky-600 hover:bg-sky-800 text-white py-2 px-4 rounded-full"
-                        onClick={handleForgottenPasswordPress}
-                    >
-                        Reset Your Password
-                    </Button>
-                    <Button
-                        variant="filled"
-                        className="bg-red-600 hover:bg-red-900 text-white py-2 px-4 rounded-full"
-                        onClick={() => router.push("/logout")}
-                    >
-                        Sign Out
-                    </Button>
-                </div>
                 {showForgottenPasswordModal && (
                     <ForgottenPasswordModal
                         onClose={() => setShowForgottenPasswordModal(false)}

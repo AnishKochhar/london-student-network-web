@@ -71,8 +71,10 @@ export async function fetchAllUpcomingEvents() {
     try {
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
-			WHERE (year, month, day) >= (EXTRACT(YEAR FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_DATE))
-			ORDER BY year, month, day
+			WHERE COALESCE(start_datetime::date, make_date(year, month, day)) >= CURRENT_DATE
+			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+				EXTRACT(hour FROM start_time::time)::int,
+				EXTRACT(minute FROM start_time::time)::int, 0))
 		`;
         return data.rows.map(convertSQLEventToEvent);
     } catch (error) {
@@ -85,8 +87,10 @@ export async function fetchUpcomingEvents() {
     try {
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
-			WHERE (year, month, day) >= (EXTRACT(YEAR FROM CURRENT_DATE), EXTRACT(MONTH FROM CURRENT_DATE), EXTRACT(DAY FROM CURRENT_DATE))
-			ORDER BY year, month, day
+			WHERE COALESCE(start_datetime::date, make_date(year, month, day)) >= CURRENT_DATE
+			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+				EXTRACT(hour FROM start_time::time)::int,
+				EXTRACT(minute FROM start_time::time)::int, 0))
 			LIMIT 5
 		`;
         return data.rows.map(convertSQLEventToEvent);
@@ -101,7 +105,9 @@ export async function fetchUserEvents(organiser_uid: string) {
         const events = await sql`
             SELECT * FROM events
             WHERE organiser_uid = ${organiser_uid}
-            ORDER BY start_time ASC
+            ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+				EXTRACT(hour FROM start_time::time)::int,
+				EXTRACT(minute FROM start_time::time)::int, 0)) ASC
         `;
 
         return events.rows.map(convertSQLEventToEvent);

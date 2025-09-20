@@ -64,11 +64,16 @@ export interface SQLEvent {
     description: string;
     organiser: string;
     organiser_uid: string;
-    start_time: string;
-    end_time: string;
-    day: number;
-    month: number;
-    year: number;
+    // New datetime fields (primary)
+    start_datetime?: string;   // PostgreSQL TIMESTAMPTZ
+    end_datetime?: string;     // PostgreSQL TIMESTAMPTZ
+    is_multi_day?: boolean;
+    // Legacy fields (for backward compatibility, now optional)
+    start_time?: string;
+    end_time?: string;
+    day?: number;
+    month?: number;
+    year?: number;
     location_building: string;
     location_area: string;
     location_address: string;

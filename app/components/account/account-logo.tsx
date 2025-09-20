@@ -22,9 +22,11 @@ async function fetchAccountLogo(id: string): Promise<string> {
 export default function AccountLogo({
     id,
     role,
+    sidebar = false,
 }: {
     id: string;
     role: string;
+    sidebar?: boolean;
 }) {
     const [logo, setLogo] = useState("");
 
@@ -33,6 +35,20 @@ export default function AccountLogo({
             fetchAccountLogo(id).then(setLogo);
         }
     }, [role, id]);
+
+    if (sidebar) {
+        return logo ? (
+            <Image
+                src={logo}
+                alt="Organisation Logo"
+                width={64}
+                height={64}
+                className="w-12 h-12 lg:w-16 lg:h-16 object-contain rounded-lg"
+            />
+        ) : (
+            <span className="text-xl lg:text-2xl">👤</span>
+        );
+    }
 
     return (
         <div className="pb-4 space-y-6">

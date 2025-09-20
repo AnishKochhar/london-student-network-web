@@ -41,8 +41,43 @@ export function formattedWebsite(website: string) {
 }
 
 export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
-	const date = `${String(sqlEvent.day).padStart(2, "0")}/${String(sqlEvent.month).padStart(2, "0")}/${sqlEvent.year}`;
-	const time = `${sqlEvent.start_time} - ${sqlEvent.end_time}`;
+	// Use new datetime fields if available, fallback to legacy fields
+	let start_datetime: string | undefined;
+	let end_datetime: string | undefined;
+	let is_multi_day: boolean | undefined;
+	let time: string;
+	let date: string;
+
+	if (sqlEvent.start_datetime && sqlEvent.end_datetime) {
+		// Use new datetime fields
+		start_datetime = sqlEvent.start_datetime;
+		end_datetime = sqlEvent.end_datetime;
+		is_multi_day = sqlEvent.is_multi_day || false;
+
+		// Generate legacy fields for backward compatibility
+		const startDate = new Date(start_datetime);
+		const endDate = new Date(end_datetime);
+
+		time = `${startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+		date = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
+	} else {
+		// Fallback to legacy fields
+		date = `${String(sqlEvent.day!).padStart(2, "0")}/${String(sqlEvent.month!).padStart(2, "0")}/${sqlEvent.year}`;
+		time = `${sqlEvent.start_time} - ${sqlEvent.end_time}`;
+
+		// Try to construct datetime from legacy fields if available
+		if (sqlEvent.day && sqlEvent.month && sqlEvent.year && sqlEvent.start_time && sqlEvent.end_time) {
+			const [startHour, startMinute] = sqlEvent.start_time.split(':').map(Number);
+			const [endHour, endMinute] = sqlEvent.end_time.split(':').map(Number);
+
+			const startDate = new Date(sqlEvent.year, sqlEvent.month - 1, sqlEvent.day, startHour, startMinute);
+			const endDate = new Date(sqlEvent.year, sqlEvent.month - 1, sqlEvent.day, endHour, endMinute);
+
+			start_datetime = startDate.toISOString();
+			end_datetime = endDate.toISOString();
+			is_multi_day = false; // Legacy events are single day
+		}
+	}
 
 	return {
 		id: sqlEvent.id,
@@ -60,6 +95,10 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		sign_up_link: sqlEvent.sign_up_link,
 		capacity: sqlEvent.capacity && !isNaN(Number(sqlEvent.capacity)) && Number(sqlEvent.capacity) > 0 ? Number(sqlEvent.capacity) : undefined,
 		for_externals: sqlEvent.for_externals,
+		// New datetime fields
+		start_datetime: start_datetime,
+		end_datetime: end_datetime,
+		is_multi_day: is_multi_day,
 	};
 }
 
