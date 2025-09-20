@@ -52,7 +52,7 @@ export default function AccountLogo({
 
     return (
         <div className="pb-4 space-y-6">
-            <p className="text-sm capitalize flex flex-col">
+            <div className="text-sm capitalize flex flex-col">
                 <h3 className="text-lg font-semibold mb-2 text-white">Logo</h3>
                 {logo ? (
                     <Image
@@ -71,7 +71,7 @@ export default function AccountLogo({
                         className="w-24 h-24 object-cover border-2 border-gray-300 rounded"
                     />
                 )}
-            </p>
+            </div>
         </div>
     );
 }

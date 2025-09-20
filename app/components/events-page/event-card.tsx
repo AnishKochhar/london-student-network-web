@@ -6,30 +6,25 @@ import { EventCardProps } from "@/app/lib/types";
 import { formatDateString } from "@/app/lib/utils";
 import EventCardTags from "./event-tags";
 import EventModal from "./event-modal";
-import EditPage from "../edit/edit";
+import EventManagementModal from "./event-management-modal";
+import { EyeSlashIcon } from "@heroicons/react/24/outline";
 
 export default function EventCard({ event, editEvent }: EventCardProps) {
-    const [modalChoice, setModalChoice] = useState<"edit" | "view" | "waiting">(
+    const [modalChoice, setModalChoice] = useState<"edit" | "view" | "manage" | "waiting">(
         "waiting",
     );
 
-    const openEditModal = () => setModalChoice("edit");
+    const openManageModal = () => setModalChoice("manage");
     const openViewModal = () => setModalChoice("view");
     const closeModal = () => setModalChoice("waiting");
 
     const handleCardClick = () => {
         {
-            editEvent ? openEditModal() : openViewModal();
+            editEvent ? openManageModal() : openViewModal();
         } // !editEvent is the most likely scenario
     };
 
-    if (modalChoice === "view") {
-        return <EventModal event={event} onClose={closeModal} />;
-    }
-
-    if (modalChoice === "edit") {
-        return <EditPage event={event} onClose={closeModal} />;
-    }
+    // Don't return early for modals, render them alongside the card
 
     return (
         <>
@@ -38,6 +33,11 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                 onClick={handleCardClick}
             >
                 <EventCardTags eventType={event.event_type} />
+                {event.is_hidden && editEvent && (
+                    <div className="absolute top-2 left-2 z-10 bg-red-100 border border-red-300 rounded-full p-1.5 shadow-sm">
+                        <EyeSlashIcon className="h-4 w-4 text-red-600" />
+                    </div>
+                )}
                 <div className="relative overflow-hidden rounded-md mb-1">
                     <Image
                         src={event.image_url}
@@ -69,6 +69,14 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Render modals conditionally */}
+            {modalChoice === "view" && (
+                <EventModal event={event} onClose={closeModal} />
+            )}
+            {modalChoice === "manage" && (
+                <EventManagementModal event={event} onClose={closeModal} />
+            )}
         </>
     );
 }

@@ -44,9 +44,6 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
 
     useEffect(() => {
         const getRegistrations = async () => {
-            const toastId = toast.loading(
-                "Fetching event registration data...",
-            );
             try {
                 const res = await fetch("/api/events/registrations", {
                     method: "POST",
@@ -59,19 +56,12 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
                 });
                 const result = await res.json();
                 if (result.success) {
-                    toast.success("Event registrations loaded!", {
-                        id: toastId,
-                    });
                     setRegistrations(result.registrations);
                 } else {
-                    toast.error("Error fetching event registrations!", {
-                        id: toastId,
-                    });
+                    toast.error("Error fetching event registrations!");
                 }
             } catch (error) {
-                toast.error("Error fetching event registrations!", {
-                    id: toastId,
-                });
+                toast.error("Error fetching event registrations!");
             }
         };
 
@@ -93,22 +83,13 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
                 }),
             });
 
-            const result = await response.json();
-
-            if (response.ok) {
-                toast.success(`Email sent to ${recipientEmail}!`);
-            } else {
-                toast.error(
-                    `Error sending email to ${recipientEmail}: ${result.error}`,
-                );
-            }
-
             if (!response.ok) {
-                throw new Error("Failed to send the email");
+                const result = await response.json();
+                throw new Error(result.error || "Failed to send the email");
             }
         } catch (error) {
-            toast.error(`Error during email sending: ${error.message}`);
             console.error("Failed to send email", error);
+            throw error;
         }
     };
 
@@ -135,16 +116,28 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
         setErrors({});
         setLoading(true);
 
-        const toastId = toast.loading(
-            sendToAll ? "Sending emails..." : "Sending email...",
-        );
         try {
             if (sendToAll) {
                 // Send emails to all registrations
+                let successCount = 0;
+                let failureCount = 0;
+
                 for (const registration of registrations) {
-                    await sendEmail(registration.user_email);
+                    try {
+                        await sendEmail(registration.user_email);
+                        successCount++;
+                    } catch (error) {
+                        failureCount++;
+                    }
                 }
-                toast.success("All emails sent successfully!", { id: toastId });
+
+                if (failureCount === 0) {
+                    toast.success(`All ${successCount} emails sent successfully!`);
+                } else if (successCount > 0) {
+                    toast.success(`${successCount} emails sent successfully. ${failureCount} failed.`);
+                } else {
+                    toast.error("All emails failed to send.");
+                }
             } else {
                 // Send email to the custom single recipient
                 if (!customEmail) {
@@ -152,9 +145,7 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
                     return;
                 }
                 await sendEmail(customEmail);
-                toast.success("Email sent to the custom recipient!", {
-                    id: toastId,
-                });
+                toast.success("Email sent successfully!");
             }
 
             onClose();
@@ -167,10 +158,14 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            onClick={onClose}
+        >
             <div
                 ref={modalRef}
                 className="relative bg-white w-[90vw] h-[80vh] p-8 border-2 border-black overflow-hidden flex flex-col"
+                onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-semibold text-black">

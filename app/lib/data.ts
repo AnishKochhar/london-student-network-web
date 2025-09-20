@@ -72,6 +72,8 @@ export async function fetchAllUpcomingEvents() {
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
 			WHERE COALESCE(start_datetime::date, make_date(year, month, day)) >= CURRENT_DATE
+			AND (is_deleted IS NULL OR is_deleted = false)
+			AND (is_hidden IS NULL OR is_hidden = false)
 			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
 				EXTRACT(hour FROM start_time::time)::int,
 				EXTRACT(minute FROM start_time::time)::int, 0))
@@ -88,6 +90,8 @@ export async function fetchUpcomingEvents() {
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
 			WHERE COALESCE(start_datetime::date, make_date(year, month, day)) >= CURRENT_DATE
+			AND (is_deleted IS NULL OR is_deleted = false)
+			AND (is_hidden IS NULL OR is_hidden = false)
 			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
 				EXTRACT(hour FROM start_time::time)::int,
 				EXTRACT(minute FROM start_time::time)::int, 0))
@@ -105,6 +109,7 @@ export async function fetchUserEvents(organiser_uid: string) {
         const events = await sql`
             SELECT * FROM events
             WHERE organiser_uid = ${organiser_uid}
+            AND (is_deleted IS NULL OR is_deleted = false)
             ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
 				EXTRACT(hour FROM start_time::time)::int,
 				EXTRACT(minute FROM start_time::time)::int, 0)) ASC
@@ -122,8 +127,14 @@ export async function fetchEventById(id: string) {
         const data = await sql<SQLEvent>`
 			SELECT *
 			FROM events
-			WHERE id::text LIKE '%' || ${id};
+			WHERE id::text LIKE '%' || ${id}
+			AND (is_deleted IS NULL OR is_deleted = false);
 		`;
+
+        if (data.rows.length === 0) {
+            return null;
+        }
+
         return convertSQLEventToEvent(data.rows[0]);
     } catch (error) {
         console.error("Database error:", error);
@@ -1012,5 +1023,88 @@ export async function getReplyCountByThreadId(threadId: string) {
     } catch (error) {
         console.error("Error fetching reply count by thread ID:", error);
         throw new Error("Failed to fetch reply count for thread");
+    }
+}
+
+// Event visibility management functions
+export async function hideEvent(eventId: string) {
+    try {
+        await sql`
+            UPDATE events
+            SET is_hidden = true
+            WHERE id = ${eventId}
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Error hiding event:", error);
+        return { success: false, error };
+    }
+}
+
+export async function unhideEvent(eventId: string) {
+    try {
+        await sql`
+            UPDATE events
+            SET is_hidden = false
+            WHERE id = ${eventId}
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Error unhiding event:", error);
+        return { success: false, error };
+    }
+}
+
+export async function toggleEventVisibility(eventId: string, isHidden: boolean) {
+    try {
+        await sql`
+            UPDATE events
+            SET is_hidden = ${isHidden}
+            WHERE id = ${eventId}
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling event visibility:", error);
+        return { success: false, error };
+    }
+}
+
+export async function softDeleteEvent(eventId: string) {
+    try {
+        await sql`
+            UPDATE events
+            SET is_deleted = true,
+                deleted_at = NOW()
+            WHERE id = ${eventId}
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting event:", error);
+        return { success: false, error };
+    }
+}
+
+export async function getEventRegistrationStats(eventId: string) {
+    try {
+        const stats = await sql`
+            SELECT
+                COUNT(*) as total,
+                COUNT(CASE WHEN external = false THEN 1 END) as internal,
+                COUNT(CASE WHEN external = true THEN 1 END) as external
+            FROM event_registrations
+            WHERE event_id = ${eventId}
+        `;
+
+        return {
+            success: true,
+            stats: {
+                total: stats.rows[0].total || 0,
+                internal: stats.rows[0].internal || 0,
+                external: stats.rows[0].external || 0
+            }
+        };
+    } catch (error) {
+        console.error("Error fetching registration stats:", error);
+        return { success: false, stats: { total: 0, internal: 0, external: 0 } };
     }
 }

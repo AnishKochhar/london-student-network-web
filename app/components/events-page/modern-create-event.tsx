@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { upload } from "@vercel/blob/client";
-import { EventFormData } from "@/app/lib/types";
+import { EventFormData, Event } from "@/app/lib/types";
 import { placeholderImages, createModernEventObject, validateModernEvent, EVENT_TAG_TYPES } from "@/app/lib/utils";
 import { DefaultEvent } from "@/app/lib/types";
 import EventModal from "./event-modal";
@@ -16,6 +16,8 @@ import Image from "next/image";
 interface ModernCreateEventProps {
     organiser_id: string;
     organiserList: string[];
+    editMode?: boolean;
+    existingEvent?: Event;
 }
 
 // Animation variants for progressive reveal
@@ -48,12 +50,13 @@ const sectionVariants = {
 };
 
 // Custom Dropdown Component
-const CustomDropdown = ({ value, onChange, options, placeholder, className = "" }: {
+const CustomDropdown = ({ value, onChange, options, placeholder, className = "", disabled = false }: {
     value: string;
     onChange: (value: string) => void;
     options: { value: string; label: string }[];
     placeholder: string;
     className?: string;
+    disabled?: boolean;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -74,8 +77,13 @@ const CustomDropdown = ({ value, onChange, options, placeholder, className = "" 
         <div ref={dropdownRef} className={`relative ${className}`}>
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur flex items-center justify-between"
+                onClick={() => !disabled && setIsOpen(!isOpen)}
+                disabled={disabled}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none flex items-center justify-between backdrop-blur ${
+                    disabled
+                        ? 'bg-white/5 border-white/20 text-white/50 cursor-not-allowed'
+                        : 'bg-white/10 border-white/30 text-white focus:ring-2 focus:ring-blue-400 focus:border-transparent'
+                }`}
             >
                 <span className={selectedOption ? "text-white" : "text-white/60"}>
                     {selectedOption ? selectedOption.label : placeholder}
@@ -84,7 +92,7 @@ const CustomDropdown = ({ value, onChange, options, placeholder, className = "" 
             </button>
 
             <AnimatePresence>
-                {isOpen && (
+                {isOpen && !disabled && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -577,13 +585,61 @@ const Tooltip = ({ children, content, className = "" }: {
     );
 };
 
-export default function ModernCreateEvent({ organiser_id, organiserList }: ModernCreateEventProps) {
+// Convert Event to EventFormData format for form initialization
+const convertEventToFormData = (event: Event, organiser_id: string): Partial<EventFormData> => {
+    if (!event.start_datetime || !event.end_datetime) {
+        // Fallback to legacy format if new datetime fields don't exist
+        return {
+            title: event.title,
+            description: event.description,
+            organiser: event.organiser,
+            organiser_uid: organiser_id,
+            location_building: event.location_building,
+            location_area: event.location_area,
+            location_address: event.location_address,
+            image_url: event.image_url,
+            image_contain: event.image_contain,
+            tags: event.event_type,
+            capacity: event.capacity,
+            sign_up_link: event.sign_up_link,
+            for_externals: event.for_externals,
+            is_multi_day: false
+        };
+    }
+
+    // Parse datetime strings to extract date and time components
+    const startDate = new Date(event.start_datetime);
+    const endDate = new Date(event.end_datetime);
+
+    return {
+        title: event.title,
+        description: event.description,
+        organiser: event.organiser,
+        organiser_uid: organiser_id,
+        start_datetime: startDate.toISOString().split('T')[0], // YYYY-MM-DD
+        end_datetime: endDate.toISOString().split('T')[0], // YYYY-MM-DD
+        start_time: startDate.toTimeString().slice(0, 5), // HH:MM
+        end_time: endDate.toTimeString().slice(0, 5), // HH:MM
+        is_multi_day: event.is_multi_day || false,
+        location_building: event.location_building,
+        location_area: event.location_area,
+        location_address: event.location_address,
+        image_url: event.image_url,
+        image_contain: event.image_contain,
+        tags: event.event_type,
+        capacity: event.capacity,
+        sign_up_link: event.sign_up_link,
+        for_externals: event.for_externals,
+    };
+};
+
+export default function ModernCreateEvent({ organiser_id, organiserList, editMode = false, existingEvent }: ModernCreateEventProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [imagePreview, setImagePreview] = useState<string>("");
+    const [imagePreview, setImagePreview] = useState<string>(editMode && existingEvent ? existingEvent.image_url : "");
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [eventData, setEventData] = useState(DefaultEvent);
-    const [selectedTags, setSelectedTags] = useState<number>(0);
+    const [eventData, setEventData] = useState(existingEvent || DefaultEvent);
+    const [selectedTags, setSelectedTags] = useState<number>(existingEvent?.event_type || 0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Calculate default date and times
@@ -621,7 +677,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
         formState: { errors, isValid }
     } = useForm<EventFormData>({
         mode: "onChange",
-        defaultValues: {
+        defaultValues: editMode && existingEvent ? {
+            ...convertEventToFormData(existingEvent, organiser_id),
+            organiser_uid: organiser_id
+        } : {
             tags: 0,
             image_contain: false,
             image_url: placeholderImages[0].src,
@@ -682,7 +741,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
     // Form submission
     const onSubmit = async (data: EventFormData) => {
         setIsSubmitting(true);
-        const toastId = toast.loading("Creating event...");
+        const toastId = toast.loading(editMode ? "Updating event..." : "Creating event...");
 
         try {
             let imageUrl = data.image_url || placeholderImages[0].src;
@@ -708,21 +767,26 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
                 tags: selectedTags,
             };
 
-            const response = await fetch("/api/events/create", {
+            const apiEndpoint = editMode ? "/api/events/update" : "/api/events/create";
+            const requestBody = editMode
+                ? { ...eventData, id: existingEvent?.id }
+                : eventData;
+
+            const response = await fetch(apiEndpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(eventData),
+                body: JSON.stringify(requestBody),
             });
 
             const result = await response.json();
             if (result.success) {
-                toast.success("Event created successfully!", { id: toastId });
+                toast.success(editMode ? "Event updated successfully!" : "Event created successfully!", { id: toastId });
                 router.push("/events");
             } else {
-                toast.error(result.error || "Failed to create event", { id: toastId });
+                toast.error(result.error || (editMode ? "Failed to update event" : "Failed to create event"), { id: toastId });
             }
         } catch (error) {
-            console.error("Error creating event:", error);
+            console.error(editMode ? "Error updating event:" : "Error creating event:", error);
             toast.error("An unexpected error occurred", { id: toastId });
         } finally {
             setIsSubmitting(false);
@@ -794,7 +858,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
                                 whileHover={isValid ? { scale: 1.02 } : {}}
                                 whileTap={isValid ? { scale: 0.98 } : {}}
                             >
-                                {isSubmitting ? "Creating..." : "Create Event"}
+                                {isSubmitting ? (editMode ? "Updating..." : "Creating...") : (editMode ? "Update Event" : "Create Event")}
                             </motion.button>
                         </div>
                     </div>
@@ -804,10 +868,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
             {/* Page Header */}
             <div className="text-center py-8 sm:py-12 px-4 sm:px-6">
                 <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
-                    Create Event
+                    {editMode ? "Edit Event" : "Create Event"}
                 </h1>
                 <p className="text-blue-100 text-base sm:text-lg max-w-2xl mx-auto">
-                    Share your event with the London student community
+                    {editMode ? "Update your event details" : "Share your event with the London student community"}
                 </p>
             </div>
 
@@ -867,6 +931,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList }: Moder
                                             onChange={(value) => setValue("organiser", value)}
                                             options={organiserOptions}
                                             placeholder="Select organiser..."
+                                            disabled={editMode}
                                         />
                                         {errors.organiser && (
                                             <p className="mt-2 text-sm text-red-300">{errors.organiser.message}</p>

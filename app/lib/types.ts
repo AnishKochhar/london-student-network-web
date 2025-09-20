@@ -18,6 +18,9 @@ export interface Event {
     start_datetime?: string; // PostgreSQL TIMESTAMPTZ
     end_datetime?: string;   // PostgreSQL TIMESTAMPTZ
     is_multi_day?: boolean;
+    // Event management fields
+    is_hidden?: boolean;
+    is_deleted?: boolean;
 }
 
 export interface EditEventProps {
@@ -83,6 +86,9 @@ export interface SQLEvent {
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;
+    // Event management fields
+    is_hidden?: boolean;
+    is_deleted?: boolean;
 }
 
 export type User = {

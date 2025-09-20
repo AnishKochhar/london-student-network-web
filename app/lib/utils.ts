@@ -99,6 +99,9 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		start_datetime: start_datetime,
 		end_datetime: end_datetime,
 		is_multi_day: is_multi_day,
+		// Event management fields
+		is_hidden: sqlEvent.is_hidden,
+		is_deleted: sqlEvent.is_deleted,
 	};
 }
 

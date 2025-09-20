@@ -8,17 +8,23 @@ interface FilteredEventsListProps {
     allEvents: Event[];
     activeTags: number[];
     editEvent?: boolean;
+    reverseOrder?: boolean; // For account page - show most recent first
+    showAllEvents?: boolean; // When true, bypasses tag filtering entirely
 }
 
 export default function FilteredEventsList({
     allEvents,
     activeTags,
     editEvent,
+    reverseOrder = false,
+    showAllEvents = false,
 }: FilteredEventsListProps) {
-    const filteredEvents = allEvents.filter((event) => {
-        // Only return events where at least one of the active tags is present
-        return activeTags.some((tag) => (event.event_type & tag) === tag);
-    });
+    const filteredEvents = showAllEvents
+        ? allEvents
+        : allEvents.filter((event) => {
+            // Only return events where at least one of the active tags is present
+            return activeTags.some((tag) => (event.event_type & tag) === tag);
+        });
 
     const monthYearGroupings =
         convertEventsToMonthYearGroupings(filteredEvents);
@@ -27,7 +33,10 @@ export default function FilteredEventsList({
         const [monthB, yearB] = b.split("/");
         const dateA = new Date(`${yearA}-${monthA}-01`);
         const dateB = new Date(`${yearB}-${monthB}-01`);
-        return dateB.getTime() - dateA.getTime(); // Reversed: most recent first
+        // Use reverse order for account page, normal order for events page
+        return reverseOrder
+            ? dateB.getTime() - dateA.getTime()  // Most recent first (account page)
+            : dateA.getTime() - dateB.getTime();  // Chronological order (events page)
     });
 
     return (

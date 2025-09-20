@@ -66,6 +66,9 @@ export default function EventInfo() {
             });
 
             if (!response.ok) {
+                if (response.status === 404) {
+                    return null; // Event not found
+                }
                 throw new Error("Failed to fetch a event information");
             }
 
@@ -74,6 +77,7 @@ export default function EventInfo() {
             return data;
         } catch (err) {
             console.error("Failed to fetch event information", err);
+            return null;
         } finally {
             setLoading(false);
         }
@@ -102,6 +106,17 @@ export default function EventInfo() {
     // Handle loading and error states
     if (loading) {
         return <EventInfoPageSkeleton />;
+    }
+
+    if (!event) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Event Not Found</h2>
+                    <p className="text-gray-600">The event you're looking for doesn't exist or has been removed.</p>
+                </div>
+            </div>
+        );
     }
 
     const registerForEvent = async () => {
