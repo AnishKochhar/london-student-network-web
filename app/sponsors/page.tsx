@@ -1,28 +1,28 @@
-import Intro from '@/app/components/sponsor-page/intro-section';
-import SponsorSection from '@/app/components/sponsor-page/sponsor-section';
-import HowToSponsorSection from '../components/sponsor-page/how-to-sponsor-section';
-import { getAllCompanyInformation } from '../lib/data';
-import { hardCodedSponsors } from '../components/sponsor-page/hard-coded-sponsors';
+import { getAllCompanyInformation } from "../lib/data";
+import { hardCodedSponsors } from "../components/sponsor-page/hard-coded-sponsors";
+import SponsorsPageClient from "../components/sponsor-page/sponsors-client";
+import { CompanyInformation } from "../lib/types";
 
-export default async function SponserPage() {
-    const companyInformation = await getAllCompanyInformation();
-    return (
-        <main className="relative bg-cover bg-center bg-fixed bg-no-repeat h-screen overflow-y-auto snap-y snap-mandatory" style={{ backgroundImage: "url('/images/tower-bridge-1.jpeg')" }}>
-            <div className="flex flex-col bg-black bg-opacity-50 text-white">
-                <section className='p-10 snap-start min-h-screen flex items-center justify-center'>
-                    <SponsorSection
-                        companyInformation={[...companyInformation, ...hardCodedSponsors]}
-                    />
-                </section>
+export default async function SponsorsPage() {
+    let allSponsors: CompanyInformation[] = [];
+    try {
+        const companyInformation = await getAllCompanyInformation();
+        const combinedSponsors = [...companyInformation, ...hardCodedSponsors];
 
-                <section className='flex flex-col items-start p-10 pl-[5%] snap-start min-h-screen justify-center'>
-                    <Intro />
-                </section>
+        const uniqueSponsors = Array.from(
+            new Map(
+                combinedSponsors.map((sponsor) => [
+                    sponsor.company_name,
+                    sponsor,
+                ]),
+            ).values(),
+        );
+        allSponsors = uniqueSponsors;
+    } catch (error) {
+        console.error("Error fetching sponsors:", error);
+        // Fallback to hardcoded sponsors if there is an error
+        allSponsors = hardCodedSponsors;
+    }
 
-                <section className='flex flex-col pb-10 pl-[10] pr-[5%] snap-start min-h-screen justify-center'>
-                    <HowToSponsorSection />
-                </section>
-            </div>
-        </main>
-    );
+    return <SponsorsPageClient initialSponsors={allSponsors} />;
 }

@@ -1,10 +1,8 @@
-
 // Creates a link to /reset-password with token as a query parameter
 const ResetEmailPayload = (email: string, token: string) => {
-	
-	const resetLink = `https://londonstudentnetwork.com/reset-password?token=${encodeURIComponent(token)}`;
+    const resetLink = `https://londonstudentnetwork.com/reset-password?token=${encodeURIComponent(token)}`;
 
-	return `
+    return `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
             <p>Hello ${email}, the moment you've been waiting for has arrived! (Or, the moment since you clicked "Forgot Password.")</p>
             <p>You recently requested to <strong>reset your password</strong>. We all forget out passwords from time to time and we're here to help! Here's your personalised link to reset your password.</p>

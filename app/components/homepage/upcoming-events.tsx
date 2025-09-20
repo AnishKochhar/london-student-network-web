@@ -1,17 +1,54 @@
+"use client";
 
-import { fetchUpcomingEvents } from "@/app/lib/data"
-import UpcomingEvents from "./events-view";
+import type { Event } from "@/app/lib/types";
+import EventCard from "../events-page/event-card";
+import { motion } from "framer-motion";
 
-export const revalidate = 86400 // Once per day
+export default function UpcomingEventsView({ events }: { events: Event[] }) {
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.3,
+            },
+        },
+    };
 
-export default async function UpcomingEventsView() {
+    const itemVariants = {
+        hidden: { y: 50, opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            transition: {
+                duration: 0.5,
+                ease: "easeOut",
+            },
+        },
+    };
 
-	const events = await fetchUpcomingEvents();
-
-	return (
-		<div className="p-4">
-			<UpcomingEvents events={events} />
-		</div>
-	)
-
+    return (
+        <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 px-4 w-full" // Added sm breakpoint and full width
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.5 }}
+        >
+            {events.length > 0 ? (
+                events.map((event) => (
+                    <motion.div
+                        key={event.id}
+                        variants={itemVariants}
+                        className="w-full max-w-sm mx-auto"
+                    >
+                        {" "}
+                        <EventCard event={event} />
+                    </motion.div>
+                ))
+            ) : (
+                <p className="text-white">No upcoming events.</p>
+            )}
+        </motion.div>
+    );
 }

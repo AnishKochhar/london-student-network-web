@@ -1,11 +1,10 @@
-// import { db } from '@vercel/postgres';
-// const client = await db.connect();
+import { db } from "@vercel/postgres";
+const client = await db.connect();
 
 /*  UNCOMMENT THE ABOVE LINES TO USE DATABASE  */
 
 //import bcrypt from 'bcrypt';
 //import { users } from '../lib/placeholder-data';
-
 
 // async function seedUsers() {
 // 	await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
@@ -34,14 +33,13 @@
 // 	return insertedUsers;
 // }
 
-
 // async function seedEvents() {
 // await client.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 // await client.sql`
 //   CREATE TABLE IF NOT EXISTS events (
 // 	id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
 // 	title VARCHAR(255) NOT NULL,
-// 	description TEXT, 
+// 	description TEXT,
 // 	organiser VARCHAR(225) NOT NULL,
 // 	organiser_uid UUID NOT NULL,
 // 	start_time VARCHAR(255),
@@ -78,7 +76,7 @@
 
 // 	await client.sql`
 // 	ALTER TABLE users
-// 	DROP COLUMN IF EXISTS referrer 
+// 	DROP COLUMN IF EXISTS referrer
 // 	`
 // }
 
@@ -182,20 +180,97 @@
 // 	`;
 // }
 
+// async function seedThreadTable() {
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS threads (
+// 			id SERIAL PRIMARY KEY,
+// 			title VARCHAR(255) NOT NULL,
+// 			content TEXT NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			updated_at TIMESTAMP DEFAULT NOW(),
+// 			upvotes INT DEFAULT 0,
+// 			downvotes INT DEFAULT 0,
+// 			author_id UUID NOT NULL REFERENCES users(id)
+// 		);
+// 	`;
+// }
 
-export async function GET() {
-	// try {
-	// 	await client.sql`BEGIN`;
-	// 	await seedSocietyInformation()
+// async function seedCommentTable() {
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS comments (
+// 			id SERIAL PRIMARY KEY,
+// 			thread_id INT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+// 			parent_id INT REFERENCES comments(id) ON DELETE CASCADE,
+// 			content TEXT NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			updated_at TIMESTAMP DEFAULT NOW(),
+// 			upvotes INT DEFAULT 0,
+// 			downvotes INT DEFAULT 0,
+// 			author_id UUID NOT NULL REFERENCES users(id)
+// 		);
+// 	`;
+// }
 
-	// 	await client.sql`COMMIT`;
-	// 	return Response.json({ message: 'Database updated successfully' });
+// async function seedThreadTags(){
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS thread_tags (
+// 			id SERIAL PRIMARY KEY,
+// 			thread_id INT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+// 			tag VARCHAR(255) NOT NULL UNIQUE
+// 		);
+// 	`;
+// }
 
-	// } catch (error) {
-	// 	await client.sql`ROLLBACK`;
-	// 	return Response.json({ error }, { status: 500 });
-	// }
-	return Response.json({ message: 'Nothing to see here' });
+// async function seedThreadVote(){
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS thread_votes (
+// 			id SERIAL PRIMARY KEY,
+// 			thread_id INT NOT NULL REFERENCES threads(id) ON DELETE CASCADE,
+// 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+// 			vote_type VARCHAR(10) CHECK (vote_type IN ('upvote', 'downvote')) NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			UNIQUE (thread_id, user_id)
+// 		);
+// 	`;
+// }
+
+// async function seedCommentVote(){
+// 	await client.sql`
+// 		CREATE TABLE IF NOT EXISTS comments_votes (
+// 			id SERIAL PRIMARY KEY,
+// 			comment_id INT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+// 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+// 			vote_type VARCHAR(10) CHECK (vote_type IN ('upvote', 'downvote')) NOT NULL,
+// 			created_at TIMESTAMP DEFAULT NOW(),
+// 			UNIQUE (comment_id, user_id)
+// 		);
+// 	`;
+// }
+
+async function removeThreadIdColumn() {
+    await client.sql`
+        CREATE TABLE thread_tags (
+            id SERIAL PRIMARY KEY,
+            thread_id INTEGER NOT NULL,
+            forum_tag_id INTEGER NOT NULL,
+            FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE,
+            FOREIGN KEY (forum_tag_id) REFERENCES forum_tags(id) ON DELETE CASCADE,
+            UNIQUE(thread_id, forum_tag_id)
+          );
+      `;
 }
 
+export async function GET() {
+    try {
+        await client.sql`BEGIN`;
+        // await seedSocietyInformation()
+        await removeThreadIdColumn();
 
+        await client.sql`COMMIT`;
+        return Response.json({ message: "Database updated successfully" });
+    } catch (error) {
+        await client.sql`ROLLBACK`;
+        return Response.json({ error }, { status: 500 });
+    }
+    return Response.json({ message: "Nothing to see here" });
+}

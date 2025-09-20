@@ -1,12 +1,17 @@
-"use server";
-
+import { fetchUpcomingEvents } from "@/app/lib/data";
+import { sortEventsByDate } from "@/app/lib/utils";
 import UpcomingEventsView from "./upcoming-events";
 
 export default async function UpcomingEventsSection() {
-	return (
-		<section className="flex flex-col items-center justify-start overflow-hidden snap-start">
-			<h2 className="text-4xl md:text-6xl ml-28 w-full mt-12 md:mt-28 mb-12 md:mb-28">Popular Events</h2>
-			<UpcomingEventsView />
-		</section>
-	)
+    const allEvents = await fetchUpcomingEvents();
+    const sortedEvents = sortEventsByDate(allEvents);
+
+    return (
+        <section className="flex flex-col items-center justify-center min-h-screen snap-start p-10">
+            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-12 text-center">
+                Upcoming Events
+            </h2>
+            <UpcomingEventsView events={sortedEvents} />
+        </section>
+    );
 }

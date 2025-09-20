@@ -1,5 +1,3 @@
-
-
 // const predefinedTags = [
 //     { label: "Dance", value: "1" },
 //     { label: "Maths", value: "2" },
@@ -167,7 +165,4 @@
 //     }
 // };
 
-
-
 // export { seed };
-

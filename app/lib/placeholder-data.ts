@@ -1,4 +1,3 @@
-
 // const users = [
 // 	{
 // 		name: 'Admin User',
@@ -154,8 +153,6 @@
 // 		sign_up_link: "https://google.com"
 // 	}
 // ]
-
-
 
 // const userInformation = [
 //     {

@@ -4,6 +4,205 @@ This API log follows the same [Semantic Versioning](https://semver.org/spec/v2.0
 
 For each public API route, it lists **inputs**, **outputs**, **errors thrown**, and **places invocated**
 
+# [4.4.0] - 2025-09-05 # Forum API endpoints
+
+## 'threads' 
+- method: GET
+### Inputs
+- page: page number for pagination (default: 1)
+- limit: number of threads per page (default: 6)
+- search: search term for filtering threads
+- sort: sorting method ('Newest First', 'Most Popular', 'Most Replies')
+
+### Outputs
+- threads: array of thread objects with author, votes, tags, etc.
+- pagination: object containing pagination metadata
+
+### Errors:
+- internal server error (500)
+
+### Where:
+- `app/components/forum/hooks/useForumThreads.ts`
+
+## 'threads'
+- method: POST
+### Inputs
+- title: thread title
+- content: thread content
+- tags: array of tag strings (optional)
+
+### Outputs
+- thread object with id, title, content, author, votes, etc.
+
+### Errors:
+- not authenticated (401)
+- missing title or content (400)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/create-thread-modal.tsx`
+
+## 'threads/[id]'
+- method: PATCH
+### Inputs
+- id: thread ID (in URL)
+- title: updated thread title
+- content: updated thread content
+- tags: array of updated tag strings
+
+### Outputs
+- updated thread object
+
+### Errors:
+- not authenticated (401)
+- not authorized (403)
+- thread not found (404)
+- missing title or content (400)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/thread-detail/edit-thread-modal.tsx`
+
+## 'threads/[id]'
+- method: DELETE
+### Inputs
+- id: thread ID (in URL)
+
+### Outputs
+- success message
+
+### Errors:
+- not authenticated (401)
+- not authorized (403)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/thread-detail/thread-content.tsx`
+
+## 'threads/vote'
+- method: POST
+### Inputs
+- threadId: ID of thread to vote on
+- voteType: 'upvote' or 'downvote'
+- action: 'add' or 'remove'
+
+### Outputs
+- success: boolean
+- voteType: the resulting vote type
+
+### Errors:
+- not authenticated (401)
+- invalid parameters (400)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/vote-buttons.tsx`
+
+## 'threads/[id]/replies'
+- method: GET
+### Inputs
+- id: thread ID (in URL)
+- page: page number for pagination (default: 1)
+- limit: number of replies per page (default: 10)
+
+### Outputs
+- replies: array of comment objects
+- pagination: object containing pagination metadata
+
+### Errors:
+- internal server error (500)
+
+### Where:
+- `app/components/forum/thread-detail/index.tsx`
+
+## 'comments/[id]'
+- method: PATCH
+### Inputs
+- id: comment ID (in URL)
+- content: updated comment content
+
+### Outputs
+- updated comment object
+
+### Errors:
+- not authenticated (401)
+- not authorized (403)
+- comment not found (404)
+- missing content (400)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/thread-detail/edit-comment-modal.tsx`
+
+## 'comments/[id]'
+- method: DELETE
+### Inputs
+- id: comment ID (in URL)
+
+### Outputs
+- success message
+
+### Errors:
+- not authenticated (401)
+- not authorized (403)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/thread-detail/content-item.tsx`
+
+## 'comments/[id]/replies'
+- method: GET
+### Inputs
+- id: comment ID (in URL)
+
+### Outputs
+- array of reply objects
+
+### Errors:
+- internal server error (500)
+
+### Where:
+- `app/components/forum/thread-detail/reply-list.tsx`
+
+## 'replies'
+- method: POST
+### Inputs
+- threadId: ID of thread to reply to
+- content: reply content
+- parentId: ID of parent comment (null for top-level comments)
+
+### Outputs
+- newly created reply object
+
+### Errors:
+- not authenticated (401)
+- missing threadId or content (400)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/thread-detail/reply-input.tsx`
+
+## 'replies/vote'
+- method: POST
+### Inputs
+- replyId: ID of reply to vote on
+- voteType: 'upvote' or 'downvote'
+- action: 'add' or 'remove'
+
+### Outputs
+- success: boolean
+- voteType: the resulting vote type
+- upvotes: updated upvote count
+- downvotes: updated downvote count
+
+### Errors:
+- not authenticated (401)
+- invalid parameters (400)
+- internal server error (500)
+
+### Where:
+- `app/components/forum/vote-buttons.tsx`
+
 # [4.1.0] # custom email sending for event organiser
 
 ## 'events/check-is-organiser'

@@ -21,10 +21,26 @@
 	overflow: hidden;
 } */
 
+html {
+	/* Prevent scrollbar shift when dropdown opens */
+	scrollbar-gutter: stable;
+	/* Prevent zoom on double tap on iOS */
+	touch-action: manipulation;
+}
+
 body {
 	color: var(--foreground);
 	background: var(--background);
 	font-family: Arial, Helvetica, sans-serif;
+	/* Prevent horizontal scrolling that can cause background shift */
+	overflow-x: hidden;
+	/* Prevent zoom on mobile */
+	touch-action: manipulation;
+}
+
+/* Prevent zoom issues on mobile */
+*, *::before, *::after {
+	-webkit-tap-highlight-color: transparent;
 }
 
 @layer utilities {
@@ -68,17 +84,10 @@ body {
 	}
 }
   
-/* Tailwind's default 'xl' breakpoint (modify or replace with custom) */
-@media (min-width: 1580px) {
-	.partner-grid {
-		grid-template-columns: repeat(5, minmax(0, 1fr)); /* Corresponds to grid-cols-4 */
-	}
-}
-  
 /* Tailwind's default '2xl' breakpoint (modify or replace with custom) */
 @media (min-width: 1536px) {
 	.partner-grid {
-		grid-template-columns: repeat(6, minmax(0, 1fr)); /* Corresponds to grid-cols-6 */
+		grid-template-columns: repeat(5, minmax(0, 1fr)); /* Corresponds to grid-cols-6 */
 	}
 }
 
@@ -120,4 +129,22 @@ body {
 .custom-scroll {
   scrollbar-color: #083157 rgba(0, 0, 0, 0.1);
   scrollbar-width: thin;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scale-in {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-scale-in {
+    animation: scale-in 0.3s ease-out forwards;
 }

@@ -1,33 +1,30 @@
-import { NextResponse } from 'next/server';
-import { deleteEvents } from '@/app/lib/data';
-import { z } from 'zod';
-
-
-const DeleteEventSchema = z.object({
-	ids: z.array(z.string().uuid()), // expecting an array of valid UUID strings
-});
-
+import { NextResponse } from "next/server";
+import { softDeleteEvent } from "@/app/lib/data";
 
 export async function POST(request: Request) {
-	try {
-		
-		const body = await request.json();
+    try {
+        const body = await request.json();
+        const { event_id } = body;
 
-		// Validate the body with the schema
-		const { ids } = DeleteEventSchema.parse(body);
+        // Soft delete the event
+        const result = await softDeleteEvent(event_id);
 
-		// Call the server-side delete function with the validated IDs
-		await deleteEvents(ids);
-
-		// Return success response
-		return NextResponse.json({ message: 'Events deleted successfully' }, { status: 200 });
-	} catch (error) {
-		console.error('Error deleting events:', error);
-
-		if (error instanceof z.ZodError) {
-			return NextResponse.json({ error: 'Invalid request data', details: error.errors }, { status: 400 });
-		}
-
-		return NextResponse.json({ error: 'Failed to delete events' }, { status: 500 });
-	}
+        if (result.success) {
+            return NextResponse.json(
+                { message: "Event deleted successfully" },
+                { status: 200 },
+            );
+        } else {
+            return NextResponse.json(
+                { error: "Failed to delete event" },
+                { status: 500 },
+            );
+        }
+    } catch (error) {
+        console.error("Error deleting event:", error);
+        return NextResponse.json(
+            { error: "Failed to delete event" },
+            { status: 500 },
+        );
+    }
 }
