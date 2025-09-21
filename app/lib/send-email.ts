@@ -149,3 +149,42 @@ export const sendEmailVerificationEmail = async (
         throw new Error("Failed to send email to verify email");
     }
 };
+
+export const sendEventRegistrationEmail = async ({
+    toEmail,
+    subject,
+    html,
+    text
+}: {
+    toEmail: string;
+    subject: string;
+    html: string;
+    text: string;
+}) => {
+    try {
+        if (!toEmail) {
+            console.error("The target email is empty");
+            throw new Error("The target email to send is empty");
+        }
+
+        const msg = {
+            to: toEmail,
+            from: "hello@londonstudentnetwork.com",
+            subject: subject,
+            html: html,  // Primary HTML content
+            text: text,  // Fallback plain text
+        };
+
+        await sendSendGridEmail(msg);
+    } catch (error) {
+        console.error(
+            "Error occurred during event registration email sending. Error message:",
+            error.message,
+        );
+        console.error("Stack trace:", error.stack);
+
+        throw new Error(
+            "An error occurred during the attempt to send event registration email",
+        );
+    }
+};
