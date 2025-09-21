@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
-import { fetchSQLEventById, getEmailFromId } from "@/app/lib/data";
-import { sendUserEmail } from "@/app/lib/send-email";
+import { fetchSQLEventById, getEventOrganiserEmail } from "@/app/lib/data";
+import { sendEventRegistrationEmail } from "@/app/lib/send-email";
+import EventRegistrationEmailPayload from "@/app/components/templates/event-registration-email";
+import EventRegistrationEmailFallbackPayload from "@/app/components/templates/event-registration-email-fallback";
+import EventOrganizerNotificationEmailPayload from "@/app/components/templates/event-organizer-notification-email";
+import EventOrganizerNotificationEmailFallbackPayload from "@/app/components/templates/event-organizer-notification-email-fallback";
+import { convertSQLEventToEvent } from "@/app/lib/utils";
 
 export async function POST(req: Request) {
 	try {
@@ -70,28 +75,15 @@ export async function POST(req: Request) {
 
 		// Send confirmation email to guest
 		try {
+			const eventData = convertSQLEventToEvent(event);
 			const guestEmailSubject = `🎉 Registration Confirmed: ${event.title}`;
-			const guestEmailText = `Hi ${firstName},
+			const guestEmailHtml = EventRegistrationEmailPayload(firstName, eventData);
+			const guestEmailText = EventRegistrationEmailFallbackPayload(firstName, eventData);
 
-Thank you for registering for "${event.title}"!
-
-Event Details:
-📅 Date: ${new Date(event.start_datetime).toLocaleDateString()}
-⏰ Time: ${new Date(event.start_datetime).toLocaleTimeString()}
-📍 Location: ${event.location_building}, ${event.location_area}
-
-We look forward to seeing you there!
-
-Best regards,
-The London Student Network Team
-
----
-If you have any questions, please contact us at hello@londonstudentnetwork.com`;
-
-			await sendUserEmail({
+			await sendEventRegistrationEmail({
 				toEmail: email.toLowerCase(),
-				fromEmail: "hello@londonstudentnetwork.com",
 				subject: guestEmailSubject,
+				html: guestEmailHtml,
 				text: guestEmailText,
 			});
 		} catch (emailError) {
@@ -99,34 +91,40 @@ If you have any questions, please contact us at hello@londonstudentnetwork.com`;
 			// Don't fail the registration if email fails
 		}
 
-		// Send notification email to organiser (if not admin)
+		// Send notification email to organiser (if not admin and notifications are enabled)
 		const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
-		if (event.organiser_uid !== ADMIN_ID) {
+		if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
 			try {
-				const organiserEmail = await getEmailFromId(event.organiser_uid);
+				const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
 
-				if (!organiserEmail.email || organiserEmail.email === "") {
+				if (!organiserEmail || !organiserEmail.email || organiserEmail.email === "") {
 					console.log(`Warning: Organiser email not found in database for organiser ID: ${event.organiser_uid}`);
+					console.log(`Event title: ${event.title}, Organiser name: ${event.organiser}`);
+					console.log(`getEventOrganiserEmail returned:`, organiserEmail);
 				} else {
+					const eventData = convertSQLEventToEvent(event);
 					const organiserEmailSubject = `🔔 New Guest Registration: ${event.title}`;
-					const organiserEmailText = `Hello,
+					const organiserEmailHtml = EventOrganizerNotificationEmailPayload(
+						eventData,
+						{
+							name: fullName,
+							email: email.toLowerCase(),
+							external: true // Guests are always external
+						}
+					);
+					const organiserEmailText = EventOrganizerNotificationEmailFallbackPayload(
+						eventData,
+						{
+							name: fullName,
+							email: email.toLowerCase(),
+							external: true
+						}
+					);
 
-A new guest has registered for your event "${event.title}".
-
-Guest Details:
-👤 Name: ${fullName}
-📧 Email: ${email.toLowerCase()}
-📅 Event Date: ${new Date(event.start_datetime).toLocaleDateString()}
-
-You can manage your event registrations through your account dashboard.
-
-Best regards,
-The London Student Network Team`;
-
-					await sendUserEmail({
+					await sendEventRegistrationEmail({
 						toEmail: organiserEmail.email,
-						fromEmail: "hello@londonstudentnetwork.com",
 						subject: organiserEmailSubject,
+						html: organiserEmailHtml,
 						text: organiserEmailText,
 					});
 				}

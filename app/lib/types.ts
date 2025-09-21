@@ -21,6 +21,7 @@ export interface Event {
     // Event management fields
     is_hidden?: boolean;
     is_deleted?: boolean;
+    send_signup_notifications?: boolean;
 }
 
 export interface EditEventProps {
@@ -89,6 +90,7 @@ export interface SQLEvent {
     // Event management fields
     is_hidden?: boolean;
     is_deleted?: boolean;
+    send_signup_notifications?: boolean;
 }
 
 export type User = {
@@ -158,6 +160,7 @@ export interface EventFormData {
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;
+    send_signup_notifications: boolean;
 }
 
 export interface SQLEventData {
@@ -178,6 +181,7 @@ export interface SQLEventData {
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;
+    send_signup_notifications: boolean;
 }
 
 export interface UserRegisterFormData {

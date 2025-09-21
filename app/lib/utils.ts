@@ -102,6 +102,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		// Event management fields
 		is_hidden: sqlEvent.is_hidden,
 		is_deleted: sqlEvent.is_deleted,
+		send_signup_notifications: sqlEvent.send_signup_notifications,
 	};
 }
 
@@ -592,6 +593,7 @@ export function createModernEventObject(data: EventFormData): Event {
 		start_datetime: startDateTime.toISOString(),
 		end_datetime: endDateTime.toISOString(),
 		is_multi_day: isMultiDay,
+		send_signup_notifications: data.send_signup_notifications ?? true,
 	};
 }
 
@@ -617,6 +619,7 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		capacity: data.capacity && !isNaN(Number(data.capacity)) && Number(data.capacity) > 0 ? Number(data.capacity) : undefined,
 		sign_up_link: data.sign_up_link || undefined,
 		for_externals: data.for_externals || undefined,
+		send_signup_notifications: data.send_signup_notifications ?? true,
 	};
 }
 

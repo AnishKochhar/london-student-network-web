@@ -51,7 +51,8 @@ export async function POST(req: Request) {
                 capacity = ${sqlEventData.capacity},
                 sign_up_link = ${sqlEventData.sign_up_link},
                 for_externals = ${sqlEventData.for_externals},
-                external_forward_email = ${sqlEventData.external_forward_email}
+                external_forward_email = ${sqlEventData.external_forward_email},
+                send_signup_notifications = ${sqlEventData.send_signup_notifications}
             WHERE id = ${id}
             AND organiser_uid = ${session.user.id}
             AND (is_deleted IS NULL OR is_deleted = false)

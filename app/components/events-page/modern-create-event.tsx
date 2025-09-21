@@ -612,7 +612,8 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
             capacity: event.capacity,
             sign_up_link: event.sign_up_link,
             for_externals: event.for_externals,
-            is_multi_day: false
+            is_multi_day: false,
+            send_signup_notifications: event.send_signup_notifications ?? true
         };
     }
 
@@ -639,6 +640,7 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         capacity: event.capacity,
         sign_up_link: event.sign_up_link,
         for_externals: event.for_externals,
+        send_signup_notifications: event.send_signup_notifications ?? true
     };
 };
 
@@ -698,7 +700,8 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             end_datetime: defaultTimes.defaultDate,
             start_time: defaultTimes.startTime,
             end_time: defaultTimes.endTime,
-            is_multi_day: false
+            is_multi_day: false,
+            send_signup_notifications: true
         }
     });
 
@@ -1215,6 +1218,26 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                         className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none backdrop-blur"
                                         placeholder="e.g. Building access instructions, contact information..."
                                     />
+                                </div>
+
+                                {/* Email Notifications */}
+                                <div className="lg:col-span-2 mt-6">
+                                    <div className="flex items-start space-x-3">
+                                        <input
+                                            {...register("send_signup_notifications")}
+                                            type="checkbox"
+                                            id="send_signup_notifications"
+                                            className="mt-1 h-4 w-4 text-blue-600 bg-white/10 border border-white/30 rounded focus:ring-blue-500 focus:ring-2"
+                                        />
+                                        <div>
+                                            <label htmlFor="send_signup_notifications" className="text-sm font-medium text-white cursor-pointer">
+                                                Email me when someone registers
+                                            </label>
+                                            <p className="text-xs text-blue-200 mt-1">
+                                                Get notified via email every time someone signs up for your event
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </AnimatedSection>

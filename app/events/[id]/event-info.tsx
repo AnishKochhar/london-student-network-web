@@ -201,8 +201,11 @@ export default function EventInfo() {
                         <Image
                             src={event.image_url}
                             alt={event.title}
-                            width={200}
-                            height={200}
+                            width={800}
+                            height={600}
+                            sizes="(max-width: 768px) 90vw, 45vw"
+                            quality={90}
+                            priority
                             className="absolute inset-0 w-[80%] h-[80%] left-[10%] object-contain border "
                         />
                     </div>
@@ -333,7 +336,7 @@ export default function EventInfo() {
             <GuestRegistrationModal
                 isOpen={showGuestRegistration}
                 onClose={() => setShowGuestRegistration(false)}
-                eventId={event_id}
+                eventId={event?.id || event_id}
                 eventTitle={event?.title || "Event"}
                 onSuccess={handleGuestRegistrationSuccess}
             />

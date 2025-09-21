@@ -163,7 +163,7 @@ export async function fetchEventWithUserId(event_id: string, user_id: string) {
 			WHERE organiser_uid = ${user_id} AND id = ${event_id}
 			LIMIT 1
 		`;
-        console.log("Data rows: ", data.rows);
+        // console.log("Data rows: ", data.rows);
         if (data.rows.length === 0) {
             return { success: false };
         } else {
@@ -190,7 +190,7 @@ export async function fetchBase16ConvertedEventWithUserId(
 			WHERE organiser_uid = ${user_id} AND id::text LIKE ${pattern}
 			LIMIT 1
 		`;
-        console.log("Data rows: ", data.rows);
+        // console.log("Data rows: ", data.rows);
         if (data.rows.length === 0) {
             return { success: false };
         } else {
@@ -208,8 +208,8 @@ export async function fetchBase16ConvertedEventWithUserId(
 export async function insertEvent(event: SQLEvent) {
     try {
         await sql`
-		INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals, capacity, image_contain)
-		VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null}, ${event.capacity ?? null}, ${event.image_contain})
+		INSERT INTO events (title, description, organiser, organiser_uid, start_time, end_time, day, month, year, location_building, location_area, location_address, image_url, event_type, sign_up_link, for_externals, capacity, image_contain, send_signup_notifications)
+		VALUES (${event.title}, ${event.description}, ${event.organiser}, ${event.organiser_uid}, ${event.start_time}, ${event.end_time}, ${event.day}, ${event.month}, ${event.year}, ${event.location_building}, ${event.location_area}, ${event.location_address}, ${event.image_url}, ${event.event_type}, ${event.sign_up_link ?? null}, ${event.for_externals ?? null}, ${event.capacity ?? null}, ${event.image_contain}, ${event.send_signup_notifications ?? true})
 		`;
         return { success: true };
     } catch (error) {
@@ -237,7 +237,8 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 day, month, year, start_time, end_time,
                 location_building, location_area, location_address,
                 image_url, image_contain, external_forward_email,
-                capacity, sign_up_link, for_externals, event_type
+                capacity, sign_up_link, for_externals, event_type,
+                send_signup_notifications
             )
             VALUES (
                 ${eventData.title}, ${eventData.description}, ${eventData.organiser}, ${eventData.organiser_uid},
@@ -245,7 +246,8 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 ${day}, ${month}, ${year}, ${startTime}, ${endTime},
                 ${eventData.location_building}, ${eventData.location_area}, ${eventData.location_address},
                 ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
-                ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type}
+                ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type},
+                ${eventData.send_signup_notifications}
             )
         `;
         return { success: true };
@@ -277,7 +279,8 @@ export async function updateEvent(event: SQLEvent) {
 				sign_up_link = ${event.sign_up_link ?? null},
 				for_externals = ${event.for_externals ?? null},
 				capacity = ${event.capacity ?? null},
-				image_contain = ${event.image_contain}
+				image_contain = ${event.image_contain},
+				send_signup_notifications = ${event.send_signup_notifications ?? true}
 			WHERE id = ${event.id}
 		`;
         return { message: "succesfully updated database", status: 200 };
@@ -783,7 +786,7 @@ export async function checkEmail(email: string) {
 export async function getEmailFromId(id: string) {
     try {
         const data = await sql`
-			SELECT email 
+			SELECT email
 			FROM users
 			WHERE role='organiser' and id = ${id} --- we really want to ensure no user email is leaked by accident
 			LIMIT 1
@@ -793,6 +796,22 @@ export async function getEmailFromId(id: string) {
     } catch (error) {
         console.error("Error checking email:", error);
         throw new Error("Failed to retrieve email for a specific organiser");
+    }
+}
+
+export async function getEventOrganiserEmail(id: string) {
+    try {
+        const data = await sql`
+			SELECT email
+			FROM users
+			WHERE id = ${id} --- get email for event organiser regardless of role
+			LIMIT 1
+		`;
+
+        return data.rows[0] || null;
+    } catch (error) {
+        console.error("Error checking email:", error);
+        throw new Error("Failed to retrieve email for event organiser");
     }
 }
 
