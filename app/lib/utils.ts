@@ -103,6 +103,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		is_hidden: sqlEvent.is_hidden,
 		is_deleted: sqlEvent.is_deleted,
 		send_signup_notifications: sqlEvent.send_signup_notifications,
+		student_union: sqlEvent.student_union,
 	};
 }
 

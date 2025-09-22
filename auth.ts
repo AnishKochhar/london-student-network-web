@@ -51,7 +51,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         }),
     ],
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
+            // Initial login - set user data in token
             if (user) {
                 token.id = user.id;
                 token.name = user.name;
@@ -59,6 +60,8 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 token.role = user.role;
                 // token.email_verified = !!user.email_verified;
             }
+
+            // No refresh logic needed since profile updates trigger logout/login
             return token;
         },
         async session({ session, token }) {

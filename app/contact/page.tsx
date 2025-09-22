@@ -60,13 +60,10 @@ export default function ContactPage() {
                 id: crypto.randomUUID(), // Generate unique ID
                 name: data.name,
                 email: data.email,
-                message: `
-					Inquiry Purpose: ${data.inquiryPurpose}
-					Description: ${data.description}
-					${data.organisation ? `Organisation: ${data.organisation}` : ""}
-
-					Message: ${data.message}
-				`.trim(),
+                message: data.message, // Keep message separate
+                inquiryPurpose: data.inquiryPurpose,
+                description: data.description,
+                organisation: data.organisation || "",
             };
 
             const response = await fetch("/api/send-email", {

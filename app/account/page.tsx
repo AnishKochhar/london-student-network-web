@@ -2,20 +2,24 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { ExclamationCircleIcon } from "@heroicons/react/24/outline";
+import { useSession, signOut } from "next-auth/react";
+import { ExclamationCircleIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/app/components/button";
 import UserEventsList from "../components/account/user-events-list";
 import AccountFields from "../components/account/account-fields";
 import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
+import toast from "react-hot-toast";
 
 export default function AccountPage() {
     const [showForgottenPasswordModal, setShowForgottenPasswordModal] = useState(false);
     const [activeSection, setActiveSection] = useState("personal");
-    const { data: session, status } = useSession();
+    const { data: session, status, update } = useSession();
     const contentRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
 
     // Navigation sections
     const sections = useMemo(() => [
@@ -83,6 +87,63 @@ export default function AccountPage() {
 
     const handleForgottenPasswordPress = () => {
         setShowForgottenPasswordModal(true);
+    };
+
+    const handleNameDoubleClick = () => {
+        if (session?.user?.role === "organiser") {
+            setIsEditingName(true);
+            setEditedName(session.user.name || "");
+        }
+    };
+
+    const handleNameCancel = () => {
+        setIsEditingName(false);
+        setEditedName("");
+    };
+
+    const handleNameSave = async () => {
+        if (!editedName.trim()) {
+            toast.error("Name cannot be empty");
+            return;
+        }
+
+        setIsSaving(true);
+        const toastId = toast.loading("Updating name...");
+
+        try {
+            const response = await fetch("/api/account/update-name", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name: editedName }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setIsEditingName(false);
+                toast.success("Name updated successfully! You'll be signed out to refresh your session.", {
+                    id: toastId,
+                    duration: 4000
+                });
+
+                // Sign out and redirect back to account page
+                // This ensures they get a fresh JWT token with the updated name
+                setTimeout(async () => {
+                    await signOut({
+                        callbackUrl: "/login?redirect=/account&message=name-updated"
+                    });
+                }, 1500);
+            } else {
+                toast.error(result.error || "Failed to update name", { id: toastId });
+            }
+        } catch (error) {
+            console.error("Error updating name:", error);
+            toast.error("Failed to update name", { id: toastId });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     if (status === "loading") {
@@ -154,13 +215,68 @@ export default function AccountPage() {
                                     <p className="text-gray-300 mb-4 md:mb-8">View your personal information and contact details</p>
 
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                                        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 opacity-75">
+                                        <div className={`bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 ${user?.role === "organiser" ? "opacity-100" : "opacity-75"} ${isEditingName ? "relative" : ""}`}>
                                             <label className="block text-sm font-medium text-gray-400 mb-2">
-                                                Name
+                                                Name {user?.role === "organiser" && <span className="text-xs text-blue-300">(double-click to edit)</span>}
                                             </label>
-                                            <div className="bg-white/5 rounded-lg px-4 py-3 text-gray-300 font-medium cursor-not-allowed" aria-disabled="true">
-                                                {user?.name || "Not provided"}
-                                            </div>
+                                            {isEditingName ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={editedName}
+                                                        onChange={(e) => setEditedName(e.target.value)}
+                                                        className="flex-1 bg-white/10 rounded-lg px-4 py-3 text-white font-medium border border-white/20 focus:border-blue-400 focus:outline-none"
+                                                        autoFocus
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") handleNameSave();
+                                                            if (e.key === "Escape") handleNameCancel();
+                                                        }}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className={`bg-white/5 rounded-lg px-4 py-3 text-gray-300 font-medium ${
+                                                        user?.role === "organiser"
+                                                            ? "cursor-pointer hover:bg-white/10 transition-colors"
+                                                            : "cursor-not-allowed"
+                                                    }`}
+                                                    onDoubleClick={handleNameDoubleClick}
+                                                    aria-disabled={user?.role !== "organiser"}
+                                                >
+                                                    {user?.name || "Not provided"}
+                                                </div>
+                                            )}
+
+                                            {/* Save buttons - positioned inside the name field card on desktop */}
+                                            {isEditingName && (
+                                                <div className="flex gap-2 justify-end mt-4">
+                                                    <button
+                                                        onClick={handleNameCancel}
+                                                        disabled={isSaving}
+                                                        className="flex items-center justify-center px-3 py-1.5 text-sm bg-gray-500/20 text-gray-300 hover:bg-gray-500/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <XMarkIcon className="h-4 w-4 mr-1" />
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={handleNameSave}
+                                                        disabled={isSaving || !editedName.trim()}
+                                                        className="flex items-center justify-center px-3 py-1.5 text-sm bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500/30"
+                                                    >
+                                                        {isSaving ? (
+                                                            <>
+                                                                <div className="w-4 h-4 border-2 border-blue-300 border-t-transparent rounded-full animate-spin mr-1"></div>
+                                                                Saving...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CheckIcon className="h-4 w-4 mr-1" />
+                                                                Save
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 opacity-75">

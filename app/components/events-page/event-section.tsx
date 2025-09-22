@@ -53,10 +53,10 @@ export default function EventSection({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
             >
-                <h2 className="text-3xl font-semibold mb-4 capitalize">
+                <h2 className="text-3xl font-semibold mb-4 capitalize text-white">
                     {getMonthName(month)} {year}
                 </h2>
-                <div className="border-b border-gray-400 mb-4" />
+                <div className="border-b border-white/30 mb-4" />
             </motion.div>
 
             <motion.div
