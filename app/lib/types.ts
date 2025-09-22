@@ -22,6 +22,7 @@ export interface Event {
     is_hidden?: boolean;
     is_deleted?: boolean;
     send_signup_notifications?: boolean;
+    student_union?: boolean;
 }
 
 export interface EditEventProps {
@@ -91,6 +92,7 @@ export interface SQLEvent {
     is_hidden?: boolean;
     is_deleted?: boolean;
     send_signup_notifications?: boolean;
+    student_union?: boolean;
 }
 
 export type User = {
@@ -182,6 +184,7 @@ export interface SQLEventData {
     sign_up_link?: string;
     for_externals?: string;
     send_signup_notifications: boolean;
+    student_union: boolean;
 }
 
 export interface UserRegisterFormData {

@@ -103,6 +103,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		is_hidden: sqlEvent.is_hidden,
 		is_deleted: sqlEvent.is_deleted,
 		send_signup_notifications: sqlEvent.send_signup_notifications,
+		student_union: sqlEvent.student_union,
 	};
 }
 
@@ -620,6 +621,7 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		sign_up_link: data.sign_up_link || undefined,
 		for_externals: data.for_externals || undefined,
 		send_signup_notifications: data.send_signup_notifications ?? true,
+		student_union: false, // Default to false for now, can be updated later if needed
 	};
 }
 

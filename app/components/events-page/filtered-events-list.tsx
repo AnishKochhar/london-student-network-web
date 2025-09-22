@@ -60,8 +60,8 @@ export default function FilteredEventsList({
                         transition={{ duration: 0.4 }}
                         className="text-center py-16"
                     >
-                        <p className="text-2xl text-gray-400 mb-4">No events found with selected filters</p>
-                        <p className="text-gray-500">Try selecting different tags to see more events</p>
+                        <p className="text-2xl text-white/60 mb-4">No events found with selected filters</p>
+                        <p className="text-white/40">Try selecting different tags to see more events</p>
                     </motion.div>
                 ) : (
                     sortedMonthYearKeys.map((monthYearKey, index) => {
