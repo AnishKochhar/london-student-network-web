@@ -1,5 +1,4 @@
 import { insertContactForm } from "@/app/lib/data";
-import { ContactFormInput } from "@/app/lib/types";
 import { NextResponse, NextRequest } from "next/server";
 import sendSendGridEmail from "@/app/lib/config/private/sendgrid";
 import ContactFormEmail from "@/app/components/templates/contact-form-email";

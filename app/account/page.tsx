@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 export default function AccountPage() {
     const [showForgottenPasswordModal, setShowForgottenPasswordModal] = useState(false);
     const [activeSection, setActiveSection] = useState("personal");
-    const { data: session, status, update } = useSession();
+    const { data: session, status } = useSession();
     const contentRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const [isEditingName, setIsEditingName] = useState(false);
