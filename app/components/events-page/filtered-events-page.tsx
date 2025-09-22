@@ -45,10 +45,10 @@ export default function FilteredEventsPage({
         if (!searchQuery) return true;
         const query = searchQuery.toLowerCase();
         return (
-            event.title.toLowerCase().includes(query) ||
-            event.organiser.toLowerCase().includes(query) ||
-            event.location_area.toLowerCase().includes(query) ||
-            event.location_building.toLowerCase().includes(query)
+            event.title?.toLowerCase().includes(query) ||
+            event.organiser?.toLowerCase().includes(query) ||
+            event.location_area?.toLowerCase().includes(query) ||
+            event.location_building?.toLowerCase().includes(query)
         );
     });
 
