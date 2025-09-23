@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && next-sitemap",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postbuild": "next-sitemap"
   },
   "dependencies": {
     "@heroicons/react": "^2.1.5",
@@ -31,6 +32,7 @@
     "lucide-react": "^0.534.0",
     "next": "15.0.0-canary.152",
     "next-auth": "5.0.0-beta.19",
+    "next-sitemap": "^4.2.3",
     "react": "19.0.0-rc-94e652d5-20240912",
     "react-dom": "19.0.0-rc-94e652d5-20240912",
     "react-hook-form": "^7.53.0",

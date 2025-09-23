@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { XMarkIcon, PlusIcon, TagIcon } from "@heroicons/react/24/outline";
 import BaseModal from "./base-modal";
-import FormTextarea from "./form-text-area";
 import * as threadService from "@/app/lib/services/thread-service";
 import { ThreadData } from "@/app/lib/types";
 import MarkdownEditor from "../markdown/markdown-editor";

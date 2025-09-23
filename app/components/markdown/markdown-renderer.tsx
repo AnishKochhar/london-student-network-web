@@ -9,7 +9,7 @@ import "highlight.js/styles/github-dark.css";
 interface MarkdownRendererProps {
     content: string;
     className?: string;
-    components?: any;
+    components?: Record<string, React.ComponentType<never>>;
     variant?: "light" | "dark";
 }
 
@@ -103,7 +103,12 @@ export default function MarkdownRenderer({
                             {children}
                         </blockquote>
                     ),
-                    code: ({ inline, className, children, ...props }: any) => {
+                    code: ({ inline, className, children, ...props }: {
+                        inline?: boolean;
+                        className?: string;
+                        children?: React.ReactNode;
+                        [key: string]: unknown;
+                    }) => {
                         if (inline) {
                             return (
                                 <code className={`${textColors.codeBg} ${textColors.code} px-1.5 py-0.5 rounded text-sm`} {...props}>

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { PencilIcon } from "@heroicons/react/24/outline";
 import BaseModal from "./base-modal";
-import FormTextarea from "./form-text-area";
 import MarkdownEditor from "../markdown/markdown-editor";
 
 interface EditCommentModalProps {
