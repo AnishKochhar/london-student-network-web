@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { XMarkIcon, PlusIcon, TagIcon } from "@heroicons/react/24/outline";
 import BaseModal from "./base-modal";
-import FormTextarea from "./form-text-area";
 import * as threadService from "@/app/lib/services/thread-service";
 import { ThreadData } from "@/app/lib/types";
+import MarkdownEditor from "../markdown/markdown-editor";
 
 interface NewThreadModalProps {
     isOpen: boolean;
@@ -142,15 +142,13 @@ export default function NewThreadModal({
                     />
                 </div>
 
-                {/* Content Textarea */}
-                <FormTextarea
-                    label="Content"
+                {/* Content Markdown Editor */}
+                <MarkdownEditor
                     value={content}
                     onChange={setContent}
                     placeholder="Describe your question or share your thoughts in detail..."
-                    rows={6}
-                    required
-                    disabled={submitting}
+                    height={250}
+                    label="Content"
                 />
 
                 {/* Tags Section */}

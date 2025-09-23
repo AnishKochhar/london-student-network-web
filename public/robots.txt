@@ -1,0 +1,25 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /account/
+Disallow: /sign
+Disallow: /login
+Disallow: /register/
+Disallow: /upload-image
+
+# GPTBot
+User-agent: GPTBot
+Disallow: /
+
+# Google-Extended
+User-agent: Google-Extended
+Disallow: /
+
+# Host
+Host: https://londonstudentnetwork.com
+
+# Sitemaps
+Sitemap: https://londonstudentnetwork.com/sitemap.xml

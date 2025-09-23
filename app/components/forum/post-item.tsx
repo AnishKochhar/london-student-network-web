@@ -139,7 +139,7 @@ export default function PostItem({
                                     {post.avatar}
                                 </div>
                                 <span className="truncate">
-                                    Posted by {post.author}
+                                    Posted by @{post.author}
                                 </span>
                                 <span className="flex-shrink-0">•</span>
                                 <span className="flex-shrink-0">
@@ -235,7 +235,7 @@ export default function PostItem({
                             {post.avatar}
                         </div>
                         <span className="truncate max-w-[100px]">
-                            Posted by {post.author}
+                            Posted by @{post.author}
                         </span>
                         <span className="flex-shrink-0">•</span>
                         <span className="flex-shrink-0">{post.timeAgo}</span>

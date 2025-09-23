@@ -2,6 +2,7 @@ import { Button } from "../button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import fetchPredefinedTags from "@/app/lib/utils";
+import MarkdownRenderer from "../markdown/markdown-renderer";
 
 export default function AccountFields({
     id,
@@ -58,8 +59,12 @@ export default function AccountFields({
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                     Description
                 </label>
-                <div className="bg-white/10 rounded-lg px-4 py-3 text-white font-medium min-h-[80px]">
-                    {description || "No description found"}
+                <div className="bg-white/10 rounded-lg px-4 py-3 text-white font-medium min-h-[80px] overflow-auto">
+                    {description ? (
+                        <MarkdownRenderer content={description} />
+                    ) : (
+                        "No description found"
+                    )}
                 </div>
             </div>
 

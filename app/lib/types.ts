@@ -104,6 +104,34 @@ export type User = {
     email_verified: boolean;
 };
 
+export interface Username {
+    id: number;
+    user_id: string;
+    username: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UsernameFormData {
+    username: string;
+}
+
+export interface UsernameCheckResponse {
+    available: boolean;
+    suggestions?: string[];
+    error?: string;
+}
+
+export interface CreateUsernameRequest {
+    username: string;
+}
+
+export interface CreateUsernameResponse {
+    success: boolean;
+    username?: string;
+    error?: string;
+}
+
 export interface ContactFormInput {
     id: string;
     name: string;
@@ -356,7 +384,8 @@ export interface ForumPost {
     id: number;
     title: string;
     content: string;
-    author: string;
+    author: string;  // This will now be the username
+    authorName?: string;  // Real name (optional, for backward compatibility)
     avatar: string;
     timeAgo: string;
     upvotes: number;
@@ -372,7 +401,8 @@ export interface ForumPost {
 
 export interface Reply {
     id: number;
-    author: string;
+    author: string;  // This will now be the username
+    authorName?: string;  // Real name (optional, for backward compatibility)
     avatar: string;
     content: string;
     timeAgo: string;
@@ -390,7 +420,8 @@ export interface ThreadData {
     id: number;
     title: string;
     content: string;
-    author: string;
+    author: string;  // This will now be the username
+    authorName?: string;  // Real name (optional, for backward compatibility)
     avatar: string;
     timeAgo: string;
     upvotes: number;

@@ -14,6 +14,7 @@ import { OrganiserAccountEditFormData } from "@/app/lib/types";
 import { upload } from "@vercel/blob/client";
 import { Input } from "../../components/input";
 import { Button } from "@/app/components/button";
+import MarkdownEditor from "@/app/components/markdown/markdown-editor";
 
 export default function EditDetailsPage() {
     const [predefinedTags, setPredefinedTags] = useState([]);
@@ -30,11 +31,12 @@ export default function EditDetailsPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    const { register, handleSubmit, setValue, control } =
+    const { register, handleSubmit, setValue, control, watch } =
         useForm<OrganiserAccountEditFormData>({
             mode: "onSubmit",
             defaultValues: {
                 tags: [], // Make sure tags is initialized as an empty array
+                description: "",
             },
         });
 
@@ -177,12 +179,11 @@ export default function EditDetailsPage() {
                 <label className="block text-white font-bold mt-4 mb-1">
                     Description
                 </label>
-                <textarea
-                    id="description"
-                    rows={4}
-                    {...register("description")}
-                    className="w-full text-white block text-sm p-2 border border-gray-300 rounded bg-transparent focus:ring-blue-500 focus:border-blue-500"
+                <MarkdownEditor
+                    value={watch("description") || ""}
+                    onChange={(value) => setValue("description", value)}
                     placeholder="Society Description..."
+                    height={300}
                 />
             </div>
             <div>

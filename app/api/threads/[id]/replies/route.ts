@@ -37,19 +37,21 @@ export async function GET(
 
         // Fetch paginated top-level comments for the thread
         const repliesResult = await sql`
-      SELECT 
-        c.id, 
-        c.thread_id, 
-        c.parent_id, 
-        c.content, 
-        c.author_id, 
-        c.upvotes, 
+      SELECT
+        c.id,
+        c.thread_id,
+        c.parent_id,
+        c.content,
+        c.author_id,
+        c.upvotes,
         c.downvotes,
         c.created_at AT TIME ZONE 'UTC' as created_at,
         c.updated_at AT TIME ZONE 'UTC' as updated_at,
-        u.name as author_name
+        u.name as author_name,
+        un.username as author_username
       FROM comments c
       LEFT JOIN users u ON c.author_id = u.id
+      LEFT JOIN usernames un ON u.id = un.user_id
       WHERE c.thread_id = ${threadId} AND c.parent_id IS NULL
       ORDER BY c.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
@@ -81,6 +83,7 @@ export async function GET(
 
                 const replyCount = parseInt(repliesCount.rows[0].count);
                 const hasReplies = replyCount > 0;
+                const username = reply.author_username || reply.author_name || "Anonymous";
                 const authorName = reply.author_name || "Anonymous";
 
                 // Check if comment was edited
@@ -91,9 +94,10 @@ export async function GET(
                     threadId: reply.thread_id,
                     parentId: reply.parent_id,
                     content: formatContent(reply.content),
-                    author: authorName,
+                    author: username,  // Use username instead of real name
+                    authorName: authorName,  // Keep real name for reference
                     authorId: reply.author_id,
-                    avatar: getAvatarInitials(authorName),
+                    avatar: getAvatarInitials(username),  // Generate avatar from username
                     timeAgo: getTimeAgo(reply.created_at),
                     upvotes: reply.upvotes || 0,
                     downvotes: reply.downvotes || 0,

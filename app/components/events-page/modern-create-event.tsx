@@ -12,6 +12,7 @@ import { placeholderImages, createModernEventObject, validateModernEvent, EVENT_
 import { DefaultEvent } from "@/app/lib/types";
 import EventModal from "./event-modal";
 import Image from "next/image";
+import MarkdownEditor from "../markdown/markdown-editor";
 
 interface ModernCreateEventProps {
     organiser_id: string;
@@ -918,11 +919,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     <label className="block text-sm font-medium text-white mb-3">
                                         Description <span className="text-red-300">*</span>
                                     </label>
-                                    <textarea
-                                        {...register("description", { required: "Description is required" })}
-                                        rows={4}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-y backdrop-blur min-h-[100px]"
+                                    <MarkdownEditor
+                                        value={watchedValues.description || ""}
+                                        onChange={(value) => setValue("description", value)}
                                         placeholder="Describe your event in detail..."
+                                        height={300}
                                     />
                                     {errors.description && (
                                         <p className="mt-2 text-sm text-red-300">{errors.description.message}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import ForumControls, {
     ActiveFilter,
 } from "../components/forum/forum-controls";
@@ -8,6 +8,7 @@ import PostList from "../components/forum/post-list";
 import Sidebar from "../components/forum/sidebar";
 import ThreadDetailModal from "../components/forum/thread-detail";
 import NewThreadModal from "../components/forum/new-thread-modal";
+import UsernameCreationModal from "../components/forum/username-creation-modal";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { useDebounce } from "../components/forum/hooks/useDebounce";
@@ -30,7 +31,9 @@ export default function ForumPage() {
     );
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isNewThreadModalOpen, setIsNewThreadModalOpen] = useState(false);
+    const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
     const [isRepliesLoading, setIsRepliesLoading] = useState(false);
+    const [userHasUsername, setUserHasUsername] = useState<boolean | null>(null);
 
     // Forum threads state and handlers using custom hook
     const {
@@ -120,13 +123,94 @@ export default function ForumPage() {
         setSelectedThread(null);
     }, []);
 
-    const handleOpenNewThreadModal = useCallback(() => {
+    // Check if user has username when session changes
+    const checkUserUsername = useCallback(async () => {
+        if (!session?.user?.id) {
+            setUserHasUsername(null);
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/username/get");
+            if (response.ok) {
+                const data = await response.json();
+                setUserHasUsername(data.hasUsername);
+            } else {
+                setUserHasUsername(false);
+            }
+        } catch (error) {
+            console.error("Error checking username:", error);
+            setUserHasUsername(false);
+        }
+    }, [session?.user?.id]);
+
+    // Check username when session loads
+    useEffect(() => {
+        checkUserUsername();
+    }, [checkUserUsername]);
+
+    const handleOpenNewThreadModal = useCallback(async () => {
         if (!session) {
             toast.error("You must be logged in to create a thread");
             return;
         }
+
+        // Check if user has a username first
+        if (userHasUsername === null) {
+            // Still loading, check again
+            await checkUserUsername();
+            return;
+        }
+
+        if (!userHasUsername) {
+            // For organiser and company accounts, automatically create username from their name
+            if (session.user?.role === 'organiser' || session.user?.role === 'company') {
+                try {
+                    const response = await fetch("/api/username/create", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username: session.user.name })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setUserHasUsername(true);
+                        toast.success(`Username created: ${result.username}`);
+                        // Automatically open the new thread modal
+                        setTimeout(() => {
+                            setIsNewThreadModalOpen(true);
+                        }, 500);
+                        return;
+                    } else {
+                        toast.error(result.error || "Failed to create username");
+                        return;
+                    }
+                } catch (error) {
+                    console.error("Error auto-creating username:", error);
+                    toast.error("Error creating username");
+                    return;
+                }
+            } else {
+                // For user accounts, show username creation modal
+                setIsUsernameModalOpen(true);
+                return;
+            }
+        }
+
+        // User has username, open thread creation modal
         setIsNewThreadModalOpen(true);
-    }, [session]);
+    }, [session, userHasUsername, checkUserUsername]);
+
+    const handleUsernameCreated = useCallback((username: string) => {
+        setUserHasUsername(true);
+        setIsUsernameModalOpen(false);
+        toast.success(`Welcome, @${username}! You can now create threads.`);
+        // Automatically open the new thread modal after username creation
+        setTimeout(() => {
+            setIsNewThreadModalOpen(true);
+        }, 500);
+    }, []);
 
     const handleThreadCreated = useCallback(
         (newThread: ThreadData) => {
@@ -276,6 +360,13 @@ export default function ForumPage() {
                 isOpen={isNewThreadModalOpen}
                 onClose={() => setIsNewThreadModalOpen(false)}
                 onThreadCreated={handleThreadCreated}
+            />
+
+            {/* Username Creation Modal */}
+            <UsernameCreationModal
+                isOpen={isUsernameModalOpen}
+                onClose={() => setIsUsernameModalOpen(false)}
+                onSuccess={handleUsernameCreated}
             />
         </main>
     );

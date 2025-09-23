@@ -19,6 +19,7 @@ import EditCommentModal from "../edit-comment-modal";
 import EditThreadModal from "./edit-thread-modal";
 import DeleteConfirmationModal from "../delete-confirmation-modal";
 import * as threadService from "@/app/lib/services/thread-service";
+import MarkdownRenderer from "../../markdown/markdown-renderer";
 
 interface ContentItemProps {
     item: Reply | ThreadData;
@@ -207,8 +208,8 @@ export default function ContentItem({
 
                     {/* Content, tags, and meta sections */}
                     <div>
-                        <div className="text-white/90 mb-2 leading-relaxed whitespace-pre-line text-sm break-words">
-                            <p>{displayContent}</p>
+                        <div className="text-white/90 mb-2 leading-relaxed text-sm">
+                            <MarkdownRenderer content={displayContent} />
 
                             {shouldTruncateContent && (
                                 <button
@@ -247,7 +248,7 @@ export default function ContentItem({
                                     {thread.avatar}
                                 </div>
                                 <span className="truncate max-w-[120px]">
-                                    Posted by {thread.author}
+                                    Posted by @{thread.author}
                                 </span>
                                 <span>•</span>
                                 <span>{thread.timeAgo}</span>
@@ -314,9 +315,9 @@ export default function ContentItem({
                             )}
                         </div>
 
-                        <p className="text-white/90 mb-2 leading-relaxed whitespace-pre-line text-base break-all">
-                            {displayContent}
-                        </p>
+                        <div className="text-white/90 mb-2 leading-relaxed text-base">
+                            <MarkdownRenderer content={displayContent} />
+                        </div>
 
                         {/* Edited indicator */}
                         {thread.wasEdited && (
@@ -345,7 +346,7 @@ export default function ContentItem({
                                         {thread.avatar}
                                     </div>
                                     <span className="max-w-none">
-                                        Posted by {thread.author}
+                                        Posted by @{thread.author}
                                     </span>
                                     <span>•</span>
                                     <span>{thread.timeAgo}</span>
@@ -417,7 +418,7 @@ export default function ContentItem({
                                         {item.avatar}
                                     </div>
                                     <span className="font-medium text-white/90 text-xs sm:text-sm overflow-hidden text-ellipsis max-w-[100px]">
-                                        {item.author}
+                                        @{item.author}
                                     </span>
                                     <span className="text-white/60 text-xs sm:text-sm">
                                         •
@@ -454,9 +455,9 @@ export default function ContentItem({
                             </div>
 
                             <div>
-                                <p className="text-white/80 mb-1.5 sm:mb-2 leading-relaxed whitespace-pre-line text-xs sm:text-sm break-all">
-                                    {displayContent}
-                                </p>
+                                <div className="text-white/80 mb-1.5 sm:mb-2 leading-relaxed text-xs sm:text-sm">
+                                    <MarkdownRenderer content={displayContent} />
+                                </div>
 
                                 {shouldTruncateContent && (
                                     <button
@@ -589,9 +590,9 @@ export default function ContentItem({
 
                             {/* Comment content */}
                             <div>
-                                <p className="text-white/90 mb-1.5 whitespace-pre-line leading-relaxed text-sm break-all">
-                                    {displayContent}
-                                </p>
+                                <div className="text-white/90 mb-1.5 leading-relaxed text-sm">
+                                    <MarkdownRenderer content={displayContent} />
+                                </div>
 
                                 {shouldTruncateContent && (
                                     <button
@@ -685,9 +686,9 @@ export default function ContentItem({
                         </div>
 
                         <div className="mb-4">
-                            <p className="text-white/90 mb-2 whitespace-pre-line leading-relaxed text-base break-all">
-                                {displayContent}
-                            </p>
+                            <div className="text-white/90 mb-2 leading-relaxed text-base">
+                                <MarkdownRenderer content={displayContent} />
+                            </div>
 
                             {/* Edited indicator */}
                             {item.wasEdited && (

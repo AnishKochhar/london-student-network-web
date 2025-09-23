@@ -38,12 +38,13 @@ export async function GET(request: NextRequest) {
             const searchTerms = searchTerm.trim().split(/\s+/).filter(Boolean);
 
             if (searchTerms.length > 0) {
-                // Add joins to include tags and users in search
+                // Add joins to include tags, users, and usernames in search
                 fromClause = `
           FROM threads t
           LEFT JOIN thread_tags tt ON t.id = tt.thread_id
           LEFT JOIN forum_tags ft ON tt.forum_tag_id = ft.id
           LEFT JOIN users u ON t.author_id = u.id
+          LEFT JOIN usernames un ON u.id = un.user_id
         `;
 
                 // Build WHERE clause for search in title, content, tags, or user names
@@ -56,8 +57,8 @@ export async function GET(request: NextRequest) {
                 parameters.push(searchPattern);
                 paramIndex++;
 
-                // Add conditions for user name search
-                searchConditions.push(`u.name ILIKE $${paramIndex}`);
+                // Add conditions for username search (prioritize username over real name)
+                searchConditions.push(`un.username ILIKE $${paramIndex}`);
                 parameters.push(searchPattern);
                 paramIndex++;
 
@@ -195,14 +196,20 @@ export async function GET(request: NextRequest) {
                 const tags = tagObjects.map((tagObj) => tagObj.name);
 
                 // Get reply count for this thread (if not already fetched)
-
                 const replyCountResult = await sql.query(
                     "SELECT COUNT(*) as count FROM comments WHERE thread_id = $1 AND parent_id IS NULL",
                     [thread.id],
                 );
                 const replyCount = parseInt(replyCountResult.rows[0].count);
 
+                // Get username for the author
+                const usernameResult = await sql.query(
+                    "SELECT username FROM usernames WHERE user_id = $1",
+                    [thread.author_id],
+                );
+                const username = usernameResult.rows[0]?.username || user?.name || "Anonymous";
                 const authorName = user?.name || "Anonymous";
+
                 const wasEdited =
                     new Date(thread.updated_at) > new Date(thread.created_at);
 
@@ -210,7 +217,8 @@ export async function GET(request: NextRequest) {
                     id: thread.id,
                     title: thread.title,
                     content: formatContent(thread.content),
-                    author: authorName,
+                    author: username,  // Use username instead of real name
+                    authorName: authorName,  // Keep real name for reference
                     authorId: thread.author_id,
                     timeAgo: getTimeAgo(thread.created_at),
                     upvotes: thread.upvotes || 0,
