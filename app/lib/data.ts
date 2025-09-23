@@ -620,8 +620,8 @@ export async function insertOrganiserInformation(
         ); // if 'other' selected, uses text input entry
 
         await sql`
-			INSERT INTO society_information (user_id, logo_url, description, website, tags, university_affiliation)
-			VALUES (${userId}, ${formData.imageUrl}, ${formData.description}, ${formData.website}, ${formattedTags}::integer[], ${university})
+			INSERT INTO society_information (user_id, logo_url, description, website, tags, university_affiliation, additional_email, phone_number)
+			VALUES (${userId}, ${formData.imageUrl}, ${formData.description}, ${formData.website}, ${formattedTags}::integer[], ${university}, ${formData.additionalEmail}, ${formData.phoneNumber})
 		`;
         return { success: true };
     } catch (error) {

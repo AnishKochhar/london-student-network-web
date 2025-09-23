@@ -243,6 +243,8 @@ export interface ResetPasswordFormData {
 export interface SocietyRegisterFormData {
     name: string;
     email: string;
+    additionalEmail: string;
+    phoneNumber: string;
     password: string;
     university: string;
     otherUniversity: string;

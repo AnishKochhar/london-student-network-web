@@ -31,7 +31,7 @@ export default function Home() {
                 }}
             />
             <BackgroundImage priority />
-            <main className="relative">
+            <main className="relative overflow-x-hidden">
                 <HomePageTopSection />
                 <ScrollingPartnersSection />
             </main>

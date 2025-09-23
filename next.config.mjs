@@ -48,6 +48,11 @@ const nextConfig = {
 	webpack: (config, { isServer }) => {
 		// Optimize bundle splitting
 		if (!isServer) {
+			// Ensure the structure exists before setting properties
+			if (!config.optimization) config.optimization = {};
+			if (!config.optimization.splitChunks) config.optimization.splitChunks = {};
+			if (!config.optimization.splitChunks.cacheGroups) config.optimization.splitChunks.cacheGroups = {};
+
 			config.optimization.splitChunks.cacheGroups.commons = {
 				name: 'commons',
 				chunks: 'initial',

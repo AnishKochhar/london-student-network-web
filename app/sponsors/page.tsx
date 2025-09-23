@@ -1,4 +1,4 @@
-import { getAllCompanyInformation } from "../lib/data";
+// import { getAllCompanyInformation } from "../lib/data";
 import { hardCodedSponsors } from "../components/sponsor-page/hard-coded-sponsors";
 import SponsorsPageClient from "../components/sponsor-page/sponsors-client";
 import { CompanyInformation } from "../lib/types";
@@ -6,7 +6,8 @@ import { CompanyInformation } from "../lib/types";
 export default async function SponsorsPage() {
     let allSponsors: CompanyInformation[] = [];
     try {
-        const companyInformation = await getAllCompanyInformation();
+        // const companyInformation = await getAllCompanyInformation();
+		const companyInformation = [];
         const combinedSponsors = [...companyInformation, ...hardCodedSponsors];
 
         const uniqueSponsors = Array.from(

@@ -93,7 +93,7 @@ export function VelocityScroll({
 
         return (
             <div
-                className="w-full overflow-hidden whitespace-nowrap"
+                className="w-full overflow-hidden whitespace-nowrap max-w-full"
                 ref={containerRef}
             >
                 <motion.div
@@ -122,7 +122,7 @@ export function VelocityScroll({
     }
 
     return (
-        <section className="relative w-full">
+        <section className="relative w-full overflow-hidden max-w-full">
             <ParallaxText baseVelocity={default_velocity} className={className}>
                 {items}
             </ParallaxText>

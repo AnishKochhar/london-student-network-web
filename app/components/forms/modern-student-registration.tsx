@@ -395,14 +395,19 @@ export default function ModernStudentRegistration() {
                                 required: "Please select your gender",
                             })}
                         />
-                        <ModernInput
-                            type="date"
-                            placeholder="Date of Birth"
-                            error={errors.dob?.message}
-                            {...register("dob", {
-                                required: "Date of birth is required",
-                            })}
-                        />
+                        <div className="space-y-2">
+                            <label className="text-gray-300 text-left block text-sm">
+                                What&apos;s your birthdate?
+                            </label>
+                            <ModernInput
+                                type="date"
+                                placeholder="Date of Birth"
+                                error={errors.dob?.message}
+                                {...register("dob", {
+                                    required: "Date of birth is required",
+                                })}
+                            />
+                        </div>
                     </div>
                 </ModernFormStep>
             )}
