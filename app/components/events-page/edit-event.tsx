@@ -27,6 +27,7 @@ import RegistrationsModal from "./registrations-modal";
 import ToggleSwitch from "../toggle-button";
 import { createPortal } from "react-dom";
 import EventEmailSendingModal from "./email-sending-modal";
+import MarkdownEditor from "../markdown/markdown-editor";
 
 const MAX_POSTGRES_STRING_LENGTH = 255;
 
@@ -269,25 +270,30 @@ export default function EditEventComponent({
         </div>
     );
 
-    const DescriptionField = () => (
-        <div className="flex flex-col mb-4">
-            <label htmlFor="description" className="text-2xl p-6 font-semibold">
-                Description
-            </label>
-            {errors.description && (
-                <p className="text-red-600 text-sm self-end mb-1">
-                    Description is required
-                </p>
-            )}
-            <textarea
-                id="description"
-                rows={4}
-                {...register("description", { required: true })}
-                className="w-[90%] self-end block p-3 text-sm  text-gray-900 bg-transparent rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Please provide information about your event..."
-            />
-        </div>
-    );
+    const DescriptionField = () => {
+        const description = watch("description", "");
+
+        return (
+            <div className="flex flex-col mb-4">
+                <label htmlFor="description" className="text-2xl p-6 font-semibold">
+                    Description
+                </label>
+                {errors.description && (
+                    <p className="text-red-600 text-sm self-end mb-1">
+                        Description is required
+                    </p>
+                )}
+                <div className="w-[90%] self-end">
+                    <MarkdownEditor
+                        value={description}
+                        onChange={(value) => setValue("description", value)}
+                        placeholder="Please provide information about your event..."
+                        height={400}
+                    />
+                </div>
+            </div>
+        );
+    };
 
     const OrganiserField = () => (
         <div className="flex flex-col mb-4">

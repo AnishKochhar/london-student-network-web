@@ -16,6 +16,7 @@ import getPredefinedTags from "@/app/lib/utils";
 import { formattedWebsite } from "@/app/lib/utils";
 import * as skeletons from "@/app/components/skeletons/unique-society";
 import SendEmailPage from "../../message/[id]/page";
+import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
 
 export default function SocietyPage() {
     const [loadingDetails, setLoadingDetails] = useState<boolean>(true);
@@ -280,9 +281,9 @@ export default function SocietyPage() {
 
                     {/* Description */}
                     <div className="flex justify-center">
-                        <p className="text-lg text-white mb-6 leading-relaxed whitespace-pre-wrap">
-                            {description || `Welcome to ${name}`}
-                        </p>
+                        <div className="text-lg text-white mb-6 leading-relaxed">
+                            <MarkdownRenderer content={description || `Welcome to ${name}`} />
+                        </div>
                     </div>
 
                     {/* Website Button */}

@@ -13,6 +13,7 @@ import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
 import EventEmailSendingModal from "@/app/components/events-page/email-sending-modal";
 import RegistrationChoiceModal from "@/app/components/events-page/registration-choice-modal";
 import GuestRegistrationModal from "@/app/components/events-page/guest-registration-modal";
+import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
 
 export default function EventInfo() {
     const { id } = useParams() as { id: string };
@@ -268,9 +269,9 @@ export default function EventInfo() {
                             About the Event
                         </h3>
                         <hr className="border-t-1 border-gray-300 m-2" />
-                        <p className="text-gray-600 whitespace-pre-wrap">
-                            {event.description}
-                        </p>
+                        <div className="text-gray-600">
+                            <MarkdownRenderer content={event.description} variant="light" />
+                        </div>
                     </div>
 
                     {event.for_externals && (

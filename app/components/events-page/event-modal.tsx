@@ -14,6 +14,7 @@ import { formatEventDateTime, EVENT_TAG_TYPES, returnLogo } from "@/app/lib/util
 import { Button } from "../button";
 import { useRouter } from "next/navigation";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import MarkdownRenderer from "../markdown/markdown-renderer";
 
 export default function EventModal({ event, onClose, isPreview = false }: EventModalPropsWithPreview) {
     const modalRef = useRef<HTMLDivElement>(null);
@@ -168,9 +169,9 @@ export default function EventModal({ event, onClose, isPreview = false }: EventM
                                 About the Event
                             </h3>
                             <hr className="border-t-1 border-gray-300 m-2" />
-                            <p className="text-gray-600 whitespace-pre-wrap">
-                                {event.description}
-                            </p>
+                            <div className="text-gray-600">
+                                <MarkdownRenderer content={event.description} variant="light" />
+                            </div>
                         </div>
 
                         {event.for_externals && (

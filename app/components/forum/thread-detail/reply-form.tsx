@@ -2,6 +2,7 @@ import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { Session } from "next-auth";
 import { ViewContext } from "@/app/lib/types";
 import { memo } from "react";
+import MarkdownEditor from "../../markdown/markdown-editor";
 
 interface ReplyFormProps {
     session: Session | null;
@@ -33,10 +34,9 @@ function ReplyForm({
                         : "G"}
                 </div>
                 <div className="flex-1">
-                    <textarea
-                        id="reply-textarea"
+                    <MarkdownEditor
                         value={newReply}
-                        onChange={(e) => setNewReply(e.target.value)}
+                        onChange={setNewReply}
                         placeholder={
                             session?.user
                                 ? viewContext?.type === "comment"
@@ -44,9 +44,8 @@ function ReplyForm({
                                     : "Write your reply..."
                                 : "Log in to reply"
                         }
-                        disabled={!session?.user || isSubmitting}
-                        rows={3}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none mb-2 sm:mb-3 disabled:opacity-50 text-sm sm:text-base"
+                        height={120}
+                        className="mb-2 sm:mb-3"
                     />
                     <div className="flex justify-end">
                         <button

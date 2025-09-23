@@ -44,12 +44,16 @@ export async function POST(request: NextRequest) {
             // Commit transaction
             await sql`COMMIT`;
 
-            // Get the author name
+            // Get the author name and username
             const userResult = await sql`
-        SELECT name FROM users WHERE id = ${userId}
+        SELECT u.name, un.username
+        FROM users u
+        LEFT JOIN usernames un ON u.id = un.user_id
+        WHERE u.id = ${userId}
       `;
 
             const authorName = userResult.rows[0]?.name || "Anonymous";
+            const username = userResult.rows[0]?.username || authorName;
 
             // Return the newly created comment
             return NextResponse.json({
@@ -57,9 +61,10 @@ export async function POST(request: NextRequest) {
                 thread_id: threadId,
                 parent_id: parentCommentId,
                 content,
-                author: authorName,
+                author: username,  // Use username instead of real name
+                authorName: authorName,  // Keep real name for reference
                 authorId: userId,
-                avatar: getAvatarInitials(authorName),
+                avatar: getAvatarInitials(username),  // Generate avatar from username
                 timeAgo: "just now",
                 upvotes: 0,
                 downvotes: 0,

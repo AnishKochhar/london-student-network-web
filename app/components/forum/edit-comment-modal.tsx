@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { PencilIcon } from "@heroicons/react/24/outline";
 import BaseModal from "./base-modal";
 import FormTextarea from "./form-text-area";
+import MarkdownEditor from "../markdown/markdown-editor";
 
 interface EditCommentModalProps {
     isOpen: boolean;
@@ -94,14 +95,12 @@ export default function EditCommentModal({
             footer={footerContent}
         >
             <div className="space-y-6">
-                <FormTextarea
-                    label="Content"
+                <MarkdownEditor
                     value={content || ""}
                     onChange={setContent}
                     placeholder={`Your ${type === "reply" ? "reply" : "comment"}...`}
-                    rows={4}
-                    required
-                    disabled={submitting}
+                    height={200}
+                    label="Content"
                 />
             </div>
         </BaseModal>

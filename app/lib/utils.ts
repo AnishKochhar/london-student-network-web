@@ -718,7 +718,7 @@ export const SocietyLogos = [
 	{ name: "European Affairs Institute", src: "/societies/LSN.png" },
 	{ name: "Imperial College Union", src: "/societies/imperial-union.png" },
 	{ name: "UCL Students' Union", src: "/societies/ucl-union.png" },
-	{ name: "KCLSU (King's College London Students' Union)", src: "/societies/kclsu.png" },
+	{ name: "KCLSU Events", src: "/societies/kclsu.png" },
 ];
 
 export const SponsorsInformation = [

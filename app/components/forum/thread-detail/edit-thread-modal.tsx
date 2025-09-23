@@ -5,6 +5,7 @@ import { PencilIcon, TagIcon } from "@heroicons/react/24/outline";
 import BaseModal from "../base-modal";
 import FormTextarea from "../form-text-area";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import MarkdownEditor from "../../markdown/markdown-editor";
 
 interface EditThreadModalProps {
     isOpen: boolean;
@@ -143,15 +144,13 @@ export default function EditThreadModal({
                     />
                 </div>
 
-                {/* Content Textarea */}
-                <FormTextarea
-                    label="Content"
+                {/* Content Markdown Editor */}
+                <MarkdownEditor
                     value={content || ""}
                     onChange={setContent}
                     placeholder="Describe your question or share your thoughts in detail..."
-                    rows={6}
-                    required
-                    disabled={submitting}
+                    height={250}
+                    label="Content"
                 />
 
                 {/* Tags Section */}
