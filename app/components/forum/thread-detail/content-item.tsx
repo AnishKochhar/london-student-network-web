@@ -413,17 +413,17 @@ export default function ContentItem({
                         <div className="flex-1">
                             {/* Author info */}
                             <div className="flex justify-between items-start mb-1.5 sm:mb-2">
-                                <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-                                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                                         {item.avatar}
                                     </div>
-                                    <span className="font-medium text-white/90 text-xs sm:text-sm overflow-hidden text-ellipsis max-w-[100px]">
+                                    <span className="font-medium text-white/90 text-xs sm:text-sm flex-1 min-w-0">
                                         @{item.author}
                                     </span>
-                                    <span className="text-white/60 text-xs sm:text-sm">
+                                    <span className="text-white/60 text-xs sm:text-sm flex-shrink-0">
                                         •
                                     </span>
-                                    <span className="text-white/60 text-xs sm:text-sm">
+                                    <span className="text-white/60 text-xs sm:text-sm flex-shrink-0">
                                         {item.timeAgo}
                                     </span>
                                 </div>
@@ -547,17 +547,17 @@ export default function ContentItem({
                         <div className="flex-1 flex flex-col">
                             {/* Author info and controls */}
                             <div className="flex justify-between items-start mb-1.5">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold">
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                                         {item.avatar}
                                     </div>
-                                    <span className="font-medium text-white text-sm overflow-hidden text-ellipsis max-w-[100px]">
-                                        {item.author}
+                                    <span className="font-medium text-white text-sm flex-1 min-w-0">
+                                        @{item.author}
                                     </span>
-                                    <span className="text-white/60 text-sm">
+                                    <span className="text-white/60 text-sm flex-shrink-0">
                                         •
                                     </span>
-                                    <span className="text-white/60 text-xs">
+                                    <span className="text-white/60 text-xs flex-shrink-0">
                                         {item.timeAgo}
                                     </span>
                                 </div>
@@ -646,17 +646,17 @@ export default function ContentItem({
                     {/* Content Section */}
                     <div className="flex-1">
                         <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                                     {item.avatar}
                                 </div>
-                                <span className="font-medium text-white text-base">
-                                    {item.author}
+                                <span className="font-medium text-white text-base truncate">
+                                    @{item.author}
                                 </span>
-                                <span className="text-white/60 text-base">
+                                <span className="text-white/60 text-base flex-shrink-0">
                                     •
                                 </span>
-                                <span className="text-white/60 text-sm">
+                                <span className="text-white/60 text-sm flex-shrink-0">
                                     {item.timeAgo}
                                 </span>
                             </div>

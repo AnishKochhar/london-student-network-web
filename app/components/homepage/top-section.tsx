@@ -10,7 +10,7 @@ import JoinButton from "./join-button";
 
 export default function HomePageTopSection() {
     return (
-        <div className="flex flex-col bg-black bg-opacity-50 text-white">
+        <div className="flex flex-col bg-black bg-opacity-50 text-white overflow-x-hidden">
             <NotificationView />
             <Title />
             <UpcomingEventsSection />

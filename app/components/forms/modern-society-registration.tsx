@@ -108,7 +108,7 @@ export default function ModernSocietyRegistration() {
             case 1:
                 return await trigger(["name", "hasAgreedToTerms"]);
             case 2:
-                return await trigger("email");
+                return await trigger(["email", "additionalEmail", "phoneNumber"]);
             case 3:
                 return await trigger(["password", "confirmPassword"]);
             case 4:
@@ -125,7 +125,14 @@ export default function ModernSocietyRegistration() {
             case 1:
                 return !!(watchedValues.name && watchedValues.hasAgreedToTerms);
             case 2:
-                return !!(watchedValues.email && !errors.email);
+                return !!(
+                    watchedValues.email &&
+                    watchedValues.additionalEmail &&
+                    watchedValues.phoneNumber &&
+                    !errors.email &&
+                    !errors.additionalEmail &&
+                    !errors.phoneNumber
+                );
             case 3:
                 return !!(
                     watchedValues.password &&
@@ -328,8 +335,8 @@ export default function ModernSocietyRegistration() {
             {currentStep === 2 && (
                 <ModernFormStep
                     key="step2"
-                    title="What's your contact email?"
-                    subtitle="We'll use this for account management and notifications"
+                    title="Contact Information"
+                    subtitle="Help us stay connected with your society"
                     currentStep={currentStep}
                     totalSteps={totalSteps}
                     onNext={nextStep}
@@ -338,18 +345,67 @@ export default function ModernSocietyRegistration() {
                     onStepClick={handleStepClick}
                     direction={direction}
                 >
-                    <ModernInput
-                        type="email"
-                        placeholder="Enter your email address"
-                        error={errors.email?.message}
-                        {...register("email", {
-                            required: "Email is required",
-                            pattern: {
-                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                message: "Invalid email address",
-                            },
-                        })}
-                    />
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-gray-300 text-left block text-sm">
+                                Society Email
+                            </label>
+                            <ModernInput
+                                type="email"
+                                placeholder="Enter your society's main email address"
+                                error={errors.email?.message}
+                                {...register("email", {
+                                    required: "Society email is required",
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: "Invalid email address",
+                                    },
+                                })}
+                            />
+                            <p className="text-gray-400 text-xs">
+                                This will be your login email and where we&apos;ll send important updates
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-gray-300 text-left block text-sm">
+								Additional Email <i> (committee member or secondary society contact)</i>
+                            </label>
+                            <ModernInput
+                                type="email"
+                                placeholder="Enter a backup contact email"
+                                error={errors.additionalEmail?.message}
+                                {...register("additionalEmail", {
+                                    required: "Additional email is required",
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: "Invalid email address",
+                                    },
+                                })}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-gray-300 text-left block text-sm">
+                                Phone Number
+                            </label>
+                            <ModernInput
+                                type="tel"
+                                placeholder="Enter a contact phone number"
+                                error={errors.phoneNumber?.message}
+                                {...register("phoneNumber", {
+                                    required: "Phone number is required",
+                                    pattern: {
+                                        value: /^[\+]?[1-9][\d]{0,15}$/,
+                                        message: "Invalid phone number format",
+                                    },
+                                })}
+                            />
+                            <p className="text-gray-400 text-xs">
+                                We&apos;ll use this to connect you with other society leaders
+                            </p>
+                        </div>
+                    </div>
                 </ModernFormStep>
             )}
 

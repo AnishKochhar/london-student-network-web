@@ -135,4 +135,14 @@ export const hardCodedSponsors: CompanyInformation[] = [
         motivation: [""], // not given
         logo_url: "/sponsors/storiBoard.png",
     },
+	{
+		id: "0",
+		company_name: "RecruitGrads.ai",
+		contact_email: "", // to be filled if available
+		contact_name: "RecruitGrads.ai",
+		description: "RecruitGrads.ai is an AI-powered recruitment platform focused on helping employers hire top-tier graduates and early-career talent more quickly and effectively. By using full-stack AI tools, they streamline sourcing, screening, and matching so businesses can reduce turnover, save time, and get high-performing graduates into the team faster than traditional hiring methods. Students and grads benefit too, with exposure to curated roles, transparent process, and tools to help them stand out in the early stages of their careers.",
+		website: "https://recruitgrads.ai/",
+		motivation: [""], // to be filled based on their reasons to sponsor
+		logo_url: "/sponsors/recruitgrads.jpeg",
+	},
 ];

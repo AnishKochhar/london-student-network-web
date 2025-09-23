@@ -11,7 +11,7 @@ export default function ScrollingPartnersSection() {
     const societies = SocietyLogos.map((soc) => soc.name);
 
     return (
-        <section className="min-h-screen w-full bg-[#041A2E] flex flex-col items-center justify-center overflow-hidden snap-start py-20 space-y-16">
+        <section className="min-h-screen w-full bg-[#041A2E] flex flex-col items-center justify-center overflow-hidden snap-start py-20 space-y-16 max-w-full">
             <div className="w-full flex flex-col space-y-12">
                 <AnimatedShinyText className="text-4xl md:text-6xl text-center font-bold tracking-[-0.02em]">
                     Our Societies
