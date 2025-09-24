@@ -1,7 +1,7 @@
 "use client";
 
 import { Event } from "@/app/lib/types";
-import { XMarkIcon, LinkIcon, ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
 import toast from "react-hot-toast";
 

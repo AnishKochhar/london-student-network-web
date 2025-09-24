@@ -31,7 +31,7 @@ const SegmentedToggle = React.forwardRef<
 				className
 			)}
 		>
-			{options.map((option, index) => (
+			{options.map((option) => (
 				<button
 					key={option.value}
 					type="button"

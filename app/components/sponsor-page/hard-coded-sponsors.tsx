@@ -145,4 +145,14 @@ export const hardCodedSponsors: CompanyInformation[] = [
 		motivation: [""], // to be filled based on their reasons to sponsor
 		logo_url: "/sponsors/recruitgrads.jpeg",
 	},
+	{
+		id: "0",
+		company_name: "Crosstown Doughnuts",
+		contact_email: "", // fill if available
+		contact_name: "Crosstown Doughnuts",
+		description: `Crosstown is a London-based artisanal doughnut brand crafting hand-made sourdough doughnuts each morning in their Battersea bakery. They offer same-day and next-day delivery across London, Oxford, and Cambridge, as well as in-store service in their coffee & doughnut shops. Their range features signature flavour combinations, seasonal specials (think pumpkin spice, rhubarb & apple crumble) and curated boxes for sharing. Passionate about freshness, flavour and handcrafted quality, they aim to bring joy (and deliciousness) one doughnut at a time.`,
+		website: "https://www.crosstown.co.uk/",
+		motivation: [""], // fill with their sponsor motivation if known
+		logo_url: "/sponsors/crosstown-donuts.png",
+	}
 ];

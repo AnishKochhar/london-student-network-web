@@ -3,12 +3,14 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { ExclamationCircleIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ExclamationCircleIcon, CheckIcon, XMarkIcon, AtSymbolIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/app/components/button";
 import UserEventsList from "../components/account/user-events-list";
+import UserForumPosts from "../components/account/user-forum-posts";
 import AccountFields from "../components/account/account-fields";
 import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
+import UsernameCreationModal from "../components/forum/username-creation-modal";
 import toast from "react-hot-toast";
 
 export default function AccountPage() {
@@ -20,11 +22,15 @@ export default function AccountPage() {
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState("");
     const [isSaving, setIsSaving] = useState(false);
+    const [username, setUsername] = useState<string | null>(null);
+    const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
+    const [loadingUsername, setLoadingUsername] = useState(true);
 
     // Navigation sections
     const sections = useMemo(() => [
         { id: "personal", label: "Personal information", icon: "👤" },
         { id: "events", label: "Your events", icon: "📅" },
+        { id: "forum", label: "Forum activity", icon: "💬" },
         { id: "account", label: "Account settings", icon: "⚙️" },
     ], []);
 
@@ -32,6 +38,29 @@ export default function AccountPage() {
         if (status === "loading") return;
         if (!session) router.push("/login");
     }, [session, status, router]);
+
+    // Fetch username when session loads
+    useEffect(() => {
+        const fetchUsername = async () => {
+            if (!session?.user?.id) return;
+
+            try {
+                const response = await fetch("/api/username/get");
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.hasUsername) {
+                        setUsername(data.username);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching username:", error);
+            } finally {
+                setLoadingUsername(false);
+            }
+        };
+
+        fetchUsername();
+    }, [session?.user?.id]);
 
     // Scroll spy functionality using window scroll
     useEffect(() => {
@@ -99,6 +128,18 @@ export default function AccountPage() {
     const handleNameCancel = () => {
         setIsEditingName(false);
         setEditedName("");
+    };
+
+    const handleUsernameDoubleClick = () => {
+        if (!username) {
+            setIsUsernameModalOpen(true);
+        }
+    };
+
+    const handleUsernameCreated = (newUsername: string) => {
+        setUsername(newUsername);
+        setIsUsernameModalOpen(false);
+        toast.success(`Username set: @${newUsername}`);
     };
 
     const handleNameSave = async () => {
@@ -297,6 +338,33 @@ export default function AccountPage() {
                                             </div>
                                         </div>
 
+                                        <div className={`bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 ${username ? "opacity-75" : "opacity-100"}`}>
+                                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                                Forum Username {!username && <span className="text-xs text-blue-300">(double-click to set)</span>}
+                                            </label>
+                                            <div
+                                                className={`bg-white/5 rounded-lg px-4 py-3 font-medium flex items-center gap-2 ${
+                                                    username
+                                                        ? "text-gray-300 cursor-not-allowed"
+                                                        : "text-gray-400 cursor-pointer hover:bg-white/10 transition-colors"
+                                                }`}
+                                                onDoubleClick={handleUsernameDoubleClick}
+                                                aria-disabled={!!username}
+                                            >
+                                                {loadingUsername ? (
+                                                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <>
+                                                        <AtSymbolIcon className="h-4 w-4 text-gray-400" />
+                                                        {username || "Not set - double click to create"}
+                                                    </>
+                                                )}
+                                            </div>
+                                            {username && (
+                                                <p className="text-xs text-gray-500 mt-2">Username cannot be changed once set</p>
+                                            )}
+                                        </div>
+
                                         {user.role === "organiser" && (
                                             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 lg:col-span-2">
                                                 <label className="block text-sm font-medium text-gray-300 mb-2">Organization Logo</label>
@@ -321,6 +389,16 @@ export default function AccountPage() {
 
                                     <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
                                         <UserEventsList user_id={user.id} editEvent={true} />
+                                    </div>
+                                </section>
+
+                                {/* Forum Posts Section */}
+                                <section id="forum" className="scroll-mt-8">
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Forum activity</h2>
+                                    <p className="text-gray-300 mb-4 md:mb-8">View your forum threads and replies</p>
+
+                                    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
+                                        <UserForumPosts />
                                     </div>
                                 </section>
 
@@ -353,6 +431,14 @@ export default function AccountPage() {
                 {showForgottenPasswordModal && (
                     <ForgottenPasswordModal
                         onClose={() => setShowForgottenPasswordModal(false)}
+                    />
+                )}
+
+                {isUsernameModalOpen && (
+                    <UsernameCreationModal
+                        isOpen={isUsernameModalOpen}
+                        onClose={() => setIsUsernameModalOpen(false)}
+                        onSuccess={handleUsernameCreated}
                     />
                 )}
             </div>

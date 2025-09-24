@@ -87,7 +87,7 @@ export default function FloatingHelpButton() {
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900">Send Feedback</h3>
-                                    <p className="text-xs text-gray-500 mt-1">We'd love to hear from you</p>
+                                    <p className="text-xs text-gray-500 mt-1">We&apos;d love to hear from you</p>
                                 </div>
                             </div>
                             <button
