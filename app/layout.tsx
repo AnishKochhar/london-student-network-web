@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "./components/header";
 import Footer from "./components/footer";
 import SessionProviderWrapper from "./components/session-provider-wrapper";
+import FloatingHelpButton from "./components/ui/floating-help-button";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import { Suspense } from "react";
@@ -100,6 +101,7 @@ export default function RootLayout({
                             <Footer />
                         </div>
                     </Suspense>
+                    <FloatingHelpButton />
                     <Toaster position="top-right" />
                     <Analytics />
                 </SessionProviderWrapper>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import Link from "next/link";
@@ -93,36 +93,48 @@ function Logo({ closeMenu }: { closeMenu: () => void }) {
 function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
     const { data: session } = useSession();
 
+    // Prevent body scroll when menu is open
+    React.useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
+
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-[#041A2E] min-h-screen px-8 pt-4">
-            <div className="flex justify-between items-center mb-8">
-                <Logo closeMenu={closeMenu} />
-                <Button
-                    variant="ghost"
-                    onClick={closeMenu}
-                    className="text-lg font-semibold"
-                >
-                    Close
-                </Button>
-            </div>
-            <div className="flex-grow flex flex-col justify-center">
-                <NavLinks
-                    onClick={closeMenu}
-                    showAll={true}
-                    className="flex flex-col items-start space-y-6 text-2xl"
-                />
-            </div>
-            <div className="flex flex-col items-end py-8 space-y-4">
-                {session?.user && (
-                    <Link
-                        href="/account"
-                        onClick={closeMenu}
-                        className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100"
-                    >
-                        My Account
-                    </Link>
-                )}
-                <AuthButton onClick={closeMenu} />
+        <div className="fixed inset-0 z-[100] bg-[#041A2E] overflow-hidden">
+            <div className="h-full overflow-y-auto">
+                <div className="min-h-full flex flex-col px-8 pt-4 pb-8">
+                    <div className="flex justify-between items-center mb-8">
+                        <Logo closeMenu={closeMenu} />
+                        <Button
+                            variant="ghost"
+                            onClick={closeMenu}
+                            className="text-lg font-semibold text-white"
+                        >
+                            Close
+                        </Button>
+                    </div>
+                    <div className="flex-grow flex flex-col justify-center py-8">
+                        <NavLinks
+                            onClick={closeMenu}
+                            showAll={true}
+                            className="flex flex-col items-start space-y-6 text-2xl"
+                        />
+                    </div>
+                    <div className="flex flex-col items-end mt-auto space-y-4">
+                        {session?.user && (
+                            <Link
+                                href="/account"
+                                onClick={closeMenu}
+                                className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100"
+                            >
+                                My Account
+                            </Link>
+                        )}
+                        <AuthButton onClick={closeMenu} />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -135,7 +147,8 @@ export default function Header() {
     const closeMenu = () => setIsMenuOpen(false);
 
     return (
-        <header className="sticky top-0 left-0 w-full backdrop-blur border-b-2 border-gray-300 border-opacity-25 flex justify-between items-center px-4 md:px-6 lg:px-8 shadow-md text-white bg-[#041A2E]/80 z-40">
+        <>
+            <header className="sticky top-0 left-0 w-full backdrop-blur border-b-2 border-gray-300 border-opacity-25 flex justify-between items-center px-4 md:px-6 lg:px-8 shadow-md text-white bg-[#041A2E]/80 z-40">
             <Logo closeMenu={closeMenu} />
 
             <nav className="hidden md:flex">
@@ -152,13 +165,14 @@ export default function Header() {
                 <Button
                     variant="ghost"
                     onClick={toggleMenu}
-                    className="md:hidden"
+                    className="md:hidden text-white"
                 >
                     Menu
                 </Button>
             </div>
 
+            </header>
             {isMenuOpen && <FullScreenMenu closeMenu={closeMenu} />}
-        </header>
+        </>
     );
 }

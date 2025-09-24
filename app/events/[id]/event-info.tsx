@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
-import { ArrowRightIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, ShareIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
@@ -14,6 +14,7 @@ import EventEmailSendingModal from "@/app/components/events-page/email-sending-m
 import RegistrationChoiceModal from "@/app/components/events-page/registration-choice-modal";
 import GuestRegistrationModal from "@/app/components/events-page/guest-registration-modal";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
+import ShareEventModal from "@/app/components/events-page/share-event-modal";
 
 export default function EventInfo() {
     const { id } = useParams() as { id: string };
@@ -27,6 +28,7 @@ export default function EventInfo() {
     const [viewEmailSending, setViewEmailSending] = useState<boolean>(false);
     const [showRegistrationChoice, setShowRegistrationChoice] = useState<boolean>(false);
     const [showGuestRegistration, setShowGuestRegistration] = useState<boolean>(false);
+    const [showShareModal, setShowShareModal] = useState<boolean>(false);
 
     // dont know why the event type does not include organiser_uid, defaulting to this instead
     async function checkIsOrganiser(id: string, user_id: string) {
@@ -125,6 +127,12 @@ export default function EventInfo() {
     }
 
     const handleRegisterClick = () => {
+        // If there's an external registration link, open it in a new tab
+        if (event?.sign_up_link) {
+            window.open(event.sign_up_link, '_blank', 'noopener,noreferrer');
+            return;
+        }
+
         if (!loggedIn) {
             setShowRegistrationChoice(true);
             return;
@@ -195,7 +203,19 @@ export default function EventInfo() {
     // Render the event details
     return (
         <div className="relative w-full h-full m-[10px]">
+
             <div className="flex flex-col md:flex-row h-full overflow-y-auto">
+                {/* Desktop Share Button - absolute positioned */}
+                {event && (
+                    <button
+                        onClick={() => setShowShareModal(true)}
+                        className="hidden md:block absolute top-4 right-4 z-30 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                        aria-label="Share this event"
+                        title="Share"
+                    >
+                        <ShareIcon className="w-5 h-5" />
+                    </button>
+                )}
                 {/* Event Image  */}
                 <div className="h-full md:w-1/2 mb-6 md:mb-0 md:mr-6 flex flex-col justify-between">
                     <div className="relative w-full h-0 pb-[85%] overflow-hidden">
@@ -258,6 +278,18 @@ export default function EventInfo() {
                         {event.location_address}
                     </p>
 
+                    {/* Share Button for Mobile - positioned after address */}
+                    <div className="md:hidden mt-4">
+                        <button
+                            onClick={() => setShowShareModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-gray-300"
+                            aria-label="Share this event"
+                        >
+                            <ShareIcon className="w-5 h-5" />
+                            <span>Share Event</span>
+                        </button>
+                    </div>
+
                     {event.capacity && (
                         <p className="text-sm :text-lg text-gray-900 mt-1">
                             Venue capacity: {event.capacity}
@@ -296,7 +328,7 @@ export default function EventInfo() {
                                 className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
                                 onClick={handleRegisterClick}
                             >
-                                Register For Event
+                                {event?.sign_up_link ? "Register on host page" : "Register For Event"}
                                 <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
                             </button>
                         </div>
@@ -340,6 +372,12 @@ export default function EventInfo() {
                 eventId={event?.id || event_id}
                 eventTitle={event?.title || "Event"}
                 onSuccess={handleGuestRegistrationSuccess}
+            />
+
+            <ShareEventModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                event={event}
             />
         </div>
     );
