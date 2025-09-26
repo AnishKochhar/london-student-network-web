@@ -95,7 +95,7 @@ export async function fetchUpcomingEvents() {
 			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
 				EXTRACT(hour FROM start_time::time)::int,
 				EXTRACT(minute FROM start_time::time)::int, 0))
-			LIMIT 5
+			LIMIT 6
 		`;
         return data.rows.map(convertSQLEventToEvent);
     } catch (error) {

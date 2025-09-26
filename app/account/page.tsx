@@ -8,10 +8,12 @@ import { Button } from "@/app/components/button";
 import UserEventsList from "../components/account/user-events-list";
 import UserForumPosts from "../components/account/user-forum-posts";
 import UserRegistrations from "../components/account/user-registrations";
+import UserReferrals from "../components/account/user-referrals";
 import AccountFields from "../components/account/account-fields";
 import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
 import UsernameCreationModal from "../components/forum/username-creation-modal";
+import { useReferralTracking } from "../hooks/useReferralTracking";
 import toast from "react-hot-toast";
 
 export default function AccountPage() {
@@ -27,11 +29,15 @@ export default function AccountPage() {
     const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
     const [loadingUsername, setLoadingUsername] = useState(true);
 
+    // Track referrals for new users
+    useReferralTracking();
+
     // Navigation sections
     const sections = useMemo(() => [
         { id: "personal", label: "Personal information", icon: "👤" },
         { id: "events", label: "Your events", icon: "📅" },
         { id: "registrations", label: "Your registrations", icon: "🎫" },
+        { id: "referrals", label: "Your referrals", icon: "🤝" },
         { id: "forum", label: "Forum activity", icon: "💬" },
         { id: "account", label: "Account settings", icon: "⚙️" },
     ], []);
@@ -401,6 +407,16 @@ export default function AccountPage() {
 
                                     <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
                                         <UserRegistrations />
+                                    </div>
+                                </section>
+
+                                {/* Your Referrals Section */}
+                                <section id="referrals" className="scroll-mt-8">
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Your referrals</h2>
+                                    <p className="text-gray-300 mb-4 md:mb-8">Track your referrals and progress towards rewards</p>
+
+                                    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
+                                        <UserReferrals />
                                     </div>
                                 </section>
 

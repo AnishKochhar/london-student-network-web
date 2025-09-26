@@ -6,6 +6,8 @@ import Header from "./components/header";
 import Footer from "./components/footer";
 import SessionProviderWrapper from "./components/session-provider-wrapper";
 import FloatingHelpButton from "./components/ui/floating-help-button";
+import ConditionalShareFooter from "./components/account/conditional-share-footer";
+import ConditionalReferralFooter from "./components/referral/conditional-referral-footer";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import { Suspense } from "react";
@@ -102,6 +104,8 @@ export default function RootLayout({
                         </div>
                     </Suspense>
                     <FloatingHelpButton />
+                    <ConditionalShareFooter />
+                    <ConditionalReferralFooter />
                     <Toaster position="top-right" />
                     <Analytics />
                 </SessionProviderWrapper>
