@@ -2,7 +2,7 @@
 
 import { Event } from "@/app/lib/types";
 import { XMarkIcon, ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 
 interface ShareEventModalProps {
@@ -13,6 +13,20 @@ interface ShareEventModalProps {
 
 export default function ShareEventModal({ isOpen, onClose, event }: ShareEventModalProps) {
     const [copied, setCopied] = useState(false);
+
+    // Prevent body scroll when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+
+        // Cleanup on unmount
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen]);
 
     if (!isOpen || !event) return null;
 
@@ -117,7 +131,8 @@ export default function ShareEventModal({ isOpen, onClose, event }: ShareEventMo
 
     return (
         <div
-            className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in"
+            className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-[9999] p-4 animate-fade-in"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
             onClick={onClose}
         >
             <div

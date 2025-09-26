@@ -7,6 +7,7 @@ import { ExclamationCircleIcon, CheckIcon, XMarkIcon, AtSymbolIcon } from "@hero
 import { Button } from "@/app/components/button";
 import UserEventsList from "../components/account/user-events-list";
 import UserForumPosts from "../components/account/user-forum-posts";
+import UserRegistrations from "../components/account/user-registrations";
 import AccountFields from "../components/account/account-fields";
 import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
@@ -30,6 +31,7 @@ export default function AccountPage() {
     const sections = useMemo(() => [
         { id: "personal", label: "Personal information", icon: "👤" },
         { id: "events", label: "Your events", icon: "📅" },
+        { id: "registrations", label: "Your registrations", icon: "🎫" },
         { id: "forum", label: "Forum activity", icon: "💬" },
         { id: "account", label: "Account settings", icon: "⚙️" },
     ], []);
@@ -389,6 +391,16 @@ export default function AccountPage() {
 
                                     <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
                                         <UserEventsList user_id={user.id} editEvent={true} />
+                                    </div>
+                                </section>
+
+                                {/* Your Registrations Section */}
+                                <section id="registrations" className="scroll-mt-8">
+                                    <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Your registrations</h2>
+                                    <p className="text-gray-300 mb-4 md:mb-8">Events you&apos;ve signed up for</p>
+
+                                    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
+                                        <UserRegistrations />
                                     </div>
                                 </section>
 

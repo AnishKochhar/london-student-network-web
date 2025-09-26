@@ -33,6 +33,8 @@ export interface EditEventProps {
 export interface EventModalProps {
     event: Event;
     onClose: () => void;
+    isRegistered?: boolean;
+    onRegistrationChange?: () => void;
 }
 
 export interface EventCardProps {

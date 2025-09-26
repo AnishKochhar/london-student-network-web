@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { EventModalProps } from "@/app/lib/types";
 import { motion } from "framer-motion";
@@ -11,14 +11,15 @@ interface EventModalPropsWithPreview extends EventModalProps {
 }
 import { createPortal } from "react-dom";
 import { formatEventDateTime, EVENT_TAG_TYPES, returnLogo } from "@/app/lib/utils";
-import { Button } from "../button";
 import { useRouter } from "next/navigation";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import MarkdownRenderer from "../markdown/markdown-renderer";
+import EventRegistrationButton from "./event-registration-button";
 
-export default function EventModal({ event, onClose, isPreview = false }: EventModalPropsWithPreview) {
+export default function EventModal({ event, onClose, isPreview = false, isRegistered: initialIsRegistered = false, onRegistrationChange }: EventModalPropsWithPreview) {
     const modalRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
+    const [isRegistered, setIsRegistered] = useState(initialIsRegistered);
 
     const jumpToEvent = () =>
         router.push(`/events/${base16ToBase62(event.id)}`);
@@ -44,6 +45,35 @@ export default function EventModal({ event, onClose, isPreview = false }: EventM
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [onClose]);
+
+    // Check registration status when modal opens
+    useEffect(() => {
+        if (isPreview) return;
+
+        const checkRegistrationStatus = async () => {
+            try {
+                const response = await fetch("/api/events/registration-status", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        event_id: event.id,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    setIsRegistered(result.isRegistered);
+                }
+            } catch (error) {
+                console.error("Error checking registration status:", error);
+            }
+        };
+
+        checkRegistrationStatus();
+    }, [event.id, isPreview]);
 
     const getTags = (eventType: number) => {
         const tags = [];
@@ -94,7 +124,7 @@ export default function EventModal({ event, onClose, isPreview = false }: EventM
                             width={500}
                             height={320}
                             sizes="(max-width: 768px) 90vw, 45vw"
-                            quality={95}
+                            quality={85}
                             priority
                             className="w-[90%] h-64 object-contain"
                         />
@@ -192,18 +222,15 @@ export default function EventModal({ event, onClose, isPreview = false }: EventM
                             </h3>
                             <hr className="border-t-1 border-gray-300 m-2" />
                             <div className="w-full flex flex-row justify-center">
-                                <Button
-                                    variant="ghost"
-                                    size="lg"
-                                    className="text-gray-600 text-lg uppercase tracking-wider px-20 hover:text-gray-600 transition-transform duration-300 ease-in-out hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                                    onClick={jumpToEvent}
-                                    disabled={isPreview}
-                                    aria-disabled={isPreview}
-                                    aria-label={isPreview ? "Register for event - not available in preview mode" : "Register for event"}
-                                >
-                                    Press here to register to this event
-                                    <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
-                                </Button>
+                                <EventRegistrationButton
+                                    event={event}
+                                    isRegistered={isRegistered}
+                                    onRegistrationChange={() => {
+                                        setIsRegistered(!isRegistered);
+                                        onRegistrationChange?.();
+                                    }}
+                                    isPreview={isPreview}
+                                />
                             </div>
                         </div>
                     </div>

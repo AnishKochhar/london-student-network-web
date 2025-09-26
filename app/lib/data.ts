@@ -819,7 +819,7 @@ export async function checkIfRegistered(event_id: string, user_id: string) {
     try {
         const result = await sql`
 			SELECT event_registration_uuid FROM event_registrations
-			WHERE event_id = ${event_id} AND user_id = ${user_id}
+			WHERE event_id = ${event_id} AND user_id::text = ${user_id}
 			LIMIT 1
 		`;
         return result.rows.length > 0;
@@ -1124,5 +1124,23 @@ export async function getEventRegistrationStats(eventId: string) {
     } catch (error) {
         console.error("Error fetching registration stats:", error);
         return { success: false, stats: { total: 0, internal: 0, external: 0 } };
+    }
+}
+
+export async function deregisterFromEvent(event_id: string, user_id: string) {
+    try {
+        const result = await sql`
+            DELETE FROM event_registrations
+            WHERE event_id = ${event_id} AND user_id::text = ${user_id}
+        `;
+
+        if (result.rowCount === 0) {
+            return { success: false, error: "Registration not found" };
+        }
+
+        return { success: true, message: "Successfully deregistered from event" };
+    } catch (error) {
+        console.error("Error deregistering from event:", error);
+        return { success: false, error: "Failed to deregister from event" };
     }
 }

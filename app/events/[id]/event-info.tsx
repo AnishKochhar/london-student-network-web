@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
@@ -15,6 +15,7 @@ import RegistrationChoiceModal from "@/app/components/events-page/registration-c
 import GuestRegistrationModal from "@/app/components/events-page/guest-registration-modal";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
 import ShareEventModal from "@/app/components/events-page/share-event-modal";
+import EventRegistrationButton from "@/app/components/events-page/event-registration-button";
 
 export default function EventInfo() {
     const { id } = useParams() as { id: string };
@@ -29,6 +30,12 @@ export default function EventInfo() {
     const [showRegistrationChoice, setShowRegistrationChoice] = useState<boolean>(false);
     const [showGuestRegistration, setShowGuestRegistration] = useState<boolean>(false);
     const [showShareModal, setShowShareModal] = useState<boolean>(false);
+    const [isRegistered, setIsRegistered] = useState<boolean>(false);
+
+    // Debug logging for isRegistered state changes
+    useEffect(() => {
+        console.log("🔍 EventInfo: isRegistered state changed to:", isRegistered);
+    }, [isRegistered]);
 
     // dont know why the event type does not include organiser_uid, defaulting to this instead
     async function checkIsOrganiser(id: string, user_id: string) {
@@ -90,15 +97,57 @@ export default function EventInfo() {
         }
     }
 
+    const checkRegistrationStatus = useCallback(async () => {
+        // Only use the actual event.id - don't fall back to converted event_id to avoid race conditions
+        if (!loggedIn || !event?.id) {
+            console.log("checkRegistrationStatus: Missing requirements", { loggedIn, hasEvent: !!event, eventId: event?.id });
+            return;
+        }
+
+        console.log("Checking registration status for event:", event.id, "(converted:", event_id, ")");
+
+        try {
+            const response = await fetch("/api/events/registration-status", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    event_id: event.id,
+                }),
+            });
+
+            const result = await response.json();
+            console.log("Registration status result:", result);
+
+            if (result.success) {
+                setIsRegistered(result.isRegistered);
+                console.log("Set isRegistered to:", result.isRegistered);
+            } else {
+                console.error("Registration status check failed:", result.error);
+            }
+        } catch (error) {
+            console.error("Error checking registration status:", error);
+        }
+    }, [loggedIn, event_id, event]);
+
     useEffect(() => {
         const helper = async () => {
-            if (session.status === "authenticated" && session.data?.user?.id) {
+            if (session.status === "authenticated" && session.data?.user?.id && event_id && event) {
                 await checkIsOrganiser(event_id, session.data.user.id);
+                await checkRegistrationStatus();
             }
         };
 
         helper();
-    }, [session.status, session.data?.user?.id, event_id]);
+    }, [session.status, session.data?.user?.id, event_id, event, checkRegistrationStatus]);
+
+    // Additional useEffect to check registration when event loads
+    useEffect(() => {
+        if (event && session.status === "authenticated" && session.data?.user?.id) {
+            checkRegistrationStatus();
+        }
+    }, [event, session.status, session.data?.user?.id, checkRegistrationStatus]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -126,57 +175,6 @@ export default function EventInfo() {
         );
     }
 
-    const handleRegisterClick = () => {
-        // If there's an external registration link, open it in a new tab
-        if (event?.sign_up_link) {
-            window.open(event.sign_up_link, '_blank', 'noopener,noreferrer');
-            return;
-        }
-
-        if (!loggedIn) {
-            setShowRegistrationChoice(true);
-            return;
-        }
-        registerForEvent();
-    };
-
-    const registerForEvent = async () => {
-        const toastId = toast.loading("Registering for event...");
-        // Check if they are already registered
-        try {
-            const res = await fetch("/api/events/register", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    event_id: event.id,
-                    user_information: session.data.user,
-                }),
-            });
-
-            const result = await res.json();
-            if (result.success) {
-                toast.success("Successfully registered for event!", {
-                    id: toastId,
-                });
-            } else {
-                if (result.registered) {
-                    toast.error("Already registered for the event!", {
-                        id: toastId,
-                    });
-                } else {
-                    toast.error("Error registering for event!", {
-                        id: toastId,
-                    });
-                }
-            }
-        } catch (error) {
-            toast.error(`Error during event registration: ${error}.`, {
-                id: toastId,
-            });
-        }
-    };
 
     const handleGuestRegister = () => {
         setShowRegistrationChoice(false);
@@ -225,7 +223,7 @@ export default function EventInfo() {
                             width={800}
                             height={600}
                             sizes="(max-width: 768px) 90vw, 45vw"
-                            quality={90}
+                            quality={85}
                             priority
                             className="absolute inset-0 w-[80%] h-[80%] left-[10%] object-contain border "
                         />
@@ -323,14 +321,30 @@ export default function EventInfo() {
                             Registration
                         </h3>
                         <hr className="border-t-1 border-gray-300 m-2" />
-                        <div className="w-full flex flex-row justify-center">
-                            <button
-                                className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
-                                onClick={handleRegisterClick}
-                            >
-                                {event?.sign_up_link ? "Register on host page" : "Register For Event"}
-                                <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
-                            </button>
+                        <div className="w-full flex flex-row justify-center overflow-hidden px-2">
+                            {event?.sign_up_link ? (
+                                <button
+                                    className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
+                                    onClick={() => window.open(event.sign_up_link, '_blank', 'noopener,noreferrer')}
+                                >
+                                    Register on host page
+                                    <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />
+                                </button>
+                            ) : (
+                                <>
+                                    {console.log("🔍 EventInfo: Rendering EventRegistrationButton with props:", {
+                                        eventId: event.id,
+                                        isRegistered,
+                                        context: "page"
+                                    })}
+                                    <EventRegistrationButton
+                                        event={event}
+                                        isRegistered={isRegistered}
+                                        onRegistrationChange={checkRegistrationStatus}
+                                        context="page"
+                                    />
+                                </>
+                            )}
                         </div>
                         {isOrganiser.current && (
                             <>
