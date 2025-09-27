@@ -5,19 +5,18 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { Button } from "@/app/components/button"; // Assume you have a custom button component
+import { Button } from "@/app/components/button";
 import { SocietyMessageFormData } from "@/app/lib/types";
 import { useParams } from "next/navigation";
+import { ArrowLeft, Send, MessageSquare, User, Mail } from "lucide-react";
+import { motion } from "framer-motion";
+import Link from "next/link";
 
-export default function SendEmailPage({
-    className = "min-h-screen flex flex-col justify-start p-10 bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]",
-}: {
-    className?: string;
-}) {
+export default function SendEmailPage() {
     const [partner, setPartner] = useState({ name: "" });
     const { id } = useParams(); // Use useParams for dynamic routing to get the dynamic id from the URL
     const { data: session, status } = useSession();
-    const { register, handleSubmit } = useForm<SocietyMessageFormData>({
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<SocietyMessageFormData>({
         mode: "onSubmit",
         defaultValues: {
             subject: "",
@@ -92,8 +91,8 @@ export default function SendEmailPage({
             const result = await response.json();
 
             if (response.ok) {
-                toast.success("Email sent successfully!", { id: toastId });
-                router.push("/societies/thank-you"); // Redirect to thank-you page after sending email
+                toast.success("Message sent successfully!", { id: toastId });
+                reset(); // Clear the form
             } else {
                 toast.error(`Error sending email: ${result.error}`, {
                     id: toastId,
@@ -108,60 +107,125 @@ export default function SendEmailPage({
     };
 
     return (
-        <div className={className}>
-            <h1 className="text-3xl font-semibold mb-6 ml-10 text-white">
-                Send a Message to {partner.name}
-            </h1>
-            <form
-                onSubmit={handleSubmit(onSubmit)}
-                className="w-full px-6 mb-10 mt-10"
-            >
-                {/* Must be logged in message */}
-                {!session && (
-                    <div className="mb-4">
-                        <h2 className="text-white">
-                            Please log in to submit a message
-                        </h2>
-                    </div>
-                )}
-
-                {/* Email Subject */}
-                <div className="mb-4 w-full max-w-[1200px] ml-4 mr-auto">
-                    <label className="block text-white font-bold mb-1">
-                        Subject
-                    </label>
-                    <input
-                        type="text"
-                        placeholder="Enter email subject"
-                        {...register("subject", { required: true })}
-                        className="w-full p-2 border border-gray-300 rounded bg-transparent text-white placeholder-gray-500"
-                    />
-                </div>
-
-                {/* Email Message */}
-                <div className="mb-4 w-full max-w-[1200px] ml-4 mr-auto">
-                    <label className="block text-white font-bold">
-                        Message
-                    </label>
-                    <textarea
-                        rows={6}
-                        placeholder="Enter your message"
-                        {...register("message", { required: true })}
-                        className="w-full p-3 mt-2 border border-gray-300 rounded-lg text-white placeholder-gray-500 bg-transparent"
-                    />
-                </div>
-
-                {/* Submit Button */}
-                <div className="flex justify-end items-center">
-                    <Button
-                        variant="outline"
-                        onClick={handleSubmit(onSubmit)}
-                        className="bg-transparent text-white py-2 px-6 rounded-lg border-2 border-[#3c82f6] hover:bg-blue-900"
+        <div className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
+            <div className="container mx-auto px-4 py-8">
+                {/* Header with Back Button */}
+                <div className="mb-8">
+                    <Link
+                        href={`/societies/society/${id}`}
+                        className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors mb-6"
                     >
-                        Send Email
-                    </Button>
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Back to Society</span>
+                    </Link>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <h1 className="text-4xl font-bold text-white mb-4 flex items-center gap-3">
+                            <MessageSquare className="w-10 h-10 text-purple-400" />
+                            Contact {partner.name}
+                        </h1>
+                        <p className="text-gray-300 text-lg max-w-2xl">
+                            Send a message directly to {partner.name}. They'll receive your message via email and can respond to you directly.
+                        </p>
+                    </motion.div>
                 </div>
-            </form>
+
+                {/* Main Content */}
+                <motion.div
+                    className="max-w-2xl mx-auto"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8">
+                        {/* Login prompt */}
+                        {!session && status !== "loading" && (
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
+                                <p className="text-yellow-300 text-sm flex items-center gap-2">
+                                    <User className="w-4 h-4" />
+                                    Please log in to send a message to {partner.name}
+                                </p>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                            {/* Subject Field */}
+                            <div className="space-y-2">
+                                <label className="block text-white font-medium flex items-center gap-2">
+                                    <Mail className="w-4 h-4" />
+                                    Subject
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder={`Message to ${partner.name}`}
+                                    {...register("subject", {
+                                        required: "Subject is required",
+                                        minLength: { value: 3, message: "Subject must be at least 3 characters" }
+                                    })}
+                                    className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all outline-none"
+                                />
+                                {errors.subject && (
+                                    <p className="text-red-400 text-sm">{errors.subject.message}</p>
+                                )}
+                            </div>
+
+                            {/* Message Field */}
+                            <div className="space-y-2">
+                                <label className="block text-white font-medium flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4" />
+                                    Message
+                                </label>
+                                <textarea
+                                    rows={8}
+                                    placeholder="Enter your message here..."
+                                    {...register("message", {
+                                        required: "Message is required",
+                                        minLength: { value: 10, message: "Message must be at least 10 characters" }
+                                    })}
+                                    className="w-full p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all outline-none resize-vertical"
+                                />
+                                {errors.message && (
+                                    <p className="text-red-400 text-sm">{errors.message.message}</p>
+                                )}
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="flex justify-end pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={!session || status === "loading"}
+                                    className="group inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                                >
+                                    <Send className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    <span>Send Message</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </motion.div>
+
+                {/* Additional Info */}
+                <motion.div
+                    className="max-w-2xl mx-auto mt-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-3">💡 Tips for a great message</h3>
+                        <ul className="text-gray-300 space-y-2 text-sm">
+                            <li>• Be specific about what you're interested in</li>
+                            <li>• Mention if you're looking to join events or get involved</li>
+                            <li>• Include any relevant experience or background</li>
+                            <li>• Be polite and professional</li>
+                        </ul>
+                    </div>
+                </motion.div>
+            </div>
         </div>
     );
 }

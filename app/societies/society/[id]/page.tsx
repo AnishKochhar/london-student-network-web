@@ -12,11 +12,15 @@ import { Button } from "@/app/components/button";
 import UserEventsList from "@/app/components/account/user-events-list";
 import NextImage from "next/image"; // using NextImage instead of Image to avoid Namespace clashs with javascript Image method in extractAndSetMainColor
 import { FetchAccountDetailsPromiseInterface, Tag } from "@/app/lib/types";
-import { getAllTags } from "@/app/utils/tag-categories";
+import { getAllTags, getCategoryByTagValue } from "@/app/utils/tag-categories";
 import { formattedWebsite } from "@/app/lib/utils";
 import * as skeletons from "@/app/components/skeletons/unique-society";
 import SendEmailPage from "../../message/[id]/page";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
+import { ExternalLink, MessageSquare, Calendar, Info, Mail, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
+import ContactForm from "@/app/components/societies/contact-form";
+import { ShimmerButton } from "@/app/components/ui/shimmer-button";
 
 export default function SocietyPage() {
     const [loadingDetails, setLoadingDetails] = useState<boolean>(true);
@@ -46,7 +50,6 @@ export default function SocietyPage() {
                 setWebsite(result.website);
 
                 if (result.tags.length > 0) {
-                    // Get all tags from the new TAG_CATEGORIES system
                     const allTags = getAllTags();
 
                     // Map tag values to labels using the new system
@@ -180,147 +183,228 @@ export default function SocietyPage() {
         window.open(formattedWebsite(website), "_blank"); // open in new tab
     };
 
+    // Get tag information with categories for styling
+    const tagInfo = tags.map(tagLabel => {
+        // Find the tag value from label
+        const allTags = getAllTags();
+        const tagData = allTags.find(t => t.label === tagLabel);
+        if (tagData) {
+            const categoryFromUtils = getCategoryByTagValue(tagData.value);
+            if (categoryFromUtils) {
+                return {
+                    label: tagLabel,
+                    color: categoryFromUtils.color,
+                    icon: categoryFromUtils.icon
+                };
+            }
+        }
+        return { label: tagLabel, color: 'bg-gray-500/20 text-gray-300 border-gray-500/30', icon: '🏷️' };
+    });
+
     return (
-        <div className="flex flex-col min-h-screen p-8 bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
-            {/* Header Section */}
-            <header className="relative flex flex-col items-center pb-[100px]">
-                {/* Banner Background */}
-                <div
-                    className="absolute inset-0 -m-8 mb-16 h-full z-0"
-                    style={{
-                        background: bannerBackground,
-                        opacity: 1, // Adjust this value to control the transparency (lower = more transparent)
-                    }}
-                ></div>
+        <div className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
+            <div className="container mx-auto px-4 py-8">
+                {/* Header Section - keeping existing layout */}
+                <header className="relative flex flex-col items-center pb-[100px]">
+                    {/* Banner Background */}
+                    <div
+                        className="absolute inset-0 -mx-4 mb-16 h-full z-0"
+                        style={{
+                            background: bannerBackground,
+                            opacity: 1,
+                        }}
+                    ></div>
 
-                {/* Logo */}
-                <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-[265px] h-[265px] bg-transparent rounded-full flex items-center justify-center mt-[50px]">
-                        <div className="relative flex items-center justify-center rounded-full">
-                            {loadingDetails ? (
-                                <skeletons.UniqueSocietyLogoSkeleton />
-                            ) : logo ? (
-                                <NextImage
-                                    src={logo}
-                                    alt="Account Logo"
-                                    width={280}
-                                    height={280}
-                                    className="w-[280px] h-[280px] object-contain rounded"
-                                />
-                            ) : null}
-                        </div>
-                    </div>
-
-                    {/* Society Name */}
-                    <div className="relative mt-6 flex flex-col items-center">
-                        {loadingName ? (
-                            <skeletons.UniqueSocietyNameSkeleton />
-                        ) : (
-                            <h1
-                                className="text-5xl font-bold text-white text-center overflow-hidden text-ellipsis pb-4"
-                                style={{
-                                    textShadow: "0 0 0px white", // modify if glow wanted
-                                }}
-                            >
-                                {name}
-                            </h1>
-                        )}
-                        {loadingDetails ? (
-                            <skeletons.UniqueSocietyTagsSkeleton />
-                        ) : (
-                            <div className="mt-2">
-                                {tags.length > 0 && <span>|</span>}
-                                {tags.map((tag, index) => (
-                                    <>
-                                        <span
-                                            key={`${index}-${tag}`}
-                                            className="text-white px-2 py-1 rounded-full text-sm hover:cursor-default"
-                                        >
-                                            {tag}
-                                        </span>
-                                        {index < tags.length - 1 && (
-                                            <span>|</span>
-                                        )}
-                                    </>
-                                ))}
-                                {tags.length > 0 && <span>|</span>}
+                    {/* Logo */}
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="w-[265px] h-[265px] bg-transparent rounded-full flex items-center justify-center mt-[50px]">
+                            <div className="relative flex items-center justify-center rounded-full">
+                                {loadingDetails ? (
+                                    <skeletons.UniqueSocietyLogoSkeleton />
+                                ) : logo ? (
+                                    <NextImage
+                                        src={logo}
+                                        alt={`${name} logo`}
+                                        width={280}
+                                        height={280}
+                                        quality={95}
+                                        priority={true}
+                                        className="w-[280px] h-[280px] object-contain rounded"
+                                    />
+                                ) : null}
                             </div>
-                        )}
-                    </div>
-                </div>
-            </header>
-
-            {/* Divider */}
-            <div className="flex justify-center -mx-8">
-                <div className="w-full h-[2px] bg-blue-50 rounded-full mb-6"></div>
-            </div>
-
-            {/* Middle Content Section */}
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                {/* Left Section (SendEmailPage Component) */}
-                <div className="bg-transparent shadow-lg p-4 rounded-lg order-2 md:order-1 w-full min-w-[350px] text-center">
-                    <SendEmailPage className="min-w-[350px] flex flex-col justify-start p-10 bg-transparent" />
-                </div>
-
-                {/* Right Section ("Who are we?" with Description and Website Button) */}
-                <div className="bg-transparent shadow-lg p-6 rounded-xl mx-auto w-full order-1 md:order-2 flex flex-col h-full items-center justify-center">
-                    {/* Section Title */}
-                    <h3 className="text-2xl font-bold text-white mb-4 text-center">
-                        Who Are We?
-                    </h3>
-
-                    {/* Description */}
-                    <div className="flex justify-center">
-                        <div className="text-lg text-white mb-6 leading-relaxed">
-                            <MarkdownRenderer content={description || `Welcome to ${name}`} />
                         </div>
-                    </div>
 
-                    {/* Website Button */}
-                    {website && website !== "No website available" && (
-                        <>
-                            {/* Subheading */}
-                            <h4 className="text-xl font-semibold text-white mb-4 text-center">
-                                Check out our website
-                            </h4>
-
-                            <div className="flex justify-center">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => handleWebsiteClick(website)}
-                                    className="bg-transparent text-white py-3 px-8 rounded-lg hover:bg-blue-700 transition text-lg"
+                        {/* Society Name */}
+                        <div className="relative mt-6 flex flex-col items-center">
+                            {loadingName ? (
+                                <skeletons.UniqueSocietyNameSkeleton />
+                            ) : (
+                                <h1
+                                    className="text-5xl font-bold text-white text-center overflow-hidden text-ellipsis pb-4"
+                                    style={{
+                                        textShadow: "0 0 0px white",
+                                    }}
                                 >
-                                    <span className="flex items-center">
-                                        <span className="mr-3">Website</span>
-                                        <NextImage
-                                            src="/icons/web.png"
-                                            alt="website icon"
-                                            width={24}
-                                            height={24}
-                                            className="object-cover"
-                                        />
-                                    </span>
-                                </Button>
+                                    {name}
+                                </h1>
+                            )}
+                            {loadingDetails ? (
+                                <skeletons.UniqueSocietyTagsSkeleton />
+                            ) : (
+                                <div className="flex flex-wrap gap-2 justify-center mt-4">
+                                    {tagInfo.map((tag, index) => (
+                                        <span
+                                            key={`${index}-${tag.label}`}
+                                            className={`text-xs font-medium px-3 py-1.5 rounded-full border ${tag.color} border-current/30`}
+                                            title={tag.label}
+                                        >
+                                            {/* <span className="mr-1">{tag.icon}</span> */}
+                                            {tag.label}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </header>
+
+                {/* Table of Contents */}
+                <nav className="mb-12">
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+                        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                            <Info className="w-5 h-5" />
+                            Quick Navigation
+                        </h2>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button
+                                onClick={() => {
+                                    document.getElementById('about')?.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block: 'start'
+                                    });
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-all text-sm"
+                            >
+                                <Info className="w-4 h-4" />
+                                About
+                            </button>
+                            <button
+                                onClick={() => {
+                                    document.getElementById('events')?.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block: 'start'
+                                    });
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-all text-sm"
+                            >
+                                <Calendar className="w-4 h-4" />
+                                Events
+                            </button>
+                            <button
+                                onClick={() => {
+                                    document.getElementById('contact')?.scrollIntoView({
+                                        behavior: 'smooth',
+                                        block: 'start'
+                                    });
+                                }}
+                                className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-all text-sm"
+                            >
+                                <Mail className="w-4 h-4" />
+                                Contact
+                            </button>
+                            {website && website !== "No website available" && (
+                                <button
+                                    onClick={() => handleWebsiteClick(website)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-all text-sm"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Website
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </nav>
+
+                {/* About Section */}
+                <section id="about" className="mb-16">
+                    <motion.div
+                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <h2 className="text-3xl font-bold text-white mb-6">
+                            About
+                        </h2>
+
+                        <div className="max-w-4xl">
+                            <div className="text-lg text-gray-300 leading-relaxed mb-6">
+                                <MarkdownRenderer content={description || `Welcome to ${name}! We're excited to have you learn more about our society.`} />
                             </div>
-                        </>
-                    )}
-                </div>
-            </section>
 
-            {/* Divider */}
-            <div className="flex justify-center -mx-8">
-                <div className="w-full h-[2px] bg-blue-50 rounded-full mb-6"></div>
+                            {/* Website Button */}
+                            {website && website !== "No website available" && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-white font-medium">Visit our website:</span>
+                                    <div className="ml-auto">
+                                        <ShimmerButton
+                                            variant="register"
+                                            size="md"
+                                            icon="arrow"
+                                            onClick={() => handleWebsiteClick(website)}
+                                            className="bg-blue-600/70 hover:bg-blue-600"
+                                        >
+                                            Visit Website
+                                        </ShimmerButton>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </section>
+
+                {/* Events Section */}
+                <section id="events" className="mb-16">
+                    <motion.div
+                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                    >
+                        <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+                            <Calendar className="w-8 h-8 text-green-400" />
+                            {name ? `${name}${name.endsWith("s") ? "'" : "'s"} Events` : "Society Events"}
+                        </h2>
+
+                        <div className="bg-white/5 rounded-lg p-6">
+                            <UserEventsList user_id={stringid} editEvent={false} />
+                        </div>
+                    </motion.div>
+                </section>
+
+                {/* Contact Section */}
+                <section id="contact" className="mb-16">
+                    <motion.div
+                        className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-8 flex flex-col"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                        <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+                            <MessageSquare className="w-8 h-8 text-purple-400" />
+                            Contact {name}
+                        </h2>
+
+                        <div className="max-w-2xl self-end">
+                            <p className="text-gray-300 mb-6">
+                                Have questions or want to get involved? Send us a message and we'll get back to you soon!
+                            </p>
+                            <ContactForm societyName={name} societyId={stringid} />
+                        </div>
+                    </motion.div>
+                </section>
             </div>
-
-            {/* Events Section */}
-            <section className="border-b border-gray-300 pb-4 mb-10 space-y-6">
-                <h2 className="text-2xl italic mb-2 ml-2 text-center uppercase">
-                    {name
-                        ? `${name}${name.endsWith("s") ? "'" : "'s"} events`
-                        : "Societies' events"}
-                </h2>
-                <UserEventsList user_id={stringid} editEvent={false} />
-            </section>
         </div>
     );
 }

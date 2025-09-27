@@ -104,18 +104,38 @@ export async function fetchUpcomingEvents() {
     }
 }
 
-export async function fetchUserEvents(organiser_uid: string) {
+export async function fetchUserEvents(organiser_uid: string, limit: number = 100, offset: number = 0) {
     try {
         const events = await sql`
             SELECT * FROM events
             WHERE organiser_uid = ${organiser_uid}
             AND (is_deleted IS NULL OR is_deleted = false)
+            AND (is_hidden IS NULL OR is_hidden = false)
             ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
 				EXTRACT(hour FROM start_time::time)::int,
 				EXTRACT(minute FROM start_time::time)::int, 0)) ASC
+            LIMIT ${limit} OFFSET ${offset}
         `;
 
-        return events.rows.map(convertSQLEventToEvent);
+        // Get total count for pagination
+        const countResult = await sql`
+            SELECT COUNT(*) as total FROM events
+            WHERE organiser_uid = ${organiser_uid}
+            AND (is_deleted IS NULL OR is_deleted = false)
+            AND (is_hidden IS NULL OR is_hidden = false)
+        `;
+
+        const total = parseInt(countResult.rows[0].total);
+
+        return {
+            events: events.rows.map(convertSQLEventToEvent),
+            pagination: {
+                total,
+                limit,
+                offset,
+                hasMore: offset + events.rows.length < total
+            }
+        };
     } catch (error) {
         console.error("Error fetching user events:", error);
         throw new Error("Unable to fetch user's events");
