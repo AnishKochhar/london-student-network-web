@@ -12,7 +12,7 @@ import { Button } from "@/app/components/button";
 import UserEventsList from "@/app/components/account/user-events-list";
 import NextImage from "next/image"; // using NextImage instead of Image to avoid Namespace clashs with javascript Image method in extractAndSetMainColor
 import { FetchAccountDetailsPromiseInterface, Tag } from "@/app/lib/types";
-import getPredefinedTags from "@/app/lib/utils";
+import { getAllTags } from "@/app/utils/tag-categories";
 import { formattedWebsite } from "@/app/lib/utils";
 import * as skeletons from "@/app/components/skeletons/unique-society";
 import SendEmailPage from "../../message/[id]/page";
@@ -46,23 +46,13 @@ export default function SocietyPage() {
                 setWebsite(result.website);
 
                 if (result.tags.length > 0) {
-                    // Fetch predefined tags
-                    const predefinedTags = await getPredefinedTags();
+                    // Get all tags from the new TAG_CATEGORIES system
+                    const allTags = getAllTags();
 
-                    // Map predefined tags into a lookup object for efficient access
-                    const tagLookup: Record<string, string> =
-                        predefinedTags.reduce(
-                            (acc: Record<string, string>, tag: Tag) => {
-                                acc[tag.value] = tag.label;
-                                return acc;
-                            },
-                            {},
-                        );
-
-                    const mappedTags = result.tags.map((tag: number) => {
-                        // Convert tag to a string, then to actual tag
-                        const tagKey = tag.toString();
-                        return tagLookup[tagKey] || "Unknown Tag";
+                    // Map tag values to labels using the new system
+                    const mappedTags = result.tags.map((tagValue: number) => {
+                        const tag = allTags.find(t => t.value === tagValue);
+                        return tag ? tag.label : "Unknown Tag";
                     });
                     setTags(mappedTags);
                 } else {

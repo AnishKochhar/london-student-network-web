@@ -17,6 +17,7 @@ import {
     SplitIcon
 } from "lucide-react";
 import MarkdownRenderer from "./markdown-renderer";
+import MobileMarkdownEditor from "./mobile-markdown-editor";
 
 interface MarkdownEditorProps {
     value: string;
@@ -203,11 +204,34 @@ export default function MarkdownEditor({
 
     return (
         <div className={`markdown-editor-container ${className}`}>
+            <style jsx>{`
+                .scrollbar-none {
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                }
+                .scrollbar-none::-webkit-scrollbar {
+                    display: none;
+                }
+            `}</style>
             {label && (
                 <label className="block text-sm font-medium text-white/90 mb-2">
                     {label}
                 </label>
             )}
+
+            {/* Mobile Editor for small screens */}
+            <div className="block sm:hidden">
+                <MobileMarkdownEditor
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    height={height}
+                    variant={variant}
+                />
+            </div>
+
+            {/* Desktop Editor for larger screens */}
+            <div className="hidden sm:block">
 
             <div className={`border border-white/20 rounded-lg overflow-hidden bg-white/5 backdrop-blur ${focused ? 'ring-2 ring-blue-500 border-transparent' : ''}`}>
                 {/* Tab Bar */}
@@ -253,22 +277,24 @@ export default function MarkdownEditor({
 
                     {/* Toolbar - only show in write mode */}
                     {(viewMode === "write" || viewMode === "split") && (
-                        <div className="flex items-center gap-1 px-2">
-                            {toolbarButtons.map((button, index) => (
-                                <div key={index} className="flex items-center">
-                                    <button
-                                        type="button"
-                                        onClick={button.action}
-                                        title={button.title}
-                                        className="p-1.5 hover:bg-white/10 rounded transition-colors text-white/70 hover:text-white"
-                                    >
-                                        {button.icon}
-                                    </button>
-                                    {button.divider && index < toolbarButtons.length - 1 && (
-                                        <div className="w-px h-5 bg-white/20 mx-1" />
-                                    )}
-                                </div>
-                            ))}
+                        <div className="flex items-center gap-1 px-2 overflow-x-auto scrollbar-none">
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                                {toolbarButtons.map((button, index) => (
+                                    <div key={index} className="flex items-center">
+                                        <button
+                                            type="button"
+                                            onClick={button.action}
+                                            title={button.title}
+                                            className="p-1.5 hover:bg-white/10 rounded transition-colors text-white/70 hover:text-white flex-shrink-0"
+                                        >
+                                            {button.icon}
+                                        </button>
+                                        {button.divider && index < toolbarButtons.length - 1 && (
+                                            <div className="w-px h-5 bg-white/20 mx-1 flex-shrink-0" />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -321,6 +347,7 @@ export default function MarkdownEditor({
                     </div>
                     <span>{value.length} characters</span>
                 </div>
+            </div>
             </div>
         </div>
     );

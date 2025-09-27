@@ -271,9 +271,10 @@ export default function ForumPage() {
     );
 
     return (
-        <main className="relative flex min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] text-white">
-            {/* Main Content */}
-            <div className="flex-1 p-8 pt-8">
+        <main className="relative min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] text-white">
+            <div className="flex">
+                {/* Main Content */}
+                <div className="flex-1 p-4 sm:p-8 pt-4 sm:pt-8 min-w-0">
                 <ForumControls
                     searchTerm={searchTerm}
                     setSearchTerm={handleSearchChange}
@@ -339,9 +340,10 @@ export default function ForumPage() {
                         )}
                     </>
                 )}
-            </div>
-            <div className="hidden lg:block lg:w-80">
-                <Sidebar onTopicClick={handleAddTopicFilter} />
+                </div>
+                <div className="hidden xl:block xl:w-80 flex-shrink-0">
+                    <Sidebar onTopicClick={handleAddTopicFilter} />
+                </div>
             </div>
 
             {/* Thread Detail Modal */}
