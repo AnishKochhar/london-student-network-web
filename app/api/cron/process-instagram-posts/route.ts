@@ -32,12 +32,12 @@ const eventSchema: Schema = {
 const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null
 export async function GET(request: NextRequest) { // cron requests must be GET
   // Verify cron secret for security
-  // const authHeader = request.headers.get("authorization")
-  // const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
+  const authHeader = request.headers.get("authorization")
+  const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
 
-  // if (!process.env.CRON_SECRET || authHeader !== expectedAuth) {
-  //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  // }
+  if (!process.env.CRON_SECRET || authHeader !== expectedAuth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
 
   // Check Redis connection
   const redisHealthy = await checkRedisConnection()
@@ -49,9 +49,8 @@ export async function GET(request: NextRequest) { // cron requests must be GET
   const errors: string[] = []
   const startTime = Date.now()
 
-  const GEMINI_RATE_LIMIT_KEY = "gemini:last_invocation";
-  const TWO_MINUTES = 2 * 60; // seconds
-  const EIGHT_MINUTES = 8 * 60;
+  // const TWO_MINUTES = 2 * 60; // seconds
+  // const EIGHT_MINUTES = 8 * 60;
   const ONE_SECOND = 1
 
   // Get last invocation unix timestamp from Redis
@@ -64,7 +63,7 @@ export async function GET(request: NextRequest) { // cron requests must be GET
     return NextResponse.json({
       status: "internal limiter avoided gemini call",
       message: `Gemini invocation allowed only once every 6 minutes. Last run: ${lastInvocationUnix}, now: ${currentUnix}. Please wait a full 8 minutes for safety.`,
-      next_allowed_unix: lastInvocationUnix + TWO_MINUTES,
+      next_allowed_unix: lastInvocationUnix + ONE_SECOND,
       processed_posts: 0,
     }, { status: 429 });
   }

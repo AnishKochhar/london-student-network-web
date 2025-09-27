@@ -12,10 +12,6 @@ export default function InstagramConnection() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  if (session?.user?.role !== "organiser"){
-    return
-  }
-
   useEffect(() => {
     async function checkExistingToken() {
       if (!session?.user?.id) {
@@ -80,6 +76,10 @@ export default function InstagramConnection() {
 
     handleInstagramRedirect();
   }, []);
+
+  if (session?.user?.role !== "organiser"){
+    return
+  }
 
   const handleInstagramConnect = async () => {
       setIsConnectingInstagram(true)

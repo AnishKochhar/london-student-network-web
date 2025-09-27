@@ -52,18 +52,23 @@ export default async function SponsorsSection({companyInformation}:{companyInfor
                     {sortedSponsors.map((company, index) => (
                         <div key={index} className="bg-black bg-opacity-50 p-2 text-center">
                             <div className="w-48 h-60 relative mx-auto my-4">
-                                <Image
-                                    src={company.logo_url}
-                                    alt={company.company_name}
-                                    fill
-                                    className='p-2'
-                                    style={
-                                        company.logoBgc ? {
-                                            backgroundColor: company.logoBgc,
-                                            objectFit: "contain"
-                                        } : {objectFit: "contain"}
-                                    }
-                                />
+                                {company.logo_url ? (
+                                    <Image
+                                        src={company.logo_url}
+                                        alt={company.company_name}
+                                        fill
+                                        className='p-2'
+                                        style={
+                                            company.logoBgc ? {
+                                                backgroundColor: company.logoBgc,
+                                                objectFit: "contain"
+                                            } : {objectFit: "contain"}
+                                        }
+                                    />
+                                ) : (
+                                    // Optional: Show a placeholder if no logo exists
+                                    <span className="text-gray-400">No Logo</span>
+                                )}
                             </div>
                             {company.website? 
                                 (<a

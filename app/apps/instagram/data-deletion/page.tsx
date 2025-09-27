@@ -51,7 +51,7 @@ function StatusPage() {
       }
       const data: DeletionStatus = await response.json();
       setStatus(data);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setIsLoading(false);

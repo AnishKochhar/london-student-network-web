@@ -1,4 +1,4 @@
-export default function ProblemSection() {
+export default function Intro() {
     return (
         <>
             {/* Content */}

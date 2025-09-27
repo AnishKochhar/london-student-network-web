@@ -7,12 +7,12 @@ import { getNextExtractedEvent } from '@/app/lib/redis-helpers';
 export async function GET(request: NextRequest) { // cron requests must be GET
   try {
 //   Verify cron secret for security
-//   const authHeader = request.headers.get("authorization")
-//   const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
+  const authHeader = request.headers.get("authorization")
+  const expectedAuth = `Bearer ${process.env.CRON_SECRET}`
 
-//   if (!process.env.CRON_SECRET || authHeader !== expectedAuth) {
-//     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-//   }
+  if (!process.env.CRON_SECRET || authHeader !== expectedAuth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
   const events: FormData[] = [];
   const maxEventsToPush = 10;
   for (let i = 0; i < maxEventsToPush; i++) {

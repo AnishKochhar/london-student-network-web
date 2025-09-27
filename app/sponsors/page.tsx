@@ -1,4 +1,4 @@
-import Intro from '@/app/components/sponsor-page/intro-section';
+import Intro from '../components/sponsor-page/intro-section';
 import SponsorSection from '@/app/components/sponsor-page/sponsor-section';
 import HowToSponsorSection from '../components/sponsor-page/how-to-sponsor-section';
 import { getAllCompanyInformation } from '../lib/data';

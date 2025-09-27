@@ -38,13 +38,8 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
   //   return () => document.removeEventListener("mousedown", handleClickOutside);
   // }, [onClose]);
 
-  useEffect(() => {
-    const helper = async () => {
-      await getRegistrations();
-    };
-    helper();
-  }, []);
 
+  useEffect(() => {
   const getRegistrations = async () => {
     const toastId = toast.loading("Fetching event registration data...");
     try {
@@ -68,6 +63,11 @@ export default function EventEmailSendingModal({ onClose, event }: Props) {
       toast.error("Error fetching event registrations!", { id: toastId });
     }
   };
+    const helper = async () => {
+      await getRegistrations();
+    };
+    helper();
+  });
 
   const sendEmail = async (recipientEmail: string) => {
     try {
