@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { SQLEvent, Event, FormData, Registrations, SQLRegistrations, Partner, Tag } from "./types";
 import { v4 as uuidv4 } from 'uuid';
-import { ExtractedEvent } from "./redis-helpers";
+import crypto from 'crypto';
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs))
@@ -419,3 +419,55 @@ export function generateToken(): string {
 
 	return token;
 }
+
+
+interface SignedRequestPayload {
+  user_id: string; // This is the App-Scoped User ID (ASID)
+  algorithm: string;
+  issued_at: number;
+  // ... other potential fields
+}
+
+export function parseSignedRequest(signedRequest: string, appSecret: string): SignedRequestPayload | null {
+  try {
+    const [encodedSig, payload] = signedRequest.split('.', 2);
+
+    // These are Node.js Buffers
+    const signature: Buffer = Buffer.from(encodedSig, 'base64url');
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+
+    if (data.algorithm.toUpperCase() !== 'HMAC-SHA256') {
+      console.error('Unknown algorithm. Expected HMAC-SHA256');
+      return null;
+    }
+
+    // This is also a Node.js Buffer
+    const expectedSignature: Buffer = crypto
+      .createHmac('sha256', appSecret)
+      .update(payload)
+      .digest();
+
+    if (signature.length !== expectedSignature.length) {
+      console.error('Signature length mismatch!');
+      return null;
+    }
+
+    // CHANGE: Explicitly convert Buffers to Uint8Arrays to satisfy TypeScript types
+    const signatureUint8 = new Uint8Array(signature);
+    const expectedSignatureUint8 = new Uint8Array(expectedSignature);
+
+    // Now, the types match what crypto.timingSafeEqual expects
+    const isSignatureValid = crypto.timingSafeEqual(signatureUint8, expectedSignatureUint8);
+
+    if (isSignatureValid) {
+      return data as SignedRequestPayload;
+    } else {
+      console.error('Bad Signed JSON signature!');
+      return null;
+    }
+  } catch (error) {
+    console.error('Error parsing signed request:', error);
+    return null;
+  }
+}
+

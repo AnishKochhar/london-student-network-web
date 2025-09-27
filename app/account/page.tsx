@@ -76,7 +76,6 @@ export default function AccountPage() {
 						}
 					</div>
 					{user.role === 'organiser' && < AccountFields id={user.id} role={user.role} />}
-					{/* {user.role === 'organiser' && <InstagramConnection />} */}
 					<InstagramConnection />
 				</div>
 

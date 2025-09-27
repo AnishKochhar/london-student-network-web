@@ -1,5 +1,5 @@
 // import { storeInstagramToken, addUserToPollingList } from "@/lib/redis-helpers"
-import { storeInstagramTokenInRedis, addUserToPollingList } from "@/app/lib/redis-helpers"
+import { storeInstagramTokenInRedis, addUserToPollingList, storeInstagramIdMapping } from "@/app/lib/redis-helpers"
 import { storeInstagramTokenInDatabase } from "@/app/lib/data"
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
@@ -17,8 +17,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    console.log("THIS IS THE REDIRECT URI!!!", redirect_uri)
-
     const userId = session.user?.id;
     const name = session.user?.name;
 
@@ -34,7 +32,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please try again later. If the problem persists, contact us." }, { status: 400 })
     }
 
-    console.log(code)
+    // console.log(code)
 
     // Step 1: Exchange the code for a short-lived access token
     const shortLivedTokenParams = new URLSearchParams({
@@ -52,12 +50,18 @@ export async function POST(request: Request) {
     })
 
     const shortLivedTokenData = await shortLivedTokenResponse.json()
-    if (shortLivedTokenData.error_message) {
+    if (shortLivedTokenData?.error_message) {
       throw new Error(shortLivedTokenData.error_message)
     }
 
     const shortLivedToken = shortLivedTokenData.access_token
-    console.log(shortLivedToken)
+
+    const appScopedUserId = shortLivedTokenData.user_id;
+
+    if (!appScopedUserId) {
+      throw new Error("Could not retrieve App-Scoped User ID from Instagram.");
+    }
+    // console.log(shortLivedToken)
 
     // Step 2: Exchange the short-lived token for a long-lived token
     const longLivedTokenResponse = await fetch(
@@ -72,9 +76,6 @@ export async function POST(request: Request) {
     const longLivedToken = longLivedTokenData.access_token
     console.log(longLivedToken)
 
-    // const currentTimestamp = Math.floor(Date.now() / 1000).toString()
-    // const storedToken = await storeInstagramTokenInRedis(userId, name, longLivedToken, currentTimestamp)
-
     const expiresInSeconds = longLivedTokenData.expires_in;
     const expiryTimestamp = Math.floor(Date.now() / 1000) + expiresInSeconds;
     console.log(`Long-lived token acquired. Expires in: ${expiresInSeconds} seconds.`);
@@ -85,23 +86,29 @@ export async function POST(request: Request) {
         name,
         longLivedToken,
         expiryTimestamp.toString(), // <-- Pass expiry timestamp
-        currentTimestamp
+        currentTimestamp,
+        appScopedUserId
     );
     if (!storedToken) {
       throw new Error("Failed to store Instagram token in redis")
     }
 
-    const result = await storeInstagramTokenInDatabase(userId, longLivedToken)
+    const result = await storeInstagramTokenInDatabase(userId, longLivedToken, appScopedUserId)
     if (!result.success) {
       throw new Error("Failed to store Instagram token in database")
     }
     // Add user to the polling list
-    const addedToPolling = await addUserToPollingList(userId)
+    const addedToPolling = await addUserToPollingList(appScopedUserId)
     if (!addedToPolling) {
-      console.warn(`Failed to add user ${userId} to polling list, but token was stored`)
+      console.warn(`Failed to add app user ${appScopedUserId}, lsn user ${userId}, to polling list, but token was stored`)
     }
 
-    console.log(`[v0] Successfully stored Instagram token for user ${userId} and added to polling list`)
+    const storedLSNUserToAUIDMapping = await storeInstagramIdMapping(userId, appScopedUserId);
+    if (!storedLSNUserToAUIDMapping) {
+      throw new Error("Failed to create ASUI to LSNUI mapping")
+    }
+
+    console.log(`[v0] Successfully stored Instagram token for app user ${appScopedUserId}, lsn user ${userId} and added to polling list`)
 
     return NextResponse.json({ success: true })
   } catch (error) {

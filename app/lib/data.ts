@@ -946,11 +946,11 @@ export async function cleanupForgottenPasswordEmails() {
 	}
 }
 
-export async function storeInstagramTokenInDatabase(userId: string, longLivedToken: string) {
+export async function storeInstagramTokenInDatabase(userId: string, longLivedToken: string, ASID: string) {
 	try {
 		const result = await sql`
 			UPDATE society_information
-			SET long_term_access_token = ${longLivedToken}
+			SET long_term_access_token = ${longLivedToken}, app_scoped_user_id = ${ASID}
 			WHERE user_id = ${userId}
 		`
 		if (result.rowCount && result.rowCount > 0) {
@@ -978,19 +978,6 @@ export async function disconnectInstagramDB(userId: string): Promise<{ success: 
 	}
 }
 
-// export async function deleteInstagramDataDB(userId: string): Promise<{ success: boolean }> {
-// 	try {
-// 		await sql`
-// 			UPDATE society_information
-// 			SET long_term_access_token = NULL
-// 			WHERE user_id = ${userId}
-// 		`;
-// 		return { success: true }
-// 	} catch (error) {
-// 		console.error("Error trying to delete database data:", error);
-// 		return { success: false }
-// 	}
-// }
 
 export async function deleteInstagramDataDB(userId: string): Promise<{ success: boolean }> {
     try {

@@ -3,6 +3,7 @@ import { FormData } from "./types"
 
 export interface InstagramJob {
   media_url: string
+  ASID: string
   user_id: string
   post_id: string
   post_url: string
@@ -41,9 +42,9 @@ export interface ExtractedEvent {
  */
 
 // Instagram User Management
-export async function addUserToPollingList(userId: string): Promise<boolean> {
+export async function addUserToPollingList(ASID: string): Promise<boolean> {
   try {
-    await redis.sadd("instagram_polling_list", userId)
+    await redis.sadd("instagram_polling_list", ASID)
     return true
   } catch (error) {
     console.error("Error adding user to polling list:", error)
@@ -76,14 +77,16 @@ export async function storeInstagramTokenInRedis(
   name: string,
   accessToken: string,
   expiry: string,
+  ASID: string,
   lastPolledTimestamp?: string,
 ): Promise<boolean> {
   try {
-    const userCacheKey = `user:${userId}:instagram`
+    const userCacheKey = `user:${ASID}:instagram`
     const pipeline = redis.pipeline()
     pipeline.hset(userCacheKey, "access_token", accessToken)
     pipeline.hset(userCacheKey, "name", name)
     pipeline.hset(userCacheKey, "unix_expiration_stamp", expiry)
+    pipeline.hset(userCacheKey, "user_id", userId)
     if (lastPolledTimestamp) {
       pipeline.hset(userCacheKey, "last_polled_timestamp", lastPolledTimestamp)
     } else {
@@ -154,6 +157,85 @@ export async function getNextInstagramJob(): Promise<InstagramJob | null> {
   } catch (error) {
     console.error("Error getting next Instagram job:", error)
     return null
+  }
+}
+
+export async function storeInstagramIdMapping(userId: string, appScopedUserId: string): Promise<boolean> {
+  try {
+    // 1. Define a clear and consistent key structure.
+    // This key can now be used to look up the internal userId.
+    const mappingKey = `asid-to-uid:${appScopedUserId}`;
+    // 2. Use redis.set() to store the mapping.
+    await redis.set(mappingKey, userId);
+    return true;
+  } catch (error) {
+    console.error("Error storing Instagram ID mapping:", error);
+    return false;
+  }
+}
+
+export async function getUserIdFromASUI(appScopedUserId: string): Promise<string | null> {
+  try {
+    // 1. Reconstruct the exact same key structure used in the store function.
+    const mappingKey = `asid-to-uid:${appScopedUserId}`;
+
+    // 2. Use redis.get() to retrieve the stored userId.
+    const userId = await redis.get(mappingKey);
+
+    // 3. Return the result.
+    // This will be the userId string if found, or null if the key does not exist.
+    return userId;
+  } catch (error) {
+    console.error("Error retrieving userId from ASUI:", error);
+    // Return null in case of a connection error or other issue.
+    return null;
+  }
+}
+
+interface DeletionStatus {
+  caseOpenedDate: string; // ISO 8601 date string
+  disconnectionStatus: "Completed" | "In Progress" | "Failed";
+  dataDeletionStatus: "Completed" | "In Progress" | "Failed" | "Not Requested";
+}
+
+export async function storeDeletionStatusInRedis(
+  confirmationCode: string,
+  statusData: DeletionStatus
+): Promise<boolean> {
+  try {
+    const statusKey = `deletion-status:${confirmationCode}`;
+    const statusValue = JSON.stringify(statusData);
+    
+    // Set the key with a 30-day expiration (in seconds)
+    const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
+    await redis.set(statusKey, statusValue, "EX", thirtyDaysInSeconds);
+    
+    return true;
+  } catch (error) {
+    console.error("Error storing deletion status in Redis:", error);
+    return false;
+  }
+}
+
+export async function getDeletionStatusFromRedis(
+  confirmationCode: string
+): Promise<DeletionStatus | null> {
+  try {
+    const statusKey = `deletion-status:${confirmationCode}`;
+    const statusValue = await redis.get(statusKey);
+
+    if (!statusValue) {
+      // The code is invalid or has expired
+      return null;
+    }
+
+    // Parse the stored JSON string back into an object
+    const statusData: DeletionStatus = JSON.parse(statusValue);
+    return statusData;
+
+  } catch (error) {
+    console.error("Error retrieving deletion status from Redis:", error);
+    return null; // Return null on any error to prevent leaking details
   }
 }
 
@@ -230,13 +312,32 @@ export async function checkRedisConnection(): Promise<boolean> {
   }
 }
 
-export async function disconnectInstagram(userId: string): Promise<{ success: boolean }> {
+type InstagramData = {
+  access_token: string;
+  name: string;
+  unix_expiration_stamp: string;
+  user_id: string;
+  last_polled_timestamp: string; // Add this field
+};
+
+// This version is modified to read from a HASH
+export async function disconnectInstagram(userId: string): Promise<{ success: boolean; data: { access_token: string, name: string, unix_expiration_stamp: string, user_id: string, last_polled_timestamp: string } | null; }> {
   try {
-    await redis.lrem("polling_list", 0, userId);
-    await redis.del(`user:${userId}:instagram`);
-    return { success: true }
+    const cacheKey = `user:${userId}:instagram`; // Note: In your store function, this key uses ASID, not userId. Ensure they match.
+
+    // 1. Get all fields from the HASH using HGETALL.
+    // It returns an object of strings, or null if the key doesn't exist.
+    const cachedData = await redis.hgetall(cacheKey) as InstagramData | null;
+
+    // 2. Perform the deletions.
+    await redis.lrem("instagram_polling_list", 0, userId); // This should probably use ASID too if that's the identifier.
+    await redis.del(cacheKey);
+
+    // 3. Return success and the retrieved data object.
+    return { success: true, data: cachedData };
+
   } catch (error) {
     console.error("Error trying to disconnect:", error);
-    return { success: false }
+    return { success: false, data: null };
   }
 }

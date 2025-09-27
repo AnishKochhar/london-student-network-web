@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import toast from "react-hot-toast"
 
@@ -9,10 +9,13 @@ export default function InstagramConnection() {
   const [instagramConnected, setInstagramConnected] = useState(false)
   const [isConnectingInstagram, setIsConnectingInstagram] = useState(false)
   const [isCheckingToken, setIsCheckingToken] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   if (session?.user?.role !== "organiser"){
     return
   }
+
   useEffect(() => {
     async function checkExistingToken() {
       if (!session?.user?.id) {
@@ -109,14 +112,59 @@ export default function InstagramConnection() {
     </svg>
   );
 
+  const handleDataDeletion = async () => {
+    try {
+      const response = await fetch('/api/integrations/instagram/data-deletion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: session?.user?.id }),
+      })
+      if (response.ok) {
+        setInstagramConnected(false)
+        toast.success("Instagram data deleted.")
+      } else {
+        toast.error("Failed to delete data.")
+      }
+    } catch {
+      toast.error("Error deleting data.")
+    }
+  }
+
+  const handleDisconnect = async () => {
+    try {
+      const response = await fetch('/api/integrations/instagram/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: session?.user?.id }),
+      })
+      if (response.ok) {
+        setInstagramConnected(false)
+        toast.success("Disconnected from Instagram.")
+      } else {
+        toast.error("Failed to disconnect.")
+      }
+    } catch {
+      toast.error("Error disconnecting.")
+    }
+  }
+
+  // CHANGE: Replace the old icon with a standard vertical ellipsis icon
+  const MenuIcon = ({ className }: { className: string }) => (
+    <svg className={className} width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+      <circle cx="12" cy="5" r="2"></circle>
+      <circle cx="12" cy="12" r="2"></circle>
+      <circle cx="12" cy="19" r="2"></circle>
+    </svg>
+  );
+
   return (
-    <div className="p-6 border rounded-lg shadow-sm bg-white">
+ <div className="p-6 border border-gray-500 rounded-lg shadow-sm bg-transparent">
       <div className="mb-4">
-        <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-white-800">
           <InstagramIcon className="h-5 w-5" />
           Instagram Connection
         </h3>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-400 mt-1">
           {isCheckingToken
             ? "Checking connection status..."
             : instagramConnected
@@ -131,9 +179,32 @@ export default function InstagramConnection() {
              <LoaderIcon className="h-6 w-6 animate-spin text-gray-500" />
           </div>
         ) : instagramConnected ? (
-          <div className="flex items-center gap-2 text-green-600">
+          <div className="flex items-center gap-2 text-green-600 relative">
             <div className="h-2 w-2 bg-green-600 rounded-full"></div>
             <span className="text-sm font-medium">Connected</span>
+            <button
+              className="ml-2 p-1 rounded hover:bg-gray-200"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label="Settings"
+            >
+              <MenuIcon className="h-5 w-5 text-gray-200" />
+            </button>
+            {menuOpen && (
+              <div ref={menuRef} className="absolute top-7 left-0 bg-white border rounded shadow p-2 z-10 flex flex-col gap-2">
+                <button
+                  className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                  onClick={handleDisconnect}
+                >
+                  Disconnect
+                </button>
+                <button
+                  className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
+                  onClick={handleDataDeletion}
+                >
+                  Delete Data
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex justify-center">
