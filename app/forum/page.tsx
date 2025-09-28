@@ -65,7 +65,13 @@ export default function ForumPage() {
     const handleAddTopicFilter = useCallback(
         (topicName: string) => {
             const filterId = `topic-${topicName}`;
-            if (!activeFilters.some((f) => f.id === filterId)) {
+            const existingFilter = activeFilters.find((f) => f.id === filterId);
+
+            if (existingFilter) {
+                // Remove the filter if it already exists (toggle off)
+                handleRemoveFilter(filterId);
+            } else {
+                // Add the filter if it doesn't exist
                 handleAddFilter({
                     id: filterId,
                     type: "tag",
@@ -74,7 +80,28 @@ export default function ForumPage() {
                 });
             }
         },
-        [activeFilters, handleAddFilter],
+        [activeFilters, handleAddFilter, handleRemoveFilter],
+    );
+
+    const handleAddAuthorFilter = useCallback(
+        (username: string) => {
+            const filterId = `author-${username}`;
+            const existingFilter = activeFilters.find((f) => f.id === filterId);
+
+            if (existingFilter) {
+                // Remove the filter if it already exists (toggle off)
+                handleRemoveFilter(filterId);
+            } else {
+                // Add the filter if it doesn't exist
+                handleAddFilter({
+                    id: filterId,
+                    type: "author",
+                    label: `@${username}`,
+                    value: username,
+                });
+            }
+        },
+        [activeFilters, handleAddFilter, handleRemoveFilter],
     );
 
     // Thread actions
@@ -341,8 +368,13 @@ export default function ForumPage() {
                     </>
                 )}
                 </div>
-                <div className="hidden xl:block xl:w-80 flex-shrink-0">
-                    <Sidebar onTopicClick={handleAddTopicFilter} />
+                <div className="hidden lg:block lg:w-80 flex-shrink-0">
+                    <Sidebar
+                        onTopicClick={handleAddTopicFilter}
+                        onAuthorClick={handleAddAuthorFilter}
+                        activeTopics={activeFilters.filter(f => f.type === "tag").map(f => f.value)}
+                        activeAuthors={activeFilters.filter(f => f.type === "author").map(f => f.value)}
+                    />
                 </div>
             </div>
 

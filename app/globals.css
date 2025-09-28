@@ -99,6 +99,49 @@ body {
   display: none;
 }
 
+/* Forum sidebar animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideInRight 0.3s ease-out;
+  animation-fill-mode: both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
 /* Global scrollbar styling */
 .custom-scroll::-webkit-scrollbar {
   width: 10px;

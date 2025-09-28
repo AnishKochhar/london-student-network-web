@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
                 // Add conditions for exact tag matches (for each word in search term)
                 const tagConditions = searchTerms.map((term) => {
                     parameters.push(term.toLowerCase());
-                    return `ft.name = $${paramIndex++}`;
+                    return `LOWER(ft.name) = $${paramIndex++}`;
                 });
 
                 if (tagConditions.length > 0) {
@@ -97,15 +97,21 @@ export async function GET(request: NextRequest) {
         if (tagFilters.length > 0) {
             const tagConditions = tagFilters.map((tag) => {
                 parameters.push(tag.toLowerCase());
-                return `ft.name = $${paramIndex++}`;
+                return `LOWER(ft.name) = $${paramIndex++}`;
             });
             whereConditions.push(`(${tagConditions.join(" OR ")})`);
         }
 
-        // Handle author filter
+        // Handle author filter - add join for usernames if not already added
         if (authorFilter) {
-            whereConditions.push(`u.name ILIKE $${paramIndex}`);
-            parameters.push(`%${authorFilter}%`);
+            if (!fromClause.includes("usernames un")) {
+                fromClause = fromClause.replace(
+                    "LEFT JOIN users u ON t.author_id = u.id",
+                    "LEFT JOIN users u ON t.author_id = u.id\n          LEFT JOIN usernames un ON u.id = un.user_id"
+                );
+            }
+            whereConditions.push(`un.username = $${paramIndex}`);
+            parameters.push(authorFilter);
             paramIndex++;
         }
 

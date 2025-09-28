@@ -44,11 +44,16 @@ export default function ForumControls({
 
     const handleAddMyThreadsFilter = () => {
         if (!isLoggedIn) {
-            // Do nothing if not logged in - the button should be disabled
             return;
         }
-        if (onAddFilter && !activeFilters.some((f) => f.type === "myThreads")) {
-            onAddFilter({
+
+        const existingFilter = activeFilters.find((f) => f.type === "myThreads");
+        if (existingFilter) {
+            // Remove the filter if it exists (toggle off)
+            onRemoveFilter?.(existingFilter.id);
+        } else {
+            // Add the filter if it doesn't exist
+            onAddFilter?.({
                 id: "my-threads",
                 type: "myThreads",
                 label: "My Threads",
@@ -221,50 +226,72 @@ export default function ForumControls({
             </div>
 
             {/* Active Filters */}
-            {activeFilters.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                    {activeFilters.map((filter) => (
+            {(activeFilters.length > 0 || isLoggedIn) && (
+                <div className="flex flex-wrap gap-2 animate-fade-in">
+                    <span className="text-white/60 text-sm font-medium mr-2">Active filters:</span>
+
+                    {/* Persistent My Threads filter - only show if logged in */}
+                    {isLoggedIn && (
+                        <div
+                            className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm transition-all duration-200 cursor-pointer hover:scale-105 ${
+                                activeFilters.some((f) => f.type === "myThreads")
+                                    ? 'bg-blue-600/30 border border-blue-400/50 text-blue-100'
+                                    : 'bg-white/10 border border-white/20 text-white/70 hover:bg-white/20'
+                            }`}
+                            onClick={handleAddMyThreadsFilter}
+                        >
+                            <span className="flex items-center gap-2">
+                                📝 My Threads
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Regular filters */}
+                    {activeFilters.filter(f => f.type !== "myThreads").map((filter, index) => (
                         <div
                             key={filter.id}
-                            className="flex items-center gap-2 px-3 py-1 bg-blue-600/30 border border-blue-400/50 rounded-full text-sm text-blue-100"
+                            className="flex items-center gap-2 px-3 py-1 bg-blue-600/30 border border-blue-400/50 rounded-full text-sm text-blue-100 animate-scale-in"
+                            style={{
+                                animationDelay: `${index * 100}ms`
+                            }}
                         >
-                            <span>{filter.label}</span>
+                            <span className="flex items-center gap-2">
+                                {filter.type === "tag" && "🏷️"}
+                                {filter.type === "author" && "👤"}
+                                {filter.label}
+                            </span>
                             {onRemoveFilter && (
                                 <button
                                     onClick={() => onRemoveFilter(filter.id)}
-                                    className="hover:bg-blue-600/40 rounded-full p-0.5 transition-colors"
+                                    className="hover:bg-blue-600/40 rounded-full p-0.5 transition-all duration-200 hover:scale-110"
+                                    title={`Remove ${filter.label} filter`}
                                 >
                                     <XMarkIcon className="w-3 h-3" />
                                 </button>
                             )}
                         </div>
                     ))}
+
+                    {/* Clear all button - only show if there are removable filters */}
+                    {activeFilters.length > 0 && (
+                        <button
+                            onClick={() => activeFilters.forEach(f => onRemoveFilter?.(f.id))}
+                            className="text-xs text-white/50 hover:text-white/80 underline transition-colors"
+                            title="Clear all filters"
+                        >
+                            Clear all
+                        </button>
+                    )}
                 </div>
             )}
 
             {/* Advanced Filters Panel */}
             {showAdvancedFilters && (
-                <div className="bg-white/5 backdrop-blur border border-white/20 rounded-lg p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="relative">
-                            <button
-                                onClick={handleAddMyThreadsFilter}
-                                disabled={!isLoggedIn || activeFilters.some((f) => f.type === "myThreads")}
-                                className={`w-full px-3 py-2 border rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                                    !isLoggedIn
-                                        ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
-                                        : activeFilters.some((f) => f.type === "myThreads")
-                                        ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
-                                        : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-                                }`}
-                                title={!isLoggedIn ? "Log in to use" : undefined}
-                            >
-                                My Threads
-                            </button>
-                        </div>
-                        <div className="text-white/60 text-sm flex items-center justify-center">
-                            More filters coming soon...
-                        </div>
+                <div className="bg-white/5 backdrop-blur border border-white/20 rounded-lg p-4 animate-fade-in">
+                    <div className="text-white/60 text-sm">
+                        <p className="flex items-center gap-2">
+                            💡 <span><strong>Tip:</strong> Click trending topics in the sidebar or usernames to filter threads</span>
+                        </p>
                     </div>
                 </div>
             )}
