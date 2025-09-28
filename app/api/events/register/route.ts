@@ -6,6 +6,8 @@ import {
     registerForEvent,
     getEventOrganiserEmail,
 } from "@/app/lib/data";
+import { requireAuth, createAuthErrorResponse } from "@/app/lib/auth";
+import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 import { sendEventRegistrationEmail } from "@/app/lib/send-email";
 import EventRegistrationEmailPayload from "@/app/components/templates/event-registration-email";
 import EventRegistrationEmailFallbackPayload from "@/app/components/templates/event-registration-email-fallback";
@@ -14,8 +16,26 @@ import EventOrganizerNotificationEmailFallbackPayload from "@/app/components/tem
 import { convertSQLEventToEvent } from "@/app/lib/utils";
 
 export async function POST(req: Request) {
-    const { event_id, user_information } = await req.json();
-    const user: { email: string; id: string; name: string } = user_information;
+    try {
+        // Rate limiting
+        const identifier = getRateLimitIdentifier(req);
+        const rateLimitResult = rateLimit(identifier, rateLimitConfigs.registration);
+
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult.resetTime);
+        }
+
+        // Authentication
+        const authenticatedUser = await requireAuth();
+
+        const { event_id } = await req.json();
+
+        // Use authenticated user data instead of client-provided data
+        const user = {
+            email: authenticatedUser.email,
+            id: authenticatedUser.id,
+            name: authenticatedUser.name
+        };
 
     // step1: find the user
     const userUniversity = await getUserUniversityById(user.id);
@@ -141,4 +161,17 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(response);
+
+    } catch (error) {
+        // Handle authentication errors
+        if (error instanceof Error && (error.message === "UNAUTHORIZED" || error.message === "FORBIDDEN")) {
+            return createAuthErrorResponse(error);
+        }
+
+        console.error("Error in event registration:", error);
+        return NextResponse.json(
+            { success: false, error: "Internal server error" },
+            { status: 500 }
+        );
+    }
 }

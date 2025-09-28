@@ -152,7 +152,7 @@ export default function CategoryTagsSelect({
 
             {value.length >= maxTags && (
                 <p className="text-xs text-yellow-400">
-                    You've reached the maximum of {maxTags} tags. Remove a tag to select a different one.
+                    You&apos;ve reached the maximum of {maxTags} tags. Remove a tag to select a different one.
                 </p>
             )}
         </div>

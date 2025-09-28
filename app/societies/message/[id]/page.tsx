@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import { Button } from "@/app/components/button";
+// import { Button } from "@/app/components/button";
 import { SocietyMessageFormData } from "@/app/lib/types";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Send, MessageSquare, User, Mail } from "lucide-react";
@@ -24,7 +23,7 @@ export default function SendEmailPage() {
         },
     });
 
-    const router = useRouter();
+    // const router = useRouter();
 
     async function fetchPartnerName(id: string) {
         try {
@@ -129,7 +128,7 @@ export default function SendEmailPage() {
                             Contact {partner.name}
                         </h1>
                         <p className="text-gray-300 text-lg max-w-2xl">
-                            Send a message directly to {partner.name}. They'll receive your message via email and can respond to you directly.
+                            Send a message directly to {partner.name}. They&apos;ll receive your message via email and can respond to you directly.
                         </p>
                     </motion.div>
                 </div>
@@ -218,8 +217,8 @@ export default function SendEmailPage() {
                     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-white mb-3">💡 Tips for a great message</h3>
                         <ul className="text-gray-300 space-y-2 text-sm">
-                            <li>• Be specific about what you're interested in</li>
-                            <li>• Mention if you're looking to join events or get involved</li>
+                            <li>• Be specific about what you&apos;re interested in</li>
+                            <li>• Mention if you&apos;re looking to join events or get involved</li>
                             <li>• Include any relevant experience or background</li>
                             <li>• Be polite and professional</li>
                         </ul>

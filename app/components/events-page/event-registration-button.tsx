@@ -14,6 +14,7 @@ interface EventRegistrationButtonProps {
     onRegistrationChange?: () => void;
     isPreview?: boolean;
     context?: "modal" | "page";
+    onShowRegistrationChoice?: () => void;
 }
 
 export default function EventRegistrationButton({
@@ -21,15 +22,9 @@ export default function EventRegistrationButton({
     isRegistered = false,
     onRegistrationChange,
     isPreview = false,
-    context = "modal"
+    context = "modal",
+    onShowRegistrationChoice
 }: EventRegistrationButtonProps) {
-    // Debug logging
-    console.log("🔍 EventRegistrationButton: Received props:", {
-        eventId: event?.id,
-        isRegistered,
-        context,
-        isPreview
-    });
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [isCheckingStatus] = useState(false);
@@ -44,8 +39,13 @@ export default function EventRegistrationButton({
         }
 
         if (!session || !session.user) {
-            toast.error("Please sign in to register for events");
-            router.push("/login");
+            // Use registration choice modal if callback provided, otherwise fallback to login redirect
+            if (onShowRegistrationChoice) {
+                onShowRegistrationChoice();
+            } else {
+                toast.error("Please sign in to register for events");
+                router.push("/login");
+            }
             return;
         }
 
@@ -183,7 +183,6 @@ export default function EventRegistrationButton({
 
     // Different styles for modal vs page context
     if (context === "page") {
-        console.log("🔍 EventRegistrationButton: Page context - isRegistered:", isRegistered);
         // Full ticket-style design for event page
         if (isRegistered) {
             return (
@@ -258,7 +257,6 @@ export default function EventRegistrationButton({
             );
         }
 
-        console.log("🔍 EventRegistrationButton: Page context - Rendering NOT REGISTERED button");
         return (
             <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
                 <ShimmerButton
@@ -277,7 +275,6 @@ export default function EventRegistrationButton({
     }
 
     // Simpler, compact design for modal context
-    console.log("🔍 EventRegistrationButton: Modal context - isRegistered:", isRegistered);
     if (isRegistered) {
         return (
             <div className="w-full">
@@ -362,7 +359,6 @@ export default function EventRegistrationButton({
         );
     }
 
-    console.log("🔍 EventRegistrationButton: Modal context - Rendering NOT REGISTERED button");
     return (
         <ShimmerButton
             onClick={handleRegister}

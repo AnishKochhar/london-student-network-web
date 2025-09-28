@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { deregisterFromEvent, fetchSQLEventById } from "@/app/lib/data";
 import { auth } from "@/auth";
+import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function POST(req: Request) {
     try {
+        // Rate limiting for event deregistration
+        const identifier = getRateLimitIdentifier(req);
+        const rateLimitResult = rateLimit(identifier, rateLimitConfigs.registration);
+
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult.resetTime);
+        }
+
         const { event_id } = await req.json();
 
         const session = await auth();

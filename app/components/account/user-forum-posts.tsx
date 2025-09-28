@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
-import { ChatBubbleLeftIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { ChatBubbleLeftIcon, HeartIcon, ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartIconSolid } from "@heroicons/react/24/solid";
 import ThreadDetailModal from "../forum/thread-detail";
 import { ThreadData } from "@/app/lib/types";
@@ -43,6 +43,8 @@ export default function UserForumPosts() {
     const [selectedThread, setSelectedThread] = useState<ThreadData | null>(null);
     const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
     const [loadingThreadId, setLoadingThreadId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     useEffect(() => {
         fetchUserPosts();
@@ -126,6 +128,32 @@ export default function UserForumPosts() {
         handleCloseThreadModal();
     };
 
+    // Pagination logic
+    const getCurrentItems = () => {
+        const items = activeTab === "threads" ? threads : replies;
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return items.slice(startIndex, endIndex);
+    };
+
+    const getTotalPages = () => {
+        const items = activeTab === "threads" ? threads : replies;
+        return Math.ceil(items.length / itemsPerPage);
+    };
+
+    const handlePrevPage = () => {
+        setCurrentPage(prev => Math.max(1, prev - 1));
+    };
+
+    const handleNextPage = () => {
+        setCurrentPage(prev => Math.min(getTotalPages(), prev + 1));
+    };
+
+    // Reset page when switching tabs
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -175,7 +203,7 @@ export default function UserForumPosts() {
                             </Link>
                         </div>
                     ) : (
-                        threads.map((thread) => (
+                        getCurrentItems().map((thread) => (
                             <div
                                 key={thread.id}
                                 onClick={() => !loadingThreadId && handleThreadClick(thread.id)}
@@ -238,7 +266,7 @@ export default function UserForumPosts() {
                             </Link>
                         </div>
                     ) : (
-                        replies.map((reply) => (
+                        (getCurrentItems() as Reply[]).map((reply: Reply) => (
                             <div
                                 key={reply.id}
                                 onClick={() => !loadingThreadId && handleReplyThreadClick(reply)}
@@ -282,6 +310,44 @@ export default function UserForumPosts() {
                             </div>
                         ))
                     )}
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {(activeTab === "threads" ? threads.length : replies.length) > itemsPerPage && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
+                    <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                            currentPage === 1
+                                ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                                : "bg-white/10 text-white hover:bg-white/20"
+                        }`}
+                    >
+                        <ChevronLeftIcon className="h-4 w-4" />
+                        <span className="hidden sm:inline">Previous</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>Page</span>
+                        <span className="text-white font-medium">{currentPage}</span>
+                        <span>of</span>
+                        <span className="text-white font-medium">{getTotalPages()}</span>
+                    </div>
+
+                    <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === getTotalPages()}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                            currentPage === getTotalPages()
+                                ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                                : "bg-white/10 text-white hover:bg-white/20"
+                        }`}
+                    >
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRightIcon className="h-4 w-4" />
+                    </button>
                 </div>
             )}
 

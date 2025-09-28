@@ -342,6 +342,7 @@ export default function EventInfo() {
                                         isRegistered={isRegistered}
                                         onRegistrationChange={checkRegistrationStatus}
                                         context="page"
+                                        onShowRegistrationChoice={() => setShowRegistrationChoice(true)}
                                     />
                                 </>
                             )}

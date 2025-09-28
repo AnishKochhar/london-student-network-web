@@ -8,16 +8,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Button } from "@/app/components/button";
+// import { Button } from "@/app/components/button";
 import UserEventsList from "@/app/components/account/user-events-list";
 import NextImage from "next/image"; // using NextImage instead of Image to avoid Namespace clashs with javascript Image method in extractAndSetMainColor
-import { FetchAccountDetailsPromiseInterface, Tag } from "@/app/lib/types";
+import { FetchAccountDetailsPromiseInterface } from "@/app/lib/types";
 import { getAllTags, getCategoryByTagValue } from "@/app/utils/tag-categories";
 import { formattedWebsite } from "@/app/lib/utils";
 import * as skeletons from "@/app/components/skeletons/unique-society";
-import SendEmailPage from "../../message/[id]/page";
+// import SendEmailPage from "../../message/[id]/page";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
-import { ExternalLink, MessageSquare, Calendar, Info, Mail, ArrowRight } from "lucide-react";
+import { ExternalLink, MessageSquare, Calendar, Info, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import ContactForm from "@/app/components/societies/contact-form";
 import { ShimmerButton } from "@/app/components/ui/shimmer-button";
@@ -398,7 +398,7 @@ export default function SocietyPage() {
 
                         <div className="max-w-2xl self-end">
                             <p className="text-gray-300 mb-6">
-                                Have questions or want to get involved? Send us a message and we'll get back to you soon!
+                                Have questions or want to get involved? Send us a message and we&apos;ll get back to you soon!
                             </p>
                             <ContactForm societyName={name} societyId={stringid} />
                         </div>

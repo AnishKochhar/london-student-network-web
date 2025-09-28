@@ -30,13 +30,18 @@ export default function RegistrationChoiceModal({
 	}, [isOpen]);
 
 	const handleLoginRedirect = () => {
-		router.push("/sign");
+		onClose();
+		router.push("/login");
+	};
+
+	const handleGuestRegisterClick = () => {
+		onGuestRegister();
 	};
 
 	if (!mounted || !isOpen) return null;
 
 	const modalContent = (
-		<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+		<div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
 			{/* Backdrop */}
 			<div
 				className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
@@ -55,6 +60,7 @@ export default function RegistrationChoiceModal({
 				style={{
 					animation: isAnimating ? "bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)" : undefined,
 				}}
+				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header */}
 				<div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -89,7 +95,7 @@ export default function RegistrationChoiceModal({
 						</button>
 
 						<button
-							onClick={onGuestRegister}
+							onClick={handleGuestRegisterClick}
 							className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
 						>
 							Register as Guest

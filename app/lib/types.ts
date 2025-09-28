@@ -104,6 +104,7 @@ export type User = {
     password: string;
     role: string;
     email_verified: boolean;
+    last_login?: string; // TIMESTAMPTZ from database
 };
 
 export interface Username {

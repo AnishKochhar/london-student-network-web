@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+// import { useState } from "react";
+// import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -23,7 +23,7 @@ export default function ContactForm({ societyName, societyId }: ContactFormProps
         },
     });
 
-    const router = useRouter();
+    // const router = useRouter();
 
     const onSubmit = async (data: SocietyMessageFormData) => {
         if (!session) {

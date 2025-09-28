@@ -2,9 +2,18 @@ import { sql } from "@vercel/postgres";
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { getAvatarInitials } from "@/app/lib/forum-utils";
+import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting for replies (stricter limits)
+        const identifier = getRateLimitIdentifier(request);
+        const rateLimitResult = rateLimit(identifier, rateLimitConfigs.registration);
+
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult.resetTime);
+        }
+
         const session = await auth();
 
         // Check if user is authenticated

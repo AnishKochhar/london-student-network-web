@@ -105,7 +105,7 @@ export default function GuestRegistrationModal({
 	if (!mounted || !isOpen) return null;
 
 	const modalContent = (
-		<div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+		<div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4">
 			{/* Backdrop */}
 			<div
 				className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
@@ -124,6 +124,7 @@ export default function GuestRegistrationModal({
 				style={{
 					animation: isAnimating ? "bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)" : undefined,
 				}}
+				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header */}
 				<div className="flex items-center justify-between p-6 border-b border-gray-200">

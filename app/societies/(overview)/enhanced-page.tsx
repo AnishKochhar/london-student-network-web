@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import FilterSystem from "@/app/components/societies/filter-system";
 import EnhancedSocietyCard from "@/app/components/societies/enhanced-society-card";
 import { CardSkeleton } from "@/app/components/societies/skeletons";
-import { Loader2, AlertCircle, Filter, X } from "lucide-react";
+import { Loader2, AlertCircle, Filter } from "lucide-react";
 import SmartSearch from "@/app/components/societies/smart-search";
 import { TAG_CATEGORIES } from "@/app/utils/tag-categories";
 
@@ -102,7 +102,7 @@ export default function EnhancedSocietiesPage() {
       page
     });
     return queryString;
-  }, [filters.categories, filters.tags, debouncedSearch, filters.university]);
+  }, [filters, debouncedSearch]);
 
   // Fetch societies
   const fetchSocieties = useCallback(async (page: number = 1, isLoadMore: boolean = false) => {

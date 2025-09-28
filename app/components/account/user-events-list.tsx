@@ -24,7 +24,7 @@ export default function UserEventsList({
     const [error, setError] = useState<string | null>(null);
     const [pagination, setPagination] = useState<PaginationInfo>({
         total: 0,
-        limit: 100,
+        limit: 12,
         offset: 0,
         hasMore: false
     });
@@ -45,8 +45,8 @@ export default function UserEventsList({
                 },
                 body: JSON.stringify({
                     user_id,
-                    limit: 100,
-                    offset: isLoadMore ? pagination.offset + 100 : 0
+                    limit: 12,
+                    offset: isLoadMore ? pagination.offset + 12 : 0
                 }),
             });
 
@@ -73,7 +73,7 @@ export default function UserEventsList({
 
     useEffect(() => {
         fetchUserEvents();
-    }, [user_id]); // Remove fetchUserEvents from deps to prevent infinite loops
+    }, [user_id, fetchUserEvents]);
 
     // Only refetch data when returning from edit page or after a significant time away
     useEffect(() => {
@@ -92,13 +92,13 @@ export default function UserEventsList({
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [user_id]);
+    }, [user_id, fetchUserEvents]);
 
     // Combined update handler for when events are modified
     const handleEventUpdate = useCallback(() => {
         fetchUserEvents(false);
         if (onEventUpdate) onEventUpdate();
-    }, [user_id, onEventUpdate]);
+    }, [onEventUpdate, fetchUserEvents]);
 
     const loadMoreEvents = () => {
         if (pagination.hasMore && !loadingMore) {
@@ -138,7 +138,7 @@ export default function UserEventsList({
                     <span className="text-2xl">📅</span>
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-2">No Events Yet</h3>
-                <p className="text-gray-400">This society hasn't created any events yet. Check back later!</p>
+                <p className="text-gray-400">This society hasn&apos;t created any events yet. Check back later!</p>
             </div>
         );
     }

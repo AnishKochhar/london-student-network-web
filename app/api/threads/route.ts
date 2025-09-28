@@ -7,9 +7,18 @@ import {
 import { auth } from "@/auth";
 import { NextResponse, NextRequest } from "next/server";
 import { sql } from "@vercel/postgres";
+import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
     try {
+        // Rate limiting for thread listing
+        const identifier = getRateLimitIdentifier(request);
+        const rateLimitResult = rateLimit(identifier, rateLimitConfigs.general);
+
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult.resetTime);
+        }
+
         // Get pagination and search parameters from the URL
         const searchParams = request.nextUrl.searchParams;
         const page = parseInt(searchParams.get("page") || "1");
@@ -257,6 +266,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        // Rate limiting for thread creation (stricter limits)
+        const identifier = getRateLimitIdentifier(request);
+        const rateLimitResult = rateLimit(identifier, rateLimitConfigs.registration);
+
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult.resetTime);
+        }
+
         const session = await auth();
 
         // Check if user is authenticated

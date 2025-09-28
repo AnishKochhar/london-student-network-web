@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Filter, X, ChevronDown, ChevronUp } from "lucide-react";
-import { TAG_CATEGORIES, POPULAR_TAGS } from "@/app/utils/tag-categories";
+import { TAG_CATEGORIES } from "@/app/utils/tag-categories";
 import { motion, AnimatePresence } from "framer-motion";
 import UniversityDropdown from "./university-dropdown";
 
@@ -47,13 +47,13 @@ export default function FilterSystem({ onFiltersChange, totalResults, selectedCa
 	}, [propSelectedCategories, propSelectedTags]);
 
 	// Emit filter changes only when filters actually change through user interaction
-	const emitFilterChanges = useCallback(() => {
-		onFiltersChange({
-			categories: selectedCategories,
-			tags: selectedTags,
-			university: selectedUniversity
-		});
-	}, [selectedCategories, selectedTags, selectedUniversity, onFiltersChange]);
+	// const emitFilterChanges = useCallback(() => {
+	//	onFiltersChange({
+	//		categories: selectedCategories,
+	//		tags: selectedTags,
+	//		university: selectedUniversity
+	//	});
+	// }, [selectedCategories, selectedTags, selectedUniversity, onFiltersChange]);
 
 	const toggleCategory = (categoryId: string) => {
 		setSelectedCategories(prev => {
@@ -126,17 +126,17 @@ export default function FilterSystem({ onFiltersChange, totalResults, selectedCa
 		});
 	};
 
-	const togglePopularTag = (tagValue: number) => {
-		// Find which category this tag belongs to
-		const category = TAG_CATEGORIES.find(cat =>
-			cat.tags.some(tag => tag.value === tagValue)
-		);
-
-		if (category) {
-			toggleTag(tagValue, category.id);
-		}
-		// No need for setTimeout here since toggleTag already handles it
-	};
+	// const togglePopularTag = (tagValue: number) => {
+	//	// Find which category this tag belongs to
+	//	const category = TAG_CATEGORIES.find(cat =>
+	//		cat.tags.some(tag => tag.value === tagValue)
+	//	);
+	//
+	//	if (category) {
+	//		toggleTag(tagValue, category.id);
+	//	}
+	//	// No need for setTimeout here since toggleTag already handles it
+	// };
 
 	const clearAllFilters = () => {
 		setSelectedCategories([]);

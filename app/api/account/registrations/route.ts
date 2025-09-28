@@ -2,9 +2,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { sql } from "@vercel/postgres";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
+import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        // Rate limiting
+        const identifier = getRateLimitIdentifier(req);
+        const rateLimitResult = rateLimit(identifier, rateLimitConfigs.general);
+
+        if (!rateLimitResult.success) {
+            return createRateLimitResponse(rateLimitResult.resetTime);
+        }
+
         const session = await auth();
 
         if (!session?.user?.id) {

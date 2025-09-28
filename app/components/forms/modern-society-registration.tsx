@@ -553,7 +553,7 @@ export default function ModernSocietyRegistration() {
                                 control={control}
                                 render={({ field }) => (
                                     <CategoryTagsSelect
-                                        value={field.value || []}
+                                        value={(field.value || []) as unknown as number[]}
                                         onChange={(selectedValues) => {
                                             if (selectedValues.length > 3) {
                                                 toast.error(

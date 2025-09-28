@@ -15,14 +15,41 @@ import { useRouter } from "next/navigation";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import MarkdownRenderer from "../markdown/markdown-renderer";
 import EventRegistrationButton from "./event-registration-button";
+import RegistrationChoiceModal from "./registration-choice-modal";
+import GuestRegistrationModal from "./guest-registration-modal";
 
 export default function EventModal({ event, onClose, isPreview = false, isRegistered: initialIsRegistered = false, onRegistrationChange }: EventModalPropsWithPreview) {
     const modalRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const [isRegistered, setIsRegistered] = useState(initialIsRegistered);
+    const [showRegistrationChoice, setShowRegistrationChoice] = useState(false);
+    const [showGuestRegistration, setShowGuestRegistration] = useState(false);
+    const showRegistrationChoiceRef = useRef(false);
+    const showGuestRegistrationRef = useRef(false);
+
+    // Sync refs with state
+    useEffect(() => {
+        showRegistrationChoiceRef.current = showRegistrationChoice;
+    }, [showRegistrationChoice]);
+
+    useEffect(() => {
+        showGuestRegistrationRef.current = showGuestRegistration;
+    }, [showGuestRegistration]);
 
     const jumpToEvent = () =>
         router.push(`/events/${base16ToBase62(event.id)}`);
+
+    const handleGuestRegister = () => {
+        setShowRegistrationChoice(false);
+        setShowGuestRegistration(true);
+    };
+
+    const handleGuestRegistrationSuccess = () => {
+        setShowGuestRegistration(false);
+        // Refresh registration status
+        setIsRegistered(true);
+        onRegistrationChange?.();
+    };
 
     // Disable background scroll and handle outside click detection
     useEffect(() => {
@@ -30,6 +57,11 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
         document.body.style.overflow = "hidden";
 
         const handleClickOutside = (event: MouseEvent) => {
+            // Don't close the EventModal if registration modals are open (use refs for current values)
+            if (showRegistrationChoiceRef.current || showGuestRegistrationRef.current) {
+                return;
+            }
+
             if (
                 modalRef.current &&
                 !modalRef.current.contains(event.target as Node)
@@ -230,11 +262,29 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                         onRegistrationChange?.();
                                     }}
                                     isPreview={isPreview}
+                                    onShowRegistrationChoice={() => setShowRegistrationChoice(true)}
                                 />
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Registration Choice Modal */}
+                <RegistrationChoiceModal
+                    isOpen={showRegistrationChoice}
+                    onClose={() => setShowRegistrationChoice(false)}
+                    onGuestRegister={handleGuestRegister}
+                    eventTitle={event.title}
+                />
+
+                {/* Guest Registration Modal */}
+                <GuestRegistrationModal
+                    isOpen={showGuestRegistration}
+                    onClose={() => setShowGuestRegistration(false)}
+                    eventId={event.id}
+                    eventTitle={event.title}
+                    onSuccess={handleGuestRegistrationSuccess}
+                />
             </motion.div>
         </div>,
         document.body,

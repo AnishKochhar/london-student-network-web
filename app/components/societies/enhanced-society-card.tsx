@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { MessageSquare, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { getCategoryByTagValue, TAG_CATEGORIES } from "@/app/utils/tag-categories";
+import { getCategoryByTagValue } from "@/app/utils/tag-categories";
 
 interface Society {
 	id: string;

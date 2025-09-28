@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
 import { fetchSQLEventById, getEventOrganiserEmail } from "@/app/lib/data";
+import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 import { sendEventRegistrationEmail } from "@/app/lib/send-email";
 import EventRegistrationEmailPayload from "@/app/components/templates/event-registration-email";
 import EventRegistrationEmailFallbackPayload from "@/app/components/templates/event-registration-email-fallback";
@@ -10,6 +11,14 @@ import { convertSQLEventToEvent } from "@/app/lib/utils";
 
 export async function POST(req: Request) {
 	try {
+		// Rate limiting for guest registrations
+		const identifier = getRateLimitIdentifier(req);
+		const rateLimitResult = rateLimit(identifier, rateLimitConfigs.registration);
+
+		if (!rateLimitResult.success) {
+			return createRateLimitResponse(rateLimitResult.resetTime);
+		}
+
 		const { event_id, firstName, lastName, email } = await req.json();
 
 		// Validate input

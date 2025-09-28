@@ -1,21 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Event } from "@/app/lib/types";
 import EventCard from "../events-page/event-card";
 import { CalendarIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+// import { Loader2 } from "lucide-react";
 
 export default function UserRegistrations() {
     const [registrations, setRegistrations] = useState<Event[]>([]);
+    const [allRegistrations, setAllRegistrations] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [displayCount, setDisplayCount] = useState(12);
 
-    useEffect(() => {
-        fetchRegistrations();
-    }, []);
-
-    const fetchRegistrations = async () => {
+    const fetchRegistrations = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -26,13 +25,27 @@ export default function UserRegistrations() {
             }
 
             const events = await response.json();
-            setRegistrations(events);
+            setAllRegistrations(events);
+            setRegistrations(events.slice(0, displayCount));
         } catch (error) {
             console.error("Error fetching registrations:", error);
             setError("Failed to load registrations");
         } finally {
             setLoading(false);
         }
+    }, [displayCount]);
+
+    useEffect(() => {
+        fetchRegistrations();
+    }, [fetchRegistrations]);
+
+    // Update displayed registrations when displayCount changes
+    useEffect(() => {
+        setRegistrations(allRegistrations.slice(0, displayCount));
+    }, [displayCount, allRegistrations]);
+
+    const loadMore = () => {
+        setDisplayCount(prev => prev + 12);
     };
 
     if (loading) {
@@ -73,14 +86,31 @@ export default function UserRegistrations() {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {registrations.map((event) => (
-                <EventCard
-                    key={event.id}
-                    event={event}
-                    editEvent={false}
-                />
-            ))}
+        <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {registrations.map((event) => (
+                    <EventCard
+                        key={event.id}
+                        event={event}
+                        editEvent={false}
+                    />
+                ))}
+            </div>
+
+            {/* Load More Button */}
+            {allRegistrations.length > displayCount && (
+                <div className="flex justify-center mt-8">
+                    <button
+                        onClick={loadMore}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600/50 text-white font-medium rounded-lg hover:bg-blue-600/80 transition-all duration-300"
+                    >
+                        <span>Load More</span>
+                        <span className="text-sm opacity-75">
+                            ({allRegistrations.length - displayCount} remaining)
+                        </span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
