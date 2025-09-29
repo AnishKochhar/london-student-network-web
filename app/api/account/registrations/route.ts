@@ -26,13 +26,11 @@ export async function GET(req: Request) {
         // Convert user ID to string to avoid type mismatch
         const userId = String(session.user.id);
 
-        // Fix: The JOIN needs casting since er.event_id is VARCHAR and e.id is UUID
-        // And user_id is VARCHAR, so no casting needed there
-        // Removed DISTINCT since each event registration should be unique anyway
+        // After migration: Both er.event_id and er.user_id are now UUID, no casting needed
         const result = await sql`
             SELECT e.*
             FROM events e
-            INNER JOIN event_registrations er ON e.id::text = er.event_id
+            INNER JOIN event_registrations er ON e.id = er.event_id
             WHERE er.user_id = ${userId}
             AND (e.is_deleted IS NULL OR e.is_deleted = false)
             ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) ASC

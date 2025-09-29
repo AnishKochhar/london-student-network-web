@@ -20,54 +20,33 @@ const EventOrganizerNotificationEmailPayload = (
         : event.date;
 
     return `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #0a95ff 0%, #0056b3 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">🔔 New Event Registration</h1>
-            </div>
+        <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto;">
+            <p>🎉 <strong>Someone just signed up for your event!</strong></p>
 
-            <div style="padding: 30px; background: #f8f9fa; border-radius: 0 0 10px 10px;">
-                <p style="font-size: 16px; margin-bottom: 20px;">Hello,</p>
+            <p>Good news! ${registration.name} has registered for <strong>"${event.title}"</strong> (${eventDate}).</p>
 
-                <p style="font-size: 16px; margin-bottom: 25px;">
-                    A new ${registration.external ? 'external' : 'internal'} attendee has registered for your event <strong>"${event.title}"</strong>.
-                </p>
+            <p><strong>Here's what you need to know:</strong></p>
 
-                <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #0a95ff; margin-bottom: 25px;">
-                    <h2 style="color: #0a95ff; margin-top: 0; font-size: 20px;">Registration Details</h2>
+            <p style="margin-left: 20px;">
+                👤 <strong>Name:</strong> ${registration.name}<br>
+                📧 <strong>Email:</strong> <a href="mailto:${registration.email}" style="color: #007BFF;">${registration.email}</a><br>
+                🏫 <strong>Type:</strong> ${registration.external ? 'External student' : 'Internal student'}
+            </p>
 
-                    <p style="margin: 10px 0;">
-                        <strong>👤 Name:</strong> ${registration.name}
-                    </p>
+            ${registration.external ? `
+            <p style="background: #f9f9f9; padding: 15px; border-left: 3px solid #ffc107; margin: 20px 0;">
+                <strong>📝 Note:</strong> This is an external student, so they might need additional information about campus access or directions.
+            </p>
+            ` : ''}
 
-                    <p style="margin: 10px 0;">
-                        <strong>📧 Email:</strong>
-                        <a href="mailto:${registration.email}" style="color: #0a95ff;">${registration.email}</a>
-                    </p>
+            <p>You can manage all your registrations through your account dashboard. If you need to contact them directly, just hit reply!</p>
 
-                    <p style="margin: 10px 0;">
-                        <strong>🏫 Registration Type:</strong>
-                        <span style="display: inline-block; padding: 4px 8px; background: ${registration.external ? '#ffc107' : '#28a745'}; color: white; border-radius: 4px; font-size: 12px;">
-                            ${registration.external ? 'External Student' : 'Internal Student'}
-                        </span>
-                    </p>
+            <p>Cheers,</p>
+            <p style="margin-left: 20px;">The LSN team</p>
 
-                    <p style="margin: 10px 0;">
-                        <strong>📅 Event Date:</strong> ${eventDate}
-                    </p>
-                </div>
-
-                <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
-                    <p style="margin: 5px 0; color: #0056b3;">
-                        <strong>💡 Tip:</strong> You can manage all your event registrations through your account dashboard.
-                    </p>
-                </div>
-
-                <p style="font-size: 14px; color: #666; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-                    Best regards,<br>
-                    <strong>The London Student Network Team</strong><br>
-                    <a href="mailto:hello@londonstudentnetwork.com" style="color: #0a95ff;">hello@londonstudentnetwork.com</a>
-                </p>
-            </div>
+            <p style="font-size: 12px; color: #666; margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
+                Questions? Drop us a line at <a href="mailto:hello@londonstudentnetwork.com" style="color: #007BFF;">hello@londonstudentnetwork.com</a>
+            </p>
         </div>
     `;
 };

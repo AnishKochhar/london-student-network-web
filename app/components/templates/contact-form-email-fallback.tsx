@@ -15,27 +15,24 @@ const ContactFormEmailFallback = ({
     description,
     organisation
 }: ContactFormEmailFallbackProps): string => {
-    return `
-NEW CONTACT FORM SUBMISSION
-============================
+    return `📬 NEW MESSAGE FROM THE CONTACT FORM!
 
-CONTACT DETAILS:
-----------------
-Name: ${name}
-Email: ${email}
-${inquiryPurpose ? `Inquiry Purpose: ${inquiryPurpose}` : ''}
-${description ? `Description: ${description}` : ''}
-${organisation ? `Organisation: ${organisation}` : ''}
+Someone's trying to get in touch. Here's what they said:
 
-MESSAGE:
---------
+CONTACT INFO:
+👤 Name: ${name}
+📧 Email: ${email}
+${inquiryPurpose ? `🎯 Purpose: ${inquiryPurpose}` : ''}
+${organisation ? `🏢 Organisation: ${organisation}` : ''}
+${description ? `📝 Description: ${description}` : ''}
+
+THEIR MESSAGE:
 ${message}
 
-============================
-Reply to sender: ${email}
+---
+Reply to: ${email}
 
-This email was sent from the contact form at londonstudentnetwork.com
-Timestamp: ${new Date().toLocaleString('en-GB', {
+Sent from londonstudentnetwork.com on ${new Date().toLocaleString('en-GB', {
     dateStyle: 'full',
     timeStyle: 'short',
     timeZone: 'Europe/London'

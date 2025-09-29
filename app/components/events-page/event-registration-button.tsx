@@ -336,7 +336,7 @@ export default function EventRegistrationButton({
                                 <button
                                     onClick={() => setShowConfirmation(false)}
                                     disabled={isLoading}
-                                    className="flex-1 px-3 py-1.5 text-sm bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors duration-150 font-medium"
+                                    className="flex-1 px-3 py-1.5 text-sm bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors duration-150 font-medium text-black"
                                 >
                                     Cancel
                                 </button>

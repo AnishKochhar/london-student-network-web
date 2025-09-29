@@ -104,26 +104,47 @@ export async function fetchUpcomingEvents() {
     }
 }
 
-export async function fetchUserEvents(organiser_uid: string, limit: number = 100, offset: number = 0) {
+export async function fetchUserEvents(organiser_uid: string, limit: number = 100, offset: number = 0, includeHidden: boolean = false) {
     try {
-        const events = await sql`
-            SELECT * FROM events
-            WHERE organiser_uid = ${organiser_uid}
-            AND (is_deleted IS NULL OR is_deleted = false)
-            AND (is_hidden IS NULL OR is_hidden = false)
-            ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
-				EXTRACT(hour FROM start_time::time)::int,
-				EXTRACT(minute FROM start_time::time)::int, 0)) ASC
-            LIMIT ${limit} OFFSET ${offset}
-        `;
+        let events, countResult;
 
-        // Get total count for pagination
-        const countResult = await sql`
-            SELECT COUNT(*) as total FROM events
-            WHERE organiser_uid = ${organiser_uid}
-            AND (is_deleted IS NULL OR is_deleted = false)
-            AND (is_hidden IS NULL OR is_hidden = false)
-        `;
+        if (includeHidden) {
+            // Include hidden events
+            events = await sql`
+                SELECT * FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0)) ASC
+                LIMIT ${limit} OFFSET ${offset}
+            `;
+
+            countResult = await sql`
+                SELECT COUNT(*) as total FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+            `;
+        } else {
+            // Exclude hidden events
+            events = await sql`
+                SELECT * FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0)) ASC
+                LIMIT ${limit} OFFSET ${offset}
+            `;
+
+            countResult = await sql`
+                SELECT COUNT(*) as total FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+            `;
+        }
 
         const total = parseInt(countResult.rows[0].total);
 
@@ -839,7 +860,7 @@ export async function checkIfRegistered(event_id: string, user_id: string) {
     try {
         const result = await sql`
 			SELECT event_registration_uuid FROM event_registrations
-			WHERE event_id = ${event_id} AND user_id::text = ${user_id}
+			WHERE event_id = ${event_id} AND user_id = ${user_id}
 			LIMIT 1
 		`;
         return result.rows.length > 0;
@@ -1151,7 +1172,7 @@ export async function deregisterFromEvent(event_id: string, user_id: string) {
     try {
         const result = await sql`
             DELETE FROM event_registrations
-            WHERE event_id = ${event_id} AND user_id::text = ${user_id}
+            WHERE event_id = ${event_id} AND user_id = ${user_id}
         `;
 
         if (result.rowCount === 0) {
