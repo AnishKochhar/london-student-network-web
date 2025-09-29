@@ -14,24 +14,24 @@ const EventOrganizerNotificationEmailFallbackPayload = (
         ? new Date(event.start_datetime).toLocaleDateString('en-GB')
         : event.date;
 
-    return `Hello 👋
+    return `🎉 SOMEONE JUST SIGNED UP FOR YOUR EVENT!
 
-🔔 A new ${registration.external ? 'external' : 'internal'} attendee has registered for your event "${event.title}".
+Good news! ${registration.name} has registered for "${event.title}" (${eventDate}).
 
-REGISTRATION DETAILS
-====================
+HERE'S WHAT YOU NEED TO KNOW:
 👤 Name: ${registration.name}
 📧 Email: ${registration.email}
-🏫 Type: ${registration.external ? 'External Student' : 'Internal Student'}
-📅 Event Date: ${eventDate}
+🏫 Type: ${registration.external ? 'External student' : 'Internal student'}
 
-💡 You can manage your event registrations through your account dashboard.
+${registration.external ? `📝 NOTE: This is an external student, so they might need additional information about campus access or directions.
 
-Best regards,
-The London Student Network Team
+` : ''}You can manage all your registrations through your account dashboard. If you need to contact them directly, just reply to this email!
+
+Cheers,
+The LSN team
 
 ---
-If you have any questions, please contact us at hello@londonstudentnetwork.com`;
+Questions? Drop us a line at hello@londonstudentnetwork.com`;
 };
 
 export default EventOrganizerNotificationEmailFallbackPayload;

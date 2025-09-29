@@ -47,7 +47,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        return NextResponse.json({ success: true }, { status: 200 });
+        // Return email so the frontend can use it for auto-login
+        return NextResponse.json({
+            success: true,
+            email: email
+        }, { status: 200 });
     } catch (error) {
         return NextResponse.json(
             { success: false, error: "Failed to verify email" },

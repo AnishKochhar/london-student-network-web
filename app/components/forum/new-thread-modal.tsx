@@ -91,7 +91,7 @@ export default function NewThreadModal({
             <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white hover:bg-white/20 hover:border-white/30 transition-colors"
+                className="px-4 py-2 sm:px-6 sm:py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white hover:bg-white/20 hover:border-white/30 transition-colors text-sm sm:text-base"
                 disabled={submitting}
             >
                 Cancel
@@ -100,15 +100,19 @@ export default function NewThreadModal({
                 type="submit"
                 onClick={handleSubmit}
                 disabled={!title.trim() || !content.trim() || submitting}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed border border-blue-500 rounded-lg text-white font-medium transition-colors flex items-center gap-2"
+                className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed border border-blue-500 rounded-lg text-white font-medium transition-colors flex items-center gap-2 text-sm sm:text-base"
             >
                 {submitting ? (
                     <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-b-white rounded-full animate-spin"></div>
-                        Creating...
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-b-white rounded-full animate-spin"></div>
+                        <span className="hidden sm:inline">Creating...</span>
+                        <span className="sm:hidden">Create</span>
                     </>
                 ) : (
-                    "Create Thread"
+                    <>
+                        <span className="hidden sm:inline">Create Thread</span>
+                        <span className="sm:hidden">Create</span>
+                    </>
                 )}
             </button>
         </>
@@ -125,7 +129,7 @@ export default function NewThreadModal({
             isSubmitting={submitting}
             footer={footerContent}
         >
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
                 {/* Title Input */}
                 <div>
                     <label className="block text-sm font-medium text-white/90 mb-2">
@@ -136,7 +140,7 @@ export default function NewThreadModal({
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="What's your question or topic?"
-                        className="w-full px-4 py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                        className="w-full px-3 py-2 sm:px-4 sm:py-3 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-sm sm:text-base"
                         required
                         disabled={submitting}
                     />
@@ -147,7 +151,7 @@ export default function NewThreadModal({
                     value={content}
                     onChange={setContent}
                     placeholder="Describe your question or share your thoughts in detail..."
-                    height={250}
+                    height={200}
                     label="Content"
                 />
 
@@ -165,13 +169,13 @@ export default function NewThreadModal({
                             onChange={(e) => setTagInput(e.target.value)}
                             onKeyPress={handleKeyPress}
                             placeholder="Add a tag..."
-                            className="flex-1 px-4 py-2 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                            className="flex-1 px-3 py-2 sm:px-4 sm:py-2 bg-white/10 backdrop-blur border border-white/20 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-sm sm:text-base"
                             disabled={submitting}
                         />
                         <button
                             type="button"
                             onClick={handleAddTag}
-                            className="px-4 py-2 bg-blue-600/30 border border-blue-400/30 rounded-lg text-blue-300 hover:bg-blue-600/50 transition-colors"
+                            className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600/30 border border-blue-400/30 rounded-lg text-blue-300 hover:bg-blue-600/50 transition-colors text-sm sm:text-base"
                             disabled={submitting}
                         >
                             Add

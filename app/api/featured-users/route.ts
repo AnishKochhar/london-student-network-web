@@ -9,71 +9,79 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get("limit") || "5");
 
         // Query to get users with the most activity (threads + comments)
+        // Only include users who have usernames in the usernames table
         const result = await sql`
       WITH user_activity AS (
-        -- Count threads per user
-        SELECT 
+        -- Count threads per user (only for users with usernames)
+        SELECT
           u.id,
           u.name,
+          un.username,
           COUNT(t.id) as thread_count,
           0 as comment_count
-        FROM 
+        FROM
           users u
-        LEFT JOIN 
+        INNER JOIN
+          usernames un ON u.id = un.user_id
+        LEFT JOIN
           threads t ON u.id = t.author_id
-        GROUP BY 
-          u.id, u.name
-        
+        GROUP BY
+          u.id, u.name, un.username
+
         UNION ALL
-        
-        -- Count comments per user
-        SELECT 
+
+        -- Count comments per user (only for users with usernames)
+        SELECT
           u.id,
           u.name,
+          un.username,
           0 as thread_count,
           COUNT(c.id) as comment_count
-        FROM 
+        FROM
           users u
-        LEFT JOIN 
+        INNER JOIN
+          usernames un ON u.id = un.user_id
+        LEFT JOIN
           comments c ON u.id = c.author_id
-        GROUP BY 
-          u.id, u.name
+        GROUP BY
+          u.id, u.name, un.username
       )
-      
+
       -- Sum up all activity and find top users
-      SELECT 
+      SELECT
         id,
-        name as username,
+        name,
+        username,
         SUM(thread_count) as threads,
         SUM(comment_count) as comments,
         SUM(thread_count) + SUM(comment_count) as total_activity,
         -- Consider users with activity in the last week "online"
         CASE WHEN EXISTS (
-          SELECT 1 FROM threads 
-          WHERE author_id = user_activity.id 
+          SELECT 1 FROM threads
+          WHERE author_id = user_activity.id
           AND created_at > NOW() - INTERVAL '7 days'
           UNION
           SELECT 1 FROM comments
           WHERE author_id = user_activity.id
           AND created_at > NOW() - INTERVAL '7 days'
         ) THEN 'online' ELSE 'featured' END as status
-      FROM 
+      FROM
         user_activity
-      GROUP BY 
-        id, name
-      HAVING 
+      GROUP BY
+        id, name, username
+      HAVING
         SUM(thread_count) + SUM(comment_count) > 0
-      ORDER BY 
+      ORDER BY
         total_activity DESC
       LIMIT ${limit};
     `;
 
         // Format the result for the client
         const topUsers = result.rows.map((user) => ({
-            username: user.username || "Anonymous",
-            displayName: user.username || "Anonymous",
+            username: user.username, // Now using the actual username from usernames table
+            displayName: user.name, // Keep the real name for avatar generation
             userId: user.id,
-            avatar: getAvatarInitials(user.username || "Anonymous"),
+            avatar: getAvatarInitials(user.name), // Use real name for avatar initials
             status: user.status,
             stats: {
                 threads: parseInt(user.threads),

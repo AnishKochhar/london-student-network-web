@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { KeyIcon } from "@heroicons/react/24/outline";
 import { ArrowRightIcon } from "@heroicons/react/20/solid";
 import { Button } from "../button";
 import { authenticate } from "@/app/lib/actions";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "../input";
 import ForgottenPasswordModal from "./reset-password-modal";
 import toast from "react-hot-toast";
@@ -18,19 +18,48 @@ export default function LoginForm() {
     const [showForgottenPasswordModal, setShowForgottenPasswordModal] =
         useState(false);
 
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Check for verified email in URL params
+    const isVerified = searchParams.get("verified") === "true";
+    const verifiedEmail = searchParams.get("email") || "";
+
     const {
         register,
         handleSubmit,
         formState: { errors },
+        setValue,
     } = useForm<LoginPageFormData>({
         mode: "onSubmit",
         defaultValues: {
-            email: "",
+            email: verifiedEmail || "",
             password: "",
         },
     });
 
-    const router = useRouter();
+    // Show success message and pre-fill email if user just verified
+    useEffect(() => {
+        if (isVerified && verifiedEmail) {
+            toast.success("Email verified successfully! Please enter your password to login.", {
+                duration: 5000,
+                icon: '✅'
+            });
+            setValue("email", verifiedEmail);
+        }
+
+        // Check for welcome message from registration
+        const message = searchParams.get("message");
+        if (message === "name-updated") {
+            toast.success("Name updated successfully! Please login again.");
+        }
+
+        // Check for redirect parameter
+        const redirect = searchParams.get("redirect");
+        if (redirect) {
+            sessionStorage.setItem("redirectAfterLogin", redirect);
+        }
+    }, [isVerified, verifiedEmail, searchParams, setValue]);
 
     const onSubmit = async (data: LoginPageFormData) => {
         const toastId = toast.loading("Logging you in...");
@@ -42,7 +71,15 @@ export default function LoginForm() {
             toast.error("Login failed.", { id: toastId });
         } else {
             toast.success("Successfully logged in!", { id: toastId });
-            router.push("/account");
+
+            // Check for redirect URL stored in sessionStorage
+            const redirectUrl = sessionStorage.getItem("redirectAfterLogin");
+            if (redirectUrl) {
+                sessionStorage.removeItem("redirectAfterLogin");
+                router.push(redirectUrl);
+            } else {
+                router.push("/account");
+            }
         }
         setIsPending(false);
     };

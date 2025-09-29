@@ -35,20 +35,20 @@ export default function BaseModal({
     if (!isOpen || !mounted) return null;
 
     const modalContent = (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                 onClick={onClose}
             />
 
-            {/* Modal */}
+            {/* Modal - Mobile: 95% width/height, Desktop: max-width with 80% height */}
             <div
-                className={`relative w-full ${maxWidth} bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] border border-white/20 rounded-xl shadow-2xl overflow-hidden`}
+                className={`relative w-[95%] sm:w-full ${maxWidth} max-h-[90vh] sm:max-h-[80vh] bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] border border-white/20 rounded-xl shadow-2xl overflow-hidden flex flex-col`}
             >
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-white/10">
-                    <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                {/* Header - Fixed */}
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 flex-shrink-0">
+                    <h2 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
                         {icon}
                         {title}
                     </h2>
@@ -58,16 +58,16 @@ export default function BaseModal({
                         disabled={isSubmitting}
                         aria-label="Close"
                     >
-                        <XMarkIcon className="w-6 h-6 text-white/80" />
+                        <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white/80" />
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6">{children}</div>
+                {/* Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</div>
 
-                {/* Footer */}
+                {/* Footer - Fixed */}
                 {footer && (
-                    <div className="flex justify-end gap-4 p-6 pt-4 border-t border-white/10">
+                    <div className="flex justify-end gap-3 sm:gap-4 p-4 sm:p-6 pt-3 sm:pt-4 border-t border-white/10 flex-shrink-0">
                         {footer}
                     </div>
                 )}

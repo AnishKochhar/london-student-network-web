@@ -85,14 +85,14 @@ export default function PostItem({
                 {/* Desktop Content Section */}
                 <div className="flex-1 overflow-hidden">
                     <h2
-                        className="text-xl font-semibold mb-3 break-all line-clamp-2"
+                        className="text-xl font-semibold mb-3 break-words line-clamp-2"
                         title={post.title}
                     >
                         {post.title}
                     </h2>
 
                     <div className="mb-4">
-                        <p className="text-white/80 leading-relaxed whitespace-pre-line break-all">
+                        <p className="text-white/80 leading-relaxed whitespace-pre-line break-words">
                             {displayContent}
                         </p>
 
@@ -180,7 +180,7 @@ export default function PostItem({
 
                     {/* Title */}
                     <h2
-                        className="text-lg font-semibold flex-1 break-all line-clamp-2"
+                        className="text-lg font-semibold flex-1 break-words line-clamp-2"
                         title={post.title}
                     >
                         {post.title}
@@ -189,7 +189,7 @@ export default function PostItem({
 
                 {/* Content Section */}
                 <div className="mb-3 overflow-hidden">
-                    <p className="text-white/80 leading-relaxed whitespace-pre-line break-all">
+                    <p className="text-white/80 leading-relaxed whitespace-pre-line break-words">
                         {displayContent}
                     </p>
 

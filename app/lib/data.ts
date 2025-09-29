@@ -95,7 +95,7 @@ export async function fetchUpcomingEvents() {
 			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
 				EXTRACT(hour FROM start_time::time)::int,
 				EXTRACT(minute FROM start_time::time)::int, 0))
-			LIMIT 5
+			LIMIT 6
 		`;
         return data.rows.map(convertSQLEventToEvent);
     } catch (error) {
@@ -104,18 +104,59 @@ export async function fetchUpcomingEvents() {
     }
 }
 
-export async function fetchUserEvents(organiser_uid: string) {
+export async function fetchUserEvents(organiser_uid: string, limit: number = 100, offset: number = 0, includeHidden: boolean = false) {
     try {
-        const events = await sql`
-            SELECT * FROM events
-            WHERE organiser_uid = ${organiser_uid}
-            AND (is_deleted IS NULL OR is_deleted = false)
-            ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
-				EXTRACT(hour FROM start_time::time)::int,
-				EXTRACT(minute FROM start_time::time)::int, 0)) ASC
-        `;
+        let events, countResult;
 
-        return events.rows.map(convertSQLEventToEvent);
+        if (includeHidden) {
+            // Include hidden events
+            events = await sql`
+                SELECT * FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0)) ASC
+                LIMIT ${limit} OFFSET ${offset}
+            `;
+
+            countResult = await sql`
+                SELECT COUNT(*) as total FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+            `;
+        } else {
+            // Exclude hidden events
+            events = await sql`
+                SELECT * FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0)) ASC
+                LIMIT ${limit} OFFSET ${offset}
+            `;
+
+            countResult = await sql`
+                SELECT COUNT(*) as total FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+            `;
+        }
+
+        const total = parseInt(countResult.rows[0].total);
+
+        return {
+            events: events.rows.map(convertSQLEventToEvent),
+            pagination: {
+                total,
+                limit,
+                offset,
+                hasMore: offset + events.rows.length < total
+            }
+        };
     } catch (error) {
         console.error("Error fetching user events:", error);
         throw new Error("Unable to fetch user's events");
@@ -1124,5 +1165,23 @@ export async function getEventRegistrationStats(eventId: string) {
     } catch (error) {
         console.error("Error fetching registration stats:", error);
         return { success: false, stats: { total: 0, internal: 0, external: 0 } };
+    }
+}
+
+export async function deregisterFromEvent(event_id: string, user_id: string) {
+    try {
+        const result = await sql`
+            DELETE FROM event_registrations
+            WHERE event_id = ${event_id} AND user_id = ${user_id}
+        `;
+
+        if (result.rowCount === 0) {
+            return { success: false, error: "Registration not found" };
+        }
+
+        return { success: true, message: "Successfully deregistered from event" };
+    } catch (error) {
+        console.error("Error deregistering from event:", error);
+        return { success: false, error: "Failed to deregister from event" };
     }
 }

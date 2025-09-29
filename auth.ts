@@ -22,7 +22,11 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     },
     session: {
         strategy: "jwt",
-        maxAge: 1 * 24 * 60 * 60, // 1 day
+        maxAge: 8 * 60 * 60, // 8 hours (reduced from 1 day)
+        updateAge: 2 * 60 * 60, // Update session every 2 hours
+    },
+    jwt: {
+        maxAge: 8 * 60 * 60, // 8 hours
     },
     providers: [
         Credentials({
@@ -52,23 +56,52 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
     ],
     callbacks: {
         async jwt({ token, user, trigger, session }) {
-            // Initial login - set user data in token
+            // Initial login - set user data in token and update last_login
             if (user) {
                 token.id = user.id;
                 token.name = user.name;
                 token.email = user.email;
                 token.role = user.role;
+                token.loginTime = Date.now();
+
+                // Update last_login in database
+                try {
+                    await sql`
+                        UPDATE users
+                        SET last_login = NOW()
+                        WHERE id = ${user.id}
+                    `;
+                } catch (error) {
+                    console.error("Failed to update last_login:", error);
+                }
                 // token.email_verified = !!user.email_verified;
             }
 
-            // No refresh logic needed since profile updates trigger logout/login
+            // Check for session timeout (additional security)
+            if (token.loginTime) {
+                const sessionAge = Date.now() - (token.loginTime as number);
+                const maxSessionAge = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+
+                if (sessionAge > maxSessionAge) {
+                    // Force logout by returning null
+                    return null;
+                }
+            }
+
+            // Update last activity timestamp
+            token.lastActivity = Date.now();
+
             return token;
         },
         async session({ session, token }) {
-            session.user.id =
-                String(token?.id) || "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c"; // admin uid
-            session.user.role = String(token?.role) || "No role found";
-            session.user.name = token?.name || "No name found";
+            if (!token) {
+                return null; // Force logout if token is invalid
+            }
+
+            session.user.id = String(token?.id) || "";
+            session.user.role = String(token?.role) || "";
+            session.user.name = token?.name || "";
+            // session.user.lastActivity = token?.lastActivity;
 
             return session;
         },

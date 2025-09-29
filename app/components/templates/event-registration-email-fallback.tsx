@@ -15,29 +15,26 @@ const EventRegistrationEmailFallbackPayload = (
         })
         : event.time;
 
-    return `Hi ${userName} 👋
+    return `Hey ${userName}! 👋
 
-🎉 Thank you for registering for "${event.title}"!
+Great news! You're officially signed up for "${event.title}". We promise it'll be way more fun than your average Tuesday.
 
-EVENT DETAILS
-=============
-📅 Date: ${eventDate}
-⏰ Time: ${eventTime}
-📍 Location: ${event.location_building}
-             ${event.location_area}
-             ${event.location_address}
-${event.capacity ? `👥 Capacity: ${event.capacity} attendees` : ''}
+HERE'S WHAT YOU NEED TO KNOW:
+📅 When: ${eventDate} at ${eventTime}
+📍 Where: ${event.location_building}, ${event.location_area}
+${event.location_address ? `         ${event.location_address}` : ''}
+${event.capacity ? `👥 Capacity: ${event.capacity} people (and you're one of them!)` : ''}
 
-${event.for_externals ? `📋 INFORMATION FOR EXTERNAL STUDENTS
+${event.for_externals ? `QUICK HEADS-UP FOR EXTERNAL STUDENTS:
 ${event.for_externals}
 
-` : ''}We look forward to seeing you there! 🌟
+` : ''}Can't wait to see you there! If you have any burning questions (or even lukewarm ones), just reply to this email.
 
-Best regards,
-The London Student Network Team
+Cheers,
+The LSN team
 
 ---
-If you have any questions, please contact us at hello@londonstudentnetwork.com`;
+Questions? Drop us a line at hello@londonstudentnetwork.com`;
 };
 
 export default EventRegistrationEmailFallbackPayload;

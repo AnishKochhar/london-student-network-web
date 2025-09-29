@@ -3,6 +3,8 @@ import ScrollingPartnersSection from "./components/homepage/scrolling-partners-s
 import BackgroundImage from "./components/background-image";
 import { OrganizationStructuredData, WebsiteStructuredData } from "./components/seo/structured-data";
 
+export const revalidate = 14400; // Revalidate every 4 hours
+
 export default function Home() {
     return (
         <>

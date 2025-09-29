@@ -21,60 +21,35 @@ const EventRegistrationEmailPayload = (
         : event.time;
 
     return `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-                <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Registration Confirmed!</h1>
-            </div>
+        <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto;">
+            <p>Hey ${userName}! 👋</p>
 
-            <div style="padding: 30px; background: #f8f9fa; border-radius: 0 0 10px 10px;">
-                <p style="font-size: 16px; margin-bottom: 20px;">Hi ${userName},</p>
+            <p>Great news! You're officially signed up for <strong>${event.title}</strong>. We promise it'll be way more fun than your average Tuesday.</p>
 
-                <p style="font-size: 16px; margin-bottom: 25px;">
-                    You're all set! You've successfully registered for <strong>${event.title}</strong>.
-                </p>
+            <p><strong>Here's what you need to know:</strong></p>
 
-                <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin-bottom: 25px;">
-                    <h2 style="color: #667eea; margin-top: 0; font-size: 20px;">Event Details</h2>
+            <p style="margin-left: 20px;">
+                📅 <strong>When:</strong> ${eventDate} at ${eventTime}<br>
+                📍 <strong>Where:</strong> ${event.location_building}, ${event.location_area}<br>
+                ${event.location_address ? `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${event.location_address}<br>` : ''}
+                ${event.capacity ? `👥 <strong>Capacity:</strong> ${event.capacity} people (and you're one of them!)` : ''}
+            </p>
 
-                    <p style="margin: 10px 0;">
-                        <strong>📅 Date:</strong> ${eventDate}
-                    </p>
+            ${event.for_externals ? `
+            <p style="background: #f9f9f9; padding: 15px; border-left: 3px solid #007BFF; margin: 20px 0;">
+                <strong>Quick heads-up for external students:</strong><br>
+                ${event.for_externals}
+            </p>
+            ` : ''}
 
-                    <p style="margin: 10px 0;">
-                        <strong>⏰ Time:</strong> ${eventTime}
-                    </p>
+            <p>Can't wait to see you there! If you have any burning questions (or even lukewarm ones), just hit reply.</p>
 
-                    <p style="margin: 10px 0;">
-                        <strong>📍 Location:</strong><br>
-                        ${event.location_building}<br>
-                        ${event.location_area}<br>
-                        ${event.location_address}
-                    </p>
+            <p>Cheers,</p>
+            <p style="margin-left: 20px;">The LSN team</p>
 
-                    ${event.capacity ? `
-                    <p style="margin: 10px 0;">
-                        <strong>👥 Capacity:</strong> ${event.capacity} attendees
-                    </p>
-                    ` : ''}
-                </div>
-
-                ${event.for_externals ? `
-                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107; margin-bottom: 25px;">
-                    <h3 style="color: #856404; margin-top: 0; font-size: 16px;">📋 Information for External Students</h3>
-                    <p style="color: #856404; margin: 5px 0;">${event.for_externals}</p>
-                </div>
-                ` : ''}
-
-                <p style="font-size: 16px; margin-bottom: 20px;">
-                    We're looking forward to seeing you there! If you have any questions, feel free to reach out.
-                </p>
-
-                <p style="font-size: 14px; color: #666; margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-                    Best regards,<br>
-                    <strong>The London Student Network Team</strong><br>
-                    <a href="mailto:hello@londonstudentnetwork.com" style="color: #667eea;">hello@londonstudentnetwork.com</a>
-                </p>
-            </div>
+            <p style="font-size: 12px; color: #666; margin-top: 30px; border-top: 1px solid #eee; padding-top: 15px;">
+                Questions? Drop us a line at <a href="mailto:hello@londonstudentnetwork.com" style="color: #007BFF;">hello@londonstudentnetwork.com</a>
+            </p>
         </div>
     `;
 };

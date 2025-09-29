@@ -33,6 +33,8 @@ export interface EditEventProps {
 export interface EventModalProps {
     event: Event;
     onClose: () => void;
+    isRegistered?: boolean;
+    onRegistrationChange?: () => void;
 }
 
 export interface EventCardProps {
@@ -102,6 +104,7 @@ export type User = {
     password: string;
     role: string;
     email_verified: boolean;
+    last_login?: string; // TIMESTAMPTZ from database
 };
 
 export interface Username {

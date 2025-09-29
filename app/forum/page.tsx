@@ -65,7 +65,13 @@ export default function ForumPage() {
     const handleAddTopicFilter = useCallback(
         (topicName: string) => {
             const filterId = `topic-${topicName}`;
-            if (!activeFilters.some((f) => f.id === filterId)) {
+            const existingFilter = activeFilters.find((f) => f.id === filterId);
+
+            if (existingFilter) {
+                // Remove the filter if it already exists (toggle off)
+                handleRemoveFilter(filterId);
+            } else {
+                // Add the filter if it doesn't exist
                 handleAddFilter({
                     id: filterId,
                     type: "tag",
@@ -74,7 +80,28 @@ export default function ForumPage() {
                 });
             }
         },
-        [activeFilters, handleAddFilter],
+        [activeFilters, handleAddFilter, handleRemoveFilter],
+    );
+
+    const handleAddAuthorFilter = useCallback(
+        (username: string) => {
+            const filterId = `author-${username}`;
+            const existingFilter = activeFilters.find((f) => f.id === filterId);
+
+            if (existingFilter) {
+                // Remove the filter if it already exists (toggle off)
+                handleRemoveFilter(filterId);
+            } else {
+                // Add the filter if it doesn't exist
+                handleAddFilter({
+                    id: filterId,
+                    type: "author",
+                    label: `@${username}`,
+                    value: username,
+                });
+            }
+        },
+        [activeFilters, handleAddFilter, handleRemoveFilter],
     );
 
     // Thread actions
@@ -271,9 +298,10 @@ export default function ForumPage() {
     );
 
     return (
-        <main className="relative flex min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] text-white">
-            {/* Main Content */}
-            <div className="flex-1 p-8 pt-8">
+        <main className="relative min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] text-white">
+            <div className="flex">
+                {/* Main Content */}
+                <div className="flex-1 p-4 sm:p-8 pt-4 sm:pt-8 min-w-0">
                 <ForumControls
                     searchTerm={searchTerm}
                     setSearchTerm={handleSearchChange}
@@ -339,9 +367,15 @@ export default function ForumPage() {
                         )}
                     </>
                 )}
-            </div>
-            <div className="hidden lg:block lg:w-80">
-                <Sidebar onTopicClick={handleAddTopicFilter} />
+                </div>
+                <div className="hidden lg:block lg:w-80 flex-shrink-0">
+                    <Sidebar
+                        onTopicClick={handleAddTopicFilter}
+                        onAuthorClick={handleAddAuthorFilter}
+                        activeTopics={activeFilters.filter(f => f.type === "tag").map(f => f.value)}
+                        activeAuthors={activeFilters.filter(f => f.type === "author").map(f => f.value)}
+                    />
+                </div>
             </div>
 
             {/* Thread Detail Modal */}

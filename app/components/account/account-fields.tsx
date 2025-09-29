@@ -54,7 +54,7 @@ export default function AccountFields({
     const router = useRouter();
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <div className="space-y-4 md:space-y-6">
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                     Description
@@ -88,7 +88,7 @@ export default function AccountFields({
                 </div>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 lg:col-span-2">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                     Tags
                 </label>
@@ -108,7 +108,7 @@ export default function AccountFields({
                 </div>
             </div>
 
-            <div className="lg:col-span-2">
+            <div>
                 <Button
                     variant="filled"
                     className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 py-2 px-6 rounded-lg"

@@ -679,7 +679,7 @@ export const SocietyLogos = [
 		src: "/societies/icl-neurotech.png",
 	},
 	{ name: "Imperial College Radio Society", src: "/societies/ic-radio.svg" },
-	{ name: "KCL Neurotech Society", src: "/societies/kcl-neurotech.jpeg" },
+	{ name: "KCL Neurotech Society", src: "/societies/kcl-neurotech.png" },
 	{ name: "LSE SU European Society", src: "/societies/LSN.png" },
 	{ name: "Global China and Asia Study Society", src: "/societies/LSN.png" },
 	{ name: "Imperial College Finance Society", src: "/societies/LSN.png" },
@@ -774,3 +774,4 @@ export function generateToken(): string {
 
 	return token;
 }
+

@@ -137,7 +137,7 @@ function ResetPassword() {
     }
 
     return (
-        <main className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10">
+        <main className="flex flex-col items-center min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] p-10 text-gray-300">
             <h1 className="text-2xl p-10 text-center y-8 sm:my-8 tracking-wide capitalize">
                 Reset Your Password
             </h1>

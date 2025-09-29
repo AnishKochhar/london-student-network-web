@@ -150,8 +150,6 @@ export default function ContentItem({
     if (type === "thread") {
         const thread = item as ThreadData;
 
-        console.log(replyCount, thread);
-
         return (
             <>
                 {/* Mobile View */}
@@ -174,7 +172,7 @@ export default function ContentItem({
                         {/* Title with Edit/Delete buttons */}
                         <div className="flex-1">
                             <div className="flex justify-between items-start">
-                                <h1 className="text-xl font-bold text-white break-all overflow-hidden overflow-ellipsis">
+                                <h1 className="text-xl font-bold text-white break-words overflow-hidden overflow-ellipsis">
                                     {thread.title}
                                 </h1>
 
@@ -287,7 +285,7 @@ export default function ContentItem({
                     {/* Content Section */}
                     <div className="flex-1">
                         <div className="flex justify-between items-start mb-3">
-                            <h1 className="text-2xl font-bold text-white break-all overflow-hidden overflow-ellipsis">
+                            <h1 className="text-2xl font-bold text-white break-words overflow-hidden overflow-ellipsis">
                                 {thread.title}
                             </h1>
 

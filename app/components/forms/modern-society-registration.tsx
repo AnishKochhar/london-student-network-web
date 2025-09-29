@@ -7,11 +7,11 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { SocietyRegisterFormData } from "@/app/lib/types";
 import { LondonUniversities } from "@/app/lib/utils";
-import getPredefinedTags from "@/app/lib/utils";
 import ModernFormStep from "./modern-form-step";
 import { ModernInput } from "./modern-input";
 import { ModernSelect } from "./modern-select";
-import ModernTagsSelect from "./modern-tags-select";
+import CategoryTagsSelect from "./category-tags-select";
+import MarkdownEditor from "../markdown/markdown-editor";
 import ErrorModal from "./error-modal";
 import {
     EyeIcon,
@@ -36,7 +36,6 @@ export default function ModernSocietyRegistration() {
     const [direction, setDirection] = useState<"forward" | "backward">(
         "forward",
     );
-    const [predefinedTags, setPredefinedTags] = useState([]);
 
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     const totalSteps = 5;
@@ -67,13 +66,6 @@ export default function ModernSocietyRegistration() {
         );
     }, [watchedValues.university]);
 
-    useEffect(() => {
-        const fetchTags = async () => {
-            const tags = await getPredefinedTags();
-            setPredefinedTags(tags);
-        };
-        fetchTags();
-    }, []);
 
     useEffect(() => {
         register("uploadedImage");
@@ -395,10 +387,10 @@ export default function ModernSocietyRegistration() {
                                 error={errors.phoneNumber?.message}
                                 {...register("phoneNumber", {
                                     required: "Phone number is required",
-                                    pattern: {
-                                        value: /^[\+]?[1-9][\d]{0,15}$/,
-                                        message: "Invalid phone number format",
-                                    },
+                                    // pattern: {
+                                    //     value: /^[\+]?[1-9][\d]{0,15}$/,
+                                    //     message: "Invalid phone number format",
+                                    // },
                                 })}
                             />
                             <p className="text-gray-400 text-xs">
@@ -524,21 +516,32 @@ export default function ModernSocietyRegistration() {
                     <div className="space-y-6">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <label className="text-gray-300 text-left block">
+                                <label className="text-gray-300 text-left block text-lg font-medium">
                                     Society Description (optional)
                                 </label>
-                                <textarea
-                                    placeholder="e.g. We are a vibrant community celebrating Lebanese culture through social events, cultural nights, and networking opportunities. Join us to connect with fellow Lebanese students and explore our rich heritage together."
-                                    rows={4}
-                                    className="w-full p-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent resize-none"
-                                    {...register("description")}
+                                <Controller
+                                    name="description"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <MarkdownEditor
+                                            value={field.value || ""}
+                                            onChange={field.onChange}
+                                            placeholder="e.g. We are a vibrant community celebrating Lebanese culture through social events, cultural nights, and networking opportunities. Join us to connect with fellow Lebanese students and explore our rich heritage together."
+                                            height={200}
+                                        />
+                                    )}
                                 />
                             </div>
-                            <ModernInput
-                                placeholder="e.g. https://www.icradio.com"
-                                error={errors.website?.message}
-                                {...register("website")}
-                            />
+                            <div className="space-y-2">
+                                <label className="text-gray-300 text-left block text-lg font-medium">
+                                    Website (optional)
+                                </label>
+                                <ModernInput
+                                    placeholder="e.g. https://www.icradio.com"
+                                    error={errors.website?.message}
+                                    {...register("website")}
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-4">
@@ -549,9 +552,8 @@ export default function ModernSocietyRegistration() {
                                 name="tags"
                                 control={control}
                                 render={({ field }) => (
-                                    <ModernTagsSelect
-                                        options={predefinedTags}
-                                        value={field.value || []}
+                                    <CategoryTagsSelect
+                                        value={(field.value || []) as unknown as number[]}
                                         onChange={(selectedValues) => {
                                             if (selectedValues.length > 3) {
                                                 toast.error(
@@ -561,7 +563,6 @@ export default function ModernSocietyRegistration() {
                                             }
                                             field.onChange(selectedValues);
                                         }}
-                                        placeholder="Select up to 3 tags for your society"
                                         maxTags={3}
                                     />
                                 )}
