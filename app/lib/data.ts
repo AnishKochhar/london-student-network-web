@@ -104,17 +104,34 @@ export async function fetchUpcomingEvents() {
     }
 }
 
-export async function fetchUserEvents(organiser_uid: string, limit: number = 100, offset: number = 0, includeHidden: boolean = false) {
+export async function fetchUserEvents(organiser_uid: string, limit: number = 100, offset: number = 0, includeHidden: boolean = false, reverseOrder: boolean = false) {
     try {
         let events, countResult;
 
-        if (includeHidden) {
-            // Include hidden events
+        if (includeHidden && reverseOrder) {
+            // Include hidden events, newest first (for account page)
             events = await sql`
                 SELECT * FROM events
                 WHERE organiser_uid = ${organiser_uid}
                 AND (is_deleted IS NULL OR is_deleted = false)
-                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0)) DESC
+                LIMIT ${limit} OFFSET ${offset}
+            `;
+
+            countResult = await sql`
+                SELECT COUNT(*) as total FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+            `;
+        } else if (includeHidden && !reverseOrder) {
+            // Include hidden events, oldest first
+            events = await sql`
+                SELECT * FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
                     EXTRACT(hour FROM start_time::time)::int,
                     EXTRACT(minute FROM start_time::time)::int, 0)) ASC
                 LIMIT ${limit} OFFSET ${offset}
@@ -125,16 +142,35 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
                 WHERE organiser_uid = ${organiser_uid}
                 AND (is_deleted IS NULL OR is_deleted = false)
             `;
-        } else {
-            // Exclude hidden events
+        } else if (!includeHidden && reverseOrder) {
+            // Exclude hidden events, newest first (for account page if needed)
             events = await sql`
                 SELECT * FROM events
                 WHERE organiser_uid = ${organiser_uid}
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
-                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
                     EXTRACT(hour FROM start_time::time)::int,
-                    EXTRACT(minute FROM start_time::time)::int, 0)) ASC
+                    EXTRACT(minute FROM start_time::time)::int, 0)) DESC
+                LIMIT ${limit} OFFSET ${offset}
+            `;
+
+            countResult = await sql`
+                SELECT COUNT(*) as total FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+            `;
+        } else {
+            // Exclude hidden events, newest first (for society pages)
+            events = await sql`
+                SELECT * FROM events
+                WHERE organiser_uid = ${organiser_uid}
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0)) DESC
                 LIMIT ${limit} OFFSET ${offset}
             `;
 
