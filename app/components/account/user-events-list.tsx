@@ -29,7 +29,7 @@ export default function UserEventsList({
         hasMore: false
     });
 
-    const fetchUserEvents = useCallback(async (isLoadMore: boolean = false) => {
+    const fetchUserEvents = useCallback(async (isLoadMore: boolean = false, currentEventCount: number = 0) => {
         try {
             if (isLoadMore) {
                 setLoadingMore(true);
@@ -38,7 +38,10 @@ export default function UserEventsList({
                 setError(null);
             }
 
-            const response = await fetch("/api/account/events", {
+            // Use different API endpoint based on whether this is for editing (account page) or viewing (society page)
+            const apiEndpoint = editEvent ? "/api/account/events" : "/api/societies/events";
+
+            const response = await fetch(apiEndpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -46,7 +49,7 @@ export default function UserEventsList({
                 body: JSON.stringify({
                     user_id,
                     limit: 12,
-                    offset: isLoadMore ? pagination.offset + 12 : 0
+                    offset: isLoadMore ? currentEventCount : 0
                 }),
             });
 
@@ -69,11 +72,11 @@ export default function UserEventsList({
             setLoading(false);
             setLoadingMore(false);
         }
-    }, [user_id, pagination.offset]);
+    }, [user_id, editEvent]);
 
     useEffect(() => {
         fetchUserEvents();
-    }, [user_id, fetchUserEvents]);
+    }, [fetchUserEvents]);
 
     // Only refetch data when returning from edit page or after a significant time away
     useEffect(() => {
@@ -102,7 +105,7 @@ export default function UserEventsList({
 
     const loadMoreEvents = () => {
         if (pagination.hasMore && !loadingMore) {
-            fetchUserEvents(true);
+            fetchUserEvents(true, userEvents.length);
         }
     };
 
@@ -149,7 +152,7 @@ export default function UserEventsList({
                 allEvents={userEvents}
                 activeTags={[]} // Not used when showAllEvents=true
                 editEvent={editEvent}
-                reverseOrder={true} // Show most recent events first on account page
+                reverseOrder={true} // Show most recent month/year sections first
                 showAllEvents={true} // Show ALL events regardless of tags
                 onEventUpdate={handleEventUpdate}
             />

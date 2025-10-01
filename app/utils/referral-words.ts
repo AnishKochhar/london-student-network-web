@@ -7,14 +7,14 @@ export const adjectives = [
 
 export const nouns = [
     'tiger', 'eagle', 'lion', 'wolf', 'bear', 'fox', 'hawk', 'shark', 'whale', 'dragon',
-    'phoenix', 'falcon', 'panther', 'cobra', 'storm', 'flame', 'wave', 'star', 'moon', 'sun',
-    'thunder', 'lightning', 'ocean', 'mountain', 'forest', 'river', 'cloud', 'wind', 'fire', 'ice'
+    'phoenix', 'falcon', 'panther', 'cobra', 'storm', 'flame', 
+    'thunder', 'lightning', 'mountain', 'river', 'cloud', 'wind', 'fire', 'ice'
 ];
 
 export const actions = [
     'runs', 'flies', 'jumps', 'roars', 'shines', 'dances', 'soars', 'glows', 'strikes', 'races',
     'leaps', 'charges', 'blazes', 'flows', 'rises', 'sparkles', 'dashes', 'glides', 'bounces', 'zooms',
-    'flashes', 'surges', 'rushes', 'sweeps', 'bursts', 'shoots', 'spins', 'swirls', 'drifts', 'rolls'
+    'flashes', 'surges', 'rushes', 'sweeps', 'bursts', 'spins', 'swirls', 'drifts', 'rolls'
 ];
 
 export function generateThreeWordCode(): string {
