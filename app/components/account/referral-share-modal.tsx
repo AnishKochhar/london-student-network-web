@@ -89,7 +89,7 @@ export default function ReferralShareModal({ isOpen, onClose }: ReferralShareMod
                         stiffness: 300,
                         duration: 0.3
                     }}
-                    className="relative bg-white rounded-2xl p-6 mx-4 max-w-md w-full shadow-2xl"
+                    className="relative bg-white rounded-2xl p-6 mx-4 w-full max-w-lg sm:max-w-xl md:max-w-2xl lg:max-w-4xl max-h-[80vh] overflow-y-auto shadow-2xl"
                 >
                     {/* Close button */}
                     <button
@@ -123,17 +123,17 @@ export default function ReferralShareModal({ isOpen, onClose }: ReferralShareMod
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Your Referral Link
                                 </label>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 flex items-center bg-white rounded-md border border-gray-300 px-3 py-2">
+                                <div className="bg-white rounded-md border border-gray-300 px-3 py-2 overflow-x-auto">
+                                    <div className="flex items-center gap-1 whitespace-nowrap">
                                         <span className="text-gray-500 text-sm">
                                             {displayBaseUrl}/code/
                                         </span>
-                                        <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded text-sm break-all">
+                                        <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded text-sm flex-shrink-0 whitespace-nowrap">
                                             {referralData.code}
                                         </span>
                                     </div>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-gray-500 mt-2">
                                     💡 Your unique three-word code: <span className="font-semibold">{referralData.code}</span>
                                 </p>
                             </div>

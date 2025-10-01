@@ -71,7 +71,7 @@ export async function fetchAllUpcomingEvents() {
     try {
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
-			WHERE COALESCE(end_datetime::date, make_date(year, month, day)) >= CURRENT_DATE
+			WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
 			AND (is_deleted IS NULL OR is_deleted = false)
 			AND (is_hidden IS NULL OR is_hidden = false)
 			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
@@ -89,7 +89,7 @@ export async function fetchUpcomingEvents() {
     try {
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
-			WHERE COALESCE(end_datetime::date, make_date(year, month, day)) >= CURRENT_DATE
+			WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
 			AND (is_deleted IS NULL OR is_deleted = false)
 			AND (is_hidden IS NULL OR is_hidden = false)
 			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
