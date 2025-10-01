@@ -1,4 +1,4 @@
-import { BASE_URL } from "@/app/lib/config";
+import { fetchWebsiteStats } from "@/app/lib/data";
 import { WebsiteStats } from "@/app/lib/types";
 import { FallbackStatistics } from "@/app/lib/utils";
 import StatisticsClient from "./statistics-client";
@@ -22,25 +22,13 @@ const statisticsMap = [
 ];
 
 export default async function Statistics() {
-	// console.log(process.env)
 	let stats: WebsiteStats = FallbackStatistics;
 	try {
-		const res = await fetch(`${BASE_URL}/api/statistics`, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			next: { revalidate: 3600 }, // Enable ISR (revalidate every 1 hour)
-		});
-		if (!res.ok) {
-			throw new Error("Failed to fetch statistics");
-		}
-		stats = await res.json();
+		const result = await fetchWebsiteStats();
+		stats = result as WebsiteStats;
 	} catch (error) {
-		console.error("Error fetching data:", error);
+		console.error("Error fetching statistics:", error);
 	}
-
-	// console.log("Parsed stats data:", JSON.stringify(stats, null, 2))
 
 	return <StatisticsClient stats={stats} statisticsMap={statisticsMap} />;
 }
