@@ -110,7 +110,7 @@ function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
                         <Button
                             variant="ghost"
                             onClick={closeMenu}
-                            className="text-lg font-semibold text-white"
+                            className="text-xl font-semibold text-white"
                         >
                             Close
                         </Button>
@@ -165,7 +165,7 @@ export default function Header() {
                 <Button
                     variant="ghost"
                     onClick={toggleMenu}
-                    className="md:hidden text-white"
+                    className="md:hidden text-white text-xl"
                 >
                     Menu
                 </Button>
