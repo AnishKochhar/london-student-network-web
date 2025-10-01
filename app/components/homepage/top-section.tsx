@@ -1,6 +1,7 @@
 import { AnimatedText } from "@/app/components/animated-text";
 import NotificationView from "./notification-view";
 import UpcomingEventsSection from "./events-section";
+import HottestEventSection from "./hottest-event-section";
 import { Suspense } from "react";
 import Statistics from "./statistics";
 import ForStudentsClient from "./for-students-client";
@@ -13,6 +14,9 @@ export default function HomePageTopSection() {
         <div className="flex flex-col bg-black bg-opacity-50 text-white overflow-x-hidden">
             <NotificationView />
             <Title />
+            <Suspense fallback={null}>
+                <HottestEventSection />
+            </Suspense>
             <UpcomingEventsSection />
             <ForStudentsClient />
             <ForSocietiesClient />

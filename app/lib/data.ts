@@ -219,6 +219,28 @@ export async function fetchEventById(id: string) {
     }
 }
 
+export async function fetchHighlightedEvent(eventId: string) {
+    try {
+        const data = await sql<SQLEvent>`
+			SELECT *
+			FROM events
+			WHERE id = ${eventId}
+			AND (is_deleted IS NULL OR is_deleted = false)
+			AND (is_hidden IS NULL OR is_hidden = false)
+			AND COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW();
+		`;
+
+        if (data.rows.length === 0) {
+            return null;
+        }
+
+        return convertSQLEventToEvent(data.rows[0]);
+    } catch (error) {
+        console.error("Database error:", error);
+        return null;
+    }
+}
+
 export async function fetchSQLEventById(id: string) {
     try {
         const data = await sql<SQLEvent>`

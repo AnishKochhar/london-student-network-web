@@ -1,6 +1,7 @@
 import HomePageTopSection from "./components/homepage/top-section";
 import ScrollingPartnersSection from "./components/homepage/scrolling-partners-section";
 import BackgroundImage from "./components/background-image";
+import EventToastNotification from "./components/homepage/event-toast-notification";
 import { OrganizationStructuredData, WebsiteStructuredData } from "./components/seo/structured-data";
 
 export const revalidate = 14400; // Revalidate every 4 hours
@@ -37,6 +38,7 @@ export default function Home() {
                 <HomePageTopSection />
                 <ScrollingPartnersSection />
             </main>
+            <EventToastNotification />
         </>
     );
 }
