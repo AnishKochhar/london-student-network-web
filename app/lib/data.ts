@@ -34,7 +34,7 @@ export async function fetchWebsiteStats() {
             (SELECT COUNT(*) FROM users WHERE role = 'organiser') AS total_societies
     	`;
         // console.log("fetched stats:", stats.rows)
-        return stats.rows;
+        return stats.rows[0];
     } catch (error) {
         console.error("Database error:", error);
         // TODO: here is the error, so it will always return the fallback stat
