@@ -7,6 +7,7 @@ import { Event } from "@/app/lib/types";
 import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShimmerButton } from "@/app/components/ui/shimmer-button";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 
 interface EventRegistrationButtonProps {
     event: Event;
@@ -81,7 +82,7 @@ export default function EventRegistrationButton({
 
                 // If in modal context, redirect to event page
                 if (context === "modal") {
-                    router.push(`/events/${event.id}`);
+                    router.push(`/events/${base16ToBase62(event.id)}`);
                 }
             } else if (result.registered) {
                 toast.success("You're already registered for this event");
@@ -89,7 +90,7 @@ export default function EventRegistrationButton({
 
                 // If in modal context, redirect to event page
                 if (context === "modal") {
-                    router.push(`/events/${event.id}`);
+                    router.push(`/events/${base16ToBase62(event.id)}`);
                 }
             } else {
                 // Provide helpful error messages based on the error

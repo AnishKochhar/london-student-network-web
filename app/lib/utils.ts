@@ -599,6 +599,9 @@ export function createModernEventObject(data: EventFormData): Event {
 }
 
 export function createSQLEventData(data: EventFormData): SQLEventData {
+	// User enters time in London timezone, we store as-is (treat input as UTC timestamp)
+	// The datetime-local input gives us a string like "2025-10-04T19:00"
+	// We append that directly and convert to ISO string
 	const startDateTime = new Date(`${data.start_datetime}T${data.start_time}`);
 	const endDateTime = new Date(`${data.end_datetime}T${data.end_time}`);
 
