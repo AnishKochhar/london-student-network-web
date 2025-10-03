@@ -3,6 +3,7 @@ export interface Event {
     title: string;
     description: string;
     organiser: string;
+    organiser_uid?: string; // Added for logo fetching
     time: string; // Legacy field
     date: string; // Legacy field
     location_building: string;

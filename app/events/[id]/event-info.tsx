@@ -31,6 +31,8 @@ export default function EventInfo() {
     const [showGuestRegistration, setShowGuestRegistration] = useState<boolean>(false);
     const [showShareModal, setShowShareModal] = useState<boolean>(false);
     const [isRegistered, setIsRegistered] = useState<boolean>(false);
+    const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
+    const [isLoadingLogo, setIsLoadingLogo] = useState(false);
 
     // Debug logging for isRegistered state changes
     useEffect(() => {
@@ -159,6 +161,32 @@ export default function EventInfo() {
         fetchData();
     }, [event_id]);
 
+    // Fetch society logo from database if not found locally
+    useEffect(() => {
+        if (!event) return;
+
+        const societyLogo = returnLogo(event.organiser);
+
+        if (!societyLogo.found && event.organiser_uid) {
+            setIsLoadingLogo(true);
+            fetch("/api/societies/logo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ organiser_uid: event.organiser_uid }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.logo_url) {
+                        setDbLogoUrl(data.logo_url);
+                    }
+                })
+                .catch(error => console.error("Error fetching logo:", error))
+                .finally(() => setIsLoadingLogo(false));
+        }
+    }, [event]);
+
     // Handle loading and error states
     if (loading) {
         return <EventInfoPageSkeleton />;
@@ -229,15 +257,17 @@ export default function EventInfo() {
                         />
                     </div>
                     <div className="flex flex-col md:flex-row items-center">
-                        {societyLogo.found && (
+                        {(societyLogo.found || dbLogoUrl) && !isLoadingLogo && (
                             <Image
                                 src={
-                                    societyLogo.src ||
-                                    "/images/societies/roar.png"
+                                    societyLogo.found
+                                        ? societyLogo.src || "/images/societies/roar.png"
+                                        : dbLogoUrl || "/images/societies/roar.png"
                                 }
                                 alt="Society Logo"
                                 width={50}
                                 height={50}
+                                quality={65}
                                 className="object-contain mr-2"
                             />
                         )}
