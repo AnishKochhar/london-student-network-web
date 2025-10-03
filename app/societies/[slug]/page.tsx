@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import UserEventsList from "@/app/components/account/user-events-list";
 import NextImage from "next/image";
-import { FetchAccountDetailsPromiseInterface } from "@/app/lib/types";
 import { getAllTags, getCategoryByTagValue } from "@/app/utils/tag-categories";
 import { formattedWebsite } from "@/app/lib/utils";
 import * as skeletons from "@/app/components/skeletons/unique-society";

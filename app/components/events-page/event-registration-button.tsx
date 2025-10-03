@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShimmerButton } from "@/app/components/ui/shimmer-button";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import RegistrationConfirmationModal from "./registration-confirmation-modal";
 
 interface EventRegistrationButtonProps {
     event: Event;
@@ -28,11 +29,12 @@ export default function EventRegistrationButton({
 }: EventRegistrationButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
+    const [showRegistrationConfirmation, setShowRegistrationConfirmation] = useState(false);
     const [isCheckingStatus] = useState(false);
     const { data: session } = useSession();
     const router = useRouter();
 
-    const handleRegister = async () => {
+    const handleRegisterClick = () => {
         // If there's an external registration link, open it in a new tab
         if (event?.sign_up_link) {
             window.open(event.sign_up_link, '_blank', 'noopener,noreferrer');
@@ -55,6 +57,13 @@ export default function EventRegistrationButton({
             toast.error("Your profile is incomplete. Please update your details first.");
             return;
         }
+
+        // Show confirmation modal for logged-in users
+        setShowRegistrationConfirmation(true);
+    };
+
+    const handleRegister = async () => {
+        setShowRegistrationConfirmation(false);
 
         setIsLoading(true);
 
@@ -259,19 +268,28 @@ export default function EventRegistrationButton({
         }
 
         return (
-            <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
-                <ShimmerButton
-                    onClick={handleRegister}
-                    disabled={isPreview || isLoading}
-                    variant="register"
-                    size="lg"
-                    icon="arrow"
-                    loading={isLoading}
-                    className="w-full min-w-0"
-                >
-                    {isLoading ? "Registering..." : "Register for Event"}
-                </ShimmerButton>
-            </div>
+            <>
+                <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
+                    <ShimmerButton
+                        onClick={handleRegisterClick}
+                        disabled={isPreview || isLoading}
+                        variant="register"
+                        size="lg"
+                        icon="arrow"
+                        loading={isLoading}
+                        className="w-full min-w-0"
+                    >
+                        {isLoading ? "Registering..." : "Register for Event"}
+                    </ShimmerButton>
+                </div>
+                <RegistrationConfirmationModal
+                    isOpen={showRegistrationConfirmation}
+                    onClose={() => setShowRegistrationConfirmation(false)}
+                    onConfirm={handleRegister}
+                    eventTitle={event.title}
+                    isRegistering={isLoading}
+                />
+            </>
         );
     }
 
@@ -361,16 +379,25 @@ export default function EventRegistrationButton({
     }
 
     return (
-        <ShimmerButton
-            onClick={handleRegister}
-            disabled={isPreview || isLoading}
-            variant="register"
-            size="md"
-            icon="arrow"
-            loading={isLoading}
-            className="w-full"
-        >
-            {isLoading ? "Registering..." : "Register for Event"}
-        </ShimmerButton>
+        <>
+            <ShimmerButton
+                onClick={handleRegisterClick}
+                disabled={isPreview || isLoading}
+                variant="register"
+                size="md"
+                icon="arrow"
+                loading={isLoading}
+                className="w-full"
+            >
+                {isLoading ? "Registering..." : "Register for Event"}
+            </ShimmerButton>
+            <RegistrationConfirmationModal
+                isOpen={showRegistrationConfirmation}
+                onClose={() => setShowRegistrationConfirmation(false)}
+                onConfirm={handleRegister}
+                eventTitle={event.title}
+                isRegistering={isLoading}
+            />
+        </>
     );
 }

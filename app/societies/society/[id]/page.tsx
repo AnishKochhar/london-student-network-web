@@ -73,6 +73,7 @@ export default function SocietyRedirectPage() {
 
 // The following is the old society page code - kept for reference but not used
 // This page now only handles redirects
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function OldSocietyPage_UNUSED() {
     const [loadingDetails, setLoadingDetails] = useState<boolean>(true);
     const [loadingName, setLoadingName] = useState<boolean>(true);

@@ -683,7 +683,7 @@ export default function ModernSocietyRegistration() {
                                     <span className="text-red-400 ml-1">*</span>
                                 </label>
                                 <p className="text-sm text-gray-400">
-                                    This will be your society's web address. Choose carefully - it cannot be changed later.
+                                    This will be your society&apos;s web address. Choose carefully - it cannot be changed later.
                                 </p>
 
                                 <div className="space-y-2">
