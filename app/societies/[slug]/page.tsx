@@ -1,243 +1,101 @@
 "use client";
 
-// REDIRECT PAGE: This page redirects UUID-based URLs to slug-based URLs
-// Old URL: /societies/society/[uuid]
-// New URL: /societies/[slug]
-// This maintains backward compatibility for bookmarks and old links
-
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-// import { Button } from "@/app/components/button";
 import UserEventsList from "@/app/components/account/user-events-list";
-import NextImage from "next/image"; // using NextImage instead of Image to avoid Namespace clashs with javascript Image method in extractAndSetMainColor
-import { FetchAccountDetailsPromiseInterface } from "@/app/lib/types";
+import NextImage from "next/image";
 import { getAllTags, getCategoryByTagValue } from "@/app/utils/tag-categories";
 import { formattedWebsite } from "@/app/lib/utils";
 import * as skeletons from "@/app/components/skeletons/unique-society";
-// import SendEmailPage from "../../message/[id]/page";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
 import { ExternalLink, MessageSquare, Calendar, Info, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import ContactForm from "@/app/components/societies/contact-form";
 import { ShimmerButton } from "@/app/components/ui/shimmer-button";
 
-export default function SocietyRedirectPage() {
-    const { id } = useParams();
-    const router = useRouter();
-    const stringid = id instanceof Array ? id[0] : id;
-
-    // Redirect to slug-based URL
-    useEffect(() => {
-        const redirectToSlug = async () => {
-            try {
-                const response = await fetch("/api/societies/get-slug", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ organiser_uid: stringid }),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.slug) {
-                        // Permanent redirect (301)
-                        router.replace(`/societies/${data.slug}`);
-                        return;
-                    }
-                }
-
-                // If slug not found, redirect to societies page
-                router.replace("/societies");
-            } catch (error) {
-                console.error("Error fetching slug for redirect:", error);
-                router.replace("/societies");
-            }
-        };
-
-        if (stringid) {
-            redirectToSlug();
-        }
-    }, [stringid, router]);
-
-    // Show loading state while redirecting
-    return (
-        <div className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] flex items-center justify-center">
-            <div className="text-white text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-                <p className="text-lg">Redirecting...</p>
-            </div>
-        </div>
-    );
-}
-
-// The following is the old society page code - kept for reference but not used
-// This page now only handles redirects
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function OldSocietyPage_UNUSED() {
+export default function SocietySlugPage() {
     const [loadingDetails, setLoadingDetails] = useState<boolean>(true);
-    const [loadingName, setLoadingName] = useState<boolean>(true);
     const [name, setName] = useState<string>("");
+    const [societyId, setSocietyId] = useState<string>("");
     const [logo, setLogo] = useState<string>("");
     const [description, setDescription] = useState<string>("");
     const [website, setWebsite] = useState<string>("");
     const [tags, setTags] = useState<string[]>([]);
-    // const [mainColor, setMainColor] = useState<string>('');
-    const mainColor = "";
-    const [bannerBackground, setBannerBackground] =
-        useState<string>("transparent");
-    const { id } = useParams();
-    const stringid = id instanceof Array ? id[0] : id;
+    const [mainColor] = useState<string>("");
+    const [bannerBackground, setBannerBackground] = useState<string>("transparent");
+    const { slug } = useParams();
+    const router = useRouter();
+    const stringSlug = slug instanceof Array ? slug[0] : slug;
 
-    // fetch and set logo, website, description, tags, if available
+    // Fetch society details by slug
     useEffect(() => {
-        const fetchDetails = async (id: string) => {
+        const fetchSocietyBySlug = async (slug: string) => {
             try {
                 setLoadingDetails(true);
-                const result: FetchAccountDetailsPromiseInterface =
-                    await fetchAccountDetails(id);
+                const response = await fetch("/api/societies/get-by-slug", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ slug }),
+                });
 
-                setLogo(result.logo_url);
-                setDescription(result.description);
-                setWebsite(result.website);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        // Society not found, redirect to 404
+                        router.push("/404");
+                        return;
+                    }
+                    throw new Error("Failed to fetch society details");
+                }
 
-                if (result.tags.length > 0) {
-                    const allTags = getAllTags();
+                const data = await response.json();
+                if (data.success && data.society) {
+                    const society = data.society;
 
-                    // Map tag values to labels using the new system
-                    const mappedTags = result.tags.map((tagValue: number) => {
-                        const tag = allTags.find(t => t.value === tagValue);
-                        return tag ? tag.label : "Unknown Tag";
-                    });
-                    setTags(mappedTags);
-                } else {
-                    setTags([]);
+                    setSocietyId(society.id);
+                    setName(society.name);
+                    setLogo(society.logo_url);
+                    setDescription(society.description);
+                    setWebsite(society.website);
+
+                    if (society.tags && society.tags.length > 0) {
+                        const allTags = getAllTags();
+                        const mappedTags = society.tags.map((tagValue: number) => {
+                            const tag = allTags.find(t => t.value === tagValue);
+                            return tag ? tag.label : "Unknown Tag";
+                        });
+                        setTags(mappedTags);
+                    } else {
+                        setTags([]);
+                    }
                 }
 
                 setLoadingDetails(false);
             } catch (error) {
                 setLoadingDetails(false);
-                console.error("Error fetching account details:", error);
+                console.error("Error fetching society details:", error);
+                router.push("/404");
             }
         };
 
-        fetchDetails(stringid);
-    }, [stringid]);
+        if (stringSlug) {
+            fetchSocietyBySlug(stringSlug);
+        }
+    }, [stringSlug, router]);
 
-    // fetch and set name of society
+    // Set background colour for banner
     useEffect(() => {
-        const fetchAndSetName = async (id: string) => {
-            try {
-                setLoadingName(true);
-                const result = await fetchSocietyName(id);
-                setName(result?.name || "Unknown Society");
-
-                setLoadingName(false);
-            } catch (error) {
-                setLoadingName(false);
-                console.error("Error fetching society name:", error);
-            }
-        };
-
-        fetchAndSetName(stringid);
-    }, [stringid]);
-
-    // set background colour for banner, for custom or dynamic banners
-    useEffect(() => {
-        // Set the banner background color to the main color, or fallback to a solid gray
-        const background = mainColor
-            ? "transparent" // switching to mainColor is also available, but couldn't make it look good
-            : "transparent"; // switching to '#CCCCCC' is also available, but couldn't make it look good
-
+        const background = mainColor ? "transparent" : "transparent";
         setBannerBackground(background);
     }, [mainColor]);
 
-    // useEffect(() => { // uncomment if dynamic banner wanted
-    //     if (logo && typeof logo === 'string') extractAndSetMainColor();
-    // }, [logo]);
-
-    async function fetchSocietyName(id: string): Promise<{ name: string }> {
-        try {
-            const response = await fetch("/api/societies/get-organiser-name", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ id }),
-            });
-
-            if (!response.ok)
-                throw new Error("Failed to fetch organiser details");
-
-            return await response.json();
-        } catch (err) {
-            console.error("Error fetching organiser details:", err);
-        }
-    }
-
-    async function fetchAccountDetails(
-        id: string,
-    ): Promise<FetchAccountDetailsPromiseInterface> {
-        try {
-            const res = await fetch("/api/user/get-account-fields", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(id),
-            });
-
-            const { logo_url, description, website, tags } = await res.json();
-
-            return { logo_url, description, website, tags };
-        } catch (error) {
-            console.error("Error loading description:", error);
-        }
-    }
-
-    // const extractAndSetMainColor = () => { // move to utils in the future
-    //     const canvas = document.createElement('canvas');
-    //     const context = canvas.getContext('2d');
-    //     if (!context || !logo) return;
-
-    //     const img = new window.Image();
-    //     img.crossOrigin = 'Anonymous';
-    //     img.src = logo;
-
-    //     img.onload = () => {
-    //         canvas.width = img.width;
-    //         canvas.height = img.height;
-    //         context.drawImage(img, 0, 0);
-
-    //         const pixelData = context.getImageData(0, 0, img.width, img.height).data;
-    //         let r = 0, g = 0, b = 0, count = 0;
-
-    //         // Averaging pixel colors to find the most prominent color
-    //         for (let i = 0; i < pixelData.length; i += 4) {
-    //             r += pixelData[i];     // Red
-    //             g += pixelData[i + 1]; // Green
-    //             b += pixelData[i + 2]; // Blue
-    //             count++;
-    //         }
-
-    //         // Calculate average color
-    //         r = Math.floor(r / count);
-    //         g = Math.floor(g / count);
-    //         b = Math.floor(b / count);
-
-    //         const mainColor = `rgb(${Math.floor(r*0.7)}, ${Math.floor(g*0.7)}, ${Math.floor(b*0.7)})`;
-    //         setMainColor(mainColor);
-    //     };
-    // };
-
     const handleWebsiteClick = (website: string) => {
-        // turns website button into link
-        window.open(formattedWebsite(website), "_blank"); // open in new tab
+        window.open(formattedWebsite(website), "_blank");
     };
 
     // Get tag information with categories for styling
     const tagInfo = tags.map(tagLabel => {
-        // Find the tag value from label
         const allTags = getAllTags();
         const tagData = allTags.find(t => t.label === tagLabel);
         if (tagData) {
@@ -256,7 +114,7 @@ function OldSocietyPage_UNUSED() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
             <div className="container mx-auto px-4 py-8">
-                {/* Header Section - keeping existing layout */}
+                {/* Header Section */}
                 <header className="relative flex flex-col items-center pb-[100px]">
                     {/* Banner Background */}
                     <div
@@ -289,7 +147,7 @@ function OldSocietyPage_UNUSED() {
 
                         {/* Society Name */}
                         <div className="relative mt-6 flex flex-col items-center">
-                            {loadingName ? (
+                            {loadingDetails ? (
                                 <skeletons.UniqueSocietyNameSkeleton />
                             ) : (
                                 <h1
@@ -311,7 +169,6 @@ function OldSocietyPage_UNUSED() {
                                             className={`text-xs font-medium px-3 py-1.5 rounded-full border ${tag.color} border-current/30`}
                                             title={tag.label}
                                         >
-                                            {/* <span className="mr-1">{tag.icon}</span> */}
                                             {tag.label}
                                         </span>
                                     ))}
@@ -430,7 +287,7 @@ function OldSocietyPage_UNUSED() {
                         </h2>
 
                         <div className="bg-white/5 rounded-lg p-6">
-                            <UserEventsList user_id={stringid} editEvent={false} />
+                            {societyId && <UserEventsList user_id={societyId} editEvent={false} />}
                         </div>
                     </motion.div>
                 </section>
@@ -452,7 +309,7 @@ function OldSocietyPage_UNUSED() {
                             <p className="text-gray-300 mb-6">
                                 Have questions or want to get involved? Send us a message and we&apos;ll get back to you soon!
                             </p>
-                            <ContactForm societyName={name} societyId={stringid} />
+                            {societyId && <ContactForm societyName={name} societyId={societyId} />}
                         </div>
                     </motion.div>
                 </section>

@@ -16,8 +16,6 @@ export default function LogoutForm() {
 
         try {
             signOut({ callbackUrl: "/login" });
-            // await signOut({ redirect: false })
-            // router.push('/')
         } catch (error) {
             console.error("Logout failed:", error);
             setErrorMessage("Failed to log out. Please try again.");
@@ -25,43 +23,46 @@ export default function LogoutForm() {
         }
     };
 
-    // const handleLogout = async () => {
-    // 	setIsLoading(true);
-    // 	setErrorMessage(null);
-
-    // 	signOut({ redirect: false })
-
-    // };
-
     const returnHome = () => {
         router.push("/");
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-full p-10 space-y-20">
-            <div>
-                <h2 className="text-2xl font-bold mb-4 text-center">
-                    Are you sure you would like to
-                    <br />
-                    log out of this account
-                </h2>
-                <span className="block w-full h-px bg-gray-500 mt-1"></span>
+        <>
+            <div className="text-center mb-12">
+                <h1 className="text-5xl font-bold text-white mb-3">
+                    Log Out
+                </h1>
+                <p className="text-white/90 text-lg mb-8">
+                    Are you sure you want to log out?
+                </p>
+
+                {errorMessage && (
+                    <div className="mb-6 p-4 bg-red-400/20 backdrop-blur-sm border border-red-300/30 rounded-xl">
+                        <p className="text-red-200 text-sm">{errorMessage}</p>
+                    </div>
+                )}
+
             </div>
 
-            {errorMessage && (
-                <p className="text-red-500 text-sm mb-4">{errorMessage}</p>
-            )}
-
-            <div className="flex space-x-4">
+            <div className="space-y-4 mt-2">
                 <button
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-white transition-all shadow-lg"
+                    onClick={returnHome}
+                    disabled={isLoading}
+                >
+                    Go Back
+                </button>
+
+                <button
+                    className="w-full px-6 py-4 bg-red-700/90 text-gray-900 rounded-xl font-semibold hover:bg-red-600/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xl"
                     onClick={handleLogout}
                     disabled={isLoading}
                 >
                     {isLoading ? (
-                        <span className="flex items-center space-x-2">
+                        <span className="flex items-center justify-center space-x-2">
                             <svg
-                                className="animate-spin h-5 w-5 text-white"
+                                className="animate-spin h-5 w-5 text-gray-900"
                                 xmlns="http://www.w3.org/2000/svg"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -86,14 +87,7 @@ export default function LogoutForm() {
                         "Log Out"
                     )}
                 </button>
-                <button
-                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                    onClick={returnHome}
-                    disabled={isLoading}
-                >
-                    Cancel
-                </button>
             </div>
-        </div>
+        </>
     );
 }

@@ -13,8 +13,10 @@ export default function LogoutPage() {
     }
 
     return (
-        <main className="flex items-center justify-center h-screen bg-gradient-to-b from-[#083157]  to-[#064580]">
-            <LogoutForm />
+        <main className="flex items-center justify-center min-h-screen bg-gradient-to-b from-[#083157] to-[#064580]">
+            <div className="mx-auto flex w-full max-w-[500px] flex-col p-4">
+                <LogoutForm />
+            </div>
         </main>
     );
 }

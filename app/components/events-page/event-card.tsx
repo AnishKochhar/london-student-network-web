@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { EventCardProps } from "@/app/lib/types";
-import { formatDateString } from "@/app/lib/utils";
+import { formatEventDateTime } from "@/app/lib/utils";
 import EventCardTags from "./event-tags";
 import EventModal from "./event-modal";
 import EventManagementModal from "./event-management-modal";
@@ -53,7 +53,7 @@ export default function EventCard({ event, editEvent, onEventUpdate }: EventCard
                 <div className="flex flex-col justify-between flex-grow">
                     <div>
                         <p className="text-gray-600 text-sm uppercase tracking-wide">
-                            {formatDateString(event.date)} | {event.time}
+                            {formatEventDateTime(event)}
                         </p>
                         <h3 className="text-slate-700 text-xl font-bold mt-2 mb-2 line-clamp-3 group-hover:text-blue-600 transition-colors duration-200">
                             {event.title}

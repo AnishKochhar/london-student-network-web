@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface RegistrationChoiceModalProps {
 	isOpen: boolean;
@@ -20,14 +21,10 @@ export default function RegistrationChoiceModal({
 }: RegistrationChoiceModalProps) {
 	const router = useRouter();
 	const [mounted, setMounted] = useState(false);
-	const [isAnimating, setIsAnimating] = useState(false);
 
 	useEffect(() => {
 		setMounted(true);
-		if (isOpen) {
-			setIsAnimating(true);
-		}
-	}, [isOpen]);
+	}, []);
 
 	const handleLoginRedirect = () => {
 		onClose();
@@ -38,30 +35,31 @@ export default function RegistrationChoiceModal({
 		onGuestRegister();
 	};
 
-	if (!mounted || !isOpen) return null;
+	if (!mounted) return null;
 
 	const modalContent = (
-		<div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
-			{/* Backdrop */}
-			<div
-				className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-					isAnimating ? "opacity-100" : "opacity-0"
-				}`}
-				onClick={onClose}
-			/>
+		<AnimatePresence>
+			{isOpen && (
+				<div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
+					{/* Backdrop */}
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						transition={{ duration: 0.2 }}
+						className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+						onClick={onClose}
+					/>
 
-			{/* Modal */}
-			<div
-				className={`relative bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-500 ease-out ${
-					isAnimating
-						? "translate-y-0 scale-100 opacity-100"
-						: "translate-y-8 scale-95 opacity-0 sm:translate-y-4"
-				}`}
-				style={{
-					animation: isAnimating ? "bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)" : undefined,
-				}}
-				onClick={(e) => e.stopPropagation()}
-			>
+					{/* Modal */}
+					<motion.div
+						initial={{ opacity: 0, scale: 0.95, y: 20 }}
+						animate={{ opacity: 1, scale: 1, y: 0 }}
+						exit={{ opacity: 0, scale: 0.95, y: 20 }}
+						transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+						className="relative bg-white rounded-xl shadow-2xl max-w-md w-full"
+						onClick={(e) => e.stopPropagation()}
+					>
 				{/* Header */}
 				<div className="flex items-center justify-between p-6 border-b border-gray-200">
 					<div>
@@ -106,32 +104,11 @@ export default function RegistrationChoiceModal({
 						Logged-in users get additional benefits and can manage their registrations.
 					</p>
 				</div>
-			</div>
-		</div>
+					</motion.div>
+				</div>
+			)}
+		</AnimatePresence>
 	);
 
-	return createPortal(
-		<>
-			<style jsx>{`
-				@keyframes bounceIn {
-					0% {
-						transform: scale(0.3) translateY(100px);
-						opacity: 0;
-					}
-					50% {
-						transform: scale(1.05) translateY(-10px);
-					}
-					70% {
-						transform: scale(0.9) translateY(0px);
-					}
-					100% {
-						transform: scale(1) translateY(0px);
-						opacity: 1;
-					}
-				}
-			`}</style>
-			{modalContent}
-		</>,
-		document.body
-	);
+	return createPortal(modalContent, document.body);
 }

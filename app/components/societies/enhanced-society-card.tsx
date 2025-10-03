@@ -8,6 +8,7 @@ import { getCategoryByTagValue } from "@/app/utils/tag-categories";
 interface Society {
 	id: string;
 	name: string;
+	slug?: string;
 	description: string | null;
 	website: string | null;
 	logo_url: string | null;
@@ -27,9 +28,10 @@ const formatUrl = (url: string) => {
 };
 
 export default function EnhancedSocietyCard({ society }: EnhancedSocietyCardProps) {
+	const societyUrl = society.slug ? `/societies/${society.slug}` : `/societies/society/${society.id}`;
 	const websiteUrl = society.website && society.website !== "No website available"
 		? formatUrl(society.website)
-		: `/societies/society/${society.id}`;
+		: societyUrl;
 	const hasWebsite = society.website && society.website !== "No website available";
 
 	// Get tag information with categories
@@ -109,7 +111,7 @@ export default function EnhancedSocietyCard({ society }: EnhancedSocietyCardProp
 			{/* Action Buttons */}
 			<div className="flex gap-3 mt-auto">
 				<Link
-					href={`/societies/society/${society.id}`}
+					href={societyUrl}
 					className="flex-1 group/button relative inline-flex items-center justify-center px-4 py-2 font-medium text-white bg-blue-600/50 rounded-lg hover:bg-blue-600/80 transition-all duration-300 text-sm"
 				>
 					<span className="relative z-10">View Details</span>

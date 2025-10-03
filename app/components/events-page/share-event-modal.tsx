@@ -4,6 +4,7 @@ import { Event } from "@/app/lib/types";
 import { XMarkIcon, ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 
 interface ShareEventModalProps {
     isOpen: boolean;
@@ -30,7 +31,7 @@ export default function ShareEventModal({ isOpen, onClose, event }: ShareEventMo
 
     if (!isOpen || !event) return null;
 
-    const eventUrl = `${window.location.origin}/events/${event.id}`;
+    const eventUrl = `${window.location.origin}/events/${base16ToBase62(event.id)}`;
     const shareText = `Check out this event: ${event.title}`;
 
     const copyToClipboard = async () => {

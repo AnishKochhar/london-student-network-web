@@ -6,7 +6,7 @@ import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { SocietyRegisterFormData } from "@/app/lib/types";
-import { LondonUniversities } from "@/app/lib/utils";
+import { LondonUniversities, generateSlugFromName, sanitizeSlugInput, validateSlug } from "@/app/lib/utils";
 import ModernFormStep from "./modern-form-step";
 import { ModernInput } from "./modern-input";
 import { ModernSelect } from "./modern-select";
@@ -18,6 +18,8 @@ import {
     EyeSlashIcon,
     ArrowUpTrayIcon,
     TrashIcon,
+    CheckCircleIcon,
+    XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { upload } from "@vercel/blob/client";
 
@@ -38,9 +40,13 @@ export default function ModernSocietyRegistration() {
     );
 
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+    const [slugChecking, setSlugChecking] = useState(false);
+    const [slugTouched, setSlugTouched] = useState(false);
     const totalSteps = 5;
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const slugCheckTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const {
         register,
@@ -70,6 +76,56 @@ export default function ModernSocietyRegistration() {
     useEffect(() => {
         register("uploadedImage");
     }, [register]);
+
+    // Auto-generate slug from name
+    useEffect(() => {
+        const name = watchedValues.name;
+        if (name && !slugTouched) {
+            const generatedSlug = generateSlugFromName(name);
+            setValue("slug", generatedSlug);
+        }
+    }, [watchedValues.name, slugTouched, setValue]);
+
+    // Check slug availability with debounce
+    useEffect(() => {
+        const slug = watchedValues.slug;
+
+        if (!slug || slug.length < 3) {
+            setSlugAvailable(null);
+            setSlugChecking(false);
+            return;
+        }
+
+        // Clear previous timeout
+        if (slugCheckTimeout.current) {
+            clearTimeout(slugCheckTimeout.current);
+        }
+
+        setSlugChecking(true);
+
+        // Debounce slug checking
+        slugCheckTimeout.current = setTimeout(async () => {
+            try {
+                const response = await fetch("/api/societies/check-slug", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ slug }),
+                });
+                const result = await response.json();
+                setSlugAvailable(result.available);
+                setSlugChecking(false);
+            } catch (error) {
+                console.error("Error checking slug:", error);
+                setSlugChecking(false);
+            }
+        }, 500);
+
+        return () => {
+            if (slugCheckTimeout.current) {
+                clearTimeout(slugCheckTimeout.current);
+            }
+        };
+    }, [watchedValues.slug]);
 
     const nextStep = async () => {
         const isValid = await validateCurrentStep();
@@ -139,7 +195,13 @@ export default function ModernSocietyRegistration() {
                         watchedValues.otherUniversity)
                 );
             case 5:
-                return true;
+                // Require valid slug
+                return !!(
+                    watchedValues.slug &&
+                    slugAvailable === true &&
+                    !slugChecking &&
+                    validateSlug(watchedValues.slug) === null
+                );
             default:
                 return true;
         }
@@ -610,6 +672,99 @@ export default function ModernSocietyRegistration() {
                                         </button>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* Slug Field */}
+                        <div className="space-y-4 pt-6 border-t border-white/10">
+                            <div className="space-y-2">
+                                <label className="text-gray-300 text-left block text-lg font-medium">
+                                    Your Society URL
+                                    <span className="text-red-400 ml-1">*</span>
+                                </label>
+                                <p className="text-sm text-gray-400">
+                                    This will be your society&apos;s web address. Choose carefully - it cannot be changed later.
+                                </p>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-gray-400 text-sm">londonstudentnetwork.com/societies/</span>
+                                        <div className="flex-1 relative">
+                                            <input
+                                                type="text"
+                                                placeholder="your-society-name"
+                                                className={`w-full px-4 py-3 bg-white/10 border ${
+                                                    slugAvailable === true
+                                                        ? 'border-green-500/50'
+                                                        : slugAvailable === false
+                                                        ? 'border-red-500/50'
+                                                        : 'border-white/20'
+                                                } rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition-all pr-10`}
+                                                {...register("slug", {
+                                                    required: "URL slug is required",
+                                                    validate: (value) => {
+                                                        if (!value) return "URL slug is required";
+                                                        const error = validateSlug(value);
+                                                        if (error) return error;
+                                                        if (slugAvailable === false) return "This URL is already taken";
+                                                        return true;
+                                                    },
+                                                })}
+                                                onChange={(e) => {
+                                                    // Just convert to lowercase on keystroke, don't fully sanitize yet
+                                                    const value = e.target.value.toLowerCase();
+                                                    setValue("slug", value);
+                                                    setSlugTouched(true);
+                                                }}
+                                                onBlur={(e) => {
+                                                    // Fully sanitize when user leaves the field
+                                                    const sanitized = sanitizeSlugInput(e.target.value);
+                                                    setValue("slug", sanitized);
+                                                }}
+                                            />
+                                            {/* Status Icon */}
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                {slugChecking && (
+                                                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                                )}
+                                                {!slugChecking && slugAvailable === true && watchedValues.slug && (
+                                                    <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                                                )}
+                                                {!slugChecking && slugAvailable === false && watchedValues.slug && (
+                                                    <XCircleIcon className="w-5 h-5 text-red-500" />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Feedback Messages */}
+                                    {watchedValues.slug && !slugChecking && (
+                                        <div className="text-sm">
+                                            {slugAvailable === true && validateSlug(watchedValues.slug) === null && (
+                                                <p className="text-green-400 flex items-center space-x-1">
+                                                    <CheckCircleIcon className="w-4 h-4" />
+                                                    <span>This URL is available!</span>
+                                                </p>
+                                            )}
+                                            {slugAvailable === false && (
+                                                <p className="text-red-400 flex items-center space-x-1">
+                                                    <XCircleIcon className="w-4 h-4" />
+                                                    <span>This URL is already taken. Please try another.</span>
+                                                </p>
+                                            )}
+                                            {validateSlug(watchedValues.slug) !== null && (
+                                                <p className="text-red-400 flex items-center space-x-1">
+                                                    <XCircleIcon className="w-4 h-4" />
+                                                    <span>{validateSlug(watchedValues.slug)}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <p className="text-xs text-gray-500">
+                                        Requirements: 3-60 characters, lowercase letters, numbers, and hyphens only
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

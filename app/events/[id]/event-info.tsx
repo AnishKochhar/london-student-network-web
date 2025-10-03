@@ -4,8 +4,9 @@ import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
-import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
+import { EVENT_TAG_TYPES, returnLogo, formatEventDateTime } from "@/app/lib/utils";
 import { ArrowRightIcon, ShareIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
@@ -31,6 +32,8 @@ export default function EventInfo() {
     const [showGuestRegistration, setShowGuestRegistration] = useState<boolean>(false);
     const [showShareModal, setShowShareModal] = useState<boolean>(false);
     const [isRegistered, setIsRegistered] = useState<boolean>(false);
+    const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
+    const [isLoadingLogo, setIsLoadingLogo] = useState(false);
 
     // Debug logging for isRegistered state changes
     useEffect(() => {
@@ -159,6 +162,32 @@ export default function EventInfo() {
         fetchData();
     }, [event_id]);
 
+    // Fetch society logo from database if not found locally
+    useEffect(() => {
+        if (!event) return;
+
+        const societyLogo = returnLogo(event.organiser);
+
+        if (!societyLogo.found && event.organiser_uid) {
+            setIsLoadingLogo(true);
+            fetch("/api/societies/logo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ organiser_uid: event.organiser_uid }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.logo_url) {
+                        setDbLogoUrl(data.logo_url);
+                    }
+                })
+                .catch(error => console.error("Error fetching logo:", error))
+                .finally(() => setIsLoadingLogo(false));
+        }
+    }, [event]);
+
     // Handle loading and error states
     if (loading) {
         return <EventInfoPageSkeleton />;
@@ -229,20 +258,32 @@ export default function EventInfo() {
                         />
                     </div>
                     <div className="flex flex-col md:flex-row items-center">
-                        {societyLogo.found && (
+                        {(societyLogo.found || dbLogoUrl) && !isLoadingLogo && (
                             <Image
                                 src={
-                                    societyLogo.src ||
-                                    "/images/societies/roar.png"
+                                    societyLogo.found
+                                        ? societyLogo.src || "/images/societies/roar.png"
+                                        : dbLogoUrl || "/images/societies/roar.png"
                                 }
                                 alt="Society Logo"
                                 width={50}
                                 height={50}
+                                quality={65}
                                 className="object-contain mr-2"
                             />
                         )}
                         <p className="text-sm text-gray-500">
-                            <strong>Hosted by</strong> {event.organiser}
+                            <strong>Hosted by</strong>{' '}
+                            {event.organiser_slug ? (
+                                <Link
+                                    href={`/societies/${event.organiser_slug}`}
+                                    className="hover:text-blue-600 hover:underline transition-colors"
+                                >
+                                    {event.organiser}
+                                </Link>
+                            ) : (
+                                event.organiser
+                            )}
                         </p>
                     </div>
                 </div>
@@ -264,7 +305,7 @@ export default function EventInfo() {
                         {event.title}
                     </h2>
                     <p className="text-gray-700 capitalize italic">
-                        {formatDateString(event.date, false)} | {event.time}
+                        {formatEventDateTime(event)}
                     </p>
                     <p className="text-sm :text-lg text-gray-700 mt-2">
                         {event.location_building}

@@ -12,6 +12,7 @@ import type {
 	Tag,
 } from "./types";
 import { v4 as uuidv4 } from "uuid";
+import { formatInTimeZone } from "date-fns-tz";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -48,6 +49,8 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 	let time: string;
 	let date: string;
 
+	const LONDON_TZ = 'Europe/London';
+
 	if (sqlEvent.start_datetime && sqlEvent.end_datetime) {
 		// Use new datetime fields
 		start_datetime = sqlEvent.start_datetime;
@@ -58,8 +61,12 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		const startDate = new Date(start_datetime);
 		const endDate = new Date(end_datetime);
 
-		time = `${startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
-		date = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
+		// Format times in London timezone
+		const startTime = formatInTimeZone(startDate, LONDON_TZ, 'HH:mm');
+		const endTime = formatInTimeZone(endDate, LONDON_TZ, 'HH:mm');
+
+		time = `${startTime} - ${endTime}`;
+		date = formatInTimeZone(startDate, LONDON_TZ, 'dd/MM/yyyy');
 	} else {
 		// Fallback to legacy fields
 		date = `${String(sqlEvent.day!).padStart(2, "0")}/${String(sqlEvent.month!).padStart(2, "0")}/${sqlEvent.year}`;
@@ -84,6 +91,8 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		title: sqlEvent.title,
 		description: sqlEvent.description,
 		organiser: sqlEvent.organiser,
+		organiser_uid: sqlEvent.organiser_uid,
+		organiser_slug: sqlEvent.organiser_slug,
 		time: time,
 		date: date,
 		location_building: sqlEvent.location_building,
@@ -310,26 +319,22 @@ export function formatDateString(
 export function formatEventDateTime(event: import('./types').Event): string {
 	// Use new timestamp fields if available, fallback to legacy fields
 	if (event.start_datetime && event.end_datetime) {
+		const LONDON_TZ = 'Europe/London';
+
+		// Parse UTC timestamps
 		const startDate = new Date(event.start_datetime);
 		const endDate = new Date(event.end_datetime);
 
-		const startDay = startDate.toLocaleString("en-US", { weekday: "long" });
-		const startDayNum = startDate.getDate();
-		const startMonth = startDate.toLocaleString("en-US", { month: "long" });
-		const startTime = startDate.toLocaleString("en-US", {
-			hour: '2-digit',
-			minute: '2-digit',
-			hour12: false
-		});
+		// Convert to London timezone for display
+		const startDay = formatInTimeZone(startDate, LONDON_TZ, 'EEEE');
+		const startDayNum = parseInt(formatInTimeZone(startDate, LONDON_TZ, 'd'));
+		const startMonth = formatInTimeZone(startDate, LONDON_TZ, 'MMMM');
+		const startTime = formatInTimeZone(startDate, LONDON_TZ, 'HH:mm');
 
-		const endDay = endDate.toLocaleString("en-US", { weekday: "long" });
-		const endDayNum = endDate.getDate();
-		const endMonth = endDate.toLocaleString("en-US", { month: "long" });
-		const endTime = endDate.toLocaleString("en-US", {
-			hour: '2-digit',
-			minute: '2-digit',
-			hour12: false
-		});
+		const endDay = formatInTimeZone(endDate, LONDON_TZ, 'EEEE');
+		const endDayNum = parseInt(formatInTimeZone(endDate, LONDON_TZ, 'd'));
+		const endMonth = formatInTimeZone(endDate, LONDON_TZ, 'MMMM');
+		const endTime = formatInTimeZone(endDate, LONDON_TZ, 'HH:mm');
 
 		// Helper function to add ordinal suffix
 		const getOrdinal = (day: number): string => {
@@ -341,8 +346,10 @@ export function formatEventDateTime(event: import('./types').Event): string {
 			return day + "th";
 		};
 
-		// Check if it's multi-day (different dates)
-		const isSameDay = startDate.toDateString() === endDate.toDateString();
+		// Check if it's multi-day (different dates in London timezone)
+		const startDateString = formatInTimeZone(startDate, LONDON_TZ, 'yyyy-MM-dd');
+		const endDateString = formatInTimeZone(endDate, LONDON_TZ, 'yyyy-MM-dd');
+		const isSameDay = startDateString === endDateString;
 
 		if (isSameDay) {
 			// Same day: "Sunday, 21st September | 10:00 - 20:00"
@@ -598,17 +605,45 @@ export function createModernEventObject(data: EventFormData): Event {
 	};
 }
 
+/**
+ * Helper function to convert London time to UTC
+ * Handles BST (UTC+1) and GMT (UTC+0) automatically
+ */
+function londonTimeToUTC(dateString: string, timeString: string): Date {
+	// Parse components
+	const [year, month, day] = dateString.split('-').map(Number);
+	const [hour, minute] = timeString.split(':').map(Number);
+
+	// Create a date at noon in London to determine if DST is active
+	const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
+	const londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+
+	// Extract offset from the formatted string (e.g., "BST" or "GMT")
+	const isBST = londonTimeStr.includes('BST');
+
+	// BST is UTC+1, GMT is UTC+0
+	const offsetHours = isBST ? 1 : 0;
+
+	// Create UTC date by subtracting the offset
+	return new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+}
+
 export function createSQLEventData(data: EventFormData): SQLEventData {
-	const startDateTime = new Date(`${data.start_datetime}T${data.start_time}`);
-	const endDateTime = new Date(`${data.end_datetime}T${data.end_time}`);
+	// User enters times in London timezone (Europe/London)
+	// We need to convert to UTC for storage, accounting for BST/GMT
+	// datetime-local input gives us: "2025-10-04" (date) and "19:00" (time)
+
+	// Convert London times to UTC
+	const startDateTimeUTC = londonTimeToUTC(data.start_datetime, data.start_time);
+	const endDateTimeUTC = londonTimeToUTC(data.end_datetime, data.end_time);
 
 	return {
 		title: data.title,
 		description: data.description,
 		organiser: data.organiser,
 		organiser_uid: data.organiser_uid,
-		start_datetime: startDateTime.toISOString(),
-		end_datetime: endDateTime.toISOString(),
+		start_datetime: startDateTimeUTC.toISOString(),
+		end_datetime: endDateTimeUTC.toISOString(),
 		is_multi_day: data.is_multi_day,
 		location_building: data.location_building,
 		location_area: data.location_area,
@@ -773,5 +808,86 @@ export function generateToken(): string {
 	}
 
 	return token;
+}
+
+// MARK: Society Slug Utilities
+
+/**
+ * Reserved slugs that cannot be used for society URLs
+ * These match existing routes and system pages
+ */
+export const RESERVED_SLUGS = [
+	'admin', 'api', 'message', 'society', 'partners', 'thank-you',
+	'new', 'edit', 'create', 'delete', 'update', 'settings',
+	'overview', 'events', 'about', 'contact', 'login', 'register',
+	'signup', 'signin', 'logout', 'account', 'profile', 'dashboard'
+];
+
+/**
+ * Generate a URL-friendly slug from a society name
+ * @param name - The society name to convert
+ * @returns A slug suitable for URLs (e.g., "KCL Neurotech" → "kcl-neurotech")
+ */
+export function generateSlugFromName(name: string): string {
+	return name
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+		.replace(/\s+/g, '-')          // Replace spaces with hyphens
+		.replace(/-+/g, '-')           // Remove consecutive hyphens
+		.substring(0, 60)              // Truncate to 60 characters
+		.replace(/^-+|-+$/g, '');      // Remove leading/trailing hyphens
+}
+
+/**
+ * Validate a slug according to our rules
+ * @param slug - The slug to validate
+ * @returns Error message if invalid, null if valid
+ */
+export function validateSlug(slug: string): string | null {
+	// 1. Length check
+	if (slug.length < 3) {
+		return "Slug must be at least 3 characters long";
+	}
+	if (slug.length > 60) {
+		return "Slug must be 60 characters or less";
+	}
+
+	// 2. Format check: lowercase letters, numbers, hyphens only
+	if (!/^[a-z0-9-]+$/.test(slug)) {
+		return "Slug can only contain lowercase letters, numbers, and hyphens";
+	}
+
+	// 3. No leading/trailing hyphens
+	if (slug.startsWith('-') || slug.endsWith('-')) {
+		return "Slug cannot start or end with a hyphen";
+	}
+
+	// 4. No consecutive hyphens
+	if (slug.includes('--')) {
+		return "Slug cannot contain consecutive hyphens";
+	}
+
+	// 5. Reserved words check
+	if (RESERVED_SLUGS.includes(slug)) {
+		return "This slug is reserved for system use";
+	}
+
+	return null; // Valid
+}
+
+/**
+ * Sanitize user input for slug
+ * @param input - Raw user input
+ * @returns Sanitized slug
+ */
+export function sanitizeSlugInput(input: string): string {
+	return input
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9-]/g, '-') // Replace invalid chars with hyphen
+		.replace(/-+/g, '-')          // Remove consecutive hyphens
+		.replace(/^-+|-+$/g, '')      // Remove leading/trailing hyphens
+		.substring(0, 60);            // Enforce max length
 }
 

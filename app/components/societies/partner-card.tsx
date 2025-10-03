@@ -13,13 +13,16 @@ export default function PartnerCard({
 }: {
     partner: FormattedPartner;
 }) {
+    const societyUrl = partner.slug ? `/societies/${partner.slug}` : `/societies/society/${partner.id}`;
+
     const handleMessageClick = (
         e: React.MouseEvent<HTMLButtonElement>,
         id: number,
     ) => {
         e.preventDefault();
         e.stopPropagation();
-        window.open(`/societies/message/${id.toString()}`, "_blank")?.focus();
+        const messageUrl = partner.slug ? `/societies/message/${partner.slug}` : `/societies/message/${id.toString()}`;
+        window.open(messageUrl, "_blank")?.focus();
     };
 
     const handleWebsiteClick = (
@@ -34,7 +37,7 @@ export default function PartnerCard({
     return (
         <Link
             className="flex flex-col p-4 rounded-sm shadow-lg relative transition-transform duration-300 ease-in-out hover:scale-105 bg-white h-[500px] w-full"
-            href={`/societies/society/${partner.id}`}
+            href={societyUrl}
             passHref
         >
             {/* Image Container */}

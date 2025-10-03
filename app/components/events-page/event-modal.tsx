@@ -26,6 +26,8 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const [showGuestRegistration, setShowGuestRegistration] = useState(false);
     const showRegistrationChoiceRef = useRef(false);
     const showGuestRegistrationRef = useRef(false);
+    const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
+    const [isLoadingLogo, setIsLoadingLogo] = useState(false);
 
     // Sync refs with state
     useEffect(() => {
@@ -77,6 +79,30 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [onClose]);
+
+    // Fetch society logo from database if not found locally
+    useEffect(() => {
+        const societyLogo = returnLogo(event.organiser);
+
+        if (!societyLogo.found && event.organiser_uid) {
+            setIsLoadingLogo(true);
+            fetch("/api/societies/logo", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ organiser_uid: event.organiser_uid }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.logo_url) {
+                        setDbLogoUrl(data.logo_url);
+                    }
+                })
+                .catch(error => console.error("Error fetching logo:", error))
+                .finally(() => setIsLoadingLogo(false));
+        }
+    }, [event.organiser, event.organiser_uid]);
 
     // Check registration status when modal opens
     useEffect(() => {
@@ -161,15 +187,17 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                             className="w-[90%] h-64 object-contain"
                         />
                         <div className="flex flex-col">
-                            {societyLogo.found && (
+                            {(societyLogo.found || dbLogoUrl) && !isLoadingLogo && (
                                 <Image
                                     src={
-                                        societyLogo.src ||
-                                        "/images/societies/roar.png"
+                                        societyLogo.found
+                                            ? societyLogo.src || "/images/societies/roar.png"
+                                            : dbLogoUrl || "/images/societies/roar.png"
                                     }
                                     alt="Society Logo"
                                     width={50}
                                     height={50}
+                                    quality={65}
                                     className="object-contain mt-4"
                                 />
                             )}
