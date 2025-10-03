@@ -13,6 +13,7 @@ import { DefaultEvent } from "@/app/lib/types";
 import EventModal from "./event-modal";
 import Image from "next/image";
 import MarkdownEditor from "../markdown/markdown-editor";
+import { formatInTimeZone } from "date-fns-tz";
 
 interface ModernCreateEventProps {
     organiser_id: string;
@@ -247,6 +248,15 @@ const ModernCalendarPicker = ({ value, onChange, label, required = false, classN
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Sync internal state with external value changes
+    useEffect(() => {
+        if (value && value !== selectedDate) {
+            setSelectedDate(value);
+            setViewDate(new Date(value + 'T00:00:00'));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value]);
 
     const today = new Date();
     const tomorrow = useMemo(() => {
@@ -618,7 +628,8 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         };
     }
 
-    // Parse datetime strings to extract date and time components
+    // Parse UTC datetime strings and convert to London timezone for editing
+    const LONDON_TZ = 'Europe/London';
     const startDate = new Date(event.start_datetime);
     const endDate = new Date(event.end_datetime);
 
@@ -627,10 +638,10 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         description: event.description,
         organiser: event.organiser,
         organiser_uid: organiser_id,
-        start_datetime: startDate.toISOString().split('T')[0], // YYYY-MM-DD
-        end_datetime: endDate.toISOString().split('T')[0], // YYYY-MM-DD
-        start_time: startDate.toTimeString().slice(0, 5), // HH:MM
-        end_time: endDate.toTimeString().slice(0, 5), // HH:MM
+        start_datetime: formatInTimeZone(startDate, LONDON_TZ, 'yyyy-MM-dd'), // YYYY-MM-DD
+        end_datetime: formatInTimeZone(endDate, LONDON_TZ, 'yyyy-MM-dd'), // YYYY-MM-DD
+        start_time: formatInTimeZone(startDate, LONDON_TZ, 'HH:mm'), // HH:MM
+        end_time: formatInTimeZone(endDate, LONDON_TZ, 'HH:mm'), // HH:MM
         is_multi_day: event.is_multi_day || false,
         location_building: event.location_building,
         location_area: event.location_area,
@@ -654,6 +665,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const [selectedTags, setSelectedTags] = useState<number>(existingEvent?.event_type || 0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Track whether end date/time have been manually set by user
+    // In edit mode, consider them as already touched since they're pre-populated
+    const [endDateTouched, setEndDateTouched] = useState(editMode);
+    const [endTimeTouched, setEndTimeTouched] = useState(editMode);
+
     // Calculate default date and times
     const tomorrow = useMemo(() => {
         const date = new Date();
@@ -663,15 +679,19 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
     const defaultTimes = useMemo(() => {
         const now = new Date();
-        const roundToNearest15 = (date: Date) => {
-            const minutes = date.getMinutes();
-            const roundedMinutes = Math.ceil(minutes / 15) * 15;
+
+        // Round UP to the next hour
+        const roundUpToHour = (date: Date) => {
             const newDate = new Date(date);
-            newDate.setMinutes(roundedMinutes, 0, 0);
+            if (newDate.getMinutes() > 0 || newDate.getSeconds() > 0) {
+                // If there are any minutes or seconds, go to next hour
+                newDate.setHours(newDate.getHours() + 1);
+            }
+            newDate.setMinutes(0, 0, 0);
             return newDate;
         };
 
-        const roundedNow = roundToNearest15(now);
+        const roundedNow = roundUpToHour(now);
         const oneHourLater = new Date(roundedNow.getTime() + 60 * 60 * 1000);
 
         return {
@@ -727,6 +747,28 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             setImagePreview(placeholderImages[0].src);
         }
     }, [watchedImage, selectedPlaceholder]);
+
+    // Auto-update end date when start date changes (only if end date hasn't been manually set)
+    const startDate = watch("start_datetime");
+    useEffect(() => {
+        if (!editMode && startDate && !endDateTouched) {
+            setValue("end_datetime", startDate);
+        }
+    }, [startDate, endDateTouched, editMode, setValue]);
+
+    // Auto-update end time when start time changes (only if end time hasn't been manually set)
+    const startTime = watch("start_time");
+    useEffect(() => {
+        if (!editMode && startTime && !endTimeTouched) {
+            // Calculate 1 hour later
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const startDate = new Date();
+            startDate.setHours(hours, minutes, 0, 0);
+            const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+            const endTimeString = `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`;
+            setValue("end_time", endTimeString);
+        }
+    }, [startTime, endTimeTouched, editMode, setValue]);
 
     // Auto-calculate multi-day based on dates
     const calculateIsMultiDay = (startDate: string, endDate: string): boolean => {
@@ -987,7 +1029,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
                                     <ModernCalendarPicker
                                         value={watchedValues.end_datetime || ""}
-                                        onChange={(value) => setValue("end_datetime", value)}
+                                        onChange={(value) => {
+                                            setValue("end_datetime", value);
+                                            setEndDateTouched(true);
+                                        }}
                                         label="End Date"
                                         required
                                     />
@@ -1003,7 +1048,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
                                     <ModernTimePicker
                                         value={watchedValues.end_time || "11:00"}
-                                        onChange={(value) => setValue("end_time", value)}
+                                        onChange={(value) => {
+                                            setValue("end_time", value);
+                                            setEndTimeTouched(true);
+                                        }}
                                         label="End Time"
                                         required
                                     />

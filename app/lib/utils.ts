@@ -12,6 +12,7 @@ import type {
 	Tag,
 } from "./types";
 import { v4 as uuidv4 } from "uuid";
+import { formatInTimeZone } from "date-fns-tz";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -48,6 +49,8 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 	let time: string;
 	let date: string;
 
+	const LONDON_TZ = 'Europe/London';
+
 	if (sqlEvent.start_datetime && sqlEvent.end_datetime) {
 		// Use new datetime fields
 		start_datetime = sqlEvent.start_datetime;
@@ -58,15 +61,12 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		const startDate = new Date(start_datetime);
 		const endDate = new Date(end_datetime);
 
-		// Format times using UTC to avoid timezone conversion issues
-		const formatTimeUTC = (date: Date) => {
-			const hours = String(date.getUTCHours()).padStart(2, '0');
-			const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-			return `${hours}:${minutes}`;
-		};
+		// Format times in London timezone
+		const startTime = formatInTimeZone(startDate, LONDON_TZ, 'HH:mm');
+		const endTime = formatInTimeZone(endDate, LONDON_TZ, 'HH:mm');
 
-		time = `${formatTimeUTC(startDate)} - ${formatTimeUTC(endDate)}`;
-		date = `${String(startDate.getUTCDate()).padStart(2, "0")}/${String(startDate.getUTCMonth() + 1).padStart(2, "0")}/${startDate.getUTCFullYear()}`;
+		time = `${startTime} - ${endTime}`;
+		date = formatInTimeZone(startDate, LONDON_TZ, 'dd/MM/yyyy');
 	} else {
 		// Fallback to legacy fields
 		date = `${String(sqlEvent.day!).padStart(2, "0")}/${String(sqlEvent.month!).padStart(2, "0")}/${sqlEvent.year}`;
@@ -319,26 +319,22 @@ export function formatDateString(
 export function formatEventDateTime(event: import('./types').Event): string {
 	// Use new timestamp fields if available, fallback to legacy fields
 	if (event.start_datetime && event.end_datetime) {
+		const LONDON_TZ = 'Europe/London';
+
+		// Parse UTC timestamps
 		const startDate = new Date(event.start_datetime);
 		const endDate = new Date(event.end_datetime);
 
-		const startDay = startDate.toLocaleString("en-US", { weekday: "long" });
-		const startDayNum = startDate.getDate();
-		const startMonth = startDate.toLocaleString("en-US", { month: "long" });
-		const startTime = startDate.toLocaleString("en-US", {
-			hour: '2-digit',
-			minute: '2-digit',
-			hour12: false
-		});
+		// Convert to London timezone for display
+		const startDay = formatInTimeZone(startDate, LONDON_TZ, 'EEEE');
+		const startDayNum = parseInt(formatInTimeZone(startDate, LONDON_TZ, 'd'));
+		const startMonth = formatInTimeZone(startDate, LONDON_TZ, 'MMMM');
+		const startTime = formatInTimeZone(startDate, LONDON_TZ, 'HH:mm');
 
-		const endDay = endDate.toLocaleString("en-US", { weekday: "long" });
-		const endDayNum = endDate.getDate();
-		const endMonth = endDate.toLocaleString("en-US", { month: "long" });
-		const endTime = endDate.toLocaleString("en-US", {
-			hour: '2-digit',
-			minute: '2-digit',
-			hour12: false
-		});
+		const endDay = formatInTimeZone(endDate, LONDON_TZ, 'EEEE');
+		const endDayNum = parseInt(formatInTimeZone(endDate, LONDON_TZ, 'd'));
+		const endMonth = formatInTimeZone(endDate, LONDON_TZ, 'MMMM');
+		const endTime = formatInTimeZone(endDate, LONDON_TZ, 'HH:mm');
 
 		// Helper function to add ordinal suffix
 		const getOrdinal = (day: number): string => {
@@ -350,8 +346,10 @@ export function formatEventDateTime(event: import('./types').Event): string {
 			return day + "th";
 		};
 
-		// Check if it's multi-day (different dates)
-		const isSameDay = startDate.toDateString() === endDate.toDateString();
+		// Check if it's multi-day (different dates in London timezone)
+		const startDateString = formatInTimeZone(startDate, LONDON_TZ, 'yyyy-MM-dd');
+		const endDateString = formatInTimeZone(endDate, LONDON_TZ, 'yyyy-MM-dd');
+		const isSameDay = startDateString === endDateString;
 
 		if (isSameDay) {
 			// Same day: "Sunday, 21st September | 10:00 - 20:00"
@@ -607,26 +605,45 @@ export function createModernEventObject(data: EventFormData): Event {
 	};
 }
 
-export function createSQLEventData(data: EventFormData): SQLEventData {
-	// User enters time in London timezone, we need to store it preserving that timezone
-	// The datetime-local input gives us a string like "2025-10-04" and time like "19:00"
-	// We create a UTC date from these values to store the time as-entered
-	const [startYear, startMonth, startDay] = data.start_datetime.split('-').map(Number);
-	const [startHour, startMinute] = data.start_time.split(':').map(Number);
-	const [endYear, endMonth, endDay] = data.end_datetime.split('-').map(Number);
-	const [endHour, endMinute] = data.end_time.split(':').map(Number);
+/**
+ * Helper function to convert London time to UTC
+ * Handles BST (UTC+1) and GMT (UTC+0) automatically
+ */
+function londonTimeToUTC(dateString: string, timeString: string): Date {
+	// Parse components
+	const [year, month, day] = dateString.split('-').map(Number);
+	const [hour, minute] = timeString.split(':').map(Number);
 
-	// Create UTC dates directly without timezone conversion
-	const startDateTime = new Date(Date.UTC(startYear, startMonth - 1, startDay, startHour, startMinute));
-	const endDateTime = new Date(Date.UTC(endYear, endMonth - 1, endDay, endHour, endMinute));
+	// Create a date at noon in London to determine if DST is active
+	const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
+	const londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+
+	// Extract offset from the formatted string (e.g., "BST" or "GMT")
+	const isBST = londonTimeStr.includes('BST');
+
+	// BST is UTC+1, GMT is UTC+0
+	const offsetHours = isBST ? 1 : 0;
+
+	// Create UTC date by subtracting the offset
+	return new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+}
+
+export function createSQLEventData(data: EventFormData): SQLEventData {
+	// User enters times in London timezone (Europe/London)
+	// We need to convert to UTC for storage, accounting for BST/GMT
+	// datetime-local input gives us: "2025-10-04" (date) and "19:00" (time)
+
+	// Convert London times to UTC
+	const startDateTimeUTC = londonTimeToUTC(data.start_datetime, data.start_time);
+	const endDateTimeUTC = londonTimeToUTC(data.end_datetime, data.end_time);
 
 	return {
 		title: data.title,
 		description: data.description,
 		organiser: data.organiser,
 		organiser_uid: data.organiser_uid,
-		start_datetime: startDateTime.toISOString(),
-		end_datetime: endDateTime.toISOString(),
+		start_datetime: startDateTimeUTC.toISOString(),
+		end_datetime: endDateTimeUTC.toISOString(),
 		is_multi_day: data.is_multi_day,
 		location_building: data.location_building,
 		location_area: data.location_area,
