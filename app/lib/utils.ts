@@ -92,6 +92,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		description: sqlEvent.description,
 		organiser: sqlEvent.organiser,
 		organiser_uid: sqlEvent.organiser_uid,
+		organiser_slug: sqlEvent.organiser_slug,
 		time: time,
 		date: date,
 		location_building: sqlEvent.location_building,
@@ -790,5 +791,86 @@ export function generateToken(): string {
 	}
 
 	return token;
+}
+
+// MARK: Society Slug Utilities
+
+/**
+ * Reserved slugs that cannot be used for society URLs
+ * These match existing routes and system pages
+ */
+export const RESERVED_SLUGS = [
+	'admin', 'api', 'message', 'society', 'partners', 'thank-you',
+	'new', 'edit', 'create', 'delete', 'update', 'settings',
+	'overview', 'events', 'about', 'contact', 'login', 'register',
+	'signup', 'signin', 'logout', 'account', 'profile', 'dashboard'
+];
+
+/**
+ * Generate a URL-friendly slug from a society name
+ * @param name - The society name to convert
+ * @returns A slug suitable for URLs (e.g., "KCL Neurotech" → "kcl-neurotech")
+ */
+export function generateSlugFromName(name: string): string {
+	return name
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+		.replace(/\s+/g, '-')          // Replace spaces with hyphens
+		.replace(/-+/g, '-')           // Remove consecutive hyphens
+		.substring(0, 60)              // Truncate to 60 characters
+		.replace(/^-+|-+$/g, '');      // Remove leading/trailing hyphens
+}
+
+/**
+ * Validate a slug according to our rules
+ * @param slug - The slug to validate
+ * @returns Error message if invalid, null if valid
+ */
+export function validateSlug(slug: string): string | null {
+	// 1. Length check
+	if (slug.length < 3) {
+		return "Slug must be at least 3 characters long";
+	}
+	if (slug.length > 60) {
+		return "Slug must be 60 characters or less";
+	}
+
+	// 2. Format check: lowercase letters, numbers, hyphens only
+	if (!/^[a-z0-9-]+$/.test(slug)) {
+		return "Slug can only contain lowercase letters, numbers, and hyphens";
+	}
+
+	// 3. No leading/trailing hyphens
+	if (slug.startsWith('-') || slug.endsWith('-')) {
+		return "Slug cannot start or end with a hyphen";
+	}
+
+	// 4. No consecutive hyphens
+	if (slug.includes('--')) {
+		return "Slug cannot contain consecutive hyphens";
+	}
+
+	// 5. Reserved words check
+	if (RESERVED_SLUGS.includes(slug)) {
+		return "This slug is reserved for system use";
+	}
+
+	return null; // Valid
+}
+
+/**
+ * Sanitize user input for slug
+ * @param input - Raw user input
+ * @returns Sanitized slug
+ */
+export function sanitizeSlugInput(input: string): string {
+	return input
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9-]/g, '-') // Replace invalid chars with hyphen
+		.replace(/-+/g, '-')          // Remove consecutive hyphens
+		.replace(/^-+|-+$/g, '')      // Remove leading/trailing hyphens
+		.substring(0, 60);            // Enforce max length
 }
 

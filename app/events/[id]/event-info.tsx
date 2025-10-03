@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatEventDateTime } from "@/app/lib/utils";
 import { ArrowRightIcon, ShareIcon } from "@heroicons/react/24/outline";
@@ -272,7 +273,17 @@ export default function EventInfo() {
                             />
                         )}
                         <p className="text-sm text-gray-500">
-                            <strong>Hosted by</strong> {event.organiser}
+                            <strong>Hosted by</strong>{' '}
+                            {event.organiser_slug ? (
+                                <Link
+                                    href={`/societies/${event.organiser_slug}`}
+                                    className="hover:text-blue-600 hover:underline transition-colors"
+                                >
+                                    {event.organiser}
+                                </Link>
+                            ) : (
+                                event.organiser
+                            )}
                         </p>
                     </div>
                 </div>

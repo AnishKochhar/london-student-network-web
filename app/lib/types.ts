@@ -4,6 +4,7 @@ export interface Event {
     description: string;
     organiser: string;
     organiser_uid?: string; // Added for logo fetching
+    organiser_slug?: string; // Added for society page links
     time: string; // Legacy field
     date: string; // Legacy field
     location_building: string;
@@ -72,6 +73,7 @@ export interface SQLEvent {
     description: string;
     organiser: string;
     organiser_uid: string;
+    organiser_slug?: string; // From JOIN with society_information
     // New datetime fields (primary)
     start_datetime?: string;   // PostgreSQL TIMESTAMPTZ
     end_datetime?: string;     // PostgreSQL TIMESTAMPTZ
@@ -246,6 +248,7 @@ export interface ResetPasswordFormData {
 
 export interface SocietyRegisterFormData {
     name: string;
+    slug: string; // URL-friendly slug (auto-generated from name, user-editable)
     email: string;
     additionalEmail: string;
     phoneNumber: string;
@@ -312,6 +315,7 @@ export type Partner = {
 export type FormattedPartner = {
     id: number;
     name: string;
+    slug?: string; // URL-friendly slug for society pages
     keywords: string[]; // no keywords represented by empty array
     description: string | null; // it really should be enforced to set a description
     website: string | null;

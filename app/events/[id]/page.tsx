@@ -1,42 +1,21 @@
 import EventInfo from "./event-info";
 import { EventStructuredData } from "@/app/components/seo/structured-data";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
+import { fetchEventById } from "@/app/lib/data";
 import type { Metadata } from "next";
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
-async function getEventData(eventId: string) {
-    try {
-        const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/events/get-information`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ id: eventId }),
-            cache: 'no-store', // Ensure fresh data for metadata
-        });
-
-        if (!response.ok) {
-            return null;
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching event data for metadata:', error);
-        return null;
-    }
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
     const eventId = base62ToBase16(id);
-    const event = await getEventData(eventId);
+    const event = await fetchEventById(eventId);
 
     if (!event) {
         return {
-            title: 'Event Not Found | London Student Network',
+            title: 'Event Not Found',
             description: 'The requested event could not be found.',
         };
     }
@@ -60,7 +39,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             event.location_building
         ].filter(Boolean),
         openGraph: {
-            title: `${event.title} | London Student Network`,
+            title: event.title,
             description: event.description?.slice(0, 160) || `Join us for ${event.title} on ${eventDate}`,
             url: `https://londonstudentnetwork.com/events/${id}`,
             type: 'website',
@@ -82,7 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function Page({ params }: PageProps) {
     const { id } = await params;
     const eventId = base62ToBase16(id);
-    const event = await getEventData(eventId);
+    const event = await fetchEventById(eventId);
 
     return (
         <main className="relative flex flex-col min-h-screen mx-auto p-8 pt-16 bg-gradient-to-b from-[#f8f9fa] via-[#e9ecef] to-[#feffff]">

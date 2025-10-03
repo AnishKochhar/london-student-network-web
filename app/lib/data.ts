@@ -70,13 +70,15 @@ export async function fetchEvents() {
 export async function fetchAllUpcomingEvents() {
     try {
         const data = await sql<SQLEvent>`
-			SELECT * FROM events
-			WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
-			AND (is_deleted IS NULL OR is_deleted = false)
-			AND (is_hidden IS NULL OR is_hidden = false)
-			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
-				EXTRACT(hour FROM start_time::time)::int,
-				EXTRACT(minute FROM start_time::time)::int, 0))
+			SELECT e.*, s.slug as organiser_slug
+			FROM events e
+			LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+			WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+			AND (e.is_deleted IS NULL OR e.is_deleted = false)
+			AND (e.is_hidden IS NULL OR e.is_hidden = false)
+			ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+				EXTRACT(hour FROM e.start_time::time)::int,
+				EXTRACT(minute FROM e.start_time::time)::int, 0))
 		`;
         return data.rows.map(convertSQLEventToEvent);
     } catch (error) {
@@ -202,10 +204,11 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 export async function fetchEventById(id: string) {
     try {
         const data = await sql<SQLEvent>`
-			SELECT *
-			FROM events
-			WHERE id::text LIKE '%' || ${id}
-			AND (is_deleted IS NULL OR is_deleted = false);
+			SELECT e.*, s.slug as organiser_slug
+			FROM events e
+			LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+			WHERE e.id::text LIKE '%' || ${id}
+			AND (e.is_deleted IS NULL OR e.is_deleted = false);
 		`;
 
         if (data.rows.length === 0) {
@@ -563,7 +566,7 @@ export async function getOrganiserName(id: string) {
         const data = await sql`
 			SELECT name
 			FROM users
-			WHERE role = 'organiser' 
+			WHERE role = 'organiser'
 			AND id=${id}
 			AND name != 'Just A Little Test Society'  -- Exclude the test society
 		`;
@@ -575,12 +578,69 @@ export async function getOrganiserName(id: string) {
     }
 }
 
+export async function getOrganiserBySlug(slug: string) {
+    try {
+        const data = await sql`
+			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url, society.slug
+			FROM users AS u
+			JOIN society_information AS society ON society.user_id = u.id
+			WHERE u.role = 'organiser'
+			AND society.slug = ${slug}
+			AND u.name != 'Just A Little Test Society'  -- Exclude the test society
+		`;
+
+        return data.rows[0] || null;
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error(`Failed to get organiser by slug: ${slug}`);
+    }
+}
+
+export async function getSlugByOrganiserId(id: string) {
+    try {
+        const data = await sql`
+			SELECT slug
+			FROM society_information
+			WHERE user_id = ${id}
+		`;
+
+        return data.rows[0] || null;
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error(`Failed to get slug for organiser: ${id}`);
+    }
+}
+
+export async function checkSlugAvailability(slug: string, excludeUserId?: string) {
+    try {
+        let data;
+        if (excludeUserId) {
+            data = await sql`
+				SELECT slug FROM society_information
+				WHERE slug = ${slug} AND user_id != ${excludeUserId}
+				LIMIT 1
+			`;
+        } else {
+            data = await sql`
+				SELECT slug FROM society_information
+				WHERE slug = ${slug}
+				LIMIT 1
+			`;
+        }
+
+        return data.rows.length === 0; // true if available
+    } catch (error) {
+        console.error("Error checking slug availability:", error);
+        return false;
+    }
+}
+
 export async function getOrganiserCards(page: number, limit: number) {
     try {
         const offset: number = (page - 1) * limit;
 
         const data = await sql`
-			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url
+			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url, society.slug
 			FROM users as u
             JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'
@@ -600,7 +660,7 @@ export async function getOrganiserCards(page: number, limit: number) {
 export async function getAllOrganiserCards() {
     try {
         const data = await sql`
-			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url
+			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url, society.slug
 			FROM users as u
             JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'
@@ -719,8 +779,8 @@ export async function insertOrganiserInformation(
         ); // if 'other' selected, uses text input entry
 
         await sql`
-			INSERT INTO society_information (user_id, logo_url, description, website, tags, university_affiliation, additional_email, phone_number)
-			VALUES (${userId}, ${formData.imageUrl}, ${formData.description}, ${formData.website}, ${formattedTags}::integer[], ${university}, ${formData.additionalEmail}, ${formData.phoneNumber})
+			INSERT INTO society_information (user_id, slug, logo_url, description, website, tags, university_affiliation, additional_email, phone_number)
+			VALUES (${userId}, ${formData.slug}, ${formData.imageUrl}, ${formData.description}, ${formData.website}, ${formattedTags}::integer[], ${university}, ${formData.additionalEmail}, ${formData.phoneNumber})
 		`;
         return { success: true };
     } catch (error) {
