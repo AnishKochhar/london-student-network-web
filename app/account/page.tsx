@@ -15,6 +15,7 @@ import ForgottenPasswordModal from "../components/login/reset-password-modal";
 import UsernameCreationModal from "../components/forum/username-creation-modal";
 import { useReferralTracking } from "../hooks/useReferralTracking";
 import toast from "react-hot-toast";
+import { saveAccount } from "@/app/lib/account-storage";
 
 export default function AccountPage() {
     const [showForgottenPasswordModal, setShowForgottenPasswordModal] = useState(false);
@@ -31,6 +32,13 @@ export default function AccountPage() {
 
     // Track referrals for new users
     useReferralTracking();
+
+    // Save account to localStorage for quick account switching
+    useEffect(() => {
+        if (session?.user?.email && session?.user?.name) {
+            saveAccount(session.user.email, session.user.name);
+        }
+    }, [session?.user?.email, session?.user?.name]);
 
     // Navigation sections
     const sections = useMemo(() => [
