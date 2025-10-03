@@ -1436,3 +1436,4 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
         </div>
     );
 }
+

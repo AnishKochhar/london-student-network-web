@@ -633,20 +633,27 @@ function londonTimeToUTC(dateString: string, timeString: string): Date {
 			throw fmtError;
 		}
 
-		// Extract offset from the formatted string (e.g., "BST" or "GMT")
-		const isBST = londonTimeStr.includes('BST');
-		const isGMT = londonTimeStr.includes('GMT');
+		// Extract offset from the formatted string
+		// Can be "BST", "GMT", "GMT+1", or "GMT+0"
+		let offsetHours = 0;
+
+		if (londonTimeStr.includes('BST')) {
+			// British Summer Time = UTC+1
+			offsetHours = 1;
+		} else if (londonTimeStr.includes('GMT+1')) {
+			// GMT+1 = BST (numeric format)
+			offsetHours = 1;
+		} else if (londonTimeStr.includes('GMT+0') || londonTimeStr.includes('GMT')) {
+			// GMT or GMT+0 = UTC+0
+			offsetHours = 0;
+		}
+
 		console.log('Timezone detection:', {
 			londonTimeStr,
-			isBST,
-			isGMT,
-			hasBST: londonTimeStr.includes('BST'),
-			hasGMT: londonTimeStr.includes('GMT'),
+			detectedOffset: offsetHours,
+			isBST: offsetHours === 1,
 			raw: londonTimeStr
 		});
-
-		// BST is UTC+1, GMT is UTC+0
-		const offsetHours = isBST ? 1 : 0;
 		console.log('Offset hours:', offsetHours);
 
 		// Create UTC date by subtracting the offset
