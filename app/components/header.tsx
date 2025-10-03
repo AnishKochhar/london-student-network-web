@@ -129,13 +129,13 @@ function FullScreenMenu({ closeMenu, onSwitchAccount }: { closeMenu: () => void;
                                 <Link
                                     href="/account"
                                     onClick={closeMenu}
-                                    className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100"
+                                    className="py-2 text-xl text-white hover:cursor-pointer hover:text-gray-300"
                                 >
                                     My Account
                                 </Link>
                                 <button
                                     onClick={onSwitchAccount}
-                                    className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100"
+                                    className="py-2 text-xl text-white hover:cursor-pointer hover:text-gray-300"
                                 >
                                     Switch Account
                                 </button>
