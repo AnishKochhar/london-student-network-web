@@ -91,9 +91,8 @@ function Logo({ closeMenu }: { closeMenu: () => void }) {
     );
 }
 
-function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
+function FullScreenMenu({ closeMenu, onSwitchAccount }: { closeMenu: () => void; onSwitchAccount: () => void }) {
     const { data: session } = useSession();
-    const [showSwitchModal, setShowSwitchModal] = useState(false);
 
     // Prevent body scroll when menu is open
     React.useEffect(() => {
@@ -135,10 +134,7 @@ function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
                                     My Account
                                 </Link>
                                 <button
-                                    onClick={() => {
-                                        closeMenu();
-                                        setShowSwitchModal(true);
-                                    }}
+                                    onClick={onSwitchAccount}
                                     className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100"
                                 >
                                     Switch Account
@@ -149,21 +145,22 @@ function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
                     </div>
                 </div>
             </div>
-
-            <SwitchAccountModal
-                isOpen={showSwitchModal}
-                onClose={() => setShowSwitchModal(false)}
-                currentUserEmail={session?.user?.email || undefined}
-            />
         </div>
     );
 }
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showSwitchModal, setShowSwitchModal] = useState(false);
+    const { data: session } = useSession();
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const closeMenu = () => setIsMenuOpen(false);
+
+    const handleSwitchAccount = () => {
+        closeMenu();
+        setTimeout(() => setShowSwitchModal(true), 300); // Delay to allow menu close animation
+    };
 
     return (
         <>
@@ -191,7 +188,13 @@ export default function Header() {
             </div>
 
             </header>
-            {isMenuOpen && <FullScreenMenu closeMenu={closeMenu} />}
+            {isMenuOpen && <FullScreenMenu closeMenu={closeMenu} onSwitchAccount={handleSwitchAccount} />}
+
+            <SwitchAccountModal
+                isOpen={showSwitchModal}
+                onClose={() => setShowSwitchModal(false)}
+                currentUserEmail={session?.user?.email || undefined}
+            />
         </>
     );
 }
