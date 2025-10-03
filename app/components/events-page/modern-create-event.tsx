@@ -446,6 +446,7 @@ const ModernTimePicker = ({ value, onChange, label, required = false, className 
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const timePickerRef = useRef<HTMLDivElement>(null);
+    const hourScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -456,6 +457,19 @@ const ModernTimePicker = ({ value, onChange, label, required = false, className 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Auto-scroll to selected hour when dropdown opens
+    useEffect(() => {
+        if (isOpen && hourScrollRef.current) {
+            // Small delay to ensure the dropdown has rendered
+            setTimeout(() => {
+                const selectedButton = hourScrollRef.current?.querySelector('[data-selected="true"]') as HTMLElement;
+                if (selectedButton) {
+                    selectedButton.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+            }, 50);
+        }
+    }, [isOpen]);
 
     // Parse current value or default to 10:00
     const parseTime = (timeStr: string) => {
@@ -525,12 +539,13 @@ const ModernTimePicker = ({ value, onChange, label, required = false, className 
                             {/* Hour Selector */}
                             <div className="flex-1">
                                 <label className="block text-xs font-medium text-gray-600 mb-2">Hour</label>
-                                <div className="max-h-32 overflow-y-auto border border-gray-200 rounded">
+                                <div ref={hourScrollRef} className="max-h-32 overflow-y-auto border border-gray-200 rounded">
                                     {hourOptions.map((option) => (
                                         <button
                                             key={option.value}
                                             type="button"
                                             onClick={() => updateTime(option.value, currentMinute)}
+                                            data-selected={currentHour === option.value}
                                             className={`w-full px-3 py-1.5 text-left text-sm transition-colors ${
                                                 currentHour === option.value
                                                     ? 'bg-blue-100 text-blue-700 font-medium'
