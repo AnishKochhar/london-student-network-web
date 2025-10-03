@@ -711,9 +711,15 @@ export default function ModernSocietyRegistration() {
                                                     },
                                                 })}
                                                 onChange={(e) => {
+                                                    // Just convert to lowercase on keystroke, don't fully sanitize yet
+                                                    const value = e.target.value.toLowerCase();
+                                                    setValue("slug", value);
+                                                    setSlugTouched(true);
+                                                }}
+                                                onBlur={(e) => {
+                                                    // Fully sanitize when user leaves the field
                                                     const sanitized = sanitizeSlugInput(e.target.value);
                                                     setValue("slug", sanitized);
-                                                    setSlugTouched(true);
                                                 }}
                                             />
                                             {/* Status Icon */}
