@@ -5,7 +5,7 @@ import { Event } from "@/app/lib/types";
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
-import { EVENT_TAG_TYPES, returnLogo, formatDateString } from "@/app/lib/utils";
+import { EVENT_TAG_TYPES, returnLogo, formatEventDateTime } from "@/app/lib/utils";
 import { ArrowRightIcon, ShareIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
@@ -264,7 +264,7 @@ export default function EventInfo() {
                         {event.title}
                     </h2>
                     <p className="text-gray-700 capitalize italic">
-                        {formatDateString(event.date, false)} | {event.time}
+                        {formatEventDateTime(event)}
                     </p>
                     <p className="text-sm :text-lg text-gray-700 mt-2">
                         {event.location_building}

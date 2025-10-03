@@ -58,8 +58,15 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		const startDate = new Date(start_datetime);
 		const endDate = new Date(end_datetime);
 
-		time = `${startDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
-		date = `${String(startDate.getDate()).padStart(2, "0")}/${String(startDate.getMonth() + 1).padStart(2, "0")}/${startDate.getFullYear()}`;
+		// Format times using UTC to avoid timezone conversion issues
+		const formatTimeUTC = (date: Date) => {
+			const hours = String(date.getUTCHours()).padStart(2, '0');
+			const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+			return `${hours}:${minutes}`;
+		};
+
+		time = `${formatTimeUTC(startDate)} - ${formatTimeUTC(endDate)}`;
+		date = `${String(startDate.getUTCDate()).padStart(2, "0")}/${String(startDate.getUTCMonth() + 1).padStart(2, "0")}/${startDate.getUTCFullYear()}`;
 	} else {
 		// Fallback to legacy fields
 		date = `${String(sqlEvent.day!).padStart(2, "0")}/${String(sqlEvent.month!).padStart(2, "0")}/${sqlEvent.year}`;
@@ -599,11 +606,17 @@ export function createModernEventObject(data: EventFormData): Event {
 }
 
 export function createSQLEventData(data: EventFormData): SQLEventData {
-	// User enters time in London timezone, we store as-is (treat input as UTC timestamp)
-	// The datetime-local input gives us a string like "2025-10-04T19:00"
-	// We append that directly and convert to ISO string
-	const startDateTime = new Date(`${data.start_datetime}T${data.start_time}`);
-	const endDateTime = new Date(`${data.end_datetime}T${data.end_time}`);
+	// User enters time in London timezone, we need to store it preserving that timezone
+	// The datetime-local input gives us a string like "2025-10-04" and time like "19:00"
+	// We create a UTC date from these values to store the time as-entered
+	const [startYear, startMonth, startDay] = data.start_datetime.split('-').map(Number);
+	const [startHour, startMinute] = data.start_time.split(':').map(Number);
+	const [endYear, endMonth, endDay] = data.end_datetime.split('-').map(Number);
+	const [endHour, endMinute] = data.end_time.split(':').map(Number);
+
+	// Create UTC dates directly without timezone conversion
+	const startDateTime = new Date(Date.UTC(startYear, startMonth - 1, startDay, startHour, startMinute));
+	const endDateTime = new Date(Date.UTC(endYear, endMonth - 1, endDay, endHour, endMinute));
 
 	return {
 		title: data.title,
