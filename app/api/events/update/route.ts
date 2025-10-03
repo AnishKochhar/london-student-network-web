@@ -32,7 +32,14 @@ export async function POST(req: Request) {
         }
 
         // Convert to SQL format
+        console.log('=== API UPDATE: Calling createSQLEventData ===');
         const sqlEventData = createSQLEventData(eventData);
+        console.log('=== API UPDATE: createSQLEventData returned ===');
+        console.log('SQL data to be inserted:', {
+            start_datetime: sqlEventData.start_datetime,
+            end_datetime: sqlEventData.end_datetime,
+            title: sqlEventData.title
+        });
 
         // Update the event in the database
         const result = await sql`

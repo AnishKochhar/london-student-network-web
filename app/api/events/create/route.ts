@@ -27,7 +27,14 @@ export async function POST(req: Request) {
 		}
 
 		// Convert form data to SQL format
+		console.log('=== API CREATE: Calling createSQLEventData ===');
 		const sqlEventData = createSQLEventData(data);
+		console.log('=== API CREATE: createSQLEventData returned ===');
+		console.log('SQL data to be inserted:', {
+			start_datetime: sqlEventData.start_datetime,
+			end_datetime: sqlEventData.end_datetime,
+			title: sqlEventData.title
+		});
 
 		// Insert into database
 		const response = await insertModernEvent(sqlEventData);

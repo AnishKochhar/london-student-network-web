@@ -610,34 +610,89 @@ export function createModernEventObject(data: EventFormData): Event {
  * Handles BST (UTC+1) and GMT (UTC+0) automatically
  */
 function londonTimeToUTC(dateString: string, timeString: string): Date {
-	// Parse components
-	const [year, month, day] = dateString.split('-').map(Number);
-	const [hour, minute] = timeString.split(':').map(Number);
+	console.log('=== londonTimeToUTC START ===');
+	console.log('Input:', { dateString, timeString });
 
-	// Create a date at noon in London to determine if DST is active
-	const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
-	const londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+	try {
+		// Parse components
+		const [year, month, day] = dateString.split('-').map(Number);
+		const [hour, minute] = timeString.split(':').map(Number);
+		console.log('Parsed:', { year, month, day, hour, minute });
 
-	// Extract offset from the formatted string (e.g., "BST" or "GMT")
-	const isBST = londonTimeStr.includes('BST');
+		// Create a date at noon in London to determine if DST is active
+		const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
+		console.log('Test date (UTC):', testDate.toISOString());
 
-	// BST is UTC+1, GMT is UTC+0
-	const offsetHours = isBST ? 1 : 0;
+		// Try formatInTimeZone
+		let londonTimeStr;
+		try {
+			londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+			console.log('formatInTimeZone result:', londonTimeStr);
+		} catch (fmtError) {
+			console.error('formatInTimeZone ERROR:', fmtError);
+			throw fmtError;
+		}
 
-	// Create UTC date by subtracting the offset
-	return new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+		// Extract offset from the formatted string (e.g., "BST" or "GMT")
+		const isBST = londonTimeStr.includes('BST');
+		const isGMT = londonTimeStr.includes('GMT');
+		console.log('Timezone detection:', {
+			londonTimeStr,
+			isBST,
+			isGMT,
+			hasBST: londonTimeStr.includes('BST'),
+			hasGMT: londonTimeStr.includes('GMT'),
+			raw: londonTimeStr
+		});
+
+		// BST is UTC+1, GMT is UTC+0
+		const offsetHours = isBST ? 1 : 0;
+		console.log('Offset hours:', offsetHours);
+
+		// Create UTC date by subtracting the offset
+		const result = new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+		console.log('Final result:', {
+			input: `${dateString} ${timeString} London`,
+			output: result.toISOString(),
+			offset: offsetHours
+		});
+		console.log('=== londonTimeToUTC END ===');
+
+		return result;
+	} catch (error) {
+		console.error('=== londonTimeToUTC ERROR ===');
+		console.error('Error details:', error);
+		console.error('Stack:', error instanceof Error ? error.stack : 'No stack');
+		throw error;
+	}
 }
 
 export function createSQLEventData(data: EventFormData): SQLEventData {
+	console.log('=== createSQLEventData START ===');
+	console.log('Input EventFormData:', {
+		start_datetime: data.start_datetime,
+		start_time: data.start_time,
+		end_datetime: data.end_datetime,
+		end_time: data.end_time,
+		title: data.title
+	});
+
 	// User enters times in London timezone (Europe/London)
 	// We need to convert to UTC for storage, accounting for BST/GMT
 	// datetime-local input gives us: "2025-10-04" (date) and "19:00" (time)
 
 	// Convert London times to UTC
+	console.log('Converting START time...');
 	const startDateTimeUTC = londonTimeToUTC(data.start_datetime, data.start_time);
+	console.log('Converting END time...');
 	const endDateTimeUTC = londonTimeToUTC(data.end_datetime, data.end_time);
 
-	return {
+	console.log('UTC conversions complete:', {
+		start_utc: startDateTimeUTC.toISOString(),
+		end_utc: endDateTimeUTC.toISOString()
+	});
+
+	const sqlData = {
 		title: data.title,
 		description: data.description,
 		organiser: data.organiser,
@@ -658,6 +713,15 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		send_signup_notifications: data.send_signup_notifications ?? true,
 		student_union: false, // Default to false for now, can be updated later if needed
 	};
+
+	console.log('Final SQLEventData:', {
+		start_datetime: sqlData.start_datetime,
+		end_datetime: sqlData.end_datetime,
+		title: sqlData.title
+	});
+	console.log('=== createSQLEventData END ===');
+
+	return sqlData;
 }
 
 export const LondonUniversities = [
