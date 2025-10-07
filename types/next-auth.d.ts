@@ -8,13 +8,21 @@ export declare module "next-auth" {
         email: string;
         role: string;
         email_verified: boolean;
+        verified_university?: string | null;
     }
 
     interface Session {
-        user: User;
+        user: User & {
+            // Single field for authorization: verified university
+            // null = unverified or no university email
+            // string = verified university code (e.g., "imperial", "ucl")
+            verified_university: string | null;
+        };
     }
 
     interface JWT {
-        role: string; // Define the role type in the JWT
+        role: string;
+        // Single field for authorization
+        verified_university?: string | null;
     }
 }

@@ -465,10 +465,11 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 					<div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
 						<div
 							ref={registrationModalRef}
-							className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl"
+							className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
 							onClick={(e) => e.stopPropagation()}
 						>
-							<div className="p-6 border-b border-gray-200">
+							{/* Fixed Header */}
+							<div className="flex-shrink-0 p-6 border-b border-gray-200">
 								<div className="flex items-center justify-between">
 									<h3 className="text-xl font-semibold text-gray-900">
 										{showRegistrationDetails === 'all' && 'All Registrations'}
@@ -484,7 +485,8 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 								</div>
 							</div>
 
-							<div className="p-6 max-h-[60vh] overflow-y-auto">
+							{/* Scrollable Content */}
+							<div className="flex-grow overflow-y-auto p-6 min-h-0">
 								{(() => {
 									let filteredRegistrations = registrations;
 									if (showRegistrationDetails === 'internal') {
@@ -534,7 +536,8 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 								})()}
 							</div>
 
-							<div className="p-6 border-t border-gray-200 bg-gray-50">
+							{/* Fixed Footer with Copy All Emails Button */}
+							<div className="flex-shrink-0 p-6 border-t border-gray-200 bg-gray-50">
 								<div className="flex items-center justify-between">
 									<span className="text-sm text-gray-600">
 										{(() => {

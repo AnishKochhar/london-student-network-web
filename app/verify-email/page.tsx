@@ -18,8 +18,12 @@ function VerifyEmailPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [verificationStatus, setVerificationStatus] = useState<'verifying' | 'success' | 'logging-in' | 'error'>('verifying');
+    const [hasAttemptedVerification, setHasAttemptedVerification] = useState(false);
 
     useEffect(() => {
+        // Prevent duplicate verification attempts
+        if (hasAttemptedVerification) return;
+
         const verifyEmail = async () => {
             const token = searchParams.get("token");
             if (!token) {
@@ -28,6 +32,9 @@ function VerifyEmailPage() {
                 setTimeout(() => router.push("/login"), 3000);
                 return;
             }
+
+            // Mark that we've attempted verification
+            setHasAttemptedVerification(true);
 
             try {
                 const response = await fetch("/api/email/verify-email", {
@@ -74,7 +81,7 @@ function VerifyEmailPage() {
         };
 
         verifyEmail();
-    }, [router, searchParams]);
+    }, [router, searchParams, hasAttemptedVerification]);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] flex items-center justify-center">

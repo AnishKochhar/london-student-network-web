@@ -9,6 +9,10 @@ import ResetEmailPayload from "../components/templates/reset-password";
 import ResetEmailPayloadFallback from "../components/templates/reset-password-fallback";
 import VerificationEmailPayload from "../components/templates/verification-email";
 import VerificationEmailPayloadFallback from "../components/templates/verification-email-fallback";
+import UniversityVerificationEmailPayload from "../components/templates/university-verification-email";
+import UniversityVerificationEmailPayloadFallback from "../components/templates/university-verification-email-fallback";
+import CombinedVerificationEmailPayload from "../components/templates/combined-verification-email";
+import CombinedVerificationEmailPayloadFallback from "../components/templates/combined-verification-email-fallback";
 
 export const sendOrganiserEmail = async ({
     id,
@@ -27,7 +31,7 @@ export const sendOrganiserEmail = async ({
         }
 
         const to = recipient.email;
-        const customPayload = EmailPayload({ email, subject, text });
+        const customPayload = await EmailPayload({ email, subject, text });
         const customPayloadFallback = EmailPayloadFallback({
             email,
             subject,
@@ -63,7 +67,7 @@ export const sendUserEmail = async ({ toEmail, fromEmail, subject, text }) => {
             throw new Error("The target email to send is empty");
         }
 
-        const customPayload = EmailPayload({ email: fromEmail, subject, text });
+        const customPayload = await EmailPayload({ email: fromEmail, subject, text });
         const customPayloadFallback = EmailPayloadFallback({
             email: fromEmail,
             subject,
@@ -186,5 +190,71 @@ export const sendEventRegistrationEmail = async ({
         throw new Error(
             "An error occurred during the attempt to send event registration email",
         );
+    }
+};
+
+export const sendUniversityVerificationEmail = async (
+    email: string,
+    token: string,
+    universityName: string,
+) => {
+    try {
+        const customPayload = UniversityVerificationEmailPayload(email, token, universityName);
+        const customPayloadFallback = UniversityVerificationEmailPayloadFallback(
+            email,
+            token,
+            universityName,
+        );
+
+        const msg = {
+            to: email,
+            from: "hello@londonstudentnetwork.com",
+            subject: `Verify your ${universityName} email - London Student Network`,
+            text: customPayloadFallback,
+            html: customPayload,
+        };
+
+        await sendSendGridEmail(msg);
+    } catch (error) {
+        console.error(
+            "Error occurred during university verification email sending. Error message:",
+            error.message,
+        );
+        console.error("Stack trace:", error.stack);
+
+        throw new Error("Failed to send university verification email");
+    }
+};
+
+export const sendCombinedVerificationEmail = async (
+    email: string,
+    token: string,
+    universityName: string,
+) => {
+    try {
+        const customPayload = CombinedVerificationEmailPayload(email, token, universityName);
+        const customPayloadFallback = CombinedVerificationEmailPayloadFallback(
+            email,
+            token,
+            universityName,
+        );
+
+        const msg = {
+            to: email,
+            from: "hello@londonstudentnetwork.com",
+            subject: `Verify your email and ${universityName} account - London Student Network`,
+            text: customPayloadFallback,
+            html: customPayload,
+        };
+
+        await sendSendGridEmail(msg);
+    } catch (error) {
+        console.error(
+            "Error occurred during combined verification email sending. Error message:",
+            error.message,
+        );
+        console.error("Stack trace:", error.stack);
+
+        throw new Error("Failed to send combined verification email");
     }
 };

@@ -65,14 +65,15 @@ export default function VoteButtons({
         return (
             <div className="flex items-center gap-2">
                 <button
-                    className={`p-1 rounded transition-colors ${
+                    className={`p-1 rounded transition-all duration-200 ${
                         votes.userVote === "upvote"
-                            ? "text-green-400"
-                            : "hover:bg-white/10 text-white/70"
-                    }`}
+                            ? "text-green-400 bg-green-500/10"
+                            : "text-white/70 hover:text-green-400 hover:bg-green-500/10"
+                    } ${isVoting ? "opacity-50 cursor-not-allowed" : ""}`}
                     onClick={() => handleVote("upvote")}
                     disabled={isVoting}
                     aria-label="Upvote"
+                    title="Upvote"
                 >
                     {votes.userVote === "upvote" ? (
                         <ArrowUpSolid className={icon} />
@@ -81,19 +82,20 @@ export default function VoteButtons({
                     )}
                 </button>
 
-                <span className={`font-bold ${text} ${scoreColor}`}>
+                <span className={`font-bold ${text} ${scoreColor} min-w-[1.5rem] text-center`}>
                     {voteScore}
                 </span>
 
                 <button
-                    className={`p-1 rounded transition-colors ${
+                    className={`p-1 rounded transition-all duration-200 ${
                         votes.userVote === "downvote"
-                            ? "text-red-400"
-                            : "hover:bg-white/10 text-white/70"
-                    }`}
+                            ? "text-red-400 bg-red-500/10"
+                            : "text-white/70 hover:text-red-400 hover:bg-red-500/10"
+                    } ${isVoting ? "opacity-50 cursor-not-allowed" : ""}`}
                     onClick={() => handleVote("downvote")}
                     disabled={isVoting}
                     aria-label="Downvote"
+                    title="Downvote"
                 >
                     {votes.userVote === "downvote" ? (
                         <ArrowDownSolid className={icon} />
@@ -108,14 +110,15 @@ export default function VoteButtons({
     return (
         <div className="flex flex-col items-center gap-1">
             <button
-                className={`p-1 rounded transition-colors ${
+                className={`p-1 rounded transition-all duration-200 ${
                     votes.userVote === "upvote"
-                        ? "text-green-400"
-                        : "hover:bg-white/10 text-white/70"
-                }`}
+                        ? "text-green-400 bg-green-500/10"
+                        : "text-white/70 hover:text-green-400 hover:bg-green-500/10"
+                } ${isVoting ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={() => handleVote("upvote")}
                 disabled={isVoting}
                 aria-label="Upvote"
+                title="Upvote"
             >
                 {votes.userVote === "upvote" ? (
                     <ArrowUpSolid className={icon} />
@@ -124,19 +127,20 @@ export default function VoteButtons({
                 )}
             </button>
 
-            <span className={`font-bold ${text} ${scoreColor}`}>
+            <span className={`font-bold ${text} ${scoreColor} min-w-[1.5rem] text-center`}>
                 {voteScore}
             </span>
 
             <button
-                className={`p-1 rounded transition-colors ${
+                className={`p-1 rounded transition-all duration-200 ${
                     votes.userVote === "downvote"
-                        ? "text-red-400"
-                        : "hover:bg-white/10 text-white/70"
-                }`}
+                        ? "text-red-400 bg-red-500/10"
+                        : "text-white/70 hover:text-red-400 hover:bg-red-500/10"
+                } ${isVoting ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={() => handleVote("downvote")}
                 disabled={isVoting}
                 aria-label="Downvote"
+                title="Downvote"
             >
                 {votes.userVote === "downvote" ? (
                     <ArrowDownSolid className={icon} />

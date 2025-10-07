@@ -374,6 +374,14 @@ export default function ModernSocietyRegistration() {
                                     >
                                         terms and conditions
                                     </a>
+                                    {" "}and{" "}
+                                    <a
+                                        href="/privacy-policy"
+                                        className="text-blue-400 underline"
+                                        target="_blank"
+                                    >
+                                        privacy policy
+                                    </a>
                                 </span>
                             </label>
                         </div>
@@ -729,7 +737,7 @@ export default function ModernSocietyRegistration() {
                                                 )}
                                                 {!slugChecking && slugAvailable === true && watchedValues.slug && (
                                                     <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                                                )}
+     )}
                                                 {!slugChecking && slugAvailable === false && watchedValues.slug && (
                                                     <XCircleIcon className="w-5 h-5 text-red-500" />
                                                 )}
@@ -742,8 +750,8 @@ export default function ModernSocietyRegistration() {
                                         <div className="text-sm">
                                             {slugAvailable === true && validateSlug(watchedValues.slug) === null && (
                                                 <p className="text-green-400 flex items-center space-x-1">
-                                                    <CheckCircleIcon className="w-4 h-4" />
-                                                    <span>This URL is available!</span>
+                                                    {/* <CheckCircleIcon className="w-4 h-4" />
+                                                    <span>This URL is available!</span> */}
                                                 </p>
                                             )}
                                             {slugAvailable === false && (
@@ -800,8 +808,7 @@ export default function ModernSocietyRegistration() {
                             </svg>
                         </div>
                         <p className="text-gray-300">
-                            Registration complete! Check your email for
-                            verification.
+                            Registration complete! Check your email (including junk/spam folder) for verification.
                         </p>
                     </div>
                 </ModernFormStep>

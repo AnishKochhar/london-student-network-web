@@ -44,11 +44,7 @@ export default async function sendSendGridEmail({
         await sgMail.send(msg);
         return { success: true };
     } catch (sendGridError) {
-        console.warn(
-            "SendGrid failed, attempting fallback email service:",
-            sendGridError.message,
-        );
-
+        // SendGrid failed, attempting fallback
         try {
             const response = await requestFallbackEmailService({
                 to: msg.to as string,
@@ -63,7 +59,6 @@ export default async function sendSendGridEmail({
                 );
             }
 
-            console.log("Email sent successfully via fallback service");
             return { success: true };
         } catch (fallbackError) {
             console.error("Both SendGrid and fallback service failed");

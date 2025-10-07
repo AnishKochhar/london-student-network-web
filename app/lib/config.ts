@@ -13,10 +13,6 @@ if (!REDIS_URL) {
 // Initialize the Redis client
 const redis = new Redis(REDIS_URL);
 
-redis.on("connect", () => {
-    console.log("Connected to Redis successfully");
-});
-
 redis.on("error", (error) => {
     console.error("Error connecting to Redis:", error);
 });

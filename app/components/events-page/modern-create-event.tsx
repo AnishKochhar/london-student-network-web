@@ -14,6 +14,7 @@ import EventModal from "./event-modal";
 import Image from "next/image";
 import MarkdownEditor from "../markdown/markdown-editor";
 import { formatInTimeZone } from "date-fns-tz";
+import EventAccessControls from "./EventAccessControls";
 
 interface ModernCreateEventProps {
     organiser_id: string;
@@ -639,7 +640,12 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
             sign_up_link: event.sign_up_link,
             for_externals: event.for_externals,
             is_multi_day: false,
-            send_signup_notifications: event.send_signup_notifications ?? true
+            send_signup_notifications: event.send_signup_notifications ?? true,
+            visibility_level: event.visibility_level || 'public',
+            registration_level: event.registration_level || 'public',
+            allowed_universities: event.allowed_universities || [],
+            registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
+            external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
         };
     }
 
@@ -667,7 +673,12 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         capacity: event.capacity,
         sign_up_link: event.sign_up_link,
         for_externals: event.for_externals,
-        send_signup_notifications: event.send_signup_notifications ?? true
+        send_signup_notifications: event.send_signup_notifications ?? true,
+        visibility_level: event.visibility_level || 'public',
+        registration_level: event.registration_level || 'public',
+        allowed_universities: event.allowed_universities || [],
+        registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
+        external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
     };
 };
 
@@ -737,7 +748,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             start_time: defaultTimes.startTime,
             end_time: defaultTimes.endTime,
             is_multi_day: false,
-            send_signup_notifications: true
+            send_signup_notifications: true,
+            visibility_level: 'public',
+            registration_level: 'public',
+            allowed_universities: []
         }
     });
 
@@ -1216,96 +1230,6 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                             </div>
                         </AnimatedSection>
 
-                        {/* Additional Details */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Additional Details</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Optional information to help attendees</p>
-                            </div>
-
-                            <div className="lg:col-span-9 space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-white mb-3 w-full">
-											<span className="flex justify-between w-full">
-												<span>Sign-up Link (optional).</span>
-												<span className="italic text-right whitespace-nowrap">LSN hosts all ticketing internal!</span>
-											</span>
-                                        </label>
-                                        <input
-                                            {...register("sign_up_link", {
-                                                pattern: {
-                                                    value: /^https?:\/\/.+/,
-                                                    message: "Please enter a valid URL"
-                                                }
-                                            })}
-                                            type="url"
-                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
-                                            placeholder="https://example.com/signup"
-                                        />
-                                        {errors.sign_up_link && (
-                                            <p className="mt-2 text-sm text-red-300">{errors.sign_up_link.message}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-white mb-3">
-                                            External Forward Email (optional)
-                                        </label>
-                                        <input
-                                            {...register("external_forward_email", {
-                                                pattern: {
-                                                    value: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-                                                    message: "Please enter a valid email address"
-                                                }
-                                            })}
-                                            type="email"
-                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
-                                            placeholder="e.g. reception@building.ac.uk"
-                                        />
-                                        <p className="mt-2 text-xs text-blue-200">
-                                            Email for external inquiries (e.g. building reception)
-                                        </p>
-                                        {errors.external_forward_email && (
-                                            <p className="mt-2 text-sm text-red-300">{errors.external_forward_email.message}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-white mb-3">
-                                        Information for External Students (optional)
-                                    </label>
-                                    <textarea
-                                        {...register("for_externals")}
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none backdrop-blur"
-                                        placeholder="e.g. Building access instructions, contact information..."
-                                    />
-                                </div>
-
-                                {/* Email Notifications */}
-                                <div className="lg:col-span-2 mt-6">
-                                    <div className="flex items-start space-x-3">
-                                        <input
-                                            {...register("send_signup_notifications")}
-                                            type="checkbox"
-                                            id="send_signup_notifications"
-                                            className="mt-1 h-4 w-4 text-blue-600 bg-white/10 border border-white/30 rounded focus:ring-blue-500 focus:ring-2"
-                                        />
-                                        <div>
-                                            <label htmlFor="send_signup_notifications" className="text-sm font-medium text-white cursor-pointer">
-                                                Email me when someone registers
-                                            </label>
-                                            <p className="text-xs text-blue-200 mt-1">
-                                                Get notified via email every time someone signs up for your event
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </AnimatedSection>
-
                         {/* Event Image */}
                         <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
@@ -1417,6 +1341,193 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                         </motion.div>
                                     )}
                                 </div>
+                            </div>
+                        </AnimatedSection>
+                        {/* Additional Details */}
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Additional Details</h2>
+                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Optional information to help attendees</p>
+                            </div>
+
+                            <div className="lg:col-span-9 space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-white mb-3 w-full">
+											<span className="flex justify-between w-full">
+												<span>Sign-up Link (optional).</span>
+												<span className="italic text-right whitespace-nowrap">LSN hosts all ticketing internal!</span>
+											</span>
+                                        </label>
+                                        <input
+                                            {...register("sign_up_link", {
+                                                pattern: {
+                                                    value: /^https?:\/\/.+/,
+                                                    message: "Please enter a valid URL"
+                                                }
+                                            })}
+                                            type="url"
+                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
+                                            placeholder="https://example.com/signup"
+                                        />
+                                        {errors.sign_up_link && (
+                                            <p className="mt-2 text-sm text-red-300">{errors.sign_up_link.message}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-white mb-3">
+                                            External Forward Email (optional)
+                                        </label>
+                                        <input
+                                            {...register("external_forward_email", {
+                                                pattern: {
+                                                    value: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
+                                                    message: "Please enter a valid email address"
+                                                }
+                                            })}
+                                            type="email"
+                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
+                                            placeholder="e.g. reception@building.ac.uk"
+                                        />
+                                        <p className="mt-2 text-xs text-blue-200">
+                                            Email for external inquiries (e.g. building reception)
+                                        </p>
+                                        {errors.external_forward_email && (
+                                            <p className="mt-2 text-sm text-red-300">{errors.external_forward_email.message}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-white mb-3">
+                                        Information for External Students (optional)
+                                    </label>
+                                    <textarea
+                                        {...register("for_externals")}
+                                        rows={3}
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none backdrop-blur"
+                                        placeholder="e.g. Building access instructions, contact information..."
+                                    />
+                                </div>
+
+                                {/* Registration Cutoff Settings */}
+                                <div className="space-y-4 pt-4 border-t border-white/10">
+                                    <div>
+                                        <label className="block text-sm font-medium text-white mb-1">
+                                            Registration Deadline
+                                        </label>
+                                        <p className="text-xs text-blue-200/80 mb-3">
+                                            Automatically close registrations before your event starts
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        {/* Main cutoff */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-white/80 mb-2">
+                                                Close registrations
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    {...register("registration_cutoff_hours", {
+                                                        min: { value: 0, message: "Cannot be negative" },
+                                                        max: { value: 168, message: "Cannot exceed 1 week (168 hours)" },
+                                                        valueAsNumber: true
+                                                    })}
+                                                    type="number"
+                                                    min="0"
+                                                    max="168"
+                                                    step="1"
+                                                    className="w-full px-4 py-2.5 pr-20 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    placeholder="No deadline"
+                                                />
+                                                <span className="absolute right-4 top-2.5 text-xs text-white/60">hours before</span>
+                                            </div>
+                                            <p className="mt-1.5 text-xs text-blue-200/70">
+                                                For all students (your university & external)
+                                            </p>
+                                            {errors.registration_cutoff_hours && (
+                                                <p className="mt-1.5 text-xs text-red-300">{errors.registration_cutoff_hours.message}</p>
+                                            )}
+                                        </div>
+
+                                        {/* External-specific cutoff */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-white/80 mb-2">
+                                                Close for external students
+                                                <span className="text-white/50 font-normal ml-1">(optional)</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    {...register("external_registration_cutoff_hours", {
+                                                        min: { value: 0, message: "Cannot be negative" },
+                                                        max: { value: 168, message: "Cannot exceed 1 week (168 hours)" },
+                                                        valueAsNumber: true
+                                                    })}
+                                                    type="number"
+                                                    min="0"
+                                                    max="168"
+                                                    step="1"
+                                                    className="w-full px-4 py-2.5 pr-20 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    placeholder="Same as above"
+                                                />
+                                                <span className="absolute right-4 top-2.5 text-xs text-white/60">hours before</span>
+                                            </div>
+                                            <p className="mt-1.5 text-xs text-blue-200/70">
+                                                Set earlier deadline for students from other universities
+                                            </p>
+                                            {errors.external_registration_cutoff_hours && (
+                                                <p className="mt-1.5 text-xs text-red-300">{errors.external_registration_cutoff_hours.message}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Helpful examples */}
+                                    <div className="bg-blue-500/5 border border-blue-400/20 rounded-lg p-3">
+                                        <p className="text-xs text-blue-200/90">
+                                            <span className="font-medium">💡 Examples:</span> 24 hours = closes 1 day before event | 48 hours = closes 2 days before
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Email Notifications */}
+                                <div className="lg:col-span-2 mt-6">
+                                    <div className="flex items-start space-x-3">
+                                        <input
+                                            {...register("send_signup_notifications")}
+                                            type="checkbox"
+                                            id="send_signup_notifications"
+                                            className="mt-1 h-4 w-4 text-blue-600 bg-white/10 border border-white/30 rounded focus:ring-blue-500 focus:ring-2"
+                                        />
+                                        <div>
+                                            <label htmlFor="send_signup_notifications" className="text-sm font-medium text-white cursor-pointer">
+                                                Email me when someone registers
+                                            </label>
+                                            <p className="text-xs text-blue-200 mt-1">
+                                                Get notified via email every time someone signs up for your event
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </AnimatedSection>
+                        {/* Access Controls */}
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Access Control</h2>
+                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Control who can see and register for your event</p>
+                            </div>
+
+                            <div className="lg:col-span-9">
+                                <EventAccessControls
+                                    visibilityLevel={watchedValues.visibility_level || 'public'}
+                                    registrationLevel={watchedValues.registration_level || 'public'}
+                                    allowedUniversities={watchedValues.allowed_universities || []}
+                                    onVisibilityChange={(value) => setValue("visibility_level", value, { shouldValidate: true })}
+                                    onRegistrationChange={(value) => setValue("registration_level", value, { shouldValidate: true })}
+                                    onAllowedUniversitiesChange={(universities) => setValue("allowed_universities", universities, { shouldValidate: true })}
+                                />
                             </div>
                         </AnimatedSection>
                     </form>

@@ -67,19 +67,83 @@ export async function fetchEvents() {
     }
 }
 
-export async function fetchAllUpcomingEvents() {
+export async function fetchAllUpcomingEvents(
+    userSession?: { id?: string; verified_university?: string; role?: string } | null
+) {
     try {
-        const data = await sql<SQLEvent>`
-			SELECT e.*, s.slug as organiser_slug
-			FROM events e
-			LEFT JOIN society_information s ON e.organiser_uid = s.user_id
-			WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
-			AND (e.is_deleted IS NULL OR e.is_deleted = false)
-			AND (e.is_hidden IS NULL OR e.is_hidden = false)
-			ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
-				EXTRACT(hour FROM e.start_time::time)::int,
-				EXTRACT(minute FROM e.start_time::time)::int, 0))
-		`;
+        let data;
+
+        // Bypass visibility restrictions for organiser and company accounts
+        if (userSession?.role === 'organiser' || userSession?.role === 'company') {
+            // Show ALL events regardless of visibility level
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        } else if (!userSession) {
+            // Not logged in - only show public events
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        } else if (userSession.verified_university) {
+            // Logged in with verified university - can see all except restricted university events they're not part of
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (
+                    e.visibility_level = 'public'
+                    OR e.visibility_level = 'students_only'
+                    OR e.visibility_level = 'verified_students'
+                    OR e.visibility_level IS NULL
+                    OR (
+                        e.visibility_level = 'university_exclusive'
+                        AND ${userSession.verified_university} = ANY(e.allowed_universities)
+                    )
+                )
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        } else {
+            // Logged in but no verified university - can see public and students_only
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (
+                    e.visibility_level = 'public'
+                    OR e.visibility_level = 'students_only'
+                    OR e.visibility_level IS NULL
+                )
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        }
+
         return data.rows.map(convertSQLEventToEvent);
     } catch (error) {
         console.error("Database error:", error);
@@ -87,18 +151,79 @@ export async function fetchAllUpcomingEvents() {
     }
 }
 
-export async function fetchUpcomingEvents() {
+export async function fetchUpcomingEvents(
+    userSession?: { id?: string; verified_university?: string; role?: string } | null
+) {
     try {
-        const data = await sql<SQLEvent>`
-			SELECT * FROM events
-			WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
-			AND (is_deleted IS NULL OR is_deleted = false)
-			AND (is_hidden IS NULL OR is_hidden = false)
-			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
-				EXTRACT(hour FROM start_time::time)::int,
-				EXTRACT(minute FROM start_time::time)::int, 0))
-			LIMIT 6
-		`;
+        let data;
+
+        // Bypass visibility restrictions for organiser and company accounts
+        if (userSession?.role === 'organiser' || userSession?.role === 'company') {
+            // Show ALL events regardless of visibility level
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        } else if (!userSession) {
+            // Not logged in - only show public events
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                AND (visibility_level = 'public' OR visibility_level IS NULL)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        } else if (userSession.verified_university) {
+            // Logged in with verified university - can see all except restricted university events they're not part of
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                AND (
+                    visibility_level = 'public'
+                    OR visibility_level = 'students_only'
+                    OR visibility_level = 'verified_students'
+                    OR visibility_level IS NULL
+                    OR (
+                        visibility_level = 'university_exclusive'
+                        AND ${userSession.verified_university} = ANY(allowed_universities)
+                    )
+                )
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        } else {
+            // Logged in but no verified university - can see public and students_only
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                AND (
+                    visibility_level = 'public'
+                    OR visibility_level = 'students_only'
+                    OR visibility_level IS NULL
+                )
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        }
+
         return data.rows.map(convertSQLEventToEvent);
     } catch (error) {
         console.error("Database error:", error);
@@ -340,7 +465,9 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 location_building, location_area, location_address,
                 image_url, image_contain, external_forward_email,
                 capacity, sign_up_link, for_externals, event_type,
-                send_signup_notifications
+                send_signup_notifications, student_union,
+                visibility_level, registration_level, allowed_universities,
+                registration_cutoff_hours, external_registration_cutoff_hours
             )
             VALUES (
                 ${eventData.title}, ${eventData.description}, ${eventData.organiser}, ${eventData.organiser_uid},
@@ -349,7 +476,9 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 ${eventData.location_building}, ${eventData.location_area}, ${eventData.location_address},
                 ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
                 ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type},
-                ${eventData.send_signup_notifications}
+                ${eventData.send_signup_notifications}, ${eventData.student_union},
+                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${eventData.allowed_universities ?? []},
+                ${eventData.registration_cutoff_hours ?? null}, ${eventData.external_registration_cutoff_hours ?? null}
             )
         `;
         return { success: true };
@@ -679,19 +808,67 @@ export async function insertUser(formData: UserRegisterFormData) {
     try {
         const hashedPassword = await bcrypt.hash(formData.password, 10);
         const username = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`;
+        // Default to 'student' for student registration form
+        const accountType = formData.accountType || 'student';
 
         const result = await sql`
-			INSERT INTO users (name, email, password)
-			VALUES (${username}, ${formData.email}, ${hashedPassword})
+			INSERT INTO users (name, email, password, account_type)
+			VALUES (${username}, ${formData.email}, ${hashedPassword}, ${accountType})
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
 
-        console.log(`Created a user with id: ${result.rows[0].id}`);
-
         return { success: true, id: result.rows[0].id };
     } catch (error) {
         console.error("Error creating user:", error);
+        return { success: false, error };
+    }
+}
+
+export async function insertOtherUser(formData: any) {
+    try {
+        const hashedPassword = await bcrypt.hash(formData.password, 10);
+        const username = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`;
+        const accountType = formData.accountType === 'external' && formData.otherAccountType
+            ? formData.otherAccountType
+            : formData.accountType;
+
+        const result = await sql`
+			INSERT INTO users (name, email, password, account_type)
+			VALUES (${username}, ${formData.email}, ${hashedPassword}, ${accountType})
+			ON CONFLICT (email) DO NOTHING
+			RETURNING id
+		`;
+
+        if (result.rows.length === 0) {
+            return { success: false, error: "Email already exists" };
+        }
+
+        const userId = result.rows[0].id;
+
+        // Insert minimal user_information (only user_id and optional self-reported university)
+        // Note: verified_university in users table is set separately when they verify their .ac.uk email
+        const university = formData.university
+            ? selectUniversity(formData.university, formData.otherUniversity)
+            : null;
+
+        // Only insert into user_information if there's a university affiliation to store
+        if (university) {
+            await sql`
+                INSERT INTO user_information (user_id, university_attended)
+                VALUES (${userId}, ${university})
+            `;
+        } else {
+            // Still insert a row with just user_id to maintain referential integrity
+            await sql`
+                INSERT INTO user_information (user_id)
+                VALUES (${userId})
+            `;
+        }
+
+        return { success: true, id: userId };
+    } catch (error) {
+        console.error("Error creating other user:", error);
         return { success: false, error };
     }
 }
@@ -757,8 +934,6 @@ export async function insertOrganiserIntoUsers(
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
-
-        console.log(`Created a organiser with id: ${result.rows[0].id}`);
 
         return { success: true, id: result.rows[0].id };
     } catch (error) {
@@ -830,7 +1005,6 @@ export async function insertCompany(formData: CompanyRegisterFormData) {
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
-        console.log(`Created a company with id: ${result.rows[0].id}`);
         return { success: true, id: result.rows[0].id };
     } catch (error) {
         console.error("Error creating user:", error);
@@ -870,7 +1044,6 @@ export async function fetchOrganisers() {
 }
 
 export async function updatePassword(email: string, password: string) {
-    console.log(`Resetting ${email} password to ${password}`);
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         await sql`
@@ -928,7 +1101,7 @@ export async function checkEmail(email: string) {
     try {
         const result = await sql`
 			SELECT id FROM users
-			WHERE email = ${email}
+			WHERE email = ${email} OR university_email = ${email}
 			LIMIT 1
 		`;
         if (result.rows.length > 0) {

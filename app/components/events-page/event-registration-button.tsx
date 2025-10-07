@@ -102,14 +102,59 @@ export default function EventRegistrationButton({
                     router.push(`/events/${base16ToBase62(event.id)}`);
                 }
             } else {
-                // Provide helpful error messages based on the error
-                const errorMessage = result.error || "Failed to register for event";
-                if (errorMessage.includes("Event not found")) {
-                    toast.error("This event no longer exists");
-                } else if (errorMessage.includes("university")) {
-                    toast.error("Could not verify your university. Please contact support.");
-                } else {
-                    toast.error(errorMessage);
+                // Parse error code and message (format: "ERROR_CODE|Message")
+                const errorResponse = result.error || "Failed to register for event";
+                const [errorCode, errorMessage] = errorResponse.includes('|')
+                    ? errorResponse.split('|')
+                    : [null, errorResponse];
+
+                // Handle specific error cases with clear messaging and ❌ icon
+                switch (errorCode) {
+                    case 'UNVERIFIED_UNIVERSITY':
+                        toast.error(errorMessage, {
+                            duration: 7000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'UNIVERSITY_NOT_ALLOWED':
+                        toast.error(errorMessage, {
+                            duration: 6000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'REGISTRATION_CLOSED':
+                        toast.error(errorMessage, {
+                            duration: 7000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'EVENT_ENDED':
+                        toast.error(errorMessage, {
+                            duration: 5000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'MISCONFIGURED':
+                        toast.error(errorMessage, {
+                            duration: 7000,
+                            icon: '⚠️'
+                        });
+                        break;
+
+                    default:
+                        // Fallback for any other errors
+                        if (errorMessage.includes("Event not found")) {
+                            toast.error("This event no longer exists", { icon: '❌' });
+                        } else {
+                            toast.error(errorMessage, {
+                                duration: 5000,
+                                icon: '❌'
+                            });
+                        }
                 }
             }
         } catch (error) {

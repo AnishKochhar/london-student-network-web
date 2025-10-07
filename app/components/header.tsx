@@ -80,8 +80,8 @@ function Logo({ closeMenu }: { closeMenu: () => void }) {
             className="flex items-center space-x-2"
         >
             <Image
-                src="/logo/LSN LOGO 1.png"
-                alt="LSN logo"
+                src="/logo/logo.png"
+                alt="London Student Network logo"
                 priority
                 width={96}
                 height={96}

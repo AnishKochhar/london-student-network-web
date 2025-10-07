@@ -13,14 +13,16 @@ import AccountFields from "../components/account/account-fields";
 import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
 import UsernameCreationModal from "../components/forum/username-creation-modal";
+import AddUniversityEmailModal from "../components/account/add-university-email-modal";
 import { useReferralTracking } from "../hooks/useReferralTracking";
 import toast from "react-hot-toast";
 import { saveAccount } from "@/app/lib/account-storage";
+import { getUniversityNameFromCode } from "@/app/lib/university-email-mapping";
 
 export default function AccountPage() {
     const [showForgottenPasswordModal, setShowForgottenPasswordModal] = useState(false);
     const [activeSection, setActiveSection] = useState("personal");
-    const { data: session, status } = useSession();
+    const { data: session, status, update } = useSession();
     const contentRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const [isEditingName, setIsEditingName] = useState(false);
@@ -29,6 +31,18 @@ export default function AccountPage() {
     const [username, setUsername] = useState<string | null>(null);
     const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
     const [loadingUsername, setLoadingUsername] = useState(true);
+    const [showAddUniversityEmailModal, setShowAddUniversityEmailModal] = useState(false);
+    const [resendingEmail, setResendingEmail] = useState<'primary' | 'university' | null>(null);
+
+    // Verification status from database (fresh data)
+    const [verificationStatus, setVerificationStatus] = useState<{
+        emailverified: boolean;
+        university_email: string | null;
+        university_email_verified: boolean;
+        verified_university: string | null;
+        account_type: string | null;
+    } | null>(null);
+    const [loadingVerification, setLoadingVerification] = useState(true);
 
     // Track referrals for new users
     useReferralTracking();
@@ -76,6 +90,38 @@ export default function AccountPage() {
         };
 
         fetchUsername();
+    }, [session?.user?.id]);
+
+    // Fetch fresh verification status from database
+    useEffect(() => {
+        const fetchVerificationStatus = async () => {
+            if (!session?.user?.id) return;
+
+            try {
+                const response = await fetch("/api/user/verification-status");
+                console.log("Verification API response status:", response.status);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log("Verification API result:", result);
+
+                    if (result.success) {
+                        setVerificationStatus(result.data);
+                        console.log("Set verification status:", result.data);
+                    } else {
+                        console.error("API returned error:", result.error);
+                    }
+                } else {
+                    console.error("API response not OK:", response.status);
+                }
+            } catch (error) {
+                console.error("Error fetching verification status:", error);
+            } finally {
+                setLoadingVerification(false);
+            }
+        };
+
+        fetchVerificationStatus();
     }, [session?.user?.id]);
 
     // Scroll spy functionality using window scroll
@@ -156,6 +202,73 @@ export default function AccountPage() {
         setUsername(newUsername);
         setIsUsernameModalOpen(false);
         toast.success(`Username set: @${newUsername}`);
+    };
+
+    const handleResendPrimaryEmail = async () => {
+        if (resendingEmail) return;
+
+        setResendingEmail('primary');
+        const toastId = toast.loading("Sending verification email...");
+
+        try {
+            const response = await fetch("/api/email/resend-verification-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: session?.user?.email }),
+            });
+
+            if (response.ok) {
+                toast.success("Verification email sent! Check your inbox and junk folder.", { id: toastId, duration: 6000 });
+            } else {
+                toast.error("Failed to send verification email. Please try again.", { id: toastId });
+            }
+        } catch (error) {
+            toast.error("An error occurred. Please try again.", { id: toastId });
+        } finally {
+            setResendingEmail(null);
+        }
+    };
+
+    const handleResendUniversityEmail = async () => {
+        if (resendingEmail || !verificationStatus?.university_email) return;
+
+        setResendingEmail('university');
+        const toastId = toast.loading("Sending university verification email...");
+
+        try {
+            const response = await fetch("/api/email/resend-university-verification-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: session?.user?.id,
+                    universityEmail: verificationStatus.university_email
+                }),
+            });
+
+            if (response.ok) {
+                toast.success("University verification email sent! Check your inbox and junk folder.", { id: toastId, duration: 6000 });
+            } else {
+                toast.error("Failed to send verification email. Please try again.", { id: toastId });
+            }
+        } catch (error) {
+            toast.error("An error occurred. Please try again.", { id: toastId });
+        } finally {
+            setResendingEmail(null);
+        }
+    };
+
+    const refreshVerificationStatus = async () => {
+        try {
+            const response = await fetch("/api/user/verification-status");
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    setVerificationStatus(result.data);
+                }
+            }
+        } catch (error) {
+            console.error("Error refreshing verification status:", error);
+        }
     };
 
     const handleNameSave = async () => {
@@ -381,6 +494,108 @@ export default function AccountPage() {
                                             )}
                                         </div>
 
+                                        {/* Email Verification Status */}
+                                        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
+                                            <label className="block text-sm font-medium text-gray-400 mb-3">
+                                                Email Verification Status
+                                            </label>
+
+                                            {loadingVerification ? (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <div className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                                                </div>
+                                            ) : verificationStatus ? (
+                                                <>
+                                                    {/* Primary Email Verification */}
+                                                    <div className="mb-4 pb-4 border-b border-white/10">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm text-gray-300">Primary Email</span>
+                                                                {verificationStatus.emailverified ? (
+                                                                    <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                                                                        <CheckIcon className="h-3 w-3" />
+                                                                        Verified
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="flex items-center gap-1 text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
+                                                                        <ExclamationCircleIcon className="h-3 w-3" />
+                                                                        Not Verified
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {!verificationStatus.emailverified && (
+                                                                <button
+                                                                    onClick={handleResendPrimaryEmail}
+                                                                    disabled={resendingEmail === 'primary'}
+                                                                    className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                >
+                                                                    {resendingEmail === 'primary' ? 'Sending...' : 'Resend verification'}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-gray-500">{user?.email}</p>
+                                                    </div>
+
+                                                    {/* University Email Verification */}
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm text-gray-300">University Email</span>
+                                                                {verificationStatus.verified_university ? (
+                                                                    <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                                                                        <CheckIcon className="h-3 w-3" />
+                                                                        Verified
+                                                                    </span>
+                                                                ) : verificationStatus.university_email ? (
+                                                                    <span className="flex items-center gap-1 text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
+                                                                        <ExclamationCircleIcon className="h-3 w-3" />
+                                                                        Not Verified
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="flex items-center gap-1 text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
+                                                                        <XMarkIcon className="h-3 w-3" />
+                                                                        Not Set
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {verificationStatus.university_email && !verificationStatus.verified_university ? (
+                                                                <button
+                                                                    onClick={handleResendUniversityEmail}
+                                                                    disabled={resendingEmail === 'university'}
+                                                                    className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                >
+                                                                    {resendingEmail === 'university' ? 'Sending...' : 'Resend verification'}
+                                                                </button>
+                                                            ) : !verificationStatus.university_email ? (
+                                                                <button
+                                                                    onClick={() => setShowAddUniversityEmailModal(true)}
+                                                                    className="text-xs text-blue-400 hover:text-blue-300 underline transition-colors"
+                                                                >
+                                                                    Add university email
+                                                                </button>
+                                                            ) : null}
+                                                        </div>
+                                                        {verificationStatus.university_email ? (
+                                                            <>
+                                                                <p className="text-xs text-gray-500 mb-2">{verificationStatus.university_email}</p>
+                                                                {verificationStatus.verified_university && (
+                                                                    <p className="text-xs text-green-400/80">
+                                                                        ✓ Verified with {getUniversityNameFromCode(verificationStatus.verified_university) || verificationStatus.verified_university}
+                                                                    </p>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <p className="text-xs text-gray-500">
+                                                                Verify your university email to access university-restricted events
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-gray-500">Failed to load verification status</p>
+                                            )}
+                                        </div>
+
                                         {user.role === "organiser" && (
                                             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 lg:col-span-2">
                                                 <label className="block text-sm font-medium text-gray-300 mb-2">Organization Logo</label>
@@ -475,6 +690,18 @@ export default function AccountPage() {
                         isOpen={isUsernameModalOpen}
                         onClose={() => setIsUsernameModalOpen(false)}
                         onSuccess={handleUsernameCreated}
+                    />
+                )}
+
+                {showAddUniversityEmailModal && (
+                    <AddUniversityEmailModal
+                        onClose={() => setShowAddUniversityEmailModal(false)}
+                        onSuccess={async () => {
+                            // Refresh verification status from database
+                            await refreshVerificationStatus();
+                            // Also update session for authorization booleans
+                            await update();
+                        }}
                     />
                 )}
             </div>
