@@ -113,7 +113,7 @@ export default function ForgottenPasswordModal({
                                     onChange={(e) => setInputEmail(e.target.value)}
                                     required
                                     disabled={inputDisabled}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed text-black"
                                 />
                             </div>
 

@@ -83,9 +83,44 @@ export default function GuestRegistrationModal({
 						id: toastId,
 					});
 				} else {
-					toast.error(result.error || "Error registering for event!", {
-						id: toastId,
-					});
+					// Parse error code and message (format: "ERROR_CODE|Message")
+					const errorResponse = result.error || "Error registering for event!";
+					const [errorCode, errorMessage] = errorResponse.includes('|')
+						? errorResponse.split('|')
+						: [null, errorResponse];
+
+					// Handle specific error cases with appropriate icons and duration
+					switch (errorCode) {
+						case 'ACCOUNT_REQUIRED':
+							toast.error(errorMessage, {
+								id: toastId,
+								duration: 7000,
+								icon: '❌'
+							});
+							break;
+
+						case 'REGISTRATION_CLOSED':
+							toast.error(errorMessage, {
+								id: toastId,
+								duration: 7000,
+								icon: '❌'
+							});
+							break;
+
+						case 'EVENT_ENDED':
+							toast.error(errorMessage, {
+								id: toastId,
+								duration: 5000,
+								icon: '❌'
+							});
+							break;
+
+						default:
+							toast.error(errorMessage, {
+								id: toastId,
+								icon: '❌'
+							});
+					}
 				}
 			}
 		} catch (error) {

@@ -65,8 +65,44 @@ export async function POST(req: Request) {
 		if (now > eventEndTime) {
 			return NextResponse.json({
 				success: false,
-				error: "This event has already ended. Registration is no longer available.",
+				error: "EVENT_ENDED|This event has already ended. Registration is no longer available.",
 			});
+		}
+
+		// ===== ACCESS CONTROL FOR GUEST REGISTRATION =====
+		// Guest registration is ONLY allowed for public events
+		const registrationLevel = event.registration_level || 'public';
+
+		if (registrationLevel !== 'public') {
+			// For any restricted event (students_only, verified_students, university_exclusive),
+			// guests cannot register - they must create an account
+			return NextResponse.json({
+				success: false,
+				error: "ACCOUNT_REQUIRED|This event requires you to create an account to register. Please sign up or log in to continue.",
+			});
+		}
+
+		// Check registration cutoff (general cutoff only - no external cutoff for guests)
+		if (event.registration_cutoff_hours != null && event.registration_cutoff_hours > 0) {
+			let eventStartTime: Date;
+
+			if (event.start_datetime) {
+				eventStartTime = new Date(event.start_datetime);
+			} else {
+				const eventDate = new Date(event.year, event.month - 1, event.day);
+				const [hours, minutes] = event.start_time.split(':').map(Number);
+				eventDate.setHours(hours, minutes, 0, 0);
+				eventStartTime = eventDate;
+			}
+
+			const cutoffTime = new Date(eventStartTime.getTime() - event.registration_cutoff_hours * 60 * 60 * 1000);
+			if (now >= cutoffTime) {
+				const hoursAgo = Math.abs(Math.ceil((cutoffTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
+				return NextResponse.json({
+					success: false,
+					error: `REGISTRATION_CLOSED|Registration closed ${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago (${event.registration_cutoff_hours} hours before the event).`,
+				});
+			}
 		}
 
 		// Check if email is already registered for this event

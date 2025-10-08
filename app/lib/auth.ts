@@ -5,6 +5,7 @@ export interface AuthenticatedUser {
     email: string;
     name: string;
     role?: string;
+    verified_university?: string | null;
 }
 
 export async function requireAuth(): Promise<AuthenticatedUser> {
@@ -18,7 +19,8 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
         id: session.user.id,
         email: session.user.email || "",
         name: session.user.name || "",
-        role: session.user.role
+        role: session.user.role,
+        verified_university: session.user.verified_university || null
     };
 }
 

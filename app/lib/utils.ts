@@ -113,6 +113,13 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		is_deleted: sqlEvent.is_deleted,
 		send_signup_notifications: sqlEvent.send_signup_notifications,
 		student_union: sqlEvent.student_union,
+		// Access control fields
+		visibility_level: sqlEvent.visibility_level,
+		registration_level: sqlEvent.registration_level,
+		allowed_universities: sqlEvent.allowed_universities,
+		// Registration cutoff fields
+		registration_cutoff_hours: sqlEvent.registration_cutoff_hours,
+		external_registration_cutoff_hours: sqlEvent.external_registration_cutoff_hours,
 	};
 }
 
@@ -610,22 +617,46 @@ export function createModernEventObject(data: EventFormData): Event {
  * Handles BST (UTC+1) and GMT (UTC+0) automatically
  */
 function londonTimeToUTC(dateString: string, timeString: string): Date {
-	// Parse components
-	const [year, month, day] = dateString.split('-').map(Number);
-	const [hour, minute] = timeString.split(':').map(Number);
+	try {
+		// Parse components
+		const [year, month, day] = dateString.split('-').map(Number);
+		const [hour, minute] = timeString.split(':').map(Number);
 
-	// Create a date at noon in London to determine if DST is active
-	const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
-	const londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+		// Create a date at noon in London to determine if DST is active
+		const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
 
-	// Extract offset from the formatted string (e.g., "BST" or "GMT")
-	const isBST = londonTimeStr.includes('BST');
+		// Try formatInTimeZone
+		let londonTimeStr;
+		try {
+			londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+		} catch (fmtError) {
+			console.error('formatInTimeZone ERROR:', fmtError);
+			throw fmtError;
+		}
 
-	// BST is UTC+1, GMT is UTC+0
-	const offsetHours = isBST ? 1 : 0;
+		// Extract offset from the formatted string
+		// Can be "BST", "GMT", "GMT+1", or "GMT+0"
+		let offsetHours = 0;
 
-	// Create UTC date by subtracting the offset
-	return new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+		if (londonTimeStr.includes('BST')) {
+			// British Summer Time = UTC+1
+			offsetHours = 1;
+		} else if (londonTimeStr.includes('GMT+1')) {
+			// GMT+1 = BST (numeric format)
+			offsetHours = 1;
+		} else if (londonTimeStr.includes('GMT+0') || londonTimeStr.includes('GMT')) {
+			// GMT or GMT+0 = UTC+0
+			offsetHours = 0;
+		}
+
+		// Create UTC date by subtracting the offset
+		const result = new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+
+		return result;
+	} catch (error) {
+		console.error('Error converting London time to UTC:', error);
+		throw error;
+	}
 }
 
 export function createSQLEventData(data: EventFormData): SQLEventData {
@@ -637,7 +668,7 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 	const startDateTimeUTC = londonTimeToUTC(data.start_datetime, data.start_time);
 	const endDateTimeUTC = londonTimeToUTC(data.end_datetime, data.end_time);
 
-	return {
+	const sqlData = {
 		title: data.title,
 		description: data.description,
 		organiser: data.organiser,
@@ -657,7 +688,20 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		for_externals: data.for_externals || undefined,
 		send_signup_notifications: data.send_signup_notifications ?? true,
 		student_union: false, // Default to false for now, can be updated later if needed
+		// Access control fields
+		visibility_level: data.visibility_level || 'public',
+		registration_level: data.registration_level || 'public',
+		allowed_universities: data.allowed_universities || [],
+		// Registration cutoff fields
+		registration_cutoff_hours: data.registration_cutoff_hours != null && !isNaN(Number(data.registration_cutoff_hours)) && Number(data.registration_cutoff_hours) > 0
+			? Number(data.registration_cutoff_hours)
+			: undefined,
+		external_registration_cutoff_hours: data.external_registration_cutoff_hours != null && !isNaN(Number(data.external_registration_cutoff_hours)) && Number(data.external_registration_cutoff_hours) > 0
+			? Number(data.external_registration_cutoff_hours)
+			: undefined
 	};
+
+	return sqlData;
 }
 
 export const LondonUniversities = [

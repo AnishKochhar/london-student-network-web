@@ -128,10 +128,11 @@ export function useForumThreads(
             const data = await response.json();
 
             // Only update if search params haven't changed
+            // Use JSON.stringify for deep comparison of activeFilters array
             if (
                 searchTerm === searchTermRef.current &&
                 sortBy === sortByRef.current &&
-                activeFilters === activeFiltersRef.current
+                JSON.stringify(activeFilters) === JSON.stringify(activeFiltersRef.current)
             ) {
                 const transformedThreads = (data.threads || []).map(
                     (thread) => ({
@@ -171,10 +172,11 @@ export function useForumThreads(
     // Handle search/sort/filter changes with a separate effect
     useEffect(() => {
         // Only refetch if search term, sort order, or filters have actually changed
+        // Use JSON.stringify for deep comparison of activeFilters array
         if (
             searchTerm !== searchTermRef.current ||
             sortBy !== sortByRef.current ||
-            activeFilters !== activeFiltersRef.current
+            JSON.stringify(activeFilters) !== JSON.stringify(activeFiltersRef.current)
         ) {
             fetchThreads();
         }

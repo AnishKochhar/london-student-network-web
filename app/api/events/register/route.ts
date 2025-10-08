@@ -57,6 +57,7 @@ export async function POST(req: Request) {
     // Check if event has ended
     const now = new Date();
     let eventEndTime: Date;
+    let eventStartTime: Date;
 
     if (event.end_datetime) {
         eventEndTime = new Date(event.end_datetime);
@@ -69,13 +70,62 @@ export async function POST(req: Request) {
         eventEndTime = eventDate;
     }
 
+    if (event.start_datetime) {
+        eventStartTime = new Date(event.start_datetime);
+    } else {
+        // Fallback to constructed datetime
+        const eventDate = new Date(event.year, event.month - 1, event.day);
+        const [hours, minutes] = event.start_time.split(':').map(Number);
+        eventDate.setHours(hours, minutes, 0, 0);
+        eventStartTime = eventDate;
+    }
+
     if (now > eventEndTime) {
         return NextResponse.json({
             success: false,
-            error: "This event has already ended. Registration is no longer available.",
+            error: "EVENT_ENDED|This event has already ended. Registration is no longer available.",
         });
     }
 
+    // ===== ACCESS CONTROL ENFORCEMENT =====
+    const registrationLevel = event.registration_level || 'public';
+
+    // Check if user has permission based on registration level
+    if (registrationLevel === 'students_only' || registrationLevel === 'verified_students' || registrationLevel === 'university_exclusive') {
+        // User must be logged in (already verified by requireAuth)
+        // Additional checks for verified students
+        if (registrationLevel === 'verified_students' || registrationLevel === 'university_exclusive') {
+            // Check if user has a verified university
+            if (!authenticatedUser.verified_university) {
+                return NextResponse.json({
+                    success: false,
+                    error: "UNVERIFIED_UNIVERSITY|You need to verify your university email to register for this event. Verify it in your account settings.",
+                });
+            }
+
+            // For university_exclusive events, check if user's university is allowed
+            if (registrationLevel === 'university_exclusive') {
+                const allowedUniversities = event.allowed_universities || [];
+
+                if (allowedUniversities.length === 0) {
+                    return NextResponse.json({
+                        success: false,
+                        error: "MISCONFIGURED|This event has restricted access but no universities are configured. Please contact the event organiser.",
+                    });
+                }
+
+                if (!allowedUniversities.includes(authenticatedUser.verified_university)) {
+                    return NextResponse.json({
+                        success: false,
+                        error: "UNIVERSITY_NOT_ALLOWED|This event is only open to students from specific universities. Your university does not have access.",
+                    });
+                }
+            }
+        }
+    }
+
+    // ===== REGISTRATION CUTOFF ENFORCEMENT =====
+    // Determine if user is external (from a different university than organiser)
     const eventOrganiser = event.organiser_uid;
     const eventOrganiserUniversity = await getUserUniversityById(eventOrganiser);
     if (!eventOrganiserUniversity.success) {
@@ -85,13 +135,38 @@ export async function POST(req: Request) {
         });
     }
 
+    const isExternal = userUniversity.university !== eventOrganiserUniversity.university;
+
+    // Check registration cutoff times
+    const registrationCutoffHours = event.registration_cutoff_hours;
+    const externalCutoffHours = event.external_registration_cutoff_hours;
+
+    if (isExternal && externalCutoffHours != null && externalCutoffHours > 0) {
+        // External user with separate cutoff
+        const cutoffTime = new Date(eventStartTime.getTime() - externalCutoffHours * 60 * 60 * 1000);
+        if (now >= cutoffTime) {
+            const hoursAgo = Math.abs(Math.ceil((cutoffTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
+            return NextResponse.json({
+                success: false,
+                error: `REGISTRATION_CLOSED|Registration for external students closed ${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago (${externalCutoffHours} hours before the event).`,
+            });
+        }
+    } else if (registrationCutoffHours != null && registrationCutoffHours > 0) {
+        // General cutoff applies to all users (or internal users if external cutoff exists)
+        const cutoffTime = new Date(eventStartTime.getTime() - registrationCutoffHours * 60 * 60 * 1000);
+        if (now >= cutoffTime) {
+            const hoursAgo = Math.abs(Math.ceil((cutoffTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
+            return NextResponse.json({
+                success: false,
+                error: `REGISTRATION_CLOSED|Registration closed ${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago (${registrationCutoffHours} hours before the event).`,
+            });
+        }
+    }
+
     const alreadyRegistered = await checkIfRegistered(event_id, user.id);
     if (alreadyRegistered) {
         return NextResponse.json({ success: false, registered: true });
     }
-
-    console.log("Universities", userUniversity, eventOrganiserUniversity);
-    const isExternal = userUniversity.university != eventOrganiserUniversity.university;
 
     const response = await registerForEvent(
         user.id,

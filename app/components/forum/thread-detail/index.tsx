@@ -14,6 +14,7 @@ import {
     CommentUpdateData,
 } from "@/app/lib/types";
 import { useSession } from "next-auth/react";
+import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
 
 import ThreadContent from "./thread-content";
 import CommentContent from "./comment-content";
@@ -93,6 +94,24 @@ const ThreadDetailModal = ({
     // Comment navigation
     const { viewContext, navigateToComment, navigateBack, setViewContext } =
         useCommentNav(threadData);
+
+    // Keyboard shortcuts
+    useKeyboardShortcuts(
+        [
+            {
+                key: "Escape",
+                callback: () => {
+                    if (viewContext?.type === "comment") {
+                        navigateBack();
+                    } else {
+                        onClose();
+                    }
+                },
+                preventDefault: true,
+            },
+        ],
+        isOpen,
+    );
 
     // Effect for client-side rendering
     useEffect(() => {
@@ -534,25 +553,37 @@ interface ModalHeaderProps {
 const ModalHeader = memo(
     ({ viewContext, navigateBack, onClose }: ModalHeaderProps) => (
         <div className="flex items-center justify-between p-3 sm:p-6 border-b border-white/10 flex-shrink-0 sticky top-0 bg-[#041A2E] z-10">
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 {viewContext?.type === "comment" && (
                     <button
                         onClick={navigateBack}
-                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+                        title="Back to main thread"
                     >
                         <ArrowLeftIcon className="w-5 h-5 text-white/80" />
                     </button>
                 )}
-                <ChatBubbleLeftIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
-                <h2 className="text-base sm:text-lg font-semibold text-white">
-                    {viewContext?.type === "comment"
-                        ? "Comment Thread"
-                        : "Thread Discussion"}
-                </h2>
+                <ChatBubbleLeftIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400 flex-shrink-0" />
+
+                {/* Breadcrumb Navigation */}
+                <div className="flex items-center gap-2 min-w-0">
+                    <h2 className="text-base sm:text-lg font-semibold text-white truncate">
+                        {viewContext?.type === "comment" ? "Thread" : "Discussion"}
+                    </h2>
+
+                    {viewContext?.type === "comment" && (
+                        <>
+                            <span className="text-white/40 flex-shrink-0">/</span>
+                            <span className="text-sm sm:text-base text-white/80 truncate">
+                                Reply by @{viewContext.comment.author}
+                            </span>
+                        </>
+                    )}
+                </div>
             </div>
             <button
                 onClick={onClose}
-                className="p-1 sm:p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-1 sm:p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
                 aria-label="Close"
             >
                 <XMarkIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white/80" />

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { UserGroupIcon, ShareIcon, CheckCircleIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
+import { createPortal } from "react-dom";
+import ReferralShareModal from "./referral-share-modal";
 
 interface ReferralStats {
     totalReferrals: number;
@@ -29,6 +31,12 @@ export default function UserReferrals() {
     const [referralData, setReferralData] = useState<ReferralData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         fetchReferralStats();
@@ -237,10 +245,22 @@ export default function UserReferrals() {
                     <p className="text-gray-400 text-xs sm:text-sm mb-3 sm:mb-4">
                         Start sharing your referral link to invite friends to LSN!
                     </p>
-                    <p className="text-blue-300 text-xs">
-                        💡 Use the &quot;Share Now&quot; button above to get your unique link
-                    </p>
+                    <button
+                        onClick={() => setShowShareModal(true)}
+                        className="text-blue-300 hover:text-blue-200 text-xs transition-colors cursor-pointer"
+                    >
+                        💡 <span className="underline decoration-dotted underline-offset-2">Click here to get your unique referral link</span>
+                    </button>
                 </motion.div>
+            )}
+
+            {/* Referral Share Modal - Rendered via Portal */}
+            {mounted && createPortal(
+                <ReferralShareModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                />,
+                document.body
             )}
         </div>
     );

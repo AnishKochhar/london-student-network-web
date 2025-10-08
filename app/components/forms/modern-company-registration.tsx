@@ -313,6 +313,14 @@ export default function ModernCompanyRegistration() {
                                     >
                                         terms and conditions
                                     </a>
+                                    {" "}and{" "}
+                                    <a
+                                        href="/privacy-policy"
+                                        className="text-blue-400 underline"
+                                        target="_blank"
+                                    >
+                                        privacy policy
+                                    </a>
                                 </span>
                             </label>
                         </div>
@@ -637,8 +645,7 @@ export default function ModernCompanyRegistration() {
                             </svg>
                         </div>
                         <p className="text-gray-300">
-                            Registration complete! Check your email for
-                            verification.
+                            Registration complete! Check your email (including junk/spam folder) for verification.
                         </p>
                     </div>
                 </ModernFormStep>
