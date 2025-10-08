@@ -460,7 +460,7 @@ export default function ModernOtherRegistration() {
                                     })}
                                 />
                                 <p className="text-gray-400 text-xs">
-                                    We'll automatically detect your university from your email domain and send a verification email
+                                    We&apos;ll automatically detect your university from your email domain and send a verification email
                                 </p>
                             </div>
                         )}

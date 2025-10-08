@@ -15,7 +15,7 @@ import ErrorModal from "./error-modal";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
-export default function eaModernStudentRegistration() {
+export default function ModernStudentRegistration() {
     const router = useRouter();
     const [currentStep, setCurrentStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
@@ -246,19 +246,19 @@ export default function eaModernStudentRegistration() {
                             });
 
                             // Show user-friendly message but don't block registration
-                            toast.warning(
-                                "Account created! However, we couldn't send the verification email automatically. " +
+                            toast(
+                                "Account created! However, we couldn&apos;t send the verification email automatically. " +
                                 "Please check your account page to resend verification.",
-                                { duration: 8000 }
+                                { duration: 8000, icon: '⚠️' }
                             );
                         } else {
                             toast.success("Verification email sent! Check your inbox and junk folder.", { duration: 6000 });
                         }
                     } catch (emailError) {
                         console.error("Error sending combined verification email:", emailError);
-                        toast.warning(
+                        toast(
                             "Account created successfully! You can resend verification from your account page.",
-                            { duration: 6000 }
+                            { duration: 6000, icon: '⚠️' }
                         );
                     }
                 } else {
@@ -450,7 +450,7 @@ export default function eaModernStudentRegistration() {
                                 })}
                             />
                             <p className="text-gray-400 text-xs">
-                                <strong>For student verification only.</strong> We'll send a verification email to confirm your student status and unlock university-exclusive events.
+                                <strong>For student verification only.</strong> We&apos;ll send a verification email to confirm your student status and unlock university-exclusive events.
                                 {watchedValues.universityEmail && extractUniversityFromEmail(watchedValues.universityEmail) ? (
                                     <span className="block mt-1 text-green-400">
                                         ✓ Recognized as {extractUniversityFromEmail(watchedValues.universityEmail)}
@@ -468,12 +468,12 @@ export default function eaModernStudentRegistration() {
                         <div className="mt-4 space-y-3">
                             <div className="p-3 bg-gray-800/50 border border-gray-600/30 rounded-lg">
                                 <p className="text-xs text-gray-300">
-                                    💡 <strong>Can I use the same email for both?</strong> Yes! If you prefer to use your university email for everything, just enter it in both fields. We'll only send one verification email.
+                                    💡 <strong>Can I use the same email for both?</strong> Yes! If you prefer to use your university email for everything, just enter it in both fields. We&apos;ll only send one verification email.
                                 </p>
                             </div>
                             <div className="p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
                                 <p className="text-sm text-gray-300">
-                                    <strong>Don't have a university email?</strong> If you're an alumni or staff member,{" "}
+                                    <strong>Don&apos;t have a university email?</strong> If you&apos;re an alumni or staff member,{" "}
                                     <Link href="/register/other" className="text-blue-300 underline hover:text-blue-200">
                                         register here instead
                                     </Link>

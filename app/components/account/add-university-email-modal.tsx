@@ -131,7 +131,7 @@ export default function AddUniversityEmailModal({ onClose, onSuccess }: AddUnive
                             </p>
                         ) : (
                             <p className="text-xs text-gray-400 mt-2">
-                                We'll send a verification email to confirm your university affiliation
+                                We&apos;ll send a verification email to confirm your university affiliation
                             </p>
                         )}
                     </div>

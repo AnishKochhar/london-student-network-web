@@ -123,7 +123,7 @@ export default function EventInfo() {
         } catch (error) {
             console.error("Error checking registration status:", error);
         }
-    }, [loggedIn, event_id, event]);
+    }, [loggedIn, event]);
 
     useEffect(() => {
         const helper = async () => {

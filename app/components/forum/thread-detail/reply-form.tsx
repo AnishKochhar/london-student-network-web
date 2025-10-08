@@ -1,7 +1,7 @@
 import { PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Session } from "next-auth";
 import { ViewContext } from "@/app/lib/types";
-import { memo, useState, useEffect } from "react";
+import { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import MarkdownEditor from "../../markdown/markdown-editor";
 import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";

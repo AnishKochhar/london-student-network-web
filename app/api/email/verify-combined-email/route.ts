@@ -51,9 +51,10 @@ export async function POST(request: NextRequest) {
                     verified_university = ${universityResult.universityCode}
                 WHERE id = ${userId}
             `;
-        } catch (dbError: any) {
+        } catch (dbError: unknown) {
             // Handle unique constraint violation for university_email
-            if (dbError.code === '23505' || dbError.message?.includes('duplicate key')) {
+            const error = dbError as { code?: string; message?: string };
+            if (error.code === '23505' || error.message?.includes('duplicate key')) {
                 return NextResponse.json(
                     {
                         success: false,

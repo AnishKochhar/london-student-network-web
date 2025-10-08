@@ -457,6 +457,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
         const startTime = `${startDateTime.getHours().toString().padStart(2, '0')}:${startDateTime.getMinutes().toString().padStart(2, '0')}`;
         const endTime = `${endDateTime.getHours().toString().padStart(2, '0')}:${endDateTime.getMinutes().toString().padStart(2, '0')}`;
 
+        const allowedUniversities = eventData.allowed_universities ?? [];
         await sql`
             INSERT INTO events (
                 title, description, organiser, organiser_uid,
@@ -477,7 +478,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
                 ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type},
                 ${eventData.send_signup_notifications}, ${eventData.student_union},
-                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${eventData.allowed_universities ?? []},
+                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${allowedUniversities as unknown as string},
                 ${eventData.registration_cutoff_hours ?? null}, ${eventData.external_registration_cutoff_hours ?? null}
             )
         `;
@@ -825,17 +826,17 @@ export async function insertUser(formData: UserRegisterFormData) {
     }
 }
 
-export async function insertOtherUser(formData: any) {
+export async function insertOtherUser(formData: Record<string, unknown>) {
     try {
-        const hashedPassword = await bcrypt.hash(formData.password, 10);
-        const username = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`;
+        const hashedPassword = await bcrypt.hash(formData.password as string, 10);
+        const username = `${capitalize(formData.firstname as string)} ${capitalize(formData.surname as string)}`;
         const accountType = formData.accountType === 'external' && formData.otherAccountType
             ? formData.otherAccountType
             : formData.accountType;
 
         const result = await sql`
 			INSERT INTO users (name, email, password, account_type)
-			VALUES (${username}, ${formData.email}, ${hashedPassword}, ${accountType})
+			VALUES (${username}, ${formData.email as string}, ${hashedPassword}, ${accountType as string})
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
@@ -849,7 +850,7 @@ export async function insertOtherUser(formData: any) {
         // Insert minimal user_information (only user_id and optional self-reported university)
         // Note: verified_university in users table is set separately when they verify their .ac.uk email
         const university = formData.university
-            ? selectUniversity(formData.university, formData.otherUniversity)
+            ? selectUniversity(formData.university as string, formData.otherUniversity as string | undefined)
             : null;
 
         // Only insert into user_information if there's a university affiliation to store

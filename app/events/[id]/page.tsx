@@ -75,7 +75,7 @@ export default async function Page({ params }: PageProps) {
                     <div className="text-6xl mb-6">🔍</div>
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">Event Not Found</h1>
                     <p className="text-lg text-gray-600 mb-10">
-                        Sorry, we couldn't find the event you're looking for.
+                        Sorry, we couldn&apos;t find the event you&apos;re looking for.
                     </p>
                     <Link
                         href="/events"
@@ -94,35 +94,16 @@ export default async function Page({ params }: PageProps) {
     const isLoggedIn = !!session?.user;
 
     let hasAccess = false;
-    let accessDeniedReason = '';
 
     if (visibilityLevel === 'public' || !visibilityLevel) {
         hasAccess = true;
     } else if (visibilityLevel === 'students_only') {
-        if (isLoggedIn) {
-            hasAccess = true;
-        } else {
-            accessDeniedReason = 'login';
-        }
+        hasAccess = isLoggedIn;
     } else if (visibilityLevel === 'verified_students') {
-        if (userVerifiedUniversity) {
-            hasAccess = true;
-        } else if (isLoggedIn) {
-            accessDeniedReason = 'verify';
-        } else {
-            accessDeniedReason = 'login';
-        }
+        hasAccess = !!userVerifiedUniversity;
     } else if (visibilityLevel === 'university_exclusive') {
         const allowedUniversities = event.allowed_universities || [];
-        if (userVerifiedUniversity && allowedUniversities.includes(userVerifiedUniversity)) {
-            hasAccess = true;
-        } else if (userVerifiedUniversity) {
-            accessDeniedReason = 'wrong_university';
-        } else if (isLoggedIn) {
-            accessDeniedReason = 'verify';
-        } else {
-            accessDeniedReason = 'login';
-        }
+        hasAccess = !!userVerifiedUniversity && allowedUniversities.includes(userVerifiedUniversity);
     }
 
     // Show access denied message if user doesn't have permission

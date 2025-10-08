@@ -129,6 +129,8 @@ export default function EditDetailsPage() {
                 const { description, website, tags } = await res.json();
 
                 setInitialData({
+                    uploadedImage: null,
+                    imageUrl: null,
                     description: description || "",
                     website: website || "",
                     tags: tags || [],
@@ -207,7 +209,7 @@ export default function EditDetailsPage() {
                             </span>
                         )}
                     </div>
-                    <p className="text-white/60">Update your society's information and settings</p>
+                    <p className="text-white/60">Update your society&apos;s information and settings</p>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -366,6 +368,7 @@ export default function EditDetailsPage() {
                         </Button>
                         <Button
                             type="submit"
+                            variant="filled"
                             disabled={isSubmitting}
                             className="px-6 py-3 bg-blue-500/20 border border-blue-500/30 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >

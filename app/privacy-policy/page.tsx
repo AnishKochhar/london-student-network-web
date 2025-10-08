@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
                         1. Introduction
                     </h2>
                     <p className="mt-4">
-                        This Privacy Policy explains how London Student Network Ltd ("LSN", "we", "us", "our") collects, uses, shares, and protects your personal data when you use our platform and attend our events.
+                        This Privacy Policy explains how London Student Network Ltd (&quot;LSN&quot;, &quot;we&quot;, &quot;us&quot;, &quot;our&quot;) collects, uses, shares, and protects your personal data when you use our platform and attend our events.
                     </p>
                     <p className="mt-4">
                         If you have any questions or concerns about how we handle your data, please contact us at{" "}
@@ -94,7 +94,7 @@ export default function PrivacyPolicy() {
                         4. Sharing Your Data
                     </h2>
                     <p className="mt-4">
-                        <strong>With Students' Unions & Venues:</strong> We share only essential details (event, name, ticket reference, internal/external status) for event admission and safety.
+                        <strong>With Students&apos; Unions & Venues:</strong> We share only essential details (event, name, ticket reference, internal/external status) for event admission and safety.
                     </p>
                     <p className="mt-4">
                         If you choose not to share this information, the venue may not be able to verify your ticket on arrival.
@@ -148,7 +148,7 @@ export default function PrivacyPolicy() {
                         <li>We maintain a suppression list on a legitimate interests basis to ensure you are not contacted again if you unsubscribe, retained indefinitely until you reverse your opt-out.</li>
                     </ul>
                     <p className="mt-4">
-                        For "similar events" you have attended or purchased, we rely on the soft opt-in exception (PECR Regulation 22). Every email provides an easy opt-out.
+                        For &quot;similar events&quot; you have attended or purchased, we rely on the soft opt-in exception (PECR Regulation 22). Every email provides an easy opt-out.
                     </p>
                 </section>
 
@@ -168,7 +168,7 @@ export default function PrivacyPolicy() {
                             You will always be notified in pre-event communications and by signage at the event.
                         </li>
                         <li>
-                            Anyone preferring not to be photographed may request a "no-photo" indicator at the event.
+                            Anyone preferring not to be photographed may request a &quot;no-photo&quot; indicator at the event.
                         </li>
                         <li>
                             For close-up or featured media, your specific consent is always sought prior to use.
@@ -208,7 +208,7 @@ export default function PrivacyPolicy() {
                         We will respond within one month wherever possible.
                     </p>
                     <p className="mt-4">
-                        You also have the right to lodge a complaint with the UK Information Commissioner's Office (ICO):{" "}
+                        You also have the right to lodge a complaint with the UK Information Commissioner&apos;s Office (ICO):{" "}
                         <a
                             href="https://www.ico.org.uk"
                             target="_blank"
@@ -251,7 +251,7 @@ export default function PrivacyPolicy() {
                         If we ever suffer a data breach likely to result in a risk to your rights and freedoms, we will:
                     </p>
                     <ul className="list-disc ml-8 mt-4">
-                        <li>Notify the UK Information Commissioner's Office within 72 hours, unless risk is unlikely</li>
+                        <li>Notify the UK Information Commissioner&apos;s Office within 72 hours, unless risk is unlikely</li>
                         <li>Notify you promptly via the email address linked to your account, including guidance on steps to protect yourself</li>
                     </ul>
                 </section>
@@ -304,7 +304,7 @@ export default function PrivacyPolicy() {
                         1) Who we are and what this covers
                     </h2>
                     <p className="mt-4">
-                        This policy explains how London Student Network Ltd ("LSN", "we", "us") uses cookies and similar technologies when you use our website and web application (together, the "Services").
+                        This policy explains how London Student Network Ltd (&quot;LSN&quot;, &quot;we&quot;, &quot;us&quot;) uses cookies and similar technologies when you use our website and web application (together, the &quot;Services&quot;).
                     </p>
                     <p className="mt-4">
                         Read this alongside our Privacy Policy above for full details on how we handle personal data and our company information.
@@ -341,7 +341,7 @@ export default function PrivacyPolicy() {
                         If any strictly necessary technologies (for example, a login session cookie) are ever introduced, we will update this policy to explain their essential function before they are deployed.
                     </p>
                     <p className="mt-4">
-                        If we later intend to use any non-essential technologies, we will first seek your consent through a clear, compliant banner that offers "Accept" and "Reject" options.
+                        If we later intend to use any non-essential technologies, we will first seek your consent through a clear, compliant banner that offers &quot;Accept&quot; and &quot;Reject&quot; options.
                     </p>
                     <p className="mt-4">
                         <strong>In short:</strong> we do not track you or place anything on your device to identify you.
@@ -381,7 +381,7 @@ export default function PrivacyPolicy() {
                     <ul className="list-disc ml-8 mt-4">
                         <li>We do not embed any third‑party scripts by default.</li>
                         <li>When you interact with embedded content (e.g., a YouTube player), the third‑party provider may set cookies or similar technologies that we do not control.</li>
-                        <li>Please review the relevant provider's cookie or privacy notice before using those features.</li>
+                        <li>Please review the relevant provider&apos;s cookie or privacy notice before using those features.</li>
                     </ul>
 
                     <h2 className="text-xl font-semibold text-white mt-8">
@@ -408,7 +408,7 @@ export default function PrivacyPolicy() {
                         When we make important changes, we will clearly post an updated notice on our website or app before the change takes effect.
                     </p>
                     <p className="mt-4">
-                        The "Last updated" date above will always reflect the latest version.
+                        The &quot;Last updated&quot; date above will always reflect the latest version.
                     </p>
 
                     <h2 className="text-xl font-semibold text-white mt-8">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query } from "@/app/lib/db";
+import { sql } from "@vercel/postgres";
 import { auth } from "@/auth";
 
 export async function GET(
@@ -51,10 +51,9 @@ export async function GET(
             GROUP BY t.id, u.forum_username, u.name
         `;
 
-        const threadResult = await query(
-            threadQuery,
-            userId ? [threadId, userId] : [threadId]
-        );
+        const threadResult = userId
+            ? await sql.query(threadQuery, [threadId, userId])
+            : await sql.query(threadQuery, [threadId]);
 
         if (threadResult.rows.length === 0) {
             return NextResponse.json(

@@ -73,6 +73,7 @@ export async function POST(req: Request) {
         });
 
         // Update the event in the database
+        const allowedUniversities = sqlEventData.allowed_universities ?? [];
         const result = await sql`
             UPDATE events SET
                 title = ${sqlEventData.title},
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
                 send_signup_notifications = ${sqlEventData.send_signup_notifications},
                 visibility_level = ${sqlEventData.visibility_level},
                 registration_level = ${sqlEventData.registration_level},
-                allowed_universities = ${sqlEventData.allowed_universities},
+                allowed_universities = ${allowedUniversities as unknown as string},
                 registration_cutoff_hours = ${sqlEventData.registration_cutoff_hours ?? null},
                 external_registration_cutoff_hours = ${sqlEventData.external_registration_cutoff_hours ?? null}
             WHERE id = ${id}

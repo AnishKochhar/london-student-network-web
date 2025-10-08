@@ -168,11 +168,12 @@ export async function verifyUniversityEmail(
         );
 
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error verifying university email:", error);
 
         // Handle unique constraint violation (university email already used)
-        if (error.code === '23505' || error.message?.includes('duplicate key')) {
+        const dbError = error as { code?: string; message?: string };
+        if (dbError.code === '23505' || dbError.message?.includes('duplicate key')) {
             return {
                 success: false,
                 error: "This university email has already been verified by another account"

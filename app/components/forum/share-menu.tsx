@@ -7,7 +7,7 @@ import {
     LinkIcon,
     CheckIcon,
 } from "@heroicons/react/24/outline";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 interface ShareMenuProps {
