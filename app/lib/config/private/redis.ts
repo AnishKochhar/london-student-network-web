@@ -22,7 +22,9 @@ declare global {
 
 export default async function getRedisClient(): Promise<Redis> {
     if (!global._redis) {
-        global._redis = new Redis(REDIS_URL);
+        global._redis = new Redis(REDIS_URL, {
+            maxRetriesPerRequest: null // Required by BullMQ
+        });
         global._redis.on('connect', () => {
             console.log(`->->->->->->(developer message) Attempted at: [${new Date().toISOString()}] Connected to Redis successfully<-<-<-<-<-<-`);
         });
