@@ -1,7 +1,7 @@
 "use server";
 
 import sendSendGridEmail from "./config/private/sendgrid";
-import { EmailData } from "./types";
+import { EmailData, Event } from "./types";
 import { getEmailFromId } from "./data";
 import EmailPayload from "../components/templates/user-to-society-email"; // this might have security issues because of user inputs.
 import EmailPayloadFallback from "../components/templates/user-to-society-email-fallback";
@@ -13,6 +13,8 @@ import UniversityVerificationEmailPayload from "../components/templates/universi
 import UniversityVerificationEmailPayloadFallback from "../components/templates/university-verification-email-fallback";
 import CombinedVerificationEmailPayload from "../components/templates/combined-verification-email";
 import CombinedVerificationEmailPayloadFallback from "../components/templates/combined-verification-email-fallback";
+import ExternalForwardingEmailPayload from "../components/templates/external-forwarding-email";
+import ExternalForwardingEmailFallbackPayload from "../components/templates/external-forwarding-email-fallback";
 
 export const sendOrganiserEmail = async ({
     id,
@@ -256,5 +258,53 @@ export const sendCombinedVerificationEmail = async (
         console.error("Stack trace:", error.stack);
 
         throw new Error("Failed to send combined verification email");
+    }
+};
+
+export const sendExternalForwardingEmail = async ({
+    externalEmail,
+    event,
+    registrations,
+}: {
+    externalEmail: string;
+    event: Event;
+    registrations: Array<{ name: string; email: string; external: boolean }>;
+}) => {
+    try {
+        if (!externalEmail) {
+            console.error("External forwarding email address is empty");
+            throw new Error("External forwarding email address is required");
+        }
+
+        if (!registrations || registrations.length === 0) {
+            console.log(`No registrations to forward for event ${event.id}`);
+            return { success: true, message: "No registrations to forward" };
+        }
+
+        const htmlPayload = ExternalForwardingEmailPayload(event, registrations);
+        const textPayload = ExternalForwardingEmailFallbackPayload(event, registrations);
+
+        const msg = {
+            to: externalEmail,
+            from: "hello@londonstudentnetwork.com",
+            subject: `📋 Registration List: ${event.title}`,
+            html: htmlPayload,
+            text: textPayload,
+        };
+
+        await sendSendGridEmail(msg);
+
+        console.log(`External forwarding email sent to ${externalEmail} for event ${event.id}`);
+        return { success: true };
+    } catch (error) {
+        console.error(
+            "Error occurred during external forwarding email sending. Error message:",
+            error.message,
+        );
+        console.error("Stack trace:", error.stack);
+
+        throw new Error(
+            "An error occurred during the attempt to send external forwarding email",
+        );
     }
 };
