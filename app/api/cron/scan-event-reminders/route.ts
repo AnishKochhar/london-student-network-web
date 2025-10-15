@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { scheduleEventEmailReminder } from '@/app/lib/functions/events/schedule-event-email-reminder';
-import { sendExternalForwardingEmail } from '@/app/lib/send-email';
-import { convertSQLEventToEvent } from '@/app/lib/utils';
+import { scheduleExternalForwardingEmail } from '@/app/lib/functions/events/schedule-external-forwarding-email';
+import { scheduleOrganizerSummaryEmail } from '@/app/lib/functions/events/schedule-organizer-summary-email';
 import { SQLEvent } from '@/app/lib/types';
 
 export const runtime = 'nodejs';
@@ -19,10 +19,12 @@ export async function GET(request: Request) {
 
         console.log(`[CRON] Starting event reminder scan at ${new Date().toISOString()}`);
 
-        // Find events starting in the next 24 hours (with 1 hour buffer)
+        // Find events starting in the next 3-30 hours
+        // Lower bound (3hrs): Minimum notice for user reminders
+        // Upper bound (30hrs): Covers 24-hour external/organizer emails + buffer
         const now = new Date();
-        const in23Hours = new Date(now.getTime() + 23 * 60 * 60 * 1000);
-        const in25Hours = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+        const in3Hours = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+        const in30Hours = new Date(now.getTime() + 30 * 60 * 60 * 1000);
 
         // Query events that haven't been deleted and are starting soon
         const eventsResult = await sql`
@@ -47,7 +49,7 @@ export async function GET(request: Request) {
                 for_externals,
                 send_signup_notifications
             FROM events
-            WHERE start_datetime BETWEEN ${in23Hours.toISOString()} AND ${in25Hours.toISOString()}
+            WHERE start_datetime BETWEEN ${in3Hours.toISOString()} AND ${in30Hours.toISOString()}
             AND is_deleted = false
             AND is_hidden = false
         `;
@@ -55,7 +57,8 @@ export async function GET(request: Request) {
         console.log(`[CRON] Found ${eventsResult.rows.length} events starting in 24 hours`);
 
         let totalRemindersScheduled = 0;
-        let totalExternalEmailsSent = 0;
+        let totalExternalEmailsScheduled = 0;
+        let totalOrganizerSummariesScheduled = 0;
         const errors: string[] = [];
 
         // Process each event
@@ -76,44 +79,62 @@ export async function GET(request: Request) {
 
                 console.log(`[CRON] Found ${registrationsResult.rows.length} registrations for event ${sqlEvent.id}`);
 
-                // Schedule reminder emails for each registered user
-                for (const registration of registrationsResult.rows) {
-                    try {
-                        await scheduleEventEmailReminder({
-                            user_id: registration.user_id,
-                            event_id: sqlEvent.id as string,
-                            attempts: 0,
-                            buffer_time: 3600 // Send in 1 hour from now
-                        });
-                        totalRemindersScheduled++;
-                    } catch (reminderError) {
-                        console.error(`[CRON] Failed to schedule reminder for user ${registration.user_id}:`, reminderError);
-                        errors.push(`Failed to schedule reminder for user ${registration.user_id} in event ${sqlEvent.id}`);
+                // Schedule reminder emails for each registered user (3 hours before event)
+                const eventStartTime = new Date(sqlEvent.start_datetime as string).getTime();
+                const userReminderTime = eventStartTime - (3 * 60 * 60 * 1000); // 3 hours before
+                const userReminderDelay = Math.max(0, Math.floor((userReminderTime - now.getTime()) / 1000));
+
+                // Only schedule if reminder time is in the future
+                if (userReminderTime > now.getTime()) {
+                    for (const registration of registrationsResult.rows) {
+                        try {
+                            await scheduleEventEmailReminder({
+                                user_id: registration.user_id,
+                                event_id: sqlEvent.id as string,
+                                attempts: 0,
+                                buffer_time: userReminderDelay
+                            });
+                            totalRemindersScheduled++;
+                        } catch (reminderError) {
+                            console.error(`[CRON] Failed to schedule reminder for user ${registration.user_id}:`, reminderError);
+                            errors.push(`Failed to schedule reminder for user ${registration.user_id} in event ${sqlEvent.id}`);
+                        }
                     }
                 }
 
-                // Send external forwarding email if configured
-                if (sqlEvent.external_forward_email && sqlEvent.external_forward_email.trim() !== '') {
+                // Schedule external forwarding email (24 hours before event)
+                const externalEmailTime = eventStartTime - (24 * 60 * 60 * 1000); // 24 hours before
+                const externalEmailDelay = Math.max(0, Math.floor((externalEmailTime - now.getTime()) / 1000));
+
+                if (sqlEvent.external_forward_email && sqlEvent.external_forward_email.trim() !== '' && externalEmailTime > now.getTime()) {
                     try {
-                        const event = convertSQLEventToEvent(sqlEvent as SQLEvent);
-
-                        const registrationsList = registrationsResult.rows.map(reg => ({
-                            name: reg.name as string,
-                            email: reg.email as string,
-                            external: reg.external as boolean
-                        }));
-
-                        await sendExternalForwardingEmail({
-                            externalEmail: sqlEvent.external_forward_email as string,
-                            event,
-                            registrations: registrationsList
+                        await scheduleExternalForwardingEmail({
+                            event_id: sqlEvent.id as string,
+                            buffer_time: externalEmailDelay
                         });
-
-                        totalExternalEmailsSent++;
-                        console.log(`[CRON] Sent external forwarding email for event ${sqlEvent.id} to ${sqlEvent.external_forward_email}`);
+                        totalExternalEmailsScheduled++;
+                        console.log(`[CRON] Scheduled external forwarding email for event ${sqlEvent.id} in ${externalEmailDelay}s`);
                     } catch (externalEmailError) {
-                        console.error(`[CRON] Failed to send external email for event ${sqlEvent.id}:`, externalEmailError);
-                        errors.push(`Failed to send external email for event ${sqlEvent.id}`);
+                        console.error(`[CRON] Failed to schedule external email for event ${sqlEvent.id}:`, externalEmailError);
+                        errors.push(`Failed to schedule external email for event ${sqlEvent.id}`);
+                    }
+                }
+
+                // Schedule organizer summary email (24 hours before event, always sent)
+                const organizerSummaryTime = eventStartTime - (24 * 60 * 60 * 1000); // 24 hours before
+                const organizerSummaryDelay = Math.max(0, Math.floor((organizerSummaryTime - now.getTime()) / 1000));
+
+                if (organizerSummaryTime > now.getTime()) {
+                    try {
+                        await scheduleOrganizerSummaryEmail({
+                            event_id: sqlEvent.id as string,
+                            buffer_time: organizerSummaryDelay
+                        });
+                        totalOrganizerSummariesScheduled++;
+                        console.log(`[CRON] Scheduled organizer summary email for event ${sqlEvent.id} in ${organizerSummaryDelay}s`);
+                    } catch (organizerSummaryError) {
+                        console.error(`[CRON] Failed to schedule organizer summary for event ${sqlEvent.id}:`, organizerSummaryError);
+                        errors.push(`Failed to schedule organizer summary for event ${sqlEvent.id}`);
                     }
                 }
 
@@ -128,7 +149,8 @@ export async function GET(request: Request) {
             timestamp: new Date().toISOString(),
             eventsProcessed: eventsResult.rows.length,
             remindersScheduled: totalRemindersScheduled,
-            externalEmailsSent: totalExternalEmailsSent,
+            externalEmailsScheduled: totalExternalEmailsScheduled,
+            organizerSummariesScheduled: totalOrganizerSummariesScheduled,
             errors: errors.length > 0 ? errors : undefined
         };
 
