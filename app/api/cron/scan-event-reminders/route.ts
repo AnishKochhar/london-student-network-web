@@ -3,7 +3,6 @@ import { sql } from '@vercel/postgres';
 import { scheduleEventEmailReminder } from '@/app/lib/functions/events/schedule-event-email-reminder';
 import { scheduleExternalForwardingEmail } from '@/app/lib/functions/events/schedule-external-forwarding-email';
 import { scheduleOrganizerSummaryEmail } from '@/app/lib/functions/events/schedule-organizer-summary-email';
-import { SQLEvent } from '@/app/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

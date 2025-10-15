@@ -120,6 +120,44 @@ export async function POST(req: Request) {
 			});
 		}
 
+		// Determine if guest is internal based on email domain
+		// Internal = guest's email university matches event organizer's university
+		let isInternal = false;
+
+		try {
+			const emailDomain = email.toLowerCase().split('@')[1];
+
+			if (emailDomain) {
+				// Query to check if email domain matches organizer's university
+				const universityCheckResult = await sql`
+					SELECT
+						ued.university_code,
+						ued.university_name,
+						u.verified_university as organizer_university
+					FROM university_email_domains ued
+					CROSS JOIN users u
+					WHERE u.id = ${event.organiser_uid}
+					  AND ued.email_domain = ${emailDomain}
+					  AND ued.is_active = true
+					  AND u.verified_university IS NOT NULL
+				`;
+
+				// If domain is recognized AND matches organizer's university → internal
+				if (universityCheckResult.rows.length > 0) {
+					const row = universityCheckResult.rows[0];
+					isInternal = row.university_code === row.organizer_university;
+
+					if (isInternal) {
+						console.log(`[GUEST-REG] Guest ${email} recognized as internal (${row.university_name})`);
+					}
+				}
+			}
+		} catch (universityCheckError) {
+			console.error('[GUEST-REG] Error checking university status:', universityCheckError);
+			// Default to external on error (safe fallback)
+			isInternal = false;
+		}
+
 		// Register the guest
 		const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
@@ -136,7 +174,7 @@ export async function POST(req: Request) {
                 NULL,
                 ${fullName},
                 ${email.toLowerCase()},
-                true
+                ${!isInternal}
             )
         `;
 
@@ -176,7 +214,7 @@ export async function POST(req: Request) {
 						{
 							name: fullName,
 							email: email.toLowerCase(),
-							external: true // Guests are always external
+							external: !isInternal
 						}
 					);
 					const organiserEmailText = EventOrganizerNotificationEmailFallbackPayload(
@@ -184,7 +222,7 @@ export async function POST(req: Request) {
 						{
 							name: fullName,
 							email: email.toLowerCase(),
-							external: true
+							external: !isInternal
 						}
 					);
 
