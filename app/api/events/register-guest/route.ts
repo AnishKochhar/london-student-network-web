@@ -131,21 +131,22 @@ export async function POST(req: Request) {
 				// Query to check if email domain matches organizer's university
 				const universityCheckResult = await sql`
 					SELECT
-						ued.university_code,
 						ued.university_name,
-						u.verified_university as organizer_university
+						si.university_affiliation as organizer_university
 					FROM university_email_domains ued
 					CROSS JOIN users u
+					LEFT JOIN society_information si ON u.id = si.user_id
 					WHERE u.id = ${event.organiser_uid}
 					  AND ued.email_domain = ${emailDomain}
 					  AND ued.is_active = true
-					  AND u.verified_university IS NOT NULL
+					  AND si.university_affiliation IS NOT NULL
+					  AND si.university_affiliation = ued.university_name
 				`;
 
 				// If domain is recognized AND matches organizer's university → internal
 				if (universityCheckResult.rows.length > 0) {
 					const row = universityCheckResult.rows[0];
-					isInternal = row.university_code === row.organizer_university;
+					isInternal = true;
 
 					if (isInternal) {
 						console.log(`[GUEST-REG] Guest ${email} recognized as internal (${row.university_name})`);

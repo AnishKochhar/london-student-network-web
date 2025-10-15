@@ -18,18 +18,18 @@
 --     er.external as current_status,
 --     e.title as event_title,
 --     e.organiser,
---     u.verified_university as organizer_university,
---     ued.university_code as email_university,
---     ued.university_name
+--     si.university_affiliation as organizer_university,
+--     ued.university_name as email_university
 -- FROM event_registrations er
 -- JOIN events e ON er.event_id = e.id
 -- JOIN users u ON e.organiser_uid = u.id
+-- LEFT JOIN society_information si ON u.id = si.user_id
 -- JOIN university_email_domains ued ON LOWER(SPLIT_PART(er.email, '@', 2)) = ued.email_domain
 -- WHERE er.user_id IS NULL  -- Guest registrations only
 --   AND er.external = true  -- Currently marked external
 --   AND e.is_deleted = false
 --   AND e.start_datetime > NOW()  -- Only future events
---   AND u.verified_university = ued.university_code  -- Email university matches organizer university
+--   AND si.university_affiliation = ued.university_name  -- Email university matches organizer university
 --   AND ued.is_active = true;
 
 -- Step 2: Count affected records
@@ -37,12 +37,13 @@ SELECT COUNT(*) as records_to_update
 FROM event_registrations er
 JOIN events e ON er.event_id = e.id
 JOIN users u ON e.organiser_uid = u.id
+LEFT JOIN society_information si ON u.id = si.user_id
 JOIN university_email_domains ued ON LOWER(SPLIT_PART(er.email, '@', 2)) = ued.email_domain
 WHERE er.user_id IS NULL
   AND er.external = true
   AND e.is_deleted = false
   AND e.start_datetime > NOW()
-  AND u.verified_university = ued.university_code
+  AND si.university_affiliation = ued.university_name
   AND ued.is_active = true;
 
 -- Step 3: Perform the update
@@ -57,12 +58,13 @@ WHERE event_registration_uuid IN (
     FROM event_registrations er
     JOIN events e ON er.event_id = e.id
     JOIN users u ON e.organiser_uid = u.id
+    LEFT JOIN society_information si ON u.id = si.user_id
     JOIN university_email_domains ued ON LOWER(SPLIT_PART(er.email, '@', 2)) = ued.email_domain
     WHERE er.user_id IS NULL
       AND er.external = true
       AND e.is_deleted = false
       AND e.start_datetime > NOW()
-      AND u.verified_university = ued.university_code
+      AND si.university_affiliation = ued.university_name
       AND ued.is_active = true
 );
 

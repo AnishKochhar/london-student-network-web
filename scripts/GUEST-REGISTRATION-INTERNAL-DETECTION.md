@@ -25,7 +25,7 @@ Result: external = true (stays external) ❌
 ### Server-Side Security
 
 - ✅ University domains fetched from `university_email_domains` table (not exposed to client)
-- ✅ Uses organizer's verified university (`verified_university` field)
+- ✅ Uses organizer's university affiliation (`society_information.university_affiliation` field)
 - ✅ Only active domains recognized (`is_active = true`)
 - ✅ Safe fallback: defaults to external on any error
 
@@ -60,9 +60,9 @@ university_email_domains (
 )
 
 -- Event organizer's university
-users (
-    id,                 -- Organizer ID
-    verified_university -- e.g., "imperial"
+society_information (
+    user_id,              -- Links to users.id
+    university_affiliation -- e.g., "imperial"
 )
 
 -- Event info
@@ -182,13 +182,15 @@ But **NOT required** - works perfectly without any frontend changes.
 ```sql
 -- Single query per registration (fast)
 SELECT
-    ued.university_code,
-    u.verified_university
+    ued.university_name,
+    si.university_affiliation
 FROM university_email_domains ued
 CROSS JOIN users u
+LEFT JOIN society_information si ON u.id = si.user_id
 WHERE u.id = ${event.organiser_uid}
   AND ued.email_domain = ${emailDomain}
   AND ued.is_active = true
+  AND si.university_affiliation = ued.university_name
 ```
 
 **Index Recommendations** (if not already present):
@@ -196,8 +198,11 @@ WHERE u.id = ${event.organiser_uid}
 CREATE INDEX IF NOT EXISTS idx_university_domains_email
 ON university_email_domains(email_domain) WHERE is_active = true;
 
-CREATE INDEX IF NOT EXISTS idx_users_verified_university
-ON users(verified_university) WHERE verified_university IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_society_info_user_id
+ON society_information(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_society_info_university_affiliation
+ON society_information(university_affiliation) WHERE university_affiliation IS NOT NULL;
 ```
 
 ### Error Handling
@@ -304,9 +309,9 @@ LIMIT 10;
 
 This is a **trust-based convenience feature**, not a security control.
 
-### Q: What if organizer has no verified_university?
+### Q: What if organizer has no university_affiliation?
 
-**A:** All guests marked external (safe default). Organizers should verify their university email to use this feature.
+**A:** All guests marked external (safe default). Organizers should set their university affiliation in their society profile to use this feature.
 
 ## Summary
 
