@@ -2,6 +2,7 @@ import { fetchAllUpcomingEvents } from "../lib/data";
 import FilteredEventsPage from "../components/events-page/filtered-events-page";
 import CreateEventButton from "../components/events-page/create-event-button";
 import AnimatedTitle from "../components/events-page/animated-title";
+import { auth } from "@/auth";
 import type { Metadata } from "next";
 
 export const revalidate = 60; // Once per minute
@@ -38,7 +39,18 @@ export const metadata: Metadata = {
 };
 
 export default async function EventPage() {
-    const allEvents = await fetchAllUpcomingEvents();
+    const session = await auth();
+
+    // Pass session to filter events based on visibility level
+    const userSession = session?.user
+        ? {
+              id: session.user.id,
+              verified_university: session.user.verified_university,
+              role: session.user.role,
+          }
+        : null;
+
+    const allEvents = await fetchAllUpcomingEvents(userSession);
 
     return (
         <main className="relative flex flex-col min-h-screen mx-auto p-8 pt-16 bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] ">

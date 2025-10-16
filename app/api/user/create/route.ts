@@ -7,7 +7,12 @@ export async function POST(req: Request) {
     if (response.success) {
         const id = response.id as string;
         const response_two = await insertUserInformation(data, id);
-        return NextResponse.json(response_two);
+
+        // Ensure the ID is included in the response
+        return NextResponse.json({
+            ...response_two,
+            id: id  // Always include the user ID in the response
+        });
     }
     return NextResponse.json(response);
 }

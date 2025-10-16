@@ -50,6 +50,7 @@ export default function RegistrationConfirmationModal({
             transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
             className="relative bg-white rounded-xl shadow-2xl max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">

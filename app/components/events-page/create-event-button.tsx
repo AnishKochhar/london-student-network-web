@@ -13,10 +13,11 @@ export default function CreateEventButton() {
     const [isHovered, setIsHovered] = useState(false);
 
     const handleCreateEvent = async () => {
-        if (session) {
+        if (session.data) {
             router.push("/events/create");
         } else {
-            router.push("/login");
+            // Redirect to login with callback URL to return here after login
+            router.push("/login?redirect=/events/create");
         }
     };
 

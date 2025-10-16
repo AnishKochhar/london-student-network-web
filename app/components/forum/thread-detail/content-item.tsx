@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     ChatBubbleLeftIcon,
     PencilIcon,
     TrashIcon,
-    ShareIcon,
 } from "@heroicons/react/24/outline";
 import {
     Reply,
@@ -20,6 +19,7 @@ import EditThreadModal from "./edit-thread-modal";
 import DeleteConfirmationModal from "../delete-confirmation-modal";
 import * as threadService from "@/app/lib/services/thread-service";
 import MarkdownRenderer from "../../markdown/markdown-renderer";
+import ShareMenu from "../share-menu";
 
 interface ContentItemProps {
     item: Reply | ThreadData;
@@ -37,6 +37,7 @@ interface ContentItemProps {
         updatedData: CommentUpdateData | ThreadUpdateData,
     ) => void;
     onItemDelete?: (itemId: number) => void;
+    shouldHighlight?: boolean;
 }
 
 export default function ContentItem({
@@ -47,12 +48,32 @@ export default function ContentItem({
     onVoteChange,
     onItemUpdate,
     onItemDelete,
+    shouldHighlight = false,
 }: ContentItemProps) {
     const { data: session } = useSession();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isHighlighted, setIsHighlighted] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Smooth scroll and highlight effect
+    useEffect(() => {
+        if (shouldHighlight && containerRef.current) {
+            // Small delay to ensure render
+            setTimeout(() => {
+                containerRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+                setIsHighlighted(true);
+
+                // Remove highlight after animation
+                setTimeout(() => setIsHighlighted(false), 2000);
+            }, 100);
+        }
+    }, [shouldHighlight]);
 
     // Check if current user is the author
     const isAuthor = session?.user?.id === item.authorId;
@@ -253,9 +274,11 @@ export default function ContentItem({
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <button className="flex items-center gap-1 px-2 py-0.5 rounded hover:bg-white/5 transition-colors">
-                                    <ShareIcon className="w-3.5 h-3.5" />
-                                </button>
+                                <ShareMenu
+                                    url={typeof window !== "undefined" ? `${window.location.origin}/forum?thread=${thread.id}` : ""}
+                                    title={thread.title}
+                                    compact
+                                />
                                 <div className="flex items-center gap-1">
                                     <ChatBubbleLeftIcon className="w-3.5 h-3.5 text-white/60" />
                                     <span className="text-white/60">
@@ -315,6 +338,19 @@ export default function ContentItem({
 
                         <div className="text-white/90 mb-2 leading-relaxed text-base">
                             <MarkdownRenderer content={displayContent} />
+
+                            {shouldTruncateContent && (
+                                <button
+                                    onClick={() =>
+                                        setIsContentExpanded(!isContentExpanded)
+                                    }
+                                    className="text-blue-400 hover:text-blue-300 transition-colors text-sm mt-2 flex items-center gap-1"
+                                >
+                                    {isContentExpanded
+                                        ? "Show less"
+                                        : "Read more"}
+                                </button>
+                            )}
                         </div>
 
                         {/* Edited indicator */}
@@ -352,10 +388,10 @@ export default function ContentItem({
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <button className="flex items-center gap-2 px-3 py-1 rounded hover:bg-white/5 transition-colors">
-                                    <ShareIcon className="w-4 h-4" />
-                                    <span>Share</span>
-                                </button>
+                                <ShareMenu
+                                    url={typeof window !== "undefined" ? `${window.location.origin}/forum?thread=${thread.id}` : ""}
+                                    title={thread.title}
+                                />
                                 <div className="flex items-center gap-2">
                                     <ChatBubbleLeftIcon className="w-4 h-4 text-white/60" />
                                     <span className="text-white/60">
@@ -392,7 +428,14 @@ export default function ContentItem({
     } else if (type === "reply") {
         return (
             <>
-                <div className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-3 sm:p-4 ml-4 sm:ml-8">
+                <div
+                    ref={containerRef}
+                    className={`bg-white/5 backdrop-blur border rounded-lg p-3 sm:p-4 ml-4 sm:ml-8 transition-all duration-500 ${
+                        isHighlighted
+                            ? "border-blue-400 bg-blue-500/20 shadow-lg shadow-blue-500/20"
+                            : "border-white/10"
+                    }`}
+                >
                     <div className="flex gap-2 sm:gap-3">
                         {/* Mini Vote Section */}
                         <div className="min-w-[36px] sm:min-w-[40px]">
@@ -525,7 +568,14 @@ export default function ContentItem({
         return (
             <>
                 {/* Mobile View */}
-                <div className="sm:hidden">
+                <div
+                    ref={containerRef}
+                    className={`sm:hidden transition-all duration-500 rounded-lg ${
+                        isHighlighted
+                            ? "ring-2 ring-blue-400 bg-blue-500/10"
+                            : ""
+                    }`}
+                >
                     {/* Vote buttons on left, all content on right */}
                     <div className="flex gap-3 items-start">
                         {/* Vote Buttons - keep horizontal */}
@@ -627,7 +677,11 @@ export default function ContentItem({
                 </div>
 
                 {/* Desktop View */}
-                <div className="hidden sm:flex sm:flex-row sm:gap-4">
+                <div className={`hidden sm:flex sm:flex-row sm:gap-4 transition-all duration-500 rounded-lg ${
+                    isHighlighted
+                        ? "ring-2 ring-blue-400 bg-blue-500/10 p-4"
+                        : ""
+                }`}>
                     {/* Vote Section */}
                     <div className="block min-w-[60px]">
                         <VoteButtons
@@ -686,6 +740,19 @@ export default function ContentItem({
                         <div className="mb-4">
                             <div className="text-white/90 mb-2 leading-relaxed text-base">
                                 <MarkdownRenderer content={displayContent} />
+
+                                {shouldTruncateContent && (
+                                    <button
+                                        onClick={() =>
+                                            setIsContentExpanded(!isContentExpanded)
+                                        }
+                                        className="text-blue-400 hover:text-blue-300 transition-colors text-sm mt-2 flex items-center gap-1"
+                                    >
+                                        {isContentExpanded
+                                            ? "Show less"
+                                            : "Read more"}
+                                    </button>
+                                )}
                             </div>
 
                             {/* Edited indicator */}

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { UserRegisterFormData } from "@/app/lib/types";
 import { LondonUniversities, SocietyLogos } from "@/app/lib/utils";
+import { extractUniversityFromEmail, isUniversityEmail } from "@/app/lib/university-email-mapping";
 import ModernFormStep from "./modern-form-step";
 import { ModernInput } from "./modern-input";
 import { ModernSelect } from "./modern-select";
@@ -37,6 +38,7 @@ export default function ModernStudentRegistration() {
         getValues,
         watch,
         trigger,
+        setValue,
     } = useForm<UserRegisterFormData>({
         mode: "onChange",
     });
@@ -60,6 +62,32 @@ export default function ModernStudentRegistration() {
             watchedValues.societyReferrer === "Other (please specify)",
         );
     }, [watchedValues.societyReferrer]);
+
+    // Auto-populate university email when primary email is a university email
+    useEffect(() => {
+        if (watchedValues.email && isUniversityEmail(watchedValues.email)) {
+            // If primary email is a university email, use it for verification too
+            setValue("universityEmail", watchedValues.email, { shouldValidate: true });
+        }
+    }, [watchedValues.email, setValue]);
+
+    // Auto-fill university dropdown when university email is entered
+    useEffect(() => {
+        if (watchedValues.universityEmail) {
+            const detectedUniversity = extractUniversityFromEmail(watchedValues.universityEmail);
+
+            // Only auto-fill if:
+            // 1. We detected a valid university
+            // 2. University field is empty OR is still the default/unrecognized value
+            if (detectedUniversity &&
+                (!watchedValues.university || watchedValues.university === "")) {
+                // Check if the detected university exists in our LondonUniversities list
+                if (LondonUniversities.includes(detectedUniversity)) {
+                    setValue("university", detectedUniversity, { shouldValidate: true });
+                }
+            }
+        }
+    }, [watchedValues.universityEmail, watchedValues.university, setValue]);
 
     const nextStep = async () => {
         const isValid = await validateCurrentStep();
@@ -94,7 +122,13 @@ export default function ModernStudentRegistration() {
                     "hasAgreedToTerms",
                 ]);
             case 2:
-                return await trigger("email");
+                const emailValid = await trigger("email");
+                // Only require university email if primary email is NOT a university email
+                if (watchedValues.email && !isUniversityEmail(watchedValues.email)) {
+                    const uniEmailValid = await trigger("universityEmail");
+                    return emailValid && uniEmailValid;
+                }
+                return emailValid;
             case 3:
                 return await trigger(["password", "confirmPassword"]);
             case 4:
@@ -123,7 +157,17 @@ export default function ModernStudentRegistration() {
                     watchedValues.hasAgreedToTerms
                 );
             case 2:
-                return !!(watchedValues.email && !errors.email);
+                // If primary email is a university email, only that is needed
+                if (watchedValues.email && isUniversityEmail(watchedValues.email)) {
+                    return !!(watchedValues.email && !errors.email);
+                }
+                // Otherwise, both emails are required
+                return !!(
+                    watchedValues.email &&
+                    !errors.email &&
+                    watchedValues.universityEmail &&
+                    !errors.universityEmail
+                );
             case 3:
                 return !!(
                     watchedValues.password &&
@@ -195,11 +239,83 @@ export default function ModernStudentRegistration() {
                 toast.success("Account created successfully!", { id: toastId });
                 setCurrentStep(totalSteps + 1);
 
-                await fetch("/api/email/send-verification-email", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email: data.email }),
-                });
+                // Check if both emails are the same
+                const emailsAreSame = data.email.toLowerCase() === data.universityEmail?.toLowerCase();
+
+                if (emailsAreSame && data.universityEmail) {
+                    // Send single combined verification email
+                    try {
+                        const combinedResponse = await fetch("/api/email/send-combined-verification-email", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                userId: result.id,
+                                email: data.universityEmail
+                            }),
+                        });
+
+                        if (!combinedResponse.ok) {
+                            const errorData = await combinedResponse.json();
+                            console.error("Failed to send combined verification email:", {
+                                status: combinedResponse.status,
+                                error: errorData
+                            });
+
+                            // Show user-friendly message but don't block registration
+                            toast(
+                                "Account created! However, we couldn&apos;t send the verification email automatically. " +
+                                "Please check your account page to resend verification.",
+                                { duration: 8000, icon: '⚠️' }
+                            );
+                        } else {
+                            toast.success("Verification email sent! Check your inbox and junk folder.", { duration: 6000 });
+                        }
+                    } catch (emailError) {
+                        console.error("Error sending combined verification email:", emailError);
+                        toast(
+                            "Account created successfully! You can resend verification from your account page.",
+                            { duration: 6000, icon: '⚠️' }
+                        );
+                    }
+                } else {
+                    // Send separate verification emails
+                    // Send primary email verification
+                    try {
+                        const emailResponse = await fetch("/api/email/send-verification-email", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ email: data.email }),
+                        });
+
+                        if (!emailResponse.ok) {
+                            console.error("Failed to send primary verification email");
+                            toast.error("Warning: Verification email may not have been sent. Please contact support.");
+                        }
+                    } catch (emailError) {
+                        console.error("Error sending primary verification email:", emailError);
+                    }
+
+                    // Send university email verification (required for all students)
+                    if (data.universityEmail) {
+                        try {
+                            const uniEmailResponse = await fetch("/api/email/send-university-verification-email", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    userId: result.id,
+                                    universityEmail: data.universityEmail
+                                }),
+                            });
+
+                            if (!uniEmailResponse.ok) {
+                                console.error("Failed to send university verification email");
+                                toast.error("Warning: University verification email may not have been sent. You can verify later from your account page.");
+                            }
+                        } catch (emailError) {
+                            console.error("Error sending university verification email:", emailError);
+                        }
+                    }
+                }
             } else {
                 toast.error(`Error: ${result.error}`, { id: toastId });
             }
@@ -269,6 +385,14 @@ export default function ModernStudentRegistration() {
                                     >
                                         terms and conditions
                                     </a>
+                                    {" "}and{" "}
+                                    <a
+                                        href="/privacy-policy"
+                                        className="text-blue-400 underline"
+                                        target="_blank"
+                                    >
+                                        privacy policy
+                                    </a>
                                 </span>
                             </label>
                         </div>
@@ -285,7 +409,7 @@ export default function ModernStudentRegistration() {
                 <ModernFormStep
                     key="step2"
                     title="What's your email?"
-                    subtitle="We'll send you updates and event notifications"
+                    // subtitle="Your primary email for LSN, plus university email for verification"
                     currentStep={currentStep}
                     totalSteps={totalSteps}
                     onNext={nextStep}
@@ -294,18 +418,81 @@ export default function ModernStudentRegistration() {
                     direction={direction}
                     onStepClick={handleStepClick}
                 >
-                    <ModernInput
-                        type="email"
-                        placeholder="Enter your email address"
-                        error={errors.email?.message}
-                        {...register("email", {
-                            required: "Email is required",
-                            pattern: {
-                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                message: "Invalid email address",
-                            },
-                        })}
-                    />
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-gray-300 text-left block text-sm font-medium">
+                                Email <span className="text-red-300">*</span>
+                            </label>
+                            <ModernInput
+                                type="email"
+                                placeholder="your.email@example.com"
+                                error={errors.email?.message}
+                                {...register("email", {
+                                    required: "Email is required",
+                                    pattern: {
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                        message: "Invalid email address",
+                                    },
+                                })}
+                            />
+                            {watchedValues.email && isUniversityEmail(watchedValues.email) && (
+                                <p className="text-green-400 text-xs mt-2 transition-all duration-300">
+                                    ✓ University email detected - we&apos;ll use this for verification
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Show university email field only if primary email is valid but NOT a university email */}
+                        {watchedValues.email &&
+                         !errors.email &&
+                         !isUniversityEmail(watchedValues.email) && (
+                            <div
+                                className="space-y-2 animate-[slideDown_0.3s_ease-out] opacity-0 [animation-fill-mode:forwards]"
+                                style={{
+                                    animationDelay: '0.1s'
+                                }}
+                            >
+                                <label className="text-gray-300 text-left block text-sm font-medium">
+                                    University Email <span className="text-red-300">*</span>
+                                </label>
+                                <ModernInput
+                                    type="email"
+                                    placeholder="your.name@university.edu or university.ac.uk"
+                                    error={errors.universityEmail?.message}
+                                    {...register("universityEmail", {
+                                        required: !isUniversityEmail(watchedValues.email) ? "University email is required for student accounts" : false,
+                                        pattern: {
+                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(ac\.uk|edu)$/i,
+                                            message: "Must be a valid university email (.ac.uk or .edu)",
+                                        },
+                                        validate: {
+                                            isRecognizedUniversity: (value) => {
+                                                if (!value) return true;
+                                                const university = extractUniversityFromEmail(value);
+                                                return university !== null || "University domain not recognized. Please contact support.";
+                                            },
+                                        },
+                                    })}
+                                />
+                                {watchedValues.universityEmail && extractUniversityFromEmail(watchedValues.universityEmail) && (
+                                    <p className="text-green-400 text-xs">
+                                        ✓ {extractUniversityFromEmail(watchedValues.universityEmail)}
+                                    </p>
+                                )}
+                                {watchedValues.universityEmail && isUniversityEmail(watchedValues.universityEmail) && !extractUniversityFromEmail(watchedValues.universityEmail) && (
+                                    <p className="text-yellow-400 text-xs">
+                                        ⚠ University not recognized
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {watchedValues.email && !errors.email && !isUniversityEmail(watchedValues.email) && (
+                            <div className="p-3 bg-gray-800/30 border border-gray-600/20 rounded-lg text-xs text-gray-300 animate-[fadeIn_0.3s_ease-out] opacity-0 [animation-fill-mode:forwards]" style={{ animationDelay: '0.2s' }}>
+                                💡 Your primary email is used for all your LSN activities, we use your university email for student status verification only.
+                            </div>
+                        )}
+                    </div>
                 </ModernFormStep>
             )}
 
@@ -405,6 +592,22 @@ export default function ModernStudentRegistration() {
                                 error={errors.dob?.message}
                                 {...register("dob", {
                                     required: "Date of birth is required",
+                                    validate: {
+                                        isAdult: (value) => {
+                                            if (!value) return true; // Let 'required' handle empty
+                                            const birthDate = new Date(value);
+                                            const today = new Date();
+                                            const age = today.getFullYear() - birthDate.getFullYear();
+                                            const monthDiff = today.getMonth() - birthDate.getMonth();
+                                            const dayDiff = today.getDate() - birthDate.getDate();
+
+                                            // Check if they've had their birthday this year
+                                            const hasHadBirthdayThisYear = monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0);
+                                            const actualAge = hasHadBirthdayThisYear ? age : age - 1;
+
+                                            return actualAge >= 18 || "You must be at least 18 years old to register";
+                                        },
+                                    },
                                 })}
                             />
                         </div>
@@ -613,8 +816,7 @@ export default function ModernStudentRegistration() {
                             </svg>
                         </div>
                         <p className="text-gray-300">
-                            Registration complete! Check your email for
-                            verification.
+                            Registration complete! Check your email (including junk/spam folder) for verification.
                         </p>
                     </div>
                 </ModernFormStep>

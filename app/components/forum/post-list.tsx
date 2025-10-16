@@ -12,12 +12,14 @@ interface PostListProps {
         downvotes: number,
         userVote: string | null,
     ) => void;
+    onTagClick?: (tag: string) => void;
 }
 
 export default function PostList({
     posts,
     onPostClick,
     onVoteChange,
+    onTagClick,
 }: PostListProps) {
     return (
         <div className="space-y-6 relative z-10">
@@ -27,6 +29,7 @@ export default function PostList({
                     post={post}
                     onPostClick={onPostClick}
                     onVoteChange={onVoteChange}
+                    onTagClick={onTagClick}
                 />
             ))}
         </div>

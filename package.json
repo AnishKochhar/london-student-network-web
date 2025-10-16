@@ -24,6 +24,7 @@
     "@vercel/postgres": "^0.10.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
+    "bullmq": "^5.53.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -45,9 +46,13 @@
     "react-use-measure": "^2.1.1",
     "rehype-highlight": "^7.0.2",
     "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
     "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "unified": "^11.0.5",
     "uuid": "^11.0.3",
     "zod": "^3.23.8"
   },
@@ -57,11 +62,13 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "dotenv": "^17.2.3",
     "eslint": "^8",
     "eslint-config-next": "14.2.8",
     "postcss": "^8",
     "prettier": "^3.6.2",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }

@@ -9,6 +9,7 @@ import Sidebar from "../components/forum/sidebar";
 import ThreadDetailModal from "../components/forum/thread-detail";
 import NewThreadModal from "../components/forum/new-thread-modal";
 import UsernameCreationModal from "../components/forum/username-creation-modal";
+import ScrollToTopButton from "../components/forum/scroll-to-top-button";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { useDebounce } from "../components/forum/hooks/useDebounce";
@@ -297,6 +298,48 @@ export default function ForumPage() {
         [setPosts],
     );
 
+    // Handle shared thread links with query parameters
+    useEffect(() => {
+        // Check for thread query parameter
+        const params = new URLSearchParams(window.location.search);
+        const threadIdParam = params.get('thread');
+
+        if (!threadIdParam || isLoading) return;
+
+        const threadId = parseInt(threadIdParam, 10);
+        if (isNaN(threadId)) return;
+
+        // Try to find the thread in loaded posts first
+        const existingPost = posts.find((p) => p.id === threadId);
+
+        if (existingPost) {
+            // Thread is already in the list, use the regular handler
+            handlePostClick(threadId);
+        } else {
+            // Thread not in current view, fetch it directly
+            const fetchAndOpenThread = async () => {
+                try {
+                    const threadData = await threadService.fetchThreadById(threadId);
+                    if (threadData) {
+                        setSelectedThread(threadData);
+                        setIsModalOpen(true);
+                    } else {
+                        toast.error("Thread not found");
+                    }
+                } catch (error) {
+                    console.error("Error fetching shared thread:", error);
+                    toast.error("Could not load thread");
+                }
+            };
+
+            fetchAndOpenThread();
+        }
+
+        // Clean up the URL without reloading the page
+        const cleanUrl = `${window.location.pathname}${window.location.hash}`;
+        window.history.replaceState({}, '', cleanUrl);
+    }, [posts, isLoading, handlePostClick]);
+
     return (
         <main className="relative min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] text-white">
             <div className="flex">
@@ -346,6 +389,7 @@ export default function ForumPage() {
                             posts={posts}
                             onPostClick={handlePostClick}
                             onVoteChange={handleThreadVoteChange}
+                            onTagClick={handleAddTopicFilter}
                         />
                         {/* Loader reference element */}
                         {(hasMorePosts || isLoadingMore) && (
@@ -402,6 +446,9 @@ export default function ForumPage() {
                 onClose={() => setIsUsernameModalOpen(false)}
                 onSuccess={handleUsernameCreated}
             />
+
+            {/* Scroll to Top Button */}
+            <ScrollToTopButton />
         </main>
     );
 }

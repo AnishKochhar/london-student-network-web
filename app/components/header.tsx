@@ -10,6 +10,7 @@ import AccountButton from "./account-button";
 import { Button } from "./button";
 import { useSession } from "next-auth/react";
 import { motion, LayoutGroup } from "framer-motion";
+import SwitchAccountModal from "./switch-account/switch-account-modal";
 
 const navLinks = [
     { href: "/events", label: "Events" },
@@ -79,8 +80,8 @@ function Logo({ closeMenu }: { closeMenu: () => void }) {
             className="flex items-center space-x-2"
         >
             <Image
-                src="/logo/LSN LOGO 1.png"
-                alt="LSN logo"
+                src="/logo/logo.png"
+                alt="London Student Network logo"
                 priority
                 width={96}
                 height={96}
@@ -90,7 +91,7 @@ function Logo({ closeMenu }: { closeMenu: () => void }) {
     );
 }
 
-function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
+function FullScreenMenu({ closeMenu, onSwitchAccount }: { closeMenu: () => void; onSwitchAccount: () => void }) {
     const { data: session } = useSession();
 
     // Prevent body scroll when menu is open
@@ -124,13 +125,21 @@ function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
                     </div>
                     <div className="flex flex-col items-end mt-auto space-y-4">
                         {session?.user && (
-                            <Link
-                                href="/account"
-                                onClick={closeMenu}
-                                className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100"
-                            >
-                                My Account
-                            </Link>
+                            <>
+                                <Link
+                                    href="/account"
+                                    onClick={closeMenu}
+                                    className="py-2 text-xl text-white hover:cursor-pointer hover:text-gray-300"
+                                >
+                                    My Account
+                                </Link>
+                                <button
+                                    onClick={onSwitchAccount}
+                                    className="py-2 text-xl text-white hover:cursor-pointer hover:text-gray-300"
+                                >
+                                    Switch Account
+                                </button>
+                            </>
                         )}
                         <AuthButton onClick={closeMenu} />
                     </div>
@@ -142,9 +151,16 @@ function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showSwitchModal, setShowSwitchModal] = useState(false);
+    const { data: session } = useSession();
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const closeMenu = () => setIsMenuOpen(false);
+
+    const handleSwitchAccount = () => {
+        closeMenu();
+        setTimeout(() => setShowSwitchModal(true), 300); // Delay to allow menu close animation
+    };
 
     return (
         <>
@@ -172,7 +188,13 @@ export default function Header() {
             </div>
 
             </header>
-            {isMenuOpen && <FullScreenMenu closeMenu={closeMenu} />}
+            {isMenuOpen && <FullScreenMenu closeMenu={closeMenu} onSwitchAccount={handleSwitchAccount} />}
+
+            <SwitchAccountModal
+                isOpen={showSwitchModal}
+                onClose={() => setShowSwitchModal(false)}
+                currentUserEmail={session?.user?.email || undefined}
+            />
         </>
     );
 }
