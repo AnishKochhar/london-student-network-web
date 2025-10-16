@@ -489,7 +489,7 @@ export default function ModernStudentRegistration() {
 
                         {watchedValues.email && !errors.email && !isUniversityEmail(watchedValues.email) && (
                             <div className="p-3 bg-gray-800/30 border border-gray-600/20 rounded-lg text-xs text-gray-300 animate-[fadeIn_0.3s_ease-out] opacity-0 [animation-fill-mode:forwards]" style={{ animationDelay: '0.2s' }}>
-                                💡 Using different emails? Your primary email is for login, your university email is for verification only.
+                                💡 Your primary email is used for all your LSN activities, we use your university email for student status verification only.
                             </div>
                         )}
                     </div>

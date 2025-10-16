@@ -65,9 +65,11 @@ export default function AccountPage() {
     ], []);
 
     useEffect(() => {
-        if (status === "loading") return;
-        if (!session) router.push("/login");
-    }, [session, status, router]);
+        // Only redirect if explicitly unauthenticated (not just loading)
+        if (status === "unauthenticated") {
+            router.push("/login");
+        }
+    }, [status, router]);
 
     // Fetch username when session loads
     useEffect(() => {
