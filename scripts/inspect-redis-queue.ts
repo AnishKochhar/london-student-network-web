@@ -57,9 +57,24 @@ async function inspectQueue() {
             console.log('\n⏰ Delayed Jobs:');
             const delayedJobs = await queue.getJobs('delayed', 0, 10);
             delayedJobs.forEach(job => {
-                const timeUntil = job.timestamp ? job.timestamp - Date.now() : 0;
+                // For delayed jobs, job.delay is the delay in ms from creation time
+                // job.timestamp is when it was created
+                // So execution time = job.timestamp + job.delay
+                const executionTime = (job.timestamp || 0) + (job.delay || 0);
+                const timeUntil = executionTime - Date.now();
                 const hoursUntil = (timeUntil / (1000 * 60 * 60)).toFixed(2);
-                console.log(`   Job ${job.id}: ${job.data.user_id} for event ${job.data.event_id}`);
+
+                // Format job info based on type
+                let jobInfo = '';
+                if (job.name === 'send_organizer_summary' || job.name === 'send_external_forwarding') {
+                    jobInfo = `[${job.name}] for event ${job.data.event_id}`;
+                } else {
+                    // Reminder job
+                    const identifier = job.data.user_id || job.data.guest_email || 'N/A';
+                    jobInfo = `${identifier} for event ${job.data.event_id}`;
+                }
+
+                console.log(`   Job ${job.id}: ${jobInfo}`);
                 console.log(`      Sends in: ${hoursUntil} hours`);
             });
         }

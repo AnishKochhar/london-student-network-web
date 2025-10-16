@@ -961,7 +961,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             </div>
 
             {/* Main Content */}
-            <div className="w-full px-4 sm:px-6 lg:px-8 pb-12">
+            <div className="w-full px-4 sm:px-6 lg:px-8 pb-12 relative z-20">
                 <div className="max-w-6xl mx-auto">
                     <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12 sm:space-y-16">
                         {/* Basic Information */}

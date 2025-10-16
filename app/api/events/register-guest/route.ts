@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 		if (now > eventEndTime) {
 			return NextResponse.json({
 				success: false,
-				error: "EVENT_ENDED|This event has already ended. Registration is no longer available.",
+				error: "EVENT_ENDED|This event has ended",
 			});
 		}
 
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
 			// guests cannot register - they must create an account
 			return NextResponse.json({
 				success: false,
-				error: "ACCOUNT_REQUIRED|This event requires you to create an account to register. Please sign up or log in to continue.",
+				error: "ACCOUNT_REQUIRED|Please log in or sign up to register",
 			});
 		}
 
@@ -97,10 +97,9 @@ export async function POST(req: Request) {
 
 			const cutoffTime = new Date(eventStartTime.getTime() - event.registration_cutoff_hours * 60 * 60 * 1000);
 			if (now >= cutoffTime) {
-				const hoursAgo = Math.abs(Math.ceil((cutoffTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
 				return NextResponse.json({
 					success: false,
-					error: `REGISTRATION_CLOSED|Registration closed ${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago (${event.registration_cutoff_hours} hours before the event).`,
+					error: "REGISTRATION_CLOSED|Registration has closed",
 				});
 			}
 		}
@@ -179,6 +178,15 @@ export async function POST(req: Request) {
             )
         `;
 
+		// Fetch organizer email once for use in both emails
+		let organiserEmailAddress: string | undefined;
+		try {
+			const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
+			organiserEmailAddress = organiserEmail?.email;
+		} catch (err) {
+			console.error("Failed to fetch organiser email:", err);
+		}
+
 		// Send confirmation email to guest
 		try {
 			const eventData = convertSQLEventToEvent(event);
@@ -191,6 +199,7 @@ export async function POST(req: Request) {
 				subject: guestEmailSubject,
 				html: guestEmailHtml,
 				text: guestEmailText,
+				replyTo: organiserEmailAddress, // Reply to organizer
 			});
 		} catch (emailError) {
 			console.error("Failed to send confirmation email to guest:", emailError);
@@ -201,12 +210,9 @@ export async function POST(req: Request) {
 		const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
 		if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
 			try {
-				const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
-
-				if (!organiserEmail || !organiserEmail.email || organiserEmail.email === "") {
+				if (!organiserEmailAddress || organiserEmailAddress === "") {
 					console.log(`Warning: Organiser email not found in database for organiser ID: ${event.organiser_uid}`);
 					console.log(`Event title: ${event.title}, Organiser name: ${event.organiser}`);
-					console.log(`getEventOrganiserEmail returned:`, organiserEmail);
 				} else {
 					const eventData = convertSQLEventToEvent(event);
 					const organiserEmailSubject = `🔔 New Guest Registration: ${event.title}`;
@@ -228,10 +234,11 @@ export async function POST(req: Request) {
 					);
 
 					await sendEventRegistrationEmail({
-						toEmail: organiserEmail.email,
+						toEmail: organiserEmailAddress,
 						subject: organiserEmailSubject,
 						html: organiserEmailHtml,
 						text: organiserEmailText,
+						replyTo: email.toLowerCase(), // Reply to the guest
 					});
 				}
 			} catch (organiserEmailError) {

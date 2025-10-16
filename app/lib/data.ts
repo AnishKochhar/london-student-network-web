@@ -458,7 +458,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
         const endTime = `${endDateTime.getHours().toString().padStart(2, '0')}:${endDateTime.getMinutes().toString().padStart(2, '0')}`;
 
         const allowedUniversities = eventData.allowed_universities ?? [];
-        await sql`
+        const result = await sql`
             INSERT INTO events (
                 title, description, organiser, organiser_uid,
                 start_datetime, end_datetime, is_multi_day,
@@ -481,8 +481,9 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${allowedUniversities as unknown as string},
                 ${eventData.registration_cutoff_hours ?? null}, ${eventData.external_registration_cutoff_hours ?? null}
             )
+            RETURNING *
         `;
-        return { success: true };
+        return { success: true, event: result.rows[0] };
     } catch (error) {
         console.error("Error creating modern event:", error);
         return { success: false, error: error.message || "Unknown database error" };

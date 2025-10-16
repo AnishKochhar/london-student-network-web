@@ -13,6 +13,7 @@ export interface Event {
     image_url: string;
     image_contain: boolean;
     event_type: number;
+    external_forward_email?: string;
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;
@@ -97,6 +98,7 @@ export interface SQLEvent {
     image_url: string;
     image_contain: boolean;
     event_type: number;
+    external_forward_email?: string;
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;

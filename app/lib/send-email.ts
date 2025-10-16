@@ -43,6 +43,7 @@ export const sendOrganiserEmail = async ({
         const msg = {
             to,
             from: "hello@londonstudentnetwork.com",
+            replyTo: email, // Reply to the user who sent the message
             subject: "New communication from the London Student Network",
             text: customPayloadFallback, // Sendgrid uses text only as a fallback
             html: customPayload,
@@ -78,7 +79,8 @@ export const sendUserEmail = async ({ toEmail, fromEmail, subject, text }) => {
 
         const msg = {
             to: toEmail,
-            from: "hello@londonstudentnetwork.com", // question: should we keep this
+            from: "hello@londonstudentnetwork.com",
+            replyTo: fromEmail, // Reply to the user who sent the message
             subject: "New communication from the London Student Network",
             text: customPayloadFallback, // Sendgrid uses text only as a fallback
             html: customPayload,
@@ -160,12 +162,14 @@ export const sendEventRegistrationEmail = async ({
     toEmail,
     subject,
     html,
-    text
+    text,
+    replyTo
 }: {
     toEmail: string;
     subject: string;
     html: string;
     text: string;
+    replyTo?: string;
 }) => {
     try {
         if (!toEmail) {
@@ -176,6 +180,7 @@ export const sendEventRegistrationEmail = async ({
         const msg = {
             to: toEmail,
             from: "hello@londonstudentnetwork.com",
+            ...(replyTo && { replyTo }), // Include replyTo if provided
             subject: subject,
             html: html,  // Primary HTML content
             text: text,  // Fallback plain text
@@ -265,10 +270,12 @@ export const sendExternalForwardingEmail = async ({
     externalEmail,
     event,
     registrations,
+    organizerEmail,
 }: {
     externalEmail: string;
     event: Event;
     registrations: Array<{ name: string; email: string; external: boolean }>;
+    organizerEmail?: string;
 }) => {
     try {
         if (!externalEmail) {
@@ -287,6 +294,7 @@ export const sendExternalForwardingEmail = async ({
         const msg = {
             to: externalEmail,
             from: "hello@londonstudentnetwork.com",
+            ...(organizerEmail && { replyTo: organizerEmail }), // Reply to organizer
             subject: `📋 Registration List: ${event.title}`,
             html: htmlPayload,
             text: textPayload,

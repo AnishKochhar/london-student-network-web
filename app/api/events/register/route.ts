@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     if (now > eventEndTime) {
         return NextResponse.json({
             success: false,
-            error: "EVENT_ENDED|This event has already ended. Registration is no longer available.",
+            error: "EVENT_ENDED|This event has ended",
         });
     }
 
@@ -145,20 +145,18 @@ export async function POST(req: Request) {
         // External user with separate cutoff
         const cutoffTime = new Date(eventStartTime.getTime() - externalCutoffHours * 60 * 60 * 1000);
         if (now >= cutoffTime) {
-            const hoursAgo = Math.abs(Math.ceil((cutoffTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
             return NextResponse.json({
                 success: false,
-                error: `REGISTRATION_CLOSED|Registration for external students closed ${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago (${externalCutoffHours} hours before the event).`,
+                error: "REGISTRATION_CLOSED|Registration has closed",
             });
         }
     } else if (registrationCutoffHours != null && registrationCutoffHours > 0) {
         // General cutoff applies to all users (or internal users if external cutoff exists)
         const cutoffTime = new Date(eventStartTime.getTime() - registrationCutoffHours * 60 * 60 * 1000);
         if (now >= cutoffTime) {
-            const hoursAgo = Math.abs(Math.ceil((cutoffTime.getTime() - now.getTime()) / (1000 * 60 * 60)));
             return NextResponse.json({
                 success: false,
-                error: `REGISTRATION_CLOSED|Registration closed ${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago (${registrationCutoffHours} hours before the event).`,
+                error: "REGISTRATION_CLOSED|Registration has closed",
             });
         }
     }
@@ -180,6 +178,15 @@ export async function POST(req: Request) {
         // Convert SQL event to Event type for email templates
         const eventData = convertSQLEventToEvent(event);
 
+        // Fetch organizer email once for use in both emails
+        let organiserEmailAddress: string | undefined;
+        try {
+            const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
+            organiserEmailAddress = organiserEmail?.email;
+        } catch (err) {
+            console.error("Failed to fetch organiser email:", err);
+        }
+
         // Send confirmation email to registered user
         try {
             const emailSubject = `🎉 Registration Confirmed: ${event.title}`;
@@ -191,6 +198,7 @@ export async function POST(req: Request) {
                 subject: emailSubject,
                 html: emailHtml,
                 text: emailText,
+                replyTo: organiserEmailAddress, // Reply to organizer
             });
         } catch (emailError) {
             console.error("Failed to send registration confirmation email:", emailError);
@@ -201,8 +209,7 @@ export async function POST(req: Request) {
         const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
         if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
             try {
-                const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
-                if (organiserEmail && organiserEmail.email) {
+                if (organiserEmailAddress) {
                     const orgEmailSubject = `🔔 New Registration: ${event.title}`;
                     const orgEmailHtml = EventOrganizerNotificationEmailPayload(
                         eventData,
@@ -222,10 +229,11 @@ export async function POST(req: Request) {
                     );
 
                     await sendEventRegistrationEmail({
-                        toEmail: organiserEmail.email,
+                        toEmail: organiserEmailAddress,
                         subject: orgEmailSubject,
                         html: orgEmailHtml,
                         text: orgEmailText,
+                        replyTo: user.email, // Reply to the registered user
                     });
                 }
             } catch (organiserEmailError) {

@@ -22,30 +22,51 @@ let worker: Worker | null = null;
 
 // Handler for user reminder emails
 async function handleUserReminder(job: Job) {
-    const { user_id, event_id, attempts } = job.data;
+    const { user_id, event_id, attempts, guest_email, guest_name } = job.data;
 
-    console.log(`[WORKER] Processing reminder job for user ${user_id}, event ${event_id}, attempt ${attempts + 1}`);
+    const identifier = user_id || guest_email;
+    console.log(`[WORKER] Processing reminder job for ${identifier}, event ${event_id}, attempt ${attempts + 1}`);
 
     // Safety check: Don't retry more than 3 times
     if (attempts > 3) {
-        console.log(`[WORKER] Max attempts reached for user ${user_id}, event ${event_id}`);
+        console.log(`[WORKER] Max attempts reached for ${identifier}, event ${event_id}`);
         return { success: false, reason: 'max_attempts_reached' };
     }
 
     try {
-        // Fetch user information
-        const userResult = await sql`
-            SELECT id, name, email
-            FROM users
-            WHERE id = ${user_id}
-        `;
+        // Fetch user information (either from users table or use guest data)
+        let user: { name: string; email: string };
 
-        if (userResult.rows.length === 0) {
-            console.error(`[WORKER] User ${user_id} not found`);
-            return { success: false, reason: 'user_not_found' };
+        if (user_id) {
+            // Registered user - fetch from database
+            const userResult = await sql`
+                SELECT id, name, email
+                FROM users
+                WHERE id = ${user_id}
+            `;
+
+            if (userResult.rows.length === 0) {
+                console.error(`[WORKER] User ${user_id} not found`);
+                return { success: false, reason: 'user_not_found' };
+            }
+
+            user = {
+                name: userResult.rows[0].name as string,
+                email: userResult.rows[0].email as string
+            };
+        } else {
+            // Guest registration - use data from job
+            if (!guest_email || !guest_name) {
+                console.error(`[WORKER] Guest data missing for event ${event_id}`);
+                return { success: false, reason: 'guest_data_missing' };
+            }
+
+            user = {
+                name: guest_name,
+                email: guest_email
+            };
+            console.log(`[WORKER] Processing guest reminder for ${guest_email}`);
         }
-
-        const user = userResult.rows[0];
 
         // Fetch event information
         const eventResult = await sql`
@@ -63,6 +84,13 @@ async function handleUserReminder(job: Job) {
         const sqlEvent = eventResult.rows[0];
         const event = convertSQLEventToEvent(sqlEvent as SQLEvent);
 
+        // SAFETY CHECK: Skip admin-created events (scraped/manually added)
+        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        if (sqlEvent.organiser_uid === ADMIN_ID) {
+            console.log(`[WORKER] ⚠️ Skipping admin-created event ${event_id} - no automated emails for admin events`);
+            return { success: true, reason: 'admin_event_skipped' };
+        }
+
         // Check if event has already started
         const now = new Date();
         const eventStart = event.start_datetime ? new Date(event.start_datetime) : null;
@@ -71,6 +99,10 @@ async function handleUserReminder(job: Job) {
             console.log(`[WORKER] Event ${event_id} has already started, skipping reminder`);
             return { success: true, reason: 'event_already_started' };
         }
+
+        // Fetch organizer email for reply-to
+        const organizerEmailResult = await getEventOrganiserEmail(sqlEvent.organiser_uid as string);
+        const organizerEmail = organizerEmailResult?.email;
 
         // Send reminder email
         const emailSubject = `🔔 Reminder: ${event.title} starts soon!`;
@@ -82,6 +114,7 @@ async function handleUserReminder(job: Job) {
             subject: emailSubject,
             html: emailHtml,
             text: emailText,
+            replyTo: organizerEmail, // Reply to organizer
         });
 
         console.log(`[WORKER] Reminder email sent successfully to ${user.email} for event ${event_id}`);
@@ -130,12 +163,23 @@ async function handleExternalForwarding(job: Job) {
 
         const sqlEvent = eventResult.rows[0];
 
+        // SAFETY CHECK: Skip admin-created events
+        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        if (sqlEvent.organiser_uid === ADMIN_ID) {
+            console.log(`[WORKER] ⚠️ Skipping external forwarding for admin event ${event_id}`);
+            return { success: true, reason: 'admin_event_skipped' };
+        }
+
         if (!sqlEvent.external_forward_email || sqlEvent.external_forward_email.trim() === '') {
             console.log(`[WORKER] No external forwarding email configured for event ${event_id}`);
             return { success: true, reason: 'no_external_email_configured' };
         }
 
         const event = convertSQLEventToEvent(sqlEvent as SQLEvent);
+
+        // Fetch organizer email for reply-to
+        const organizerEmailResult = await getEventOrganiserEmail(sqlEvent.organiser_uid as string);
+        const organizerEmail = organizerEmailResult?.email;
 
         // Fetch all registrations
         const registrationsResult = await sql`
@@ -154,7 +198,8 @@ async function handleExternalForwarding(job: Job) {
         await sendExternalForwardingEmail({
             externalEmail: sqlEvent.external_forward_email as string,
             event,
-            registrations: registrationsList
+            registrations: registrationsList,
+            organizerEmail, // Reply to organizer
         });
 
         console.log(`[WORKER] External forwarding email sent to ${sqlEvent.external_forward_email} for event ${event_id}`);
@@ -199,6 +244,13 @@ async function handleOrganizerSummary(job: Job) {
 
         const sqlEvent = eventResult.rows[0];
         const event = convertSQLEventToEvent(sqlEvent as SQLEvent);
+
+        // SAFETY CHECK: Skip admin-created events
+        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        if (sqlEvent.organiser_uid === ADMIN_ID) {
+            console.log(`[WORKER] ⚠️ Skipping organizer summary for admin event ${event_id}`);
+            return { success: true, reason: 'admin_event_skipped' };
+        }
 
         // Fetch organizer email
         const organiserEmail = await getEventOrganiserEmail(sqlEvent.organiser_uid as string);

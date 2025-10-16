@@ -1,7 +1,10 @@
-import { insertModernEvent } from "@/app/lib/data";
+import { insertModernEvent, getEventOrganiserEmail } from "@/app/lib/data";
 import { NextResponse } from "next/server";
-import { createSQLEventData } from "@/app/lib/utils";
-import { EventFormData } from "@/app/lib/types";
+import { createSQLEventData, convertSQLEventToEvent } from "@/app/lib/utils";
+import { EventFormData, SQLEvent } from "@/app/lib/types";
+import { sendEventRegistrationEmail } from "@/app/lib/send-email";
+import EventCreationConfirmationEmailPayload from "@/app/components/templates/event-creation-confirmation-email";
+import EventCreationConfirmationEmailFallbackPayload from "@/app/components/templates/event-creation-confirmation-email-fallback";
 
 export async function POST(req: Request) {
 	try {
@@ -75,6 +78,41 @@ export async function POST(req: Request) {
 
 		// Insert into database
 		const response = await insertModernEvent(sqlEventData);
+		console.log('=== Event created, response:', { success: response.success, hasEvent: !!response.event });
+
+		// Send confirmation email to organizer
+		if (response.success && response.event) {
+			console.log('=== Attempting to send confirmation email ===');
+			try {
+				console.log('Fetching organizer email for uid:', response.event.organiser_uid);
+				const organizerEmail = await getEventOrganiserEmail(response.event.organiser_uid);
+				console.log('Organizer email result:', organizerEmail);
+
+				if (organizerEmail && organizerEmail.email) {
+					console.log('Converting event and preparing email for:', organizerEmail.email);
+					const event = convertSQLEventToEvent(response.event as SQLEvent);
+					const emailSubject = `🎉 ${event.title} is now live on LSN!`;
+					const emailHtml = EventCreationConfirmationEmailPayload(event);
+					const emailText = EventCreationConfirmationEmailFallbackPayload(event);
+
+					console.log('Sending confirmation email...');
+					await sendEventRegistrationEmail({
+						toEmail: organizerEmail.email,
+						subject: emailSubject,
+						html: emailHtml,
+						text: emailText,
+					});
+					console.log('✅ Confirmation email sent successfully');
+				} else {
+					console.log('⚠️ No organizer email found or email is empty');
+				}
+			} catch (emailError) {
+				console.error("❌ Failed to send event creation confirmation email:", emailError);
+				// Don't fail the event creation if email fails
+			}
+		} else {
+			console.log('⚠️ Skipping email: success =', response.success, ', hasEvent =', !!response.event);
+		}
 
 		return NextResponse.json(response);
 	} catch (error) {

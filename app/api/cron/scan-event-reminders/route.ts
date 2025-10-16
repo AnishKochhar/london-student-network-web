@@ -60,10 +60,19 @@ export async function GET(request: Request) {
         let totalOrganizerSummariesScheduled = 0;
         const errors: string[] = [];
 
+        // Admin user ID - events created by admin should not send automated emails
+        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+
         // Process each event
         for (const sqlEvent of eventsResult.rows) {
             try {
                 console.log(`[CRON] Processing event: ${sqlEvent.title} (${sqlEvent.id})`);
+
+                // Skip admin-created events (scraped/manually added events without LSN organizer)
+                if (sqlEvent.organiser_uid === ADMIN_ID) {
+                    console.log(`[CRON] ⚠️ Skipping admin-created event: ${sqlEvent.title} - no automated emails for admin events`);
+                    continue;
+                }
 
                 // Fetch all registrations for this event
                 const registrationsResult = await sql`
@@ -87,16 +96,33 @@ export async function GET(request: Request) {
                 if (userReminderTime > now.getTime()) {
                     for (const registration of registrationsResult.rows) {
                         try {
-                            await scheduleEventEmailReminder({
-                                user_id: registration.user_id,
-                                event_id: sqlEvent.id as string,
-                                attempts: 0,
-                                buffer_time: userReminderDelay
-                            });
+                            // Handle both registered users and guests
+                            if (registration.user_id) {
+                                // Registered user
+                                await scheduleEventEmailReminder({
+                                    user_id: registration.user_id,
+                                    event_id: sqlEvent.id as string,
+                                    attempts: 0,
+                                    buffer_time: userReminderDelay
+                                });
+                                console.log(`[CRON] Scheduled reminder for user ${registration.user_id}`);
+                            } else {
+                                // Guest registration
+                                await scheduleEventEmailReminder({
+                                    user_id: null,
+                                    event_id: sqlEvent.id as string,
+                                    attempts: 0,
+                                    buffer_time: userReminderDelay,
+                                    guest_email: registration.email,
+                                    guest_name: registration.name
+                                });
+                                console.log(`[CRON] Scheduled reminder for guest ${registration.email}`);
+                            }
                             totalRemindersScheduled++;
                         } catch (reminderError) {
-                            console.error(`[CRON] Failed to schedule reminder for user ${registration.user_id}:`, reminderError);
-                            errors.push(`Failed to schedule reminder for user ${registration.user_id} in event ${sqlEvent.id}`);
+                            const identifier = registration.user_id || registration.email;
+                            console.error(`[CRON] Failed to schedule reminder for ${identifier}:`, reminderError);
+                            errors.push(`Failed to schedule reminder for ${identifier} in event ${sqlEvent.id}`);
                         }
                     }
                 }

@@ -24,6 +24,7 @@ sgMail.setApiKey(SENDGRID_API_KEY); // sgMail setup is light and will likely not
 export default async function sendSendGridEmail({
     to,
     from,
+    replyTo,
     subject,
     text,
     html,
@@ -35,6 +36,7 @@ export default async function sendSendGridEmail({
     const msg = {
         to,
         from,
+        ...(replyTo && { replyTo }),
         subject,
         ...(text && { text }),
         ...(html && { html }),
@@ -51,6 +53,7 @@ export default async function sendSendGridEmail({
                 subject: msg.subject,
                 ...(text && { text }),
                 ...(html && { html }),
+                ...(replyTo && { replyTo }),
             });
 
             if (!response.success) {
@@ -83,6 +86,7 @@ export const requestFallbackEmailService = async (emailData: {
     subject: string;
     text: string;
     html?: string;
+    replyTo?: string;
 }): Promise<FallbackEmailServiceResponse> => {
     try {
         const response = await fetch(
@@ -98,6 +102,7 @@ export const requestFallbackEmailService = async (emailData: {
                     subject: emailData.subject,
                     text: emailData.text,
                     html: emailData.html,
+                    ...(emailData.replyTo && { replyTo: emailData.replyTo }),
                 }),
             },
         );
