@@ -431,7 +431,7 @@ export default function ModernOtherRegistration() {
                                 />
                                 <div className="flex-1">
                                     <label className="text-gray-300 text-sm font-medium cursor-pointer">
-                                        I have a university email (.ac.uk) and want to verify it
+                                        I have a university email and want to verify it
                                     </label>
                                     <p className="text-gray-400 text-xs mt-1">
                                         This will give you access to university-exclusive events
@@ -443,19 +443,19 @@ export default function ModernOtherRegistration() {
                         {showUniversityEmail && (
                             <div className="space-y-2 pt-2">
                                 <label className="text-gray-300 text-left block text-sm">
-                                    University Email (.ac.uk)
+                                    University Email
                                 </label>
                                 <ModernInput
                                     type="email"
-                                    placeholder="your.name@university.ac.uk"
+                                    placeholder="your.name@university.edu or university.ac.uk"
                                     error={errors.universityEmail?.message}
                                     {...register("universityEmail", {
                                         required: watchedValues.wantsUniversityVerification
                                             ? "University email is required if you want verification"
                                             : false,
                                         pattern: {
-                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.ac\.uk$/i,
-                                            message: "Must be a valid .ac.uk university email",
+                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(ac\.uk|edu)$/i,
+                                            message: "Must be a valid university email (.ac.uk or .edu)",
                                         },
                                     })}
                                 />

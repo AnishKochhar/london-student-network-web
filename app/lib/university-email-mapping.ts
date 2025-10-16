@@ -92,9 +92,9 @@ export function extractUniversityFromEmail(email: string): string | null {
 }
 
 /**
- * Check if email domain is a recognized UK university domain
+ * Check if email domain looks like a university domain
  * @param email - Email address to check
- * @returns true if .ac.uk domain
+ * @returns true if .ac.uk or .edu domain (server validates if it's in our database)
  */
 export function isUniversityEmail(email: string): boolean {
 	if (!email || typeof email !== 'string') return false;
@@ -102,7 +102,9 @@ export function isUniversityEmail(email: string): boolean {
 	const emailLower = email.toLowerCase().trim();
 	const domain = emailLower.split('@')[1];
 
-	return domain?.endsWith('.ac.uk') || false;
+	// Accept .ac.uk (UK) or .edu (US) domains
+	// Server will validate if the specific domain is in our database
+	return domain?.endsWith('.ac.uk') || domain?.endsWith('.edu') || false;
 }
 
 /**

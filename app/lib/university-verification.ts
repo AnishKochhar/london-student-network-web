@@ -5,7 +5,8 @@ import { redis } from "./config";
 import crypto from "crypto";
 
 /**
- * Extract university code from .ac.uk email domain
+ * Extract university code from university email domain
+ * Supports both .ac.uk and .edu domains
  * @param email - University email address
  * @returns University code or null if invalid
  */
@@ -21,12 +22,7 @@ export async function extractUniversityFromEmail(
             return { success: false, error: "Invalid email format" };
         }
 
-        // Check if it's a .ac.uk domain
-        if (!domain.endsWith(".ac.uk")) {
-            return { success: false, error: "Email must be a .ac.uk university email" };
-        }
-
-        // Look up university in database
+        // Look up university in database (supports any domain we have registered)
         const result = await sql`
             SELECT university_code, university_name
             FROM university_email_domains

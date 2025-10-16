@@ -38,8 +38,8 @@ export default function AddUniversityEmailModal({ onClose, onSuccess }: AddUnive
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!universityEmail || !universityEmail.match(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.ac\.uk$/i)) {
-            toast.error("Please enter a valid .ac.uk university email");
+        if (!universityEmail || !universityEmail.match(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(ac\.uk|edu)$/i)) {
+            toast.error("Please enter a valid university email (.ac.uk or .edu)");
             return;
         }
 
@@ -103,19 +103,19 @@ export default function AddUniversityEmailModal({ onClose, onSuccess }: AddUnive
                 </div>
 
                 <p className="text-gray-300 mb-6 text-sm">
-                    Add your university email (.ac.uk) to unlock access to university-restricted events and connect with students from your institution.
+                    Add your university email to unlock access to university-restricted events and connect with students from your institution.
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                            University Email (.ac.uk)
+                            University Email
                         </label>
                         <input
                             type="email"
                             value={universityEmail}
                             onChange={(e) => setUniversityEmail(e.target.value)}
-                            placeholder="your.name@university.ac.uk"
+                            placeholder="your.name@university.edu or university.ac.uk"
                             className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             required
                         />
@@ -127,7 +127,7 @@ export default function AddUniversityEmailModal({ onClose, onSuccess }: AddUnive
                         ) : universityEmail && !isUniversityEmail(universityEmail) ? (
                             <p className="text-xs text-amber-400 mt-2 flex items-center gap-1">
                                 <ExclamationCircleIcon className="h-3 w-3" />
-                                Please enter a valid .ac.uk university email
+                                Please enter a valid university email (.ac.uk or .edu)
                             </p>
                         ) : (
                             <p className="text-xs text-gray-400 mt-2">

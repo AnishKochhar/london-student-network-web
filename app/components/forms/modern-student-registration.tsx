@@ -428,17 +428,17 @@ export default function ModernStudentRegistration() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-gray-300 text-left block text-sm font-medium">
-                                University Email (.ac.uk) <span className="text-red-300">*</span>
+                                University Email <span className="text-red-300">*</span>
                             </label>
                             <ModernInput
                                 type="email"
-                                placeholder="your.name@university.ac.uk"
+                                placeholder="your.name@university.edu or university.ac.uk"
                                 error={errors.universityEmail?.message}
                                 {...register("universityEmail", {
                                     required: "University email is required for student accounts",
                                     pattern: {
-                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.ac\.uk$/i,
-                                        message: "Must be a valid .ac.uk university email",
+                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(ac\.uk|edu)$/i,
+                                        message: "Must be a valid university email (.ac.uk or .edu)",
                                     },
                                     validate: {
                                         isRecognizedUniversity: (value) => {

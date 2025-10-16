@@ -18,7 +18,7 @@ export default function Register() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl px-4">
                 <OptionButton
                     name="student"
-                    tooltip="Current university students with a .ac.uk email address"
+                    tooltip="Current university students with a university email address"
                 />
                 <OptionButton
                     name="society"
