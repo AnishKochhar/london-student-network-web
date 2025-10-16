@@ -13,7 +13,6 @@ import { ModernInput } from "./modern-input";
 import { ModernSelect } from "./modern-select";
 import ErrorModal from "./error-modal";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import Link from "next/link";
 
 export default function ModernStudentRegistration() {
     const router = useRouter();
@@ -63,6 +62,14 @@ export default function ModernStudentRegistration() {
             watchedValues.societyReferrer === "Other (please specify)",
         );
     }, [watchedValues.societyReferrer]);
+
+    // Auto-populate university email when primary email is a university email
+    useEffect(() => {
+        if (watchedValues.email && isUniversityEmail(watchedValues.email)) {
+            // If primary email is a university email, use it for verification too
+            setValue("universityEmail", watchedValues.email, { shouldValidate: true });
+        }
+    }, [watchedValues.email, setValue]);
 
     // Auto-fill university dropdown when university email is entered
     useEffect(() => {
@@ -116,8 +123,12 @@ export default function ModernStudentRegistration() {
                 ]);
             case 2:
                 const emailValid = await trigger("email");
-                const uniEmailValid = await trigger("universityEmail");
-                return emailValid && uniEmailValid;
+                // Only require university email if primary email is NOT a university email
+                if (watchedValues.email && !isUniversityEmail(watchedValues.email)) {
+                    const uniEmailValid = await trigger("universityEmail");
+                    return emailValid && uniEmailValid;
+                }
+                return emailValid;
             case 3:
                 return await trigger(["password", "confirmPassword"]);
             case 4:
@@ -146,6 +157,11 @@ export default function ModernStudentRegistration() {
                     watchedValues.hasAgreedToTerms
                 );
             case 2:
+                // If primary email is a university email, only that is needed
+                if (watchedValues.email && isUniversityEmail(watchedValues.email)) {
+                    return !!(watchedValues.email && !errors.email);
+                }
+                // Otherwise, both emails are required
                 return !!(
                     watchedValues.email &&
                     !errors.email &&
@@ -405,7 +421,7 @@ export default function ModernStudentRegistration() {
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-gray-300 text-left block text-sm font-medium">
-                                Primary Email Address <span className="text-red-300">*</span>
+                                Email <span className="text-red-300">*</span>
                             </label>
                             <ModernInput
                                 type="email"
@@ -419,68 +435,63 @@ export default function ModernStudentRegistration() {
                                     },
                                 })}
                             />
-                            <p className="text-gray-400 text-xs">
-                                <strong className="text-blue-300">This is your main LSN account email.</strong>  Use it to log in, register for events, and receive all LSN communications.
-                                {watchedValues.email?.toLowerCase() === watchedValues.universityEmail?.toLowerCase() && watchedValues.email && watchedValues.universityEmail && (
-                                    <span className="block mt-1 text-green-400">✓ Using your university email as your primary email too</span>
-                                )}
-                            </p>
+                            {watchedValues.email && isUniversityEmail(watchedValues.email) && (
+                                <p className="text-green-400 text-xs mt-2 transition-all duration-300">
+                                    ✓ University email detected - we&apos;ll use this for verification
+                                </p>
+                            )}
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-gray-300 text-left block text-sm font-medium">
-                                University Email <span className="text-red-300">*</span>
-                            </label>
-                            <ModernInput
-                                type="email"
-                                placeholder="your.name@university.edu or university.ac.uk"
-                                error={errors.universityEmail?.message}
-                                {...register("universityEmail", {
-                                    required: "University email is required for student accounts",
-                                    pattern: {
-                                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(ac\.uk|edu)$/i,
-                                        message: "Must be a valid university email (.ac.uk or .edu)",
-                                    },
-                                    validate: {
-                                        isRecognizedUniversity: (value) => {
-                                            if (!value) return true;
-                                            const university = extractUniversityFromEmail(value);
-                                            return university !== null || "University domain not recognized. Please use your official university email or contact support.";
+
+                        {/* Show university email field only if primary email is valid but NOT a university email */}
+                        {watchedValues.email &&
+                         !errors.email &&
+                         !isUniversityEmail(watchedValues.email) && (
+                            <div
+                                className="space-y-2 animate-[slideDown_0.3s_ease-out] opacity-0 [animation-fill-mode:forwards]"
+                                style={{
+                                    animationDelay: '0.1s'
+                                }}
+                            >
+                                <label className="text-gray-300 text-left block text-sm font-medium">
+                                    University Email <span className="text-red-300">*</span>
+                                </label>
+                                <ModernInput
+                                    type="email"
+                                    placeholder="your.name@university.edu or university.ac.uk"
+                                    error={errors.universityEmail?.message}
+                                    {...register("universityEmail", {
+                                        required: !isUniversityEmail(watchedValues.email) ? "University email is required for student accounts" : false,
+                                        pattern: {
+                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.(ac\.uk|edu)$/i,
+                                            message: "Must be a valid university email (.ac.uk or .edu)",
                                         },
-                                    },
-                                })}
-                            />
-                            <p className="text-gray-400 text-xs">
-                                <strong>For student verification only.</strong> We&apos;ll send a verification email to confirm your student status and unlock university-exclusive events.
-                                {watchedValues.universityEmail && extractUniversityFromEmail(watchedValues.universityEmail) ? (
-                                    <span className="block mt-1 text-green-400">
-                                        ✓ Recognized as {extractUniversityFromEmail(watchedValues.universityEmail)}
-                                        {watchedValues.university && watchedValues.university === extractUniversityFromEmail(watchedValues.universityEmail) &&
-                                            <span className="text-blue-300"> (auto-filled below)</span>
-                                        }
-                                    </span>
-                                ) : watchedValues.universityEmail && isUniversityEmail(watchedValues.universityEmail) ? (
-                                    <span className="block mt-1 text-yellow-400">
-                                        ⚠ University not recognized. Please contact support if this is an error.
-                                    </span>
-                                ) : null}
-                            </p>
-                        </div>
-                        <div className="mt-4 space-y-3">
-                            <div className="p-3 bg-gray-800/50 border border-gray-600/30 rounded-lg">
-                                <p className="text-xs text-gray-300">
-                                    💡 <strong>Can I use the same email for both?</strong> Yes! If you prefer to use your university email for everything, just enter it in both fields. We&apos;ll only send one verification email.
-                                </p>
+                                        validate: {
+                                            isRecognizedUniversity: (value) => {
+                                                if (!value) return true;
+                                                const university = extractUniversityFromEmail(value);
+                                                return university !== null || "University domain not recognized. Please contact support.";
+                                            },
+                                        },
+                                    })}
+                                />
+                                {watchedValues.universityEmail && extractUniversityFromEmail(watchedValues.universityEmail) && (
+                                    <p className="text-green-400 text-xs">
+                                        ✓ {extractUniversityFromEmail(watchedValues.universityEmail)}
+                                    </p>
+                                )}
+                                {watchedValues.universityEmail && isUniversityEmail(watchedValues.universityEmail) && !extractUniversityFromEmail(watchedValues.universityEmail) && (
+                                    <p className="text-yellow-400 text-xs">
+                                        ⚠ University not recognized
+                                    </p>
+                                )}
                             </div>
-                            <div className="p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
-                                <p className="text-sm text-gray-300">
-                                    <strong>Don&apos;t have a university email?</strong> If you&apos;re an alumni or staff member,{" "}
-                                    <Link href="/register/other" className="text-blue-300 underline hover:text-blue-200">
-                                        register here instead
-                                    </Link>
-                                    .
-                                </p>
+                        )}
+
+                        {watchedValues.email && !errors.email && !isUniversityEmail(watchedValues.email) && (
+                            <div className="p-3 bg-gray-800/30 border border-gray-600/20 rounded-lg text-xs text-gray-300 animate-[fadeIn_0.3s_ease-out] opacity-0 [animation-fill-mode:forwards]" style={{ animationDelay: '0.2s' }}>
+                                💡 Using different emails? Your primary email is for login, your university email is for verification only.
                             </div>
-                        </div>
+                        )}
                     </div>
                 </ModernFormStep>
             )}
