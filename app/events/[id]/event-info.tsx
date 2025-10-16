@@ -420,6 +420,7 @@ export default function EventInfo() {
                 onClose={() => setShowRegistrationChoice(false)}
                 onGuestRegister={handleGuestRegister}
                 eventTitle={event?.title || "Event"}
+                eventId={id}
             />
 
             <GuestRegistrationModal

@@ -11,6 +11,7 @@ interface RegistrationChoiceModalProps {
 	onClose: () => void;
 	onGuestRegister: () => void;
 	eventTitle: string;
+	eventId: string;
 }
 
 export default function RegistrationChoiceModal({
@@ -18,6 +19,7 @@ export default function RegistrationChoiceModal({
 	onClose,
 	onGuestRegister,
 	eventTitle,
+	eventId,
 }: RegistrationChoiceModalProps) {
 	const router = useRouter();
 	const [mounted, setMounted] = useState(false);
@@ -28,7 +30,9 @@ export default function RegistrationChoiceModal({
 
 	const handleLoginRedirect = () => {
 		onClose();
-		router.push("/login");
+		// Redirect to login with callback to return to this event page
+		const eventPageUrl = `/events/${eventId}`;
+		router.push(`/login?redirect=${encodeURIComponent(eventPageUrl)}`);
 	};
 
 	const handleGuestRegisterClick = () => {

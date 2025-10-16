@@ -47,7 +47,9 @@ export default function EventRegistrationButton({
                 onShowRegistrationChoice();
             } else {
                 toast.error("Please sign in to register for events");
-                router.push("/login");
+                // Redirect to login with callback to return to this event page
+                const eventPageUrl = `/events/${base16ToBase62(event.id)}`;
+                router.push(`/login?redirect=${encodeURIComponent(eventPageUrl)}`);
             }
             return;
         }

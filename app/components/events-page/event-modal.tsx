@@ -303,6 +303,7 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                     onClose={() => setShowRegistrationChoice(false)}
                     onGuestRegister={handleGuestRegister}
                     eventTitle={event.title}
+                    eventId={base16ToBase62(event.id)}
                 />
 
                 {/* Guest Registration Modal */}
