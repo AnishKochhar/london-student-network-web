@@ -5,10 +5,27 @@ import {
     generateVerificationToken,
     storeUniversityVerificationToken,
 } from "@/app/lib/university-verification";
+import { requireAuth } from "@/app/lib/auth";
 
 export async function POST(request: NextRequest) {
     try {
-        const { userId, universityEmail } = await request.json();
+        const body = await request.json();
+        let userId: string;
+        let universityEmail: string;
+
+        // Support two modes:
+        // 1. From registration flow: { userId, universityEmail }
+        // 2. From authenticated session: { email } (optional - uses primary email if not provided)
+        if (body.userId && body.universityEmail) {
+            // Registration flow
+            userId = body.userId;
+            universityEmail = body.universityEmail;
+        } else {
+            // Authenticated user flow
+            const user = await requireAuth();
+            userId = user.id;
+            universityEmail = body.email || user.email; // Use provided email or primary email
+        }
 
         if (!userId || !universityEmail) {
             return NextResponse.json(

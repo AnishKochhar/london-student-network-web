@@ -7,21 +7,24 @@ const EventCreationConfirmationEmailPayload = (event: Event) => {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
+            timeZone: 'Europe/London'
         })
         : event.date;
 
     const eventStartTime = event.start_datetime
         ? new Date(event.start_datetime).toLocaleTimeString('en-GB', {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            timeZone: 'Europe/London'
         })
         : event.time;
 
     const eventEndTime = event.end_datetime
         ? new Date(event.end_datetime).toLocaleTimeString('en-GB', {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            timeZone: 'Europe/London'
         })
         : '';
 

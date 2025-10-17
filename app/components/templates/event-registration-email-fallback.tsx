@@ -5,13 +5,16 @@ const EventRegistrationEmailFallbackPayload = (
     event: Event
 ) => {
     const eventDate = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleDateString('en-GB')
+        ? new Date(event.start_datetime).toLocaleDateString('en-GB', {
+            timeZone: 'Europe/London'
+        })
         : event.date;
 
     const eventTime = event.start_datetime
         ? new Date(event.start_datetime).toLocaleTimeString('en-GB', {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            timeZone: 'Europe/London'
         })
         : event.time;
 

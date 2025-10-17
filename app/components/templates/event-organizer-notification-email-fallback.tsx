@@ -11,7 +11,9 @@ const EventOrganizerNotificationEmailFallbackPayload = (
     registration: RegistrationDetails
 ) => {
     const eventDate = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleDateString('en-GB')
+        ? new Date(event.start_datetime).toLocaleDateString('en-GB', {
+            timeZone: 'Europe/London'
+        })
         : event.date;
 
     return `🎉 SOMEONE JUST SIGNED UP FOR YOUR EVENT!

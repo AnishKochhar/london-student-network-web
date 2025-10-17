@@ -15,7 +15,8 @@ const EventOrganizerNotificationEmailPayload = (
             weekday: 'long',
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
+            timeZone: 'Europe/London'
         })
         : event.date;
 

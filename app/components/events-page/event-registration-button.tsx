@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ShimmerButton } from "@/app/components/ui/shimmer-button";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import RegistrationConfirmationModal from "./registration-confirmation-modal";
+import UniversityVerificationPrompt from "./UniversityVerificationPrompt";
 
 interface EventRegistrationButtonProps {
     event: Event;
@@ -30,9 +31,35 @@ export default function EventRegistrationButton({
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [showRegistrationConfirmation, setShowRegistrationConfirmation] = useState(false);
+    const [showUniversityPrompt, setShowUniversityPrompt] = useState(false);
+    const [universityPromptData, setUniversityPromptData] = useState<{
+        userEmail: string;
+        universityName?: string;
+    } | null>(null);
     const [isCheckingStatus] = useState(false);
     const { data: session } = useSession();
     const router = useRouter();
+
+    const checkAndShowUniversityPrompt = async () => {
+        try {
+            const response = await fetch('/api/user/check-university-email');
+            const data = await response.json();
+
+            if (data.success && !data.alreadyVerified) {
+                // Show prompt after a short delay to let the success toast finish
+                setTimeout(() => {
+                    setUniversityPromptData({
+                        userEmail: session?.user?.email || '',
+                        universityName: data.isUniversityEmail ? data.universityName : undefined
+                    });
+                    setShowUniversityPrompt(true);
+                }, 1500);
+            }
+        } catch (error) {
+            console.error('Error checking university status:', error);
+            // Don't show prompt if there's an error
+        }
+    };
 
     const handleRegisterClick = () => {
         // If there's an external registration link, open it in a new tab
@@ -90,6 +117,9 @@ export default function EventRegistrationButton({
             if (result.success) {
                 toast.success("Successfully registered! Check your email for confirmation.");
                 onRegistrationChange?.();
+
+                // Check if user should be prompted for university verification
+                checkAndShowUniversityPrompt();
 
                 // If in modal context, redirect to event page
                 if (context === "modal") {
@@ -445,6 +475,14 @@ export default function EventRegistrationButton({
                 eventTitle={event.title}
                 isRegistering={isLoading}
             />
+            {universityPromptData && (
+                <UniversityVerificationPrompt
+                    isOpen={showUniversityPrompt}
+                    onClose={() => setShowUniversityPrompt(false)}
+                    userEmail={universityPromptData.userEmail}
+                    universityName={universityPromptData.universityName}
+                />
+            )}
         </>
     );
 }
