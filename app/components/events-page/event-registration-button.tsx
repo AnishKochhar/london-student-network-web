@@ -6,10 +6,13 @@ import { useRouter } from "next/navigation";
 import { Event } from "@/app/lib/types";
 import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
-import { ShimmerButton } from "@/app/components/ui/shimmer-button";
+import { GlassButton } from "@/app/components/ui/glass-button";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
-import RegistrationConfirmationModal from "./registration-confirmation-modal";
+import ModernRegistrationModal from "./modern-registration-modal";
 import UniversityVerificationPrompt from "./UniversityVerificationPrompt";
+import EventCountdown from "./event-countdown";
+import { Check, Calendar } from "lucide-react";
+import CalendarModal from "@/app/components/ui/calendar-modal";
 
 interface EventRegistrationButtonProps {
     event: Event;
@@ -32,6 +35,7 @@ export default function EventRegistrationButton({
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [showRegistrationConfirmation, setShowRegistrationConfirmation] = useState(false);
     const [showUniversityPrompt, setShowUniversityPrompt] = useState(false);
+    const [showCalendarModal, setShowCalendarModal] = useState(false);
     const [universityPromptData, setUniversityPromptData] = useState<{
         userEmail: string;
         universityName?: string;
@@ -57,7 +61,6 @@ export default function EventRegistrationButton({
             }
         } catch (error) {
             console.error('Error checking university status:', error);
-            // Don't show prompt if there's an error
         }
     };
 
@@ -91,7 +94,7 @@ export default function EventRegistrationButton({
         setShowRegistrationConfirmation(true);
     };
 
-    const handleRegister = async () => {
+    const handleRegister = async (tickets: number = 1) => {
         setShowRegistrationConfirmation(false);
 
         setIsLoading(true);
@@ -105,10 +108,11 @@ export default function EventRegistrationButton({
                 body: JSON.stringify({
                     event_id: event.id,
                     user_information: {
-                        id: session.user.id,
-                        email: session.user.email,
-                        name: session.user.name
-                    }
+                        id: session?.user?.id,
+                        email: session?.user?.email,
+                        name: session?.user?.name
+                    },
+                    tickets
                 }),
             });
 
@@ -254,7 +258,7 @@ export default function EventRegistrationButton({
     if (isCheckingStatus) {
         return (
             <div className="w-full max-w-md mx-auto">
-                <ShimmerButton
+                <GlassButton
                     variant="register"
                     size={context === "page" ? "lg" : "md"}
                     icon="arrow"
@@ -263,10 +267,13 @@ export default function EventRegistrationButton({
                     className="w-full"
                 >
                     Checking Status...
-                </ShimmerButton>
+                </GlassButton>
             </div>
         );
     }
+
+    // Check if event is virtual/online (event_type & 8 for Zoom/Virtual)
+    const isVirtualEvent = event.event_type && (event.event_type & 8) !== 0;
 
     // Different styles for modal vs page context
     if (context === "page") {
@@ -275,24 +282,58 @@ export default function EventRegistrationButton({
             return (
                 <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
                     {!showConfirmation ? (
-                        <div className="space-y-3">
-                            <ShimmerButton
-                                variant="registered"
-                                size="lg"
-                                icon="check"
-                                className="w-full min-w-0"
-                                disabled
-                            >
-                                You&apos;re Registered
-                            </ShimmerButton>
-                            <div className="text-center">
-                                <button
-                                    onClick={() => setShowConfirmation(true)}
-                                    disabled={isPreview || isLoading}
-                                    className="text-sm text-gray-500 hover:text-red-600 transition-colors duration-200 underline"
-                                >
-                                    Leave Event
-                                </button>
+                        <div className="space-y-4">
+                            {/* You're In Card - Clean Luma Style */}
+                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                {/* Header - Minimal Badge Style */}
+                                <div className="px-6 py-5 border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Check className="w-5 h-5 text-green-600" strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-lg font-semibold text-gray-900">You&apos;re In</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="px-6 py-5 space-y-4">
+                                    {/* Countdown */}
+                                    {event.start_datetime && (
+                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                            <EventCountdown startDateTime={event.start_datetime} />
+                                            {isVirtualEvent && (
+                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                    <p className="text-xs text-gray-600 flex items-start gap-2">
+                                                        <span className="text-sm">🔗</span>
+                                                        <span>Join link will be sent via email before the event</span>
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Calendar Button */}
+                                    <button
+                                        onClick={() => setShowCalendarModal(true)}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
+                                    >
+                                        <Calendar className="w-4 h-4" />
+                                        Add to Calendar
+                                    </button>
+
+                                    {/* Cancel Link */}
+                                    <div className="text-center pt-2">
+                                        <button
+                                            onClick={() => setShowConfirmation(true)}
+                                            disabled={isPreview || isLoading}
+                                            className="text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
+                                        >
+                                            Cancel registration
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : (
@@ -326,7 +367,7 @@ export default function EventRegistrationButton({
                                 >
                                     Keep Registration
                                 </button>
-                                <ShimmerButton
+                                <GlassButton
                                     onClick={handleDeregister}
                                     disabled={isLoading}
                                     variant="leave"
@@ -336,10 +377,22 @@ export default function EventRegistrationButton({
                                     className="flex-1"
                                 >
                                     {isLoading ? "Leaving..." : "Leave Event"}
-                                </ShimmerButton>
+                                </GlassButton>
                             </motion.div>
                         </motion.div>
                     )}
+                    <UniversityVerificationPrompt
+                        isOpen={showUniversityPrompt && universityPromptData !== null}
+                        onClose={() => setShowUniversityPrompt(false)}
+                        userEmail={universityPromptData?.userEmail || ''}
+                        universityName={universityPromptData?.universityName}
+                    />
+                    <CalendarModal
+                        isOpen={showCalendarModal}
+                        onClose={() => setShowCalendarModal(false)}
+                        event={event}
+                        userEmail={session?.user?.email}
+                    />
                 </div>
             );
         }
@@ -347,7 +400,7 @@ export default function EventRegistrationButton({
         return (
             <>
                 <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
-                    <ShimmerButton
+                    <GlassButton
                         onClick={handleRegisterClick}
                         disabled={isPreview || isLoading}
                         variant="register"
@@ -357,20 +410,28 @@ export default function EventRegistrationButton({
                         className="w-full min-w-0"
                     >
                         {isLoading ? "Registering..." : "Register for Event"}
-                    </ShimmerButton>
+                    </GlassButton>
                 </div>
-                <RegistrationConfirmationModal
+                <ModernRegistrationModal
                     isOpen={showRegistrationConfirmation}
                     onClose={() => setShowRegistrationConfirmation(false)}
                     onConfirm={handleRegister}
-                    eventTitle={event.title}
+                    event={event}
                     isRegistering={isLoading}
+                    userName={session?.user?.name}
+                    userEmail={session?.user?.email}
+                />
+                <UniversityVerificationPrompt
+                    isOpen={showUniversityPrompt && universityPromptData !== null}
+                    onClose={() => setShowUniversityPrompt(false)}
+                    userEmail={universityPromptData?.userEmail || ''}
+                    universityName={universityPromptData?.universityName}
                 />
             </>
         );
     }
 
-    // Simpler, compact design for modal context
+    // Modal context - show compact "You're In" card
     if (isRegistered) {
         return (
             <div className="w-full">
@@ -384,23 +445,50 @@ export default function EventRegistrationButton({
                             transition={{ duration: 0.2 }}
                             className="space-y-3"
                         >
-                            <ShimmerButton
-                                variant="registered"
-                                size="md"
-                                icon="check"
-                                className="w-full"
-                                disabled
-                            >
-                                You&apos;re Registered
-                            </ShimmerButton>
-                            <div className="text-center">
-                                <button
-                                    onClick={() => setShowConfirmation(true)}
-                                    disabled={isPreview || isLoading}
-                                    className="text-xs text-gray-500 hover:text-red-600 transition-colors duration-200 underline"
-                                >
-                                    Leave Event
-                                </button>
+                            {/* You're In Card - Compact Modal Version */}
+                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                {/* Header */}
+                                <div className="px-5 py-4 border-b border-gray-100">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-9 h-9 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Check className="w-4 h-4 text-green-600" strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-base font-semibold text-gray-900">You&apos;re In</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="px-5 py-4 space-y-3">
+                                    {/* Countdown */}
+                                    {event.start_datetime && (
+                                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                            <p className="text-xs text-gray-600 font-medium mb-1.5">Event starts in</p>
+                                            <EventCountdown startDateTime={event.start_datetime} />
+                                        </div>
+                                    )}
+
+                                    {/* Calendar Button */}
+                                    <button
+                                        onClick={() => setShowCalendarModal(true)}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
+                                    >
+                                        <Calendar className="w-4 h-4" />
+                                        Add to Calendar
+                                    </button>
+
+                                    {/* Cancel Link */}
+                                    <div className="text-center pt-1">
+                                        <button
+                                            onClick={() => setShowConfirmation(true)}
+                                            disabled={isPreview || isLoading}
+                                            className="text-xs text-gray-500 hover:text-red-600 transition-colors duration-200"
+                                        >
+                                            Cancel registration
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     ) : (
@@ -436,7 +524,7 @@ export default function EventRegistrationButton({
                                 >
                                     Cancel
                                 </button>
-                                <ShimmerButton
+                                <GlassButton
                                     onClick={handleDeregister}
                                     disabled={isLoading}
                                     variant="leave"
@@ -446,18 +534,31 @@ export default function EventRegistrationButton({
                                     className="flex-1"
                                 >
                                     {isLoading ? "Leaving..." : "Leave"}
-                                </ShimmerButton>
+                                </GlassButton>
                             </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
+                <UniversityVerificationPrompt
+                    isOpen={showUniversityPrompt && universityPromptData !== null}
+                    onClose={() => setShowUniversityPrompt(false)}
+                    userEmail={universityPromptData?.userEmail || ''}
+                    universityName={universityPromptData?.universityName}
+                />
+                <CalendarModal
+                    isOpen={showCalendarModal}
+                    onClose={() => setShowCalendarModal(false)}
+                    event={event}
+                    userEmail={session?.user?.email}
+                />
             </div>
         );
     }
 
+    // Simpler, compact design for modal context
     return (
         <>
-            <ShimmerButton
+            <GlassButton
                 onClick={handleRegisterClick}
                 disabled={isPreview || isLoading}
                 variant="register"
@@ -467,22 +568,22 @@ export default function EventRegistrationButton({
                 className="w-full"
             >
                 {isLoading ? "Registering..." : "Register for Event"}
-            </ShimmerButton>
-            <RegistrationConfirmationModal
+            </GlassButton>
+            <ModernRegistrationModal
                 isOpen={showRegistrationConfirmation}
                 onClose={() => setShowRegistrationConfirmation(false)}
                 onConfirm={handleRegister}
-                eventTitle={event.title}
+                event={event}
                 isRegistering={isLoading}
+                userName={session?.user?.name}
+                userEmail={session?.user?.email}
             />
-            {universityPromptData && (
-                <UniversityVerificationPrompt
-                    isOpen={showUniversityPrompt}
-                    onClose={() => setShowUniversityPrompt(false)}
-                    userEmail={universityPromptData.userEmail}
-                    universityName={universityPromptData.universityName}
-                />
-            )}
+            <UniversityVerificationPrompt
+                isOpen={showUniversityPrompt && universityPromptData !== null}
+                onClose={() => setShowUniversityPrompt(false)}
+                userEmail={universityPromptData?.userEmail || ''}
+                universityName={universityPromptData?.universityName}
+            />
         </>
     );
 }

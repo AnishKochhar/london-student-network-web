@@ -384,22 +384,22 @@ export function selectUniversity(university: string, otherUniversity: string) {
 export const EVENT_TAG_TYPES: {
 	[key: number]: { label: string; color: string; description: string };
 } = {
-	1: { label: "SOCIAL", color: "bg-[#f3a51a] opacity-95", description: "Social gatherings, parties, meet-ups, and casual events" },
-	2: { label: "ACADEMIC", color: "bg-[#079fbf] opacity-95", description: "Educational events, lectures, study groups, and academic discussions" },
-	4: { label: "SPORTING", color: "bg-[#041A2E] opacity-95", description: "Sports activities, fitness events, tournaments, and athletic competitions" },
-	8: { label: "NETWORKING", color: "bg-[#8B5CF6] opacity-95", description: "Professional networking events and industry meet-ups" },
-	16: { label: "CAREER", color: "bg-[#059669] opacity-95", description: "Career fairs, job opportunities, internship events, and professional development" },
-	32: { label: "CULTURAL", color: "bg-[#DC2626] opacity-95", description: "Cultural celebrations, heritage events, and diversity initiatives" },
-	64: { label: "TECHNOLOGY", color: "bg-[#2563EB] opacity-95", description: "Tech talks, coding events, hackathons, and innovation showcases" },
-	128: { label: "BUSINESS", color: "bg-[#7C3AED] opacity-95", description: "Business events, entrepreneurship, startup pitches, and commercial activities" },
-	256: { label: "ARTS", color: "bg-[#DB2777] opacity-95", description: "Art exhibitions, creative workshops, design events, and artistic performances" },
-	512: { label: "MUSIC", color: "bg-[#EA580C] opacity-95", description: "Concerts, music performances, open mic nights, and musical events" },
-	1024: { label: "FOOD", color: "bg-[#65A30D] opacity-95", description: "Food tastings, cooking events, restaurant visits, and culinary experiences" },
-	2048: { label: "WELLNESS", color: "bg-[#0891B2] opacity-95", description: "Mental health events, fitness classes, meditation, and wellbeing activities" },
-	4096: { label: "VOLUNTEER", color: "bg-[#7C2D12] opacity-95", description: "Community service, charity events, volunteering opportunities, and social impact" },
-	8192: { label: "WORKSHOP", color: "bg-[#4338CA] opacity-95", description: "Hands-on learning sessions, skill-building workshops, and practical training" },
-	16384: { label: "SEMINAR", color: "bg-[#B91C1C] opacity-95", description: "Educational seminars, expert talks, and knowledge-sharing sessions" },
-	32768: { label: "CONFERENCE", color: "bg-[#374151] opacity-95", description: "Large-scale conferences, symposiums, and professional gatherings" },
+	1: { label: "Social", color: "bg-[#f3a51a] opacity-95", description: "Social gatherings, parties, meet-ups, and casual events" },
+	2: { label: "Academic", color: "bg-[#079fbf] opacity-95", description: "Educational events, lectures, study groups, and academic discussions" },
+	4: { label: "Sporting", color: "bg-[#041A2E] opacity-95", description: "Sports activities, fitness events, tournaments, and athletic competitions" },
+	8: { label: "Networking", color: "bg-[#8B5CF6] opacity-95", description: "Professional networking events and industry meet-ups" },
+	16: { label: "Career", color: "bg-[#059669] opacity-95", description: "Career fairs, job opportunities, internship events, and professional development" },
+	32: { label: "Cultural", color: "bg-[#DC2626] opacity-95", description: "Cultural celebrations, heritage events, and diversity initiatives" },
+	64: { label: "Technology", color: "bg-[#2563EB] opacity-95", description: "Tech talks, coding events, hackathons, and innovation showcases" },
+	128: { label: "Business", color: "bg-[#7C3AED] opacity-95", description: "Business events, entrepreneurship, startup pitches, and commercial activities" },
+	256: { label: "Arts", color: "bg-[#DB2777] opacity-95", description: "Art exhibitions, creative workshops, design events, and artistic performances" },
+	512: { label: "Music", color: "bg-[#EA580C] opacity-95", description: "Concerts, music performances, open mic nights, and musical events" },
+	1024: { label: "Food", color: "bg-[#65A30D] opacity-95", description: "Food tastings, cooking events, restaurant visits, and culinary experiences" },
+	2048: { label: "Wellness", color: "bg-[#0891B2] opacity-95", description: "Mental health events, fitness classes, meditation, and wellbeing activities" },
+	4096: { label: "Volunteer", color: "bg-[#7C2D12] opacity-95", description: "Community service, charity events, volunteering opportunities, and social impact" },
+	8192: { label: "Workshop", color: "bg-[#4338CA] opacity-95", description: "Hands-on learning sessions, skill-building workshops, and practical training" },
+	16384: { label: "Seminar", color: "bg-[#B91C1C] opacity-95", description: "Educational seminars, expert talks, and knowledge-sharing sessions" },
+	32768: { label: "Conference", color: "bg-[#374151] opacity-95", description: "Large-scale conferences, symposiums, and professional gatherings" },
 };
 
 export function generateDays() {

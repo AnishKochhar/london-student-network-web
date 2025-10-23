@@ -1,31 +1,20 @@
 import { Event } from "@/app/lib/types";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import { formatInTimeZone } from "date-fns-tz";
 
 const EventCreationConfirmationEmailPayload = (event: Event) => {
+    const LONDON_TZ = 'Europe/London';
+
     const eventDate = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleDateString('en-GB', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            timeZone: 'Europe/London'
-        })
+        ? formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'EEEE, d MMMM yyyy')
         : event.date;
 
     const eventStartTime = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'Europe/London'
-        })
+        ? formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'HH:mm')
         : event.time;
 
     const eventEndTime = event.end_datetime
-        ? new Date(event.end_datetime).toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'Europe/London'
-        })
+        ? formatInTimeZone(new Date(event.end_datetime), LONDON_TZ, 'HH:mm')
         : '';
 
     // Access control labels - simplified

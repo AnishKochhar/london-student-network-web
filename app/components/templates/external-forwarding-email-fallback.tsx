@@ -1,4 +1,5 @@
 import { Event } from "@/app/lib/types";
+import { formatInTimeZone } from "date-fns-tz";
 
 interface RegistrationInfo {
     name: string;
@@ -10,22 +11,14 @@ const ExternalForwardingEmailFallbackPayload = (
     event: Event,
     registrations: RegistrationInfo[]
 ) => {
+    const LONDON_TZ = 'Europe/London';
+
     const eventDate = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleDateString('en-GB', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            timeZone: 'Europe/London'
-        })
+        ? formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'EEEE, d MMMM yyyy')
         : event.date;
 
-    const eventTime = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'Europe/London'
-        })
+    const eventTime = event.start_datetime && event.end_datetime
+        ? `${formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'HH:mm')} - ${formatInTimeZone(new Date(event.end_datetime), LONDON_TZ, 'HH:mm')}`
         : event.time;
 
     const internalCount = registrations.filter(r => !r.external).length;

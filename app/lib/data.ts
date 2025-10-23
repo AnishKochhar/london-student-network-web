@@ -328,11 +328,13 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
 export async function fetchEventById(id: string) {
     try {
+        // Remove dashes from both the UUID and search string to ensure proper matching
+        const searchString = id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
-			SELECT e.*, s.slug as organiser_slug
+			SELECT e.*, s.slug as organiser_slug, s.logo_url as society_logo_url
 			FROM events e
 			LEFT JOIN society_information s ON e.organiser_uid = s.user_id
-			WHERE e.id::text LIKE '%' || ${id}
+			WHERE REPLACE(e.id::text, '-', '') LIKE '%' || ${searchString}
 			AND (e.is_deleted IS NULL OR e.is_deleted = false);
 		`;
 
@@ -371,10 +373,12 @@ export async function fetchHighlightedEvent(eventId: string) {
 
 export async function fetchSQLEventById(id: string) {
     try {
+        // Remove dashes from both the UUID and search string to ensure proper matching
+        const searchString = id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
 			SELECT *
 			FROM events
-			WHERE id::text LIKE '%' || ${id};
+			WHERE REPLACE(id::text, '-', '') LIKE '%' || ${searchString};
 		`;
         return data.rows[0];
     } catch (error) {
@@ -411,10 +415,11 @@ export async function fetchBase16ConvertedEventWithUserId(
     user_id: string,
 ) {
     try {
-        const pattern = `%${event_id}%`;
+        // Remove dashes from search string to ensure proper matching
+        const searchString = event_id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
-			WHERE organiser_uid = ${user_id} AND id::text LIKE ${pattern}
+			WHERE organiser_uid = ${user_id} AND REPLACE(id::text, '-', '') LIKE '%' || ${searchString}
 			LIMIT 1
 		`;
         // console.log("Data rows: ", data.rows);

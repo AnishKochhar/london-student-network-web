@@ -8,6 +8,7 @@ import EventRegistrationEmailFallbackPayload from "@/app/components/templates/ev
 import EventOrganizerNotificationEmailPayload from "@/app/components/templates/event-organizer-notification-email";
 import EventOrganizerNotificationEmailFallbackPayload from "@/app/components/templates/event-organizer-notification-email-fallback";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
+import { generateICSFile } from "@/app/lib/ics-generator";
 
 export async function POST(req: Request) {
 	try {
@@ -194,12 +195,20 @@ export async function POST(req: Request) {
 			const guestEmailHtml = EventRegistrationEmailPayload(firstName, eventData);
 			const guestEmailText = EventRegistrationEmailFallbackPayload(firstName, eventData);
 
+			// Generate ICS file for calendar integration
+			const icsContent = generateICSFile(eventData, email.toLowerCase());
+			const icsFilename = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+
 			await sendEventRegistrationEmail({
 				toEmail: email.toLowerCase(),
 				subject: guestEmailSubject,
 				html: guestEmailHtml,
 				text: guestEmailText,
 				replyTo: organiserEmailAddress, // Reply to organizer
+				icsAttachment: {
+					content: icsContent,
+					filename: icsFilename
+				}
 			});
 		} catch (emailError) {
 			console.error("Failed to send confirmation email to guest:", emailError);

@@ -1,25 +1,19 @@
 import { Event } from "@/app/lib/types";
+import { formatInTimeZone } from "date-fns-tz";
 
 const EventRegistrationEmailPayload = (
     userName: string,
     event: Event
 ) => {
+    const LONDON_TZ = 'Europe/London';
+
+    // Use date-fns-tz for reliable timezone conversion in Node.js
     const eventDate = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleDateString('en-GB', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            timeZone: 'Europe/London'
-        })
+        ? formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'EEEE, d MMMM yyyy')
         : event.date;
 
-    const eventTime = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleTimeString('en-GB', {
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'Europe/London'
-        })
+    const eventTime = event.start_datetime && event.end_datetime
+        ? `${formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'HH:mm')} - ${formatInTimeZone(new Date(event.end_datetime), LONDON_TZ, 'HH:mm')}`
         : event.time;
 
     return `
@@ -35,6 +29,10 @@ const EventRegistrationEmailPayload = (
                 📍 <strong>Where:</strong> ${event.location_building}, ${event.location_area}<br>
                 ${event.location_address ? `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${event.location_address}<br>` : ''}
                 ${event.capacity ? `👥 <strong>Capacity:</strong> ${event.capacity} people (and you're one of them!)` : ''}
+            </p>
+
+            <p style="background: #e8f4fd; padding: 15px; border-left: 3px solid #007BFF; margin: 20px 0;">
+                <strong>📆 Add to Calendar:</strong> We've attached a calendar file (.ics) to this email. Click on it to automatically add this event to your calendar app (works with Google Calendar, Outlook, Apple Calendar, and more!).
             </p>
 
             ${event.for_externals ? `

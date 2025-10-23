@@ -37,6 +37,7 @@ export async function GET() {
         if (result.rows.length > 0) {
             return NextResponse.json({
                 success: true,
+                alreadyVerified: false,
                 isUniversityEmail: true,
                 universityName: result.rows[0].university_name,
                 emailDomain: result.rows[0].email_domain
@@ -45,6 +46,7 @@ export async function GET() {
 
         return NextResponse.json({
             success: true,
+            alreadyVerified: false,
             isUniversityEmail: false
         });
 

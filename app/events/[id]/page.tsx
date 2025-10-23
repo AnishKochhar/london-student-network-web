@@ -1,4 +1,4 @@
-import EventInfo from "./event-info";
+import ModernEventInfo from "./modern-event-info";
 import { EventStructuredData } from "@/app/components/seo/structured-data";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { fetchEventById } from "@/app/lib/data";
@@ -138,7 +138,7 @@ export default async function Page({ params }: PageProps) {
     }
 
     return (
-        <main className="relative flex flex-col min-h-screen mx-auto p-8 pt-16 bg-gradient-to-b from-[#f8f9fa] via-[#e9ecef] to-[#feffff]">
+        <main className="relative flex flex-col min-h-screen mx-auto pt-16 bg-white">
             {event && (
                 <EventStructuredData
                     name={event.title}
@@ -162,7 +162,7 @@ export default async function Page({ params }: PageProps) {
                     }}
                 />
             )}
-            <EventInfo />
+            <ModernEventInfo />
         </main>
     );
 }

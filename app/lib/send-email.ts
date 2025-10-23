@@ -163,13 +163,18 @@ export const sendEventRegistrationEmail = async ({
     subject,
     html,
     text,
-    replyTo
+    replyTo,
+    icsAttachment
 }: {
     toEmail: string;
     subject: string;
     html: string;
     text: string;
     replyTo?: string;
+    icsAttachment?: {
+        content: string;
+        filename: string;
+    };
 }) => {
     try {
         if (!toEmail) {
@@ -177,7 +182,7 @@ export const sendEventRegistrationEmail = async ({
             throw new Error("The target email to send is empty");
         }
 
-        const msg = {
+        const msg: any = {
             to: toEmail,
             from: "hello@londonstudentnetwork.com",
             ...(replyTo && { replyTo }), // Include replyTo if provided
@@ -185,6 +190,18 @@ export const sendEventRegistrationEmail = async ({
             html: html,  // Primary HTML content
             text: text,  // Fallback plain text
         };
+
+        // Add ICS attachment if provided
+        if (icsAttachment) {
+            msg.attachments = [
+                {
+                    content: Buffer.from(icsAttachment.content).toString('base64'),
+                    filename: icsAttachment.filename,
+                    type: 'text/calendar; method=REQUEST',
+                    disposition: 'attachment',
+                }
+            ];
+        }
 
         await sendSendGridEmail(msg);
     } catch (error) {
@@ -313,6 +330,169 @@ export const sendExternalForwardingEmail = async ({
 
         throw new Error(
             "An error occurred during the attempt to send external forwarding email",
+        );
+    }
+};
+
+export const sendEventReportEmail = async ({
+    eventTitle,
+    eventId,
+    eventUrl,
+    reporterName,
+    reporterEmail,
+    reporterUserId,
+    reason,
+    additionalDetails,
+    reportId,
+}: {
+    eventTitle: string;
+    eventId: string;
+    eventUrl: string;
+    reporterName?: string;
+    reporterEmail?: string;
+    reporterUserId?: string;
+    reason: string;
+    additionalDetails?: string;
+    reportId: string;
+}) => {
+    try {
+        const reporterInfo = reporterUserId
+            ? `Logged in user (ID: ${reporterUserId})`
+            : `Guest: ${reporterName} (${reporterEmail})`;
+
+        const htmlPayload = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+        .section { margin-bottom: 25px; }
+        .section h2 { color: #1f2937; font-size: 18px; margin-bottom: 10px; }
+        .info-box { background: white; padding: 15px; border-left: 4px solid #ef4444; border-radius: 4px; margin-bottom: 15px; }
+        .detail { margin-bottom: 10px; }
+        .label { font-weight: 600; color: #4b5563; }
+        .value { color: #1f2937; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px; }
+        .footer { text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚨 Event Report Received</h1>
+        </div>
+        <div class="content">
+            <div class="section">
+                <h2>Event Information</h2>
+                <div class="info-box">
+                    <div class="detail">
+                        <span class="label">Event Title:</span>
+                        <span class="value">${eventTitle}</span>
+                    </div>
+                    <div class="detail">
+                        <span class="label">Event ID:</span>
+                        <span class="value">${eventId}</span>
+                    </div>
+                    <div class="detail">
+                        <span class="label">Event URL:</span>
+                        <a href="${eventUrl}">${eventUrl}</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Reporter Information</h2>
+                <div class="info-box">
+                    <div class="detail">
+                        <span class="value">${reporterInfo}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Report Details</h2>
+                <div class="info-box">
+                    <div class="detail">
+                        <span class="label">Report ID:</span>
+                        <span class="value">${reportId}</span>
+                    </div>
+                    <div class="detail">
+                        <span class="label">Reason:</span>
+                        <span class="value">${reason}</span>
+                    </div>
+                    ${additionalDetails ? `
+                    <div class="detail">
+                        <span class="label">Additional Details:</span><br>
+                        <span class="value">${additionalDetails}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <p style="color: #6b7280; font-size: 14px;">
+                Please review this report and take appropriate action. You can view the event and manage reports through the admin dashboard.
+            </p>
+        </div>
+        <div class="footer">
+            <p>London Student Network - Event Moderation System</p>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+
+        const textPayload = `
+🚨 EVENT REPORT RECEIVED
+
+EVENT INFORMATION
+-----------------
+Event Title: ${eventTitle}
+Event ID: ${eventId}
+Event URL: ${eventUrl}
+
+REPORTER INFORMATION
+-------------------
+${reporterInfo}
+
+REPORT DETAILS
+--------------
+Report ID: ${reportId}
+Reason: ${reason}
+${additionalDetails ? `Additional Details: ${additionalDetails}` : ''}
+
+Please review this report and take appropriate action.
+
+---
+London Student Network - Event Moderation System
+        `;
+
+        const msg = {
+            to: "hello@londonstudentnetwork.com",
+            from: "hello@londonstudentnetwork.com",
+            ...(reporterEmail && { replyTo: reporterEmail }), // Reply to reporter if available
+            subject: `🚨 Event Report: ${eventTitle}`,
+            html: htmlPayload,
+            text: textPayload,
+        };
+
+        await sendSendGridEmail(msg);
+
+        console.log(`Event report email sent for event ${eventId} (Report ID: ${reportId})`);
+        return { success: true };
+    } catch (error) {
+        console.error(
+            "Error occurred during event report email sending. Error message:",
+            error.message,
+        );
+        console.error("Stack trace:", error.stack);
+
+        throw new Error(
+            "An error occurred during the attempt to send event report email",
         );
     }
 };

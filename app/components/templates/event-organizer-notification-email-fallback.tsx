@@ -1,4 +1,5 @@
 import { Event } from "@/app/lib/types";
+import { formatInTimeZone } from "date-fns-tz";
 
 interface RegistrationDetails {
     name: string;
@@ -10,10 +11,10 @@ const EventOrganizerNotificationEmailFallbackPayload = (
     event: Event,
     registration: RegistrationDetails
 ) => {
+    const LONDON_TZ = 'Europe/London';
+
     const eventDate = event.start_datetime
-        ? new Date(event.start_datetime).toLocaleDateString('en-GB', {
-            timeZone: 'Europe/London'
-        })
+        ? formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'dd/MM/yyyy')
         : event.date;
 
     return `🎉 SOMEONE JUST SIGNED UP FOR YOUR EVENT!
