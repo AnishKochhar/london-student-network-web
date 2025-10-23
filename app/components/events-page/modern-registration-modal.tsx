@@ -253,14 +253,23 @@ export default function ModernRegistrationModal({
     const modalContent = (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[60] flex items-end justify-center">
-                    {/* Backdrop - Don't close on click to prevent accidental dismissal */}
+                <div
+                    className="fixed inset-0 z-[60] flex items-end justify-center"
+                    onClick={(e) => {
+                        // Only close if clicking the backdrop itself
+                        if (e.target === e.currentTarget) {
+                            onClose();
+                        }
+                    }}
+                >
+                    {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={onClose}
                     />
 
                     {/* Modal - Slide up from bottom */}
@@ -421,7 +430,7 @@ export default function ModernRegistrationModal({
                                                 type="submit"
                                                 disabled={isRegistering || isGuestRegistering}
                                                 className={cn(
-                                                    "py-3.5 px-6 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 border border-blue-400/30 hover:border-blue-400/50 text-blue-50 hover:text-white font-semibold rounded-xl transition-all duration-300 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(59,130,246,0.15)] hover:shadow-[0_8px_32px_0_rgba(59,130,246,0.25)] disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]",
+                                                    "py-3.5 px-6 bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]",
                                                     currentStep === 1 ? "flex-1" : "flex-1"
                                                 )}
                                             >
