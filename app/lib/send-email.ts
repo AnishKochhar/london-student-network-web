@@ -3,6 +3,21 @@
 import sendSendGridEmail from "./config/private/sendgrid";
 import { EmailData, Event } from "./types";
 import { getEmailFromId } from "./data";
+
+interface EmailMessage {
+    to: string;
+    from: string;
+    replyTo?: string;
+    subject: string;
+    text: string;
+    html: string;
+    attachments?: Array<{
+        content: string;
+        filename: string;
+        type: string;
+        disposition: string;
+    }>;
+}
 import EmailPayload from "../components/templates/user-to-society-email"; // this might have security issues because of user inputs.
 import EmailPayloadFallback from "../components/templates/user-to-society-email-fallback";
 import ResetEmailPayload from "../components/templates/reset-password";
@@ -182,7 +197,7 @@ export const sendEventRegistrationEmail = async ({
             throw new Error("The target email to send is empty");
         }
 
-        const msg: any = {
+        const msg: EmailMessage = {
             to: toEmail,
             from: "hello@londonstudentnetwork.com",
             ...(replyTo && { replyTo }), // Include replyTo if provided

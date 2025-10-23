@@ -39,7 +39,6 @@ export default function ModernRegistrationModal({
     const [tickets, setTickets] = useState(1);
     const [name, setName] = useState(userName);
     const [email, setEmail] = useState(userEmail);
-    const [phone, setPhone] = useState(userPhone);
     const [isGuestRegistering, setIsGuestRegistering] = useState(false);
     const [currentStep, setCurrentStep] = useState(1);
 
@@ -69,7 +68,6 @@ export default function ModernRegistrationModal({
     useEffect(() => {
         setName(userName);
         setEmail(userEmail);
-        setPhone(userPhone);
     }, [userName, userEmail, userPhone]);
 
     useEffect(() => {
@@ -402,7 +400,7 @@ export default function ModernRegistrationModal({
                                                 </div>
 
                                                 <p className="text-xs text-gray-500 text-center">
-                                                    By registering, you'll receive a confirmation email with event details.
+                                                    By registering, you&apos;ll receive a confirmation email with event details.
                                                 </p>
                                             </div>
                                         )}
