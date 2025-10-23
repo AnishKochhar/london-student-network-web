@@ -303,11 +303,13 @@ export const sendExternalForwardingEmail = async ({
     event,
     registrations,
     organizerEmail,
+    namesOnly = true,
 }: {
     externalEmail: string;
     event: Event;
     registrations: Array<{ name: string; email: string; external: boolean }>;
     organizerEmail?: string;
+    namesOnly?: boolean;
 }) => {
     try {
         if (!externalEmail) {
@@ -320,21 +322,62 @@ export const sendExternalForwardingEmail = async ({
             return { success: true, message: "No registrations to forward" };
         }
 
-        const htmlPayload = ExternalForwardingEmailPayload(event, registrations);
-        const textPayload = ExternalForwardingEmailFallbackPayload(event, registrations);
+        const htmlPayload = ExternalForwardingEmailPayload(event, registrations, namesOnly);
+        const textPayload = ExternalForwardingEmailFallbackPayload(event, registrations, namesOnly);
 
-        const msg = {
+        // Send to external email with organizer CC'd
+        const msg: EmailMessage = {
             to: externalEmail,
             from: "hello@londonstudentnetwork.com",
             ...(organizerEmail && { replyTo: organizerEmail }), // Reply to organizer
-            subject: `📋 Registration List: ${event.title}`,
+            subject: `📋 Attendee List: ${event.title}`,
             html: htmlPayload,
             text: textPayload,
         };
 
         await sendSendGridEmail(msg);
-
         console.log(`External forwarding email sent to ${externalEmail} for event ${event.id}`);
+
+        // Send confirmation to organizer with full details as backup
+        if (organizerEmail) {
+            try {
+                const confirmationHtml = ExternalForwardingEmailPayload(event, registrations, false); // Full details
+                const confirmationText = ExternalForwardingEmailFallbackPayload(event, registrations, false);
+
+                const confirmationMsg: EmailMessage = {
+                    to: organizerEmail,
+                    from: "hello@londonstudentnetwork.com",
+                    subject: `✓ Attendee List Sent: ${event.title}`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <div style="background: #e8f5e9; padding: 16px; border-radius: 6px; border-left: 3px solid #4caf50; margin-bottom: 24px;">
+                                <p style="margin: 0; font-weight: 600; color: #2e7d32;">✓ Attendee list sent successfully</p>
+                                <p style="margin: 8px 0 0 0; font-size: 13px; color: #555;">We've sent the attendee names to ${externalEmail}</p>
+                            </div>
+                            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                                Below is the complete list with contact details for your records. If the external contact needs more information, they can reach out to you directly.
+                            </p>
+                            <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;">
+                            ${confirmationHtml}
+                        </div>
+                    `,
+                    text: `✓ ATTENDEE LIST SENT SUCCESSFULLY
+
+We've sent the attendee names to ${externalEmail}
+
+Below is the complete list with contact details for your records:
+
+${confirmationText}`,
+                };
+
+                await sendSendGridEmail(confirmationMsg);
+                console.log(`Confirmation email sent to organizer ${organizerEmail} for event ${event.id}`);
+            } catch (confirmError) {
+                console.error("Error sending confirmation to organizer:", confirmError);
+                // Don't fail the main operation if confirmation fails
+            }
+        }
+
         return { success: true };
     } catch (error) {
         console.error(

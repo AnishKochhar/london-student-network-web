@@ -9,7 +9,8 @@ interface RegistrationInfo {
 
 const ExternalForwardingEmailPayload = (
     event: Event,
-    registrations: RegistrationInfo[]
+    registrations: RegistrationInfo[],
+    namesOnly: boolean = true
 ) => {
     const LONDON_TZ = 'Europe/London';
 
@@ -24,6 +25,41 @@ const ExternalForwardingEmailPayload = (
     const internalCount = registrations.filter(r => !r.external).length;
     const externalCount = registrations.filter(r => r.external).length;
 
+    // Simple names-only format (default)
+    if (namesOnly) {
+        return `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 550px; margin: 0 auto;">
+                <p style="margin-bottom: 20px;">Hello,</p>
+
+                <p style="margin-bottom: 20px;">We're sending you the attendee list for the upcoming event at your location.</p>
+
+                <div style="background: #f8f9fa; padding: 18px; border-radius: 6px; margin: 24px 0; border-left: 3px solid #007BFF;">
+                    <h2 style="margin: 0 0 12px 0; font-size: 20px; color: #1a1a1a;">${event.title}</h2>
+                    <p style="margin: 4px 0; font-size: 14px; color: #555;">
+                        📅 ${eventDate} at ${eventTime}<br>
+                        📍 ${event.location_building}, ${event.location_area}
+                    </p>
+                </div>
+
+                <div style="background: #fff; padding: 18px; border-radius: 6px; border: 1px solid #e0e0e0; margin: 20px 0;">
+                    <p style="margin: 0 0 12px 0; font-weight: 600; color: #1a1a1a;">Registered Attendees (${registrations.length}):</p>
+                    <div style="font-size: 14px; line-height: 1.8; color: #333;">
+                        ${registrations.map((reg, index) => `${index + 1}. ${reg.name}`).join('<br>')}
+                    </div>
+                </div>
+
+                <p style="font-size: 13px; color: #666; margin: 20px 0;">If you need full contact details, please reach out to the organizer: ${event.organiser}</p>
+
+                <p style="margin-top: 24px; font-size: 14px;">Best regards,<br>London Student Network</p>
+
+                <p style="font-size: 11px; color: #999; margin-top: 30px; padding-top: 16px; border-top: 1px solid #eee;">
+                    Questions? Contact us at <a href="mailto:hello@londonstudentnetwork.com" style="color: #007BFF; text-decoration: none;">hello@londonstudentnetwork.com</a>
+                </p>
+            </div>
+        `;
+    }
+
+    // Full details format
     return `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto;">
             <p>Hello,</p>

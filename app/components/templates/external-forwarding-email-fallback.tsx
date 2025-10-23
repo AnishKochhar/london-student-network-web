@@ -9,7 +9,8 @@ interface RegistrationInfo {
 
 const ExternalForwardingEmailFallbackPayload = (
     event: Event,
-    registrations: RegistrationInfo[]
+    registrations: RegistrationInfo[],
+    namesOnly: boolean = true
 ) => {
     const LONDON_TZ = 'Europe/London';
 
@@ -23,6 +24,32 @@ const ExternalForwardingEmailFallbackPayload = (
 
     const internalCount = registrations.filter(r => !r.external).length;
     const externalCount = registrations.filter(r => r.external).length;
+
+    // Simple names-only format (default)
+    if (namesOnly) {
+        return `
+Hello,
+
+We're sending you the attendee list for the upcoming event at your location.
+
+=== EVENT ===
+
+${event.title}
+${eventDate} at ${eventTime}
+${event.location_building}, ${event.location_area}
+
+=== REGISTERED ATTENDEES (${registrations.length}) ===
+
+${registrations.map((reg, index) => `${index + 1}. ${reg.name}`).join('\n')}
+
+If you need full contact details, please reach out to the organizer: ${event.organiser}
+
+Best regards,
+London Student Network
+
+Questions? Contact us at hello@londonstudentnetwork.com
+    `.trim();
+    }
 
     return `
 Hello,

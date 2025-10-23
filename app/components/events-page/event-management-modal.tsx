@@ -536,9 +536,9 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 								})()}
 							</div>
 
-							{/* Fixed Footer with Copy All Emails Button */}
+							{/* Fixed Footer with Copy Buttons */}
 							<div className="flex-shrink-0 p-6 border-t border-gray-200 bg-gray-50">
-								<div className="flex items-center justify-between">
+								<div className="flex items-center justify-between gap-3">
 									<span className="text-sm text-gray-600">
 										{(() => {
 											let count = 0;
@@ -548,34 +548,64 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 											return `${count} registration${count !== 1 ? 's' : ''}`;
 										})()}
 									</span>
-									<button
-										onClick={() => {
-											let emails: string[] = [];
-											if (showRegistrationDetails === 'all') {
-												emails = registrations.map(r => r.user_email);
-											} else if (showRegistrationDetails === 'internal') {
-												emails = registrations.filter(r => !r.external).map(r => r.user_email);
-											} else if (showRegistrationDetails === 'external') {
-												emails = registrations.filter(r => r.external).map(r => r.user_email);
-											}
-											navigator.clipboard.writeText(emails.join(', '));
-											setCopiedField('all-emails');
-											setTimeout(() => setCopiedField(null), 2000);
-										}}
-										className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-									>
-										{copiedField === 'all-emails' ? (
-											<>
-												<CheckIcon className="h-4 w-4" />
-												<span>Copied!</span>
-											</>
-										) : (
-											<>
-												<ClipboardDocumentIcon className="h-4 w-4" />
-												<span>Copy All Emails</span>
-											</>
-										)}
-									</button>
+									<div className="flex gap-2">
+										<button
+											onClick={() => {
+												let names: string[] = [];
+												if (showRegistrationDetails === 'all') {
+													names = registrations.map(r => r.user_name);
+												} else if (showRegistrationDetails === 'internal') {
+													names = registrations.filter(r => !r.external).map(r => r.user_name);
+												} else if (showRegistrationDetails === 'external') {
+													names = registrations.filter(r => r.external).map(r => r.user_name);
+												}
+												navigator.clipboard.writeText(names.map((name, idx) => `${idx + 1}. ${name}`).join('\n'));
+												setCopiedField('all-names');
+												setTimeout(() => setCopiedField(null), 2000);
+											}}
+											className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+										>
+											{copiedField === 'all-names' ? (
+												<>
+													<CheckIcon className="h-4 w-4" />
+													<span>Copied!</span>
+												</>
+											) : (
+												<>
+													<ClipboardDocumentIcon className="h-4 w-4" />
+													<span>Copy Names</span>
+												</>
+											)}
+										</button>
+										<button
+											onClick={() => {
+												let emails: string[] = [];
+												if (showRegistrationDetails === 'all') {
+													emails = registrations.map(r => r.user_email);
+												} else if (showRegistrationDetails === 'internal') {
+													emails = registrations.filter(r => !r.external).map(r => r.user_email);
+												} else if (showRegistrationDetails === 'external') {
+													emails = registrations.filter(r => r.external).map(r => r.user_email);
+												}
+												navigator.clipboard.writeText(emails.join(', '));
+												setCopiedField('all-emails');
+												setTimeout(() => setCopiedField(null), 2000);
+											}}
+											className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+										>
+											{copiedField === 'all-emails' ? (
+												<>
+													<CheckIcon className="h-4 w-4" />
+													<span>Copied!</span>
+												</>
+											) : (
+												<>
+													<ClipboardDocumentIcon className="h-4 w-4" />
+													<span>Copy Emails</span>
+												</>
+											)}
+										</button>
+									</div>
 								</div>
 							</div>
 						</div>
