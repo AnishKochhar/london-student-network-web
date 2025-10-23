@@ -98,6 +98,7 @@ export default function EventRegistrationButton({
         setShowRegistrationConfirmation(false);
 
         setIsLoading(true);
+        const toastId = toast.loading("Registering for event...");
 
         try {
             const response = await fetch("/api/events/register", {
@@ -119,7 +120,7 @@ export default function EventRegistrationButton({
             const result = await response.json();
 
             if (result.success) {
-                toast.success("Successfully registered! Check your email for confirmation.");
+                toast.success("Successfully registered! Check your email for confirmation.", { id: toastId });
                 onRegistrationChange?.();
 
                 // Check if user should be prompted for university verification
@@ -130,7 +131,7 @@ export default function EventRegistrationButton({
                     router.push(`/events/${base16ToBase62(event.id)}`);
                 }
             } else if (result.registered) {
-                toast.success("You're already registered for this event");
+                toast.success("You're already registered for this event", { id: toastId });
                 onRegistrationChange?.();
 
                 // If in modal context, redirect to event page
@@ -148,6 +149,7 @@ export default function EventRegistrationButton({
                 switch (errorCode) {
                     case 'UNVERIFIED_UNIVERSITY':
                         toast.error(errorMessage, {
+                            id: toastId,
                             duration: 7000,
                             icon: '❌'
                         });
@@ -155,6 +157,7 @@ export default function EventRegistrationButton({
 
                     case 'UNIVERSITY_NOT_ALLOWED':
                         toast.error(errorMessage, {
+                            id: toastId,
                             duration: 6000,
                             icon: '❌'
                         });
@@ -162,6 +165,7 @@ export default function EventRegistrationButton({
 
                     case 'REGISTRATION_CLOSED':
                         toast.error(errorMessage, {
+                            id: toastId,
                             duration: 7000,
                             icon: '❌'
                         });
@@ -169,6 +173,7 @@ export default function EventRegistrationButton({
 
                     case 'EVENT_ENDED':
                         toast.error(errorMessage, {
+                            id: toastId,
                             duration: 5000,
                             icon: '❌'
                         });
@@ -176,6 +181,7 @@ export default function EventRegistrationButton({
 
                     case 'MISCONFIGURED':
                         toast.error(errorMessage, {
+                            id: toastId,
                             duration: 7000,
                             icon: '⚠️'
                         });
@@ -184,9 +190,10 @@ export default function EventRegistrationButton({
                     default:
                         // Fallback for any other errors
                         if (errorMessage.includes("Event not found")) {
-                            toast.error("This event no longer exists", { icon: '❌' });
+                            toast.error("This event no longer exists", { id: toastId, icon: '❌' });
                         } else {
                             toast.error(errorMessage, {
+                                id: toastId,
                                 duration: 5000,
                                 icon: '❌'
                             });
@@ -195,7 +202,7 @@ export default function EventRegistrationButton({
             }
         } catch (error) {
             console.error("Error registering:", error);
-            toast.error("Network error. Please check your connection and try again.");
+            toast.error("Network error. Please check your connection and try again.", { id: toastId });
         } finally {
             setIsLoading(false);
         }
@@ -208,6 +215,7 @@ export default function EventRegistrationButton({
         }
 
         setIsLoading(true);
+        const toastId = toast.loading("Leaving event...");
 
         try {
             const response = await fetch("/api/events/deregister", {
@@ -227,27 +235,27 @@ export default function EventRegistrationButton({
             const result = await response.json();
 
             if (result.success) {
-                toast.success("Successfully left the event");
+                toast.success("Successfully left the event", { id: toastId });
                 onRegistrationChange?.();
                 setShowConfirmation(false);
             } else {
                 const errorMessage = result.error || "Failed to leave event";
                 if (errorMessage.includes("not registered")) {
-                    toast.success("You weren't registered for this event");
+                    toast.success("You weren't registered for this event", { id: toastId });
                     onRegistrationChange?.(); // Refresh status
                     setShowConfirmation(false);
                 } else if (errorMessage.includes("Event not found")) {
-                    toast.error("This event no longer exists");
+                    toast.error("This event no longer exists", { id: toastId });
                 } else {
-                    toast.error(errorMessage);
+                    toast.error(errorMessage, { id: toastId });
                 }
             }
         } catch (error) {
             console.error("Error deregistering:", error);
             if (error instanceof TypeError && error.message.includes('fetch')) {
-                toast.error("Network error. Please check your connection and try again.");
+                toast.error("Network error. Please check your connection and try again.", { id: toastId });
             } else {
-                toast.error("Failed to leave event. Please try again.");
+                toast.error("Failed to leave event. Please try again.", { id: toastId });
             }
         } finally {
             setIsLoading(false);
