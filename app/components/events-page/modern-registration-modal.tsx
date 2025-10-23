@@ -430,7 +430,7 @@ export default function ModernRegistrationModal({
                                                 type="submit"
                                                 disabled={isRegistering || isGuestRegistering}
                                                 className={cn(
-                                                    "py-3.5 px-6 bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]",
+                                                    "py-3.5 px-6 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 border border-blue-400/30 hover:border-blue-400/50 text-gray-900 hover:text-gray-900 font-semibold rounded-xl transition-all duration-300 backdrop-blur-xl shadow-[0_8px_32px_0_rgba(59,130,246,0.15)] hover:shadow-[0_8px_32px_0_rgba(59,130,246,0.25)] disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]",
                                                     currentStep === 1 ? "flex-1" : "flex-1"
                                                 )}
                                             >
