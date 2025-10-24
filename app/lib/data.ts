@@ -144,7 +144,43 @@ export async function fetchAllUpcomingEvents(
             `;
         }
 
-        return data.rows.map(convertSQLEventToEvent);
+        // Fetch tickets for all events
+        const events = data.rows.map(convertSQLEventToEvent);
+
+        // Add tickets to each event
+        const eventsWithTickets = await Promise.all(
+            events.map(async (event) => {
+                try {
+                    const ticketsResult = await sql`
+                        SELECT
+                            t.ticket_uuid,
+                            t.ticket_name,
+                            t.ticket_price,
+                            -- Calculate ACTUAL remaining tickets
+                            CASE
+                                WHEN t.tickets_available IS NOT NULL THEN
+                                    GREATEST(0, t.tickets_available - COALESCE(
+                                        (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                                        0
+                                    ))
+                                ELSE NULL
+                            END as tickets_available
+                        FROM tickets t
+                        WHERE t.event_uuid = ${event.id}
+                        ORDER BY t.ticket_price::numeric ASC
+                    `;
+                    return {
+                        ...event,
+                        tickets: ticketsResult.rows
+                    };
+                } catch (error) {
+                    console.error(`Failed to fetch tickets for event ${event.id}:`, error);
+                    return event; // Return event without tickets if fetch fails
+                }
+            })
+        );
+
+        return eventsWithTickets;
     } catch (error) {
         console.error("Database error:", error);
         throw new Error("Failed to fetch upcoming events");

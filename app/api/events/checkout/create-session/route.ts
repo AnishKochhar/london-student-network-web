@@ -5,6 +5,7 @@ import { sql } from "@vercel/postgres";
 import { fetchSQLEventById, getUserUniversityById } from "@/app/lib/data";
 import { formatInTimeZone } from "date-fns-tz";
 import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 
 export async function POST(req: Request) {
     try {
@@ -106,19 +107,25 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check ticket availability
+        // Check ticket availability with atomic calculation
         if (ticket.tickets_available !== null) {
-            // Count existing registrations for this ticket
-            const registrationsCount = await sql`
-                SELECT COALESCE(SUM(quantity), 0) as total
-                FROM event_registrations
-                WHERE ticket_uuid = ${ticket_uuid}
+            // Calculate ACTUAL remaining tickets atomically
+            const availabilityCheck = await sql`
+                SELECT
+                    t.tickets_available as initial_availability,
+                    COALESCE(SUM(er.quantity), 0) as sold_quantity,
+                    t.tickets_available - COALESCE(SUM(er.quantity), 0) as remaining_tickets
+                FROM tickets t
+                LEFT JOIN event_registrations er ON er.ticket_uuid = t.ticket_uuid
+                WHERE t.ticket_uuid = ${ticket_uuid}
+                GROUP BY t.ticket_uuid, t.tickets_available
             `;
 
-            const existingRegistrations = parseInt(registrationsCount.rows[0]?.total || '0');
-            if (existingRegistrations + quantity > ticket.tickets_available) {
+            const remaining = parseInt(availabilityCheck.rows[0]?.remaining_tickets || '0');
+
+            if (remaining < quantity) {
                 return NextResponse.json(
-                    { success: false, error: `Only ${ticket.tickets_available - existingRegistrations} ticket(s) remaining` },
+                    { success: false, error: remaining > 0 ? `Only ${remaining} ticket(s) remaining` : 'This ticket is sold out' },
                     { status: 400 }
                 );
             }
@@ -294,8 +301,8 @@ export async function POST(req: Request) {
                 quantity: quantity.toString(),
                 is_external: isExternal.toString(),
             },
-            success_url: `${baseUrl}/events/${event.id}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${baseUrl}/events/${event.id}?payment=cancelled`,
+            success_url: `${baseUrl}/events/${base16ToBase62(event.id)}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${baseUrl}/events/${base16ToBase62(event.id)}?payment=cancelled`,
             customer_email: user.email,
             expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes
         });

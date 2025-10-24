@@ -22,6 +22,8 @@ interface EventRegistrationButtonProps {
     isPreview?: boolean;
     context?: "modal" | "page";
     onShowRegistrationChoice?: () => void;
+    onTicketModalChange?: (isOpen: boolean) => void;
+    onRegistrationModalChange?: (isOpen: boolean) => void;
 }
 
 export default function EventRegistrationButton({
@@ -30,7 +32,9 @@ export default function EventRegistrationButton({
     onRegistrationChange,
     isPreview = false,
     context = "modal",
-    onShowRegistrationChoice
+    onShowRegistrationChoice,
+    onTicketModalChange,
+    onRegistrationModalChange
 }: EventRegistrationButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
@@ -43,26 +47,24 @@ export default function EventRegistrationButton({
         universityName?: string;
     } | null>(null);
     const [isCheckingStatus] = useState(false);
-    const [hasPaidTickets, setHasPaidTickets] = useState(false);
-    const { data: session } = useSession();
+    const { data: session} = useSession();
     const router = useRouter();
 
-    // Check if event has paid tickets
+    // Check if event has paid tickets (now comes with event data)
+    const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
+        const price = parseFloat(t.ticket_price || '0');
+        return price > 0;
+    }) || false;
+
+    // Notify parent when ticket modal state changes
     useEffect(() => {
-        const checkTickets = async () => {
-            try {
-                const response = await fetch(`/api/events/tickets?event_id=${event.id}`);
-                const data = await response.json();
-                if (data.success && data.tickets) {
-                    const hasPaid = data.tickets.some((t: { ticket_price?: string }) => parseFloat(t.ticket_price || '0') > 0);
-                    setHasPaidTickets(hasPaid);
-                }
-            } catch (error) {
-                console.error("Error checking tickets:", error);
-            }
-        };
-        checkTickets();
-    }, [event.id]);
+        onTicketModalChange?.(showTicketSelection);
+    }, [showTicketSelection, onTicketModalChange]);
+
+    // Notify parent when registration modal state changes
+    useEffect(() => {
+        onRegistrationModalChange?.(showRegistrationConfirmation);
+    }, [showRegistrationConfirmation, onRegistrationModalChange]);
 
     const checkAndShowUniversityPrompt = async () => {
         try {
@@ -454,6 +456,16 @@ export default function EventRegistrationButton({
                     userName={session?.user?.name}
                     userEmail={session?.user?.email}
                 />
+                {/* Paid event ticket selection modal */}
+                {showTicketSelection && (
+                    <TicketSelectionModal
+                        event={event}
+                        onClose={() => setShowTicketSelection(false)}
+                        onFreeRegistration={handleRegister}
+                        userName={session?.user?.name}
+                        userEmail={session?.user?.email}
+                    />
+                )}
                 <UniversityVerificationPrompt
                     isOpen={showUniversityPrompt && universityPromptData !== null}
                     onClose={() => setShowUniversityPrompt(false)}
@@ -619,6 +631,8 @@ export default function EventRegistrationButton({
                     event={event}
                     onClose={() => setShowTicketSelection(false)}
                     onFreeRegistration={handleRegister}
+                    userName={session?.user?.name}
+                    userEmail={session?.user?.email}
                 />
             )}
 

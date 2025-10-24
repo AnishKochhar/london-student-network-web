@@ -90,33 +90,19 @@ export default function ModernEventInfo() {
         }
     }
 
-    const checkRegistrationStatus = useCallback(async () => {
-        if (!loggedIn || !event?.id) {
-            return;
-        }
+    // Registration status is now fetched as part of get-information API
+    // This function refetches the entire event data (including updated registration status)
+    const refetchEventData = useCallback(async () => {
+        if (!event_id) return;
 
-        try {
-            const response = await fetch("/api/events/registration-status", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    event_id: event.id,
-                }),
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                setIsRegistered(result.isRegistered);
-            } else {
-                console.error("Registration status check failed:", result.error);
+        const data = await fetchEventInformation(event_id);
+        if (data) {
+            if (data.isRegistered !== undefined) {
+                setIsRegistered(data.isRegistered);
             }
-        } catch (error) {
-            console.error("Error checking registration status:", error);
+            setEvent(data);
         }
-    }, [loggedIn, event]);
+    }, [event_id]);
 
     const fetchRegistrationCount = useCallback(async () => {
         if (!event?.id) return;
@@ -143,11 +129,11 @@ export default function ModernEventInfo() {
         const helper = async () => {
             if (session.status === "authenticated" && session.data?.user?.id && event_id && event) {
                 await checkIsOrganiser(event_id, session.data.user.id);
-                await checkRegistrationStatus();
+                // Note: Registration status now comes from get-information API, no separate call needed
             }
         };
         helper();
-    }, [event_id, session, event, checkRegistrationStatus]);
+    }, [event_id, session, event]);
 
     useEffect(() => {
         fetchRegistrationCount();
@@ -171,6 +157,11 @@ export default function ModernEventInfo() {
 
             if (event?.organiser_slug) {
                 setDbLogoUrl(event.society_logo_url);
+            }
+
+            // Set registration status from API response (no need for separate call)
+            if (event.isRegistered !== undefined) {
+                setIsRegistered(event.isRegistered);
             }
 
             setEvent(event);
@@ -216,7 +207,7 @@ export default function ModernEventInfo() {
     return (
         <div className="min-h-screen bg-white">
             {/* Handle payment redirects from Stripe */}
-            <PaymentStatusHandler />
+            <PaymentStatusHandler onPaymentSuccess={refetchEventData} />
 
             {/* Header Actions */}
             <div className="max-w-6xl mx-auto px-4 py-4 flex justify-end gap-2">
@@ -336,7 +327,7 @@ export default function ModernEventInfo() {
                                 <EventRegistrationButton
                                     event={event}
                                     isRegistered={isRegistered}
-                                    onRegistrationChange={checkRegistrationStatus}
+                                    onRegistrationChange={refetchEventData}
                                     context="page"
                                     onShowRegistrationChoice={() => setShowRegistrationChoice(true)}
                                 />

@@ -26,8 +26,12 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const [showRegistrationChoice, setShowRegistrationChoice] = useState(false);
     const [showGuestRegistration, setShowGuestRegistration] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
+    const [showTicketModal, setShowTicketModal] = useState(false);
+    const [showRegistrationModal, setShowRegistrationModal] = useState(false);
     const showRegistrationChoiceRef = useRef(false);
     const showGuestRegistrationRef = useRef(false);
+    const showTicketModalRef = useRef(false);
+    const showRegistrationModalRef = useRef(false);
     const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
 
     // Sync refs with state
@@ -38,6 +42,14 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     useEffect(() => {
         showGuestRegistrationRef.current = showGuestRegistration;
     }, [showGuestRegistration]);
+
+    useEffect(() => {
+        showTicketModalRef.current = showTicketModal;
+    }, [showTicketModal]);
+
+    useEffect(() => {
+        showRegistrationModalRef.current = showRegistrationModal;
+    }, [showRegistrationModal]);
 
     const jumpToEvent = () =>
         router.push(`/events/${base16ToBase62(event.id)}`);
@@ -61,7 +73,7 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
 
         const handleClickOutside = (event: MouseEvent) => {
             // Don't close the EventModal if registration modals are open (use refs for current values)
-            if (showRegistrationChoiceRef.current || showGuestRegistrationRef.current) {
+            if (showRegistrationChoiceRef.current || showGuestRegistrationRef.current || showTicketModalRef.current || showRegistrationModalRef.current) {
                 return;
             }
 
@@ -279,6 +291,8 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                         context="modal"
                                         isPreview={isPreview}
                                         onShowRegistrationChoice={() => setShowRegistrationChoice(true)}
+                                        onTicketModalChange={setShowTicketModal}
+                                        onRegistrationModalChange={setShowRegistrationModal}
                                     />
                                 </div>
 

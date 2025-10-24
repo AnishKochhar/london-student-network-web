@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-export default function PaymentStatusHandler() {
+interface PaymentStatusHandlerProps {
+    onPaymentSuccess?: () => void;
+}
+
+export default function PaymentStatusHandler({ onPaymentSuccess }: PaymentStatusHandlerProps) {
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     useEffect(() => {
         const paymentStatus = searchParams.get("payment");
@@ -17,6 +22,9 @@ export default function PaymentStatusHandler() {
                 duration: 6000,
                 icon: "✅",
             });
+
+            // Trigger refresh of event data
+            onPaymentSuccess?.();
 
             // Clean up URL (remove query params)
             const url = new URL(window.location.href);
@@ -35,7 +43,7 @@ export default function PaymentStatusHandler() {
             url.searchParams.delete("payment");
             window.history.replaceState({}, "", url.toString());
         }
-    }, [searchParams]);
+    }, [searchParams, onPaymentSuccess]);
 
     // This component doesn't render anything
     return null;
