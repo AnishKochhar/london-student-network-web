@@ -15,7 +15,7 @@ import Image from "next/image";
 import MarkdownEditor from "../markdown/markdown-editor";
 import { formatInTimeZone } from "date-fns-tz";
 import EventAccessControls from "./EventAccessControls";
-import TicketManager, { TicketType } from "./ticket-manager";
+import TicketManager, { TicketType } from "./ticket-manager-improved";
 import { useStripeAccount } from "@/app/hooks/useStripeAccount";
 
 interface ModernCreateEventProps {
