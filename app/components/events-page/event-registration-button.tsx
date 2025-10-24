@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Event } from "@/app/lib/types";
@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { GlassButton } from "@/app/components/ui/glass-button";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import ModernRegistrationModal from "./modern-registration-modal";
+import TicketSelectionModal from "./ticket-selection-modal";
 import UniversityVerificationPrompt from "./UniversityVerificationPrompt";
 import EventCountdown from "./event-countdown";
 import { Check, Calendar } from "lucide-react";
@@ -34,6 +35,7 @@ export default function EventRegistrationButton({
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [showRegistrationConfirmation, setShowRegistrationConfirmation] = useState(false);
+    const [showTicketSelection, setShowTicketSelection] = useState(false);
     const [showUniversityPrompt, setShowUniversityPrompt] = useState(false);
     const [showCalendarModal, setShowCalendarModal] = useState(false);
     const [universityPromptData, setUniversityPromptData] = useState<{
@@ -41,8 +43,26 @@ export default function EventRegistrationButton({
         universityName?: string;
     } | null>(null);
     const [isCheckingStatus] = useState(false);
+    const [hasPaidTickets, setHasPaidTickets] = useState(false);
     const { data: session } = useSession();
     const router = useRouter();
+
+    // Check if event has paid tickets
+    useEffect(() => {
+        const checkTickets = async () => {
+            try {
+                const response = await fetch(`/api/events/tickets?event_id=${event.id}`);
+                const data = await response.json();
+                if (data.success && data.tickets) {
+                    const hasPaid = data.tickets.some((t: { ticket_price?: string }) => parseFloat(t.ticket_price || '0') > 0);
+                    setHasPaidTickets(hasPaid);
+                }
+            } catch (error) {
+                console.error("Error checking tickets:", error);
+            }
+        };
+        checkTickets();
+    }, [event.id]);
 
     const checkAndShowUniversityPrompt = async () => {
         try {
@@ -90,8 +110,13 @@ export default function EventRegistrationButton({
             return;
         }
 
-        // Show confirmation modal for logged-in users
-        setShowRegistrationConfirmation(true);
+        // If event has paid tickets, show ticket selection modal
+        if (hasPaidTickets) {
+            setShowTicketSelection(true);
+        } else {
+            // Show confirmation modal for free events
+            setShowRegistrationConfirmation(true);
+        }
     };
 
     const handleRegister = async (tickets: number = 1) => {
@@ -577,6 +602,7 @@ export default function EventRegistrationButton({
             >
                 {isLoading ? "Registering..." : "Register for Event"}
             </GlassButton>
+            {/* Free event registration modal */}
             <ModernRegistrationModal
                 isOpen={showRegistrationConfirmation}
                 onClose={() => setShowRegistrationConfirmation(false)}
@@ -586,6 +612,16 @@ export default function EventRegistrationButton({
                 userName={session?.user?.name}
                 userEmail={session?.user?.email}
             />
+
+            {/* Paid event ticket selection modal */}
+            {showTicketSelection && (
+                <TicketSelectionModal
+                    event={event}
+                    onClose={() => setShowTicketSelection(false)}
+                    onFreeRegistration={handleRegister}
+                />
+            )}
+
             <UniversityVerificationPrompt
                 isOpen={showUniversityPrompt && universityPromptData !== null}
                 onClose={() => setShowUniversityPrompt(false)}

@@ -14,6 +14,7 @@ import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
 import UsernameCreationModal from "../components/forum/username-creation-modal";
 import AddUniversityEmailModal from "../components/account/add-university-email-modal";
+import StripeConnectStatus from "../components/account/stripe-connect-status";
 import { useReferralTracking } from "../hooks/useReferralTracking";
 import toast from "react-hot-toast";
 import { saveAccount } from "@/app/lib/account-storage";
@@ -661,6 +662,11 @@ export default function AccountPage() {
                                     <p className="text-gray-300 mb-4 md:mb-8">Manage your account security and preferences</p>
 
                                     <div className="space-y-4 md:space-y-6">
+                                        {/* Stripe Connect for organizers/companies */}
+                                        {(session?.user?.role === 'organiser' || session?.user?.role === 'company') && (
+                                            <StripeConnectStatus />
+                                        )}
+
                                         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
                                             <h3 className="text-lg font-semibold text-white mb-4">Security</h3>
                                             <p className="text-gray-300 mb-4">Update your password to keep your account secure</p>

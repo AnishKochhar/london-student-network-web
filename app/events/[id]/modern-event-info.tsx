@@ -19,6 +19,7 @@ import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
 import ShareEventModal from "@/app/components/events-page/share-event-modal";
 import EventRegistrationButton from "@/app/components/events-page/event-registration-button";
 import ReportEventModal from "@/app/components/events-page/report-event-modal";
+import PaymentStatusHandler from "@/app/components/events-page/payment-status-handler";
 
 export default function ModernEventInfo() {
     const { id } = useParams() as { id: string };
@@ -214,6 +215,9 @@ export default function ModernEventInfo() {
 
     return (
         <div className="min-h-screen bg-white">
+            {/* Handle payment redirects from Stripe */}
+            <PaymentStatusHandler />
+
             {/* Header Actions */}
             <div className="max-w-6xl mx-auto px-4 py-4 flex justify-end gap-2">
                 {isOrganiser && (

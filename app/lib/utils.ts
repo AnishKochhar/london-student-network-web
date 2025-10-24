@@ -797,6 +797,7 @@ export const SocietyLogos = [
 	{ name: "European Affairs Institute", src: "/societies/LSN.png" },
 	{ name: "Imperial College Union", src: "/societies/imperial-union.png" },
 	{ name: "UCL Students' Union", src: "/societies/ucl-union.png" },
+	{ name: "LSE Students' Union", src: "/societies/lse-union.svg" },
 	{ name: "KCLSU Events", src: "/societies/kclsu.png" },
 ];
 

@@ -5,6 +5,13 @@ import { createSQLEventData, validateModernEvent } from "@/app/lib/utils";
 import { sql } from "@vercel/postgres";
 import { EventFormData } from "@/app/lib/types";
 
+interface TicketType {
+    id: string;
+    ticket_name: string;
+    ticket_price: string;
+    tickets_available: number | null;
+}
+
 export async function POST(req: Request) {
     try {
         const session = await auth();
@@ -13,7 +20,8 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { id, ...eventData }: EventFormData & { id: string } = body;
+        const { id, tickets: ticketsData, ...eventData }: EventFormData & { id: string; tickets?: TicketType[] } = body;
+        const tickets: TicketType[] = ticketsData || [];
 
         if (!id) {
             return NextResponse.json({ error: "Event ID is required" }, { status: 400 });
@@ -23,6 +31,33 @@ export async function POST(req: Request) {
         const isOwner = await checkOwnershipOfEvent(session.user.id, id);
         if (!isOwner) {
             return NextResponse.json({ error: "Access denied" }, { status: 403 });
+        }
+
+        // Validate tickets if provided
+        if (tickets.length > 0) {
+            // Check if any tickets are paid
+            const hasPaidTickets = tickets.some(t => parseFloat(t.ticket_price || '0') > 0);
+
+            // If there are paid tickets, verify organizer has Stripe account ready
+            if (hasPaidTickets) {
+                const organizer = await sql`
+                    SELECT stripe_connect_account_id, stripe_charges_enabled, stripe_payouts_enabled
+                    FROM users
+                    WHERE id = ${session.user.id}
+                `;
+
+                if (organizer.rows.length === 0) {
+                    return NextResponse.json({ error: "Organizer not found" }, { status: 404 });
+                }
+
+                const { stripe_connect_account_id, stripe_charges_enabled, stripe_payouts_enabled } = organizer.rows[0];
+
+                if (!stripe_connect_account_id || !stripe_charges_enabled || !stripe_payouts_enabled) {
+                    return NextResponse.json({
+                        error: "You must complete Stripe Connect setup before creating events with paid tickets. Go to your Account page to set up Stripe."
+                    }, { status: 400 });
+                }
+            }
         }
 
         // Validate the updated data
@@ -104,6 +139,40 @@ export async function POST(req: Request) {
 
         if (result.rowCount === 0) {
             return NextResponse.json({ error: "Event not found or access denied" }, { status: 404 });
+        }
+
+        // Update tickets if provided
+        if (tickets.length > 0) {
+            console.log('=== Updating tickets for event:', id);
+            try {
+                // Delete existing tickets
+                await sql`DELETE FROM tickets WHERE event_uuid = ${id}`;
+
+                // Insert new tickets
+                for (const ticket of tickets) {
+                    await sql`
+                        INSERT INTO tickets (
+                            event_uuid,
+                            ticket_name,
+                            ticket_price,
+                            tickets_available,
+                            price_id
+                        ) VALUES (
+                            ${id},
+                            ${ticket.ticket_name},
+                            ${ticket.ticket_price},
+                            ${ticket.tickets_available},
+                            NULL
+                        )
+                    `;
+                }
+                console.log('✅ Tickets updated successfully');
+            } catch (ticketError) {
+                console.error('❌ Failed to update tickets:', ticketError);
+                return NextResponse.json({
+                    error: "Event updated but failed to update tickets"
+                }, { status: 500 });
+            }
         }
 
         return NextResponse.json({ success: true });

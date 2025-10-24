@@ -5,10 +5,20 @@ import { EventFormData, SQLEvent } from "@/app/lib/types";
 import { sendEventRegistrationEmail } from "@/app/lib/send-email";
 import EventCreationConfirmationEmailPayload from "@/app/components/templates/event-creation-confirmation-email";
 import EventCreationConfirmationEmailFallbackPayload from "@/app/components/templates/event-creation-confirmation-email-fallback";
+import { sql } from "@vercel/postgres";
+
+interface TicketType {
+    id: string;
+    ticket_name: string;
+    ticket_price: string;
+    tickets_available: number | null;
+}
 
 export async function POST(req: Request) {
 	try {
-		const data: EventFormData = await req.json();
+		const body = await req.json();
+		const data: EventFormData = body;
+		const tickets: TicketType[] = body.tickets || [];
 
 		// Validate required fields
 		if (!data.title || !data.description || !data.organiser || !data.start_datetime || !data.end_datetime) {
@@ -16,6 +26,42 @@ export async function POST(req: Request) {
 				{ success: false, error: "Missing required fields" },
 				{ status: 400 }
 			);
+		}
+
+		// Validate tickets
+		if (tickets.length === 0) {
+			return NextResponse.json(
+				{ success: false, error: "At least one ticket type is required" },
+				{ status: 400 }
+			);
+		}
+
+		// Check if any tickets are paid
+		const hasPaidTickets = tickets.some(t => parseFloat(t.ticket_price || '0') > 0);
+
+		// If there are paid tickets, verify organizer has Stripe account ready
+		if (hasPaidTickets && data.organiser_uid) {
+			const organizer = await sql`
+				SELECT stripe_connect_account_id, stripe_charges_enabled, stripe_payouts_enabled
+				FROM users
+				WHERE id = ${data.organiser_uid}
+			`;
+
+			if (organizer.rows.length === 0) {
+				return NextResponse.json(
+					{ success: false, error: "Organizer not found" },
+					{ status: 404 }
+				);
+			}
+
+			const { stripe_connect_account_id, stripe_charges_enabled, stripe_payouts_enabled } = organizer.rows[0];
+
+			if (!stripe_connect_account_id || !stripe_charges_enabled || !stripe_payouts_enabled) {
+				return NextResponse.json(
+					{ success: false, error: "You must complete Stripe Connect setup before creating events with paid tickets. Go to your Account page to set up Stripe." },
+					{ status: 400 }
+				);
+			}
 		}
 
 		// Validate optional email field if provided
@@ -79,6 +125,39 @@ export async function POST(req: Request) {
 		// Insert into database
 		const response = await insertModernEvent(sqlEventData);
 		console.log('=== Event created, response:', { success: response.success, hasEvent: !!response.event });
+
+		// Insert tickets for the event
+		if (response.success && response.event && tickets.length > 0) {
+			console.log('=== Inserting tickets for event:', response.event.id);
+			try {
+				for (const ticket of tickets) {
+					await sql`
+						INSERT INTO tickets (
+							event_uuid,
+							ticket_name,
+							ticket_price,
+							tickets_available,
+							price_id
+						) VALUES (
+							${response.event.id},
+							${ticket.ticket_name},
+							${ticket.ticket_price},
+							${ticket.tickets_available},
+							NULL
+						)
+					`;
+				}
+				console.log('✅ Tickets inserted successfully');
+			} catch (ticketError) {
+				console.error('❌ Failed to insert tickets:', ticketError);
+				// Rollback event creation if ticket insertion fails
+				await sql`DELETE FROM events WHERE id = ${response.event.id}`;
+				return NextResponse.json(
+					{ success: false, error: "Failed to create tickets for event" },
+					{ status: 500 }
+				);
+			}
+		}
 
 		// Send confirmation email to organizer
 		if (response.success && response.event) {

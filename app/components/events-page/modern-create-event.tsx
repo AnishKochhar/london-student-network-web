@@ -15,6 +15,8 @@ import Image from "next/image";
 import MarkdownEditor from "../markdown/markdown-editor";
 import { formatInTimeZone } from "date-fns-tz";
 import EventAccessControls from "./EventAccessControls";
+import TicketManager, { TicketType } from "./ticket-manager";
+import { useStripeAccount } from "@/app/hooks/useStripeAccount";
 
 interface ModernCreateEventProps {
     organiser_id: string;
@@ -691,6 +693,46 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const [selectedTags, setSelectedTags] = useState<number>(existingEvent?.event_type || 0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Ticket management state
+    const [tickets, setTickets] = useState<TicketType[]>([{
+        id: 'temp-1',
+        ticket_name: 'General Admission',
+        ticket_price: '0.00',
+        tickets_available: null,
+    }]);
+    const [ticketsLoaded, setTicketsLoaded] = useState(false);
+
+    // Check Stripe account status
+    const { isReady } = useStripeAccount();
+
+    // Load existing tickets in edit mode
+    useEffect(() => {
+        const loadTickets = async () => {
+            if (editMode && existingEvent?.id && !ticketsLoaded) {
+                try {
+                    const response = await fetch(`/api/events/tickets?event_id=${existingEvent.id}`);
+                    const data = await response.json();
+
+                    if (data.success && data.tickets && data.tickets.length > 0) {
+                        // Convert database tickets to form format
+                        const loadedTickets: TicketType[] = data.tickets.map((t: { ticket_uuid: string; ticket_name: string; ticket_price: string; tickets_available: number | null }) => ({
+                            id: t.ticket_uuid,
+                            ticket_name: t.ticket_name,
+                            ticket_price: t.ticket_price,
+                            tickets_available: t.tickets_available,
+                        }));
+                        setTickets(loadedTickets);
+                    }
+                    setTicketsLoaded(true);
+                } catch (error) {
+                    console.error('Failed to load tickets:', error);
+                    setTicketsLoaded(true);
+                }
+            }
+        };
+        loadTickets();
+    }, [editMode, existingEvent, ticketsLoaded]);
+
     // Track whether end date/time have been manually set by user
     // In edit mode, consider them as already touched since they're pre-populated
     const [endDateTouched, setEndDateTouched] = useState(editMode);
@@ -825,6 +867,15 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
     // Form submission
     const onSubmit = async (data: EventFormData) => {
+        // Check if any tickets are paid
+        const hasPaidTickets = tickets.some(t => parseFloat(t.ticket_price || '0') > 0);
+
+        // If there are paid tickets, verify Stripe account is ready
+        if (hasPaidTickets && !isReady) {
+            toast.error("You need to complete Stripe Connect setup before creating events with paid tickets. Go to your Account page to set up Stripe.");
+            return;
+        }
+
         setIsSubmitting(true);
         const toastId = toast.loading(editMode ? "Updating event..." : "Creating event...");
 
@@ -844,12 +895,13 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             const isMultiDay = calculateIsMultiDay(data.start_datetime, data.end_datetime);
 
             // Prepare the data for submission
-            const eventData: EventFormData = {
+            const eventData: EventFormData & { tickets: TicketType[] } = {
                 ...data,
                 image_url: imageUrl,
                 organiser_uid: organiser_id,
                 is_multi_day: isMultiDay,
                 tags: selectedTags,
+                tickets: tickets, // Include tickets in submission
             };
 
             const apiEndpoint = editMode ? "/api/events/update" : "/api/events/create";
@@ -1512,6 +1564,23 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 </div>
                             </div>
                         </AnimatedSection>
+
+                        {/* Tickets & Pricing */}
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Tickets & Pricing</h2>
+                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Set up ticket types and pricing for your event</p>
+                            </div>
+
+                            <div className="lg:col-span-9">
+                                <TicketManager
+                                    tickets={tickets}
+                                    onChange={setTickets}
+                                    hasStripeAccount={isReady}
+                                />
+                            </div>
+                        </AnimatedSection>
+
                         {/* Access Controls */}
                         <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
