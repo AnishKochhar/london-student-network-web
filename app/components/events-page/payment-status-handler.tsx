@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 
 interface PaymentStatusHandlerProps {
@@ -10,7 +10,6 @@ interface PaymentStatusHandlerProps {
 
 export default function PaymentStatusHandler({ onPaymentSuccess }: PaymentStatusHandlerProps) {
     const searchParams = useSearchParams();
-    const router = useRouter();
 
     useEffect(() => {
         const paymentStatus = searchParams.get("payment");

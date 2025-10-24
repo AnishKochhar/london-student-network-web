@@ -30,7 +30,6 @@ export default function ModernEventInfo() {
     const [registrationCount, setRegistrationCount] = useState<number>(0);
     const session = useSession();
     const router = useRouter();
-    const loggedIn = session.status === "authenticated";
     const [isOrganiser, setIsOrganiser] = useState<boolean>(false);
     const [viewEmailSending, setViewEmailSending] = useState<boolean>(false);
     const [showRegistrationChoice, setShowRegistrationChoice] = useState<boolean>(false);

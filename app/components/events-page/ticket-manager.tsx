@@ -9,6 +9,10 @@ export interface TicketType {
     ticket_name: string;
     ticket_price: string; // In pounds as string (e.g., "10.00")
     tickets_available: number | null; // null = unlimited
+    release_name?: string; // Release name (e.g., "Early Bird", "1st Release")
+    release_start_time?: string; // ISO string - when ticket becomes available (null = immediate)
+    release_end_time?: string; // ISO string - when ticket stops being available (null = until sold out)
+    release_order?: number; // Display order (1, 2, 3...)
 }
 
 interface TicketManagerProps {
@@ -21,11 +25,16 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
     const [expandedTicket, setExpandedTicket] = useState<string | null>(tickets[0]?.id || null);
 
     const addTicket = () => {
+        // Calculate next release order
+        const maxOrder = Math.max(0, ...tickets.map(t => t.release_order || 0));
+        const nextOrder = maxOrder + 1;
+
         const newTicket: TicketType = {
             id: `temp-${Date.now()}`,
             ticket_name: `Ticket ${tickets.length + 1}`,
             ticket_price: "0",
             tickets_available: null,
+            release_order: nextOrder,
         };
         onChange([...tickets, newTicket]);
         setExpandedTicket(newTicket.id);
@@ -238,6 +247,64 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                 <p className="text-xs text-gray-400 mt-1">
                                                     Leave unlimited for events without capacity limits
                                                 </p>
+                                            </div>
+
+                                            {/* Release Management (Optional) */}
+                                            <div className="pt-4 border-t border-white/10">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <label className="block text-sm font-medium text-gray-300">
+                                                        Release Schedule (Optional)
+                                                    </label>
+                                                    <span className="text-xs text-gray-500">
+                                                        For timed releases like &quot;Early Bird&quot;
+                                                    </span>
+                                                </div>
+
+                                                {/* Release Name */}
+                                                <div className="mb-3">
+                                                    <label className="block text-xs text-gray-400 mb-2">
+                                                        Release Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={ticket.release_name || ''}
+                                                        onChange={(e) => updateTicket(ticket.id, 'release_name', e.target.value || undefined)}
+                                                        placeholder="e.g., Early Bird, 1st Release, General"
+                                                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    />
+                                                </div>
+
+                                                {/* Release Start Time */}
+                                                <div className="mb-3">
+                                                    <label className="block text-xs text-gray-400 mb-2">
+                                                        Available From
+                                                    </label>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={ticket.release_start_time || ''}
+                                                        onChange={(e) => updateTicket(ticket.id, 'release_start_time', e.target.value || undefined)}
+                                                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Leave empty for immediate availability
+                                                    </p>
+                                                </div>
+
+                                                {/* Release End Time */}
+                                                <div>
+                                                    <label className="block text-xs text-gray-400 mb-2">
+                                                        Available Until
+                                                    </label>
+                                                    <input
+                                                        type="datetime-local"
+                                                        value={ticket.release_end_time || ''}
+                                                        onChange={(e) => updateTicket(ticket.id, 'release_end_time', e.target.value || undefined)}
+                                                        className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Leave empty to sell until sold out or event ends
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     </motion.div>

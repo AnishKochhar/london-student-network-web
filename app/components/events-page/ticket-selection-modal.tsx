@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Minus, Calendar, MapPin } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Event } from '@/app/lib/types';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -45,8 +45,8 @@ export default function TicketSelectionModal({
     const [currentStep, setCurrentStep] = useState(1);
     const [processingPayment, setProcessingPayment] = useState(false);
 
-    // Use tickets from event data (already loaded)
-    const tickets: Ticket[] = (event.tickets as Ticket[]) || [];
+    // Use tickets from event data (already loaded) - memoized to prevent re-renders
+    const tickets: Ticket[] = useMemo(() => (event.tickets as Ticket[]) || [], [event.tickets]);
     const loading = false;
 
     const steps = [
@@ -66,7 +66,7 @@ export default function TicketSelectionModal({
                 setSelectedTicket(tickets[0].ticket_uuid);
             }
         }
-    }, []);
+    }, [tickets]);
 
     useEffect(() => {
         if (event) {

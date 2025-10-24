@@ -10,6 +10,10 @@ interface TicketType {
     ticket_name: string;
     ticket_price: string;
     tickets_available: number | null;
+    release_name?: string | null;
+    release_start_time?: string | null;
+    release_end_time?: string | null;
+    release_order?: number | null;
 }
 
 export async function POST(req: Request) {
@@ -156,13 +160,21 @@ export async function POST(req: Request) {
                             ticket_name,
                             ticket_price,
                             tickets_available,
-                            price_id
+                            price_id,
+                            release_name,
+                            release_start_time,
+                            release_end_time,
+                            release_order
                         ) VALUES (
                             ${id},
                             ${ticket.ticket_name},
                             ${ticket.ticket_price},
                             ${ticket.tickets_available},
-                            NULL
+                            NULL,
+                            ${ticket.release_name || null},
+                            ${ticket.release_start_time || null},
+                            ${ticket.release_end_time || null},
+                            ${ticket.release_order || 1}
                         )
                     `;
                 }

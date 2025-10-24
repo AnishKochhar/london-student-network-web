@@ -33,6 +33,9 @@ export interface Event {
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
+    // Tickets and registration
+    tickets?: unknown[]; // Tickets for this event (from get-information API)
+    isRegistered?: boolean; // Whether the current user is registered (from get-information API)
 }
 
 export interface EditEventProps {

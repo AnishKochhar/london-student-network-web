@@ -269,7 +269,12 @@ export default function ModernRegistrationModal({
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        onClick={onClose}
+                        onMouseDown={(e) => {
+                            // Only close if clicking the backdrop itself, not children
+                            if (e.target === e.currentTarget) {
+                                onClose();
+                            }
+                        }}
                     />
 
                     {/* Modal - Slide up from bottom */}
