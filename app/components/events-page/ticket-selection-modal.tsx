@@ -79,6 +79,18 @@ export default function TicketSelectionModal({
         };
     }, [event]);
 
+    // Reset quantity when ticket selection changes and enforce max limit
+    useEffect(() => {
+        if (selectedTicket) {
+            const ticket = tickets.find(t => t.ticket_uuid === selectedTicket);
+            if (ticket) {
+                const maxQuantity = ticket.tickets_available ?? 10;
+                // Reset to 1 or max (whichever is lower) when switching tickets
+                setQuantity(Math.min(maxQuantity, 1));
+            }
+        }
+    }, [selectedTicket, tickets]);
+
     if (!mounted) return null;
 
     const handleIncrement = () => {

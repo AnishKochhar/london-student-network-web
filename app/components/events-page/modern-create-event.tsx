@@ -56,7 +56,7 @@ const AnimatedSection = ({ children, className = "" }: { children: React.ReactNo
             variants={sectionVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            className={className}
+            className={`${className} overflow-visible`}
         >
             {children}
         </motion.section>
@@ -715,11 +715,24 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
                     if (data.success && data.tickets && data.tickets.length > 0) {
                         // Convert database tickets to form format
-                        const loadedTickets: TicketType[] = data.tickets.map((t: { ticket_uuid: string; ticket_name: string; ticket_price: string; tickets_available: number | null }) => ({
+                        const loadedTickets: TicketType[] = data.tickets.map((t: {
+                            ticket_uuid: string;
+                            ticket_name: string;
+                            ticket_price: string;
+                            tickets_available: number | null;
+                            release_name?: string;
+                            release_start_time?: string;
+                            release_end_time?: string;
+                            release_order?: number;
+                        }) => ({
                             id: t.ticket_uuid,
                             ticket_name: t.ticket_name,
                             ticket_price: t.ticket_price,
                             tickets_available: t.tickets_available,
+                            release_name: t.release_name,
+                            release_start_time: t.release_start_time,
+                            release_end_time: t.release_end_time,
+                            release_order: t.release_order,
                         }));
                         setTickets(loadedTickets);
                     }
@@ -1013,9 +1026,9 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             </div>
 
             {/* Main Content */}
-            <div className="w-full px-4 sm:px-6 lg:px-8 pb-12 relative z-20">
-                <div className="max-w-6xl mx-auto">
-                    <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12 sm:space-y-16">
+            <div className="w-full px-4 sm:px-6 lg:px-8 pb-12 relative z-20 overflow-visible">
+                <div className="max-w-6xl mx-auto overflow-visible">
+                    <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12 sm:space-y-16 overflow-visible">
                         {/* Basic Information */}
                         <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
@@ -1572,7 +1585,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">Set up ticket types and pricing for your event</p>
                             </div>
 
-                            <div className="lg:col-span-9">
+                            <div className="lg:col-span-9 overflow-visible">
                                 <TicketManager
                                     tickets={tickets}
                                     onChange={setTickets}

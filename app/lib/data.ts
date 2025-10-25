@@ -144,41 +144,51 @@ export async function fetchAllUpcomingEvents(
             `;
         }
 
-        // Fetch tickets for all events
+        // Fetch tickets for all events - OPTIMIZED: Single query instead of N+1
         const events = data.rows.map(convertSQLEventToEvent);
 
-        // Add tickets to each event
-        const eventsWithTickets = await Promise.all(
-            events.map(async (event) => {
-                try {
-                    const ticketsResult = await sql`
-                        SELECT
-                            t.ticket_uuid,
-                            t.ticket_name,
-                            t.ticket_price,
-                            -- Calculate ACTUAL remaining tickets
-                            CASE
-                                WHEN t.tickets_available IS NOT NULL THEN
-                                    GREATEST(0, t.tickets_available - COALESCE(
-                                        (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
-                                        0
-                                    ))
-                                ELSE NULL
-                            END as tickets_available
-                        FROM tickets t
-                        WHERE t.event_uuid = ${event.id}
-                        ORDER BY t.ticket_price::numeric ASC
-                    `;
-                    return {
-                        ...event,
-                        tickets: ticketsResult.rows
-                    };
-                } catch (error) {
-                    console.error(`Failed to fetch tickets for event ${event.id}:`, error);
-                    return event; // Return event without tickets if fetch fails
-                }
-            })
-        );
+        if (events.length === 0) {
+            return [];
+        }
+
+        // Get all event IDs
+        const eventIds = events.map(e => e.id);
+
+        // Fetch ALL tickets for ALL events in ONE query
+        const ticketsResult = await sql`
+            SELECT
+                t.event_uuid,
+                t.ticket_uuid,
+                t.ticket_name,
+                t.ticket_price,
+                -- Calculate ACTUAL remaining tickets
+                CASE
+                    WHEN t.tickets_available IS NOT NULL THEN
+                        GREATEST(0, t.tickets_available - COALESCE(
+                            (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                            0
+                        ))
+                    ELSE NULL
+                END as tickets_available
+            FROM tickets t
+            WHERE t.event_uuid = ANY(${eventIds})
+            ORDER BY t.event_uuid, t.ticket_price::numeric ASC
+        `;
+
+        // Group tickets by event_uuid
+        const ticketsByEvent = ticketsResult.rows.reduce((acc, ticket) => {
+            if (!acc[ticket.event_uuid]) {
+                acc[ticket.event_uuid] = [];
+            }
+            acc[ticket.event_uuid].push(ticket);
+            return acc;
+        }, {} as Record<string, typeof ticketsResult.rows>);
+
+        // Add tickets to their respective events
+        const eventsWithTickets = events.map(event => ({
+            ...event,
+            tickets: ticketsByEvent[event.id] || []
+        }));
 
         return eventsWithTickets;
     } catch (error) {

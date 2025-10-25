@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusIcon, TrashIcon, TicketIcon, CalendarIcon, ClockIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, TicketIcon, CalendarIcon, ClockIcon, ChevronDownIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
 import { formatInTimeZone } from "date-fns-tz";
 
 export interface TicketType {
@@ -291,6 +291,114 @@ const TimePicker = ({ value, onChange, label }: {
     );
 };
 
+// Fee Info Component
+const FeeInfoOverlay = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const PLATFORM_FEE_PERCENTAGE = parseFloat(process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE_PERCENTAGE || '2.5');
+
+    const calculateExample = (ticketPrice: number) => {
+        const stripeFee = Math.round((ticketPrice * 100 * 0.015) + 20); // 1.5% + 20p in pence
+        const platformFee = Math.round((ticketPrice * 100 * (PLATFORM_FEE_PERCENTAGE / 100)));
+        const organiserReceives = (ticketPrice * 100) - platformFee;
+
+        return {
+            ticketPrice: ticketPrice.toFixed(2),
+            stripeFee: (stripeFee / 100).toFixed(2),
+            platformFee: (platformFee / 100).toFixed(2),
+            organiserReceives: (organiserReceives / 100).toFixed(2),
+        };
+    };
+
+    const example = calculateExample(10);
+
+    return (
+        <div className="relative">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 text-blue-300 hover:text-blue-200 transition-colors text-sm"
+            >
+                <InformationCircleIcon className="w-5 h-5" />
+                <span>How do fees work?</span>
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 z-50"
+                            onClick={() => setIsOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
+                        >
+                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 p-6">
+                                <div className="flex items-start justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-white">Fee Breakdown</h3>
+                                    <button
+                                        onClick={() => setIsOpen(false)}
+                                        className="text-gray-400 hover:text-white transition-colors"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <p className="text-gray-300 text-sm mb-4">
+                                    Here&apos;s how the fees work for paid tickets on London Student Network:
+                                </p>
+
+                                <div className="bg-white/5 rounded-lg p-4 mb-4 space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-300">Ticket Price</span>
+                                        <span className="font-semibold text-white">£{example.ticketPrice}</span>
+                                    </div>
+                                    <div className="border-t border-white/10" />
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-400">Stripe Fee (1.5% + 20p)</span>
+                                        <span className="text-sm text-gray-400">-£{example.stripeFee}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-400">Platform Fee ({PLATFORM_FEE_PERCENTAGE}%)</span>
+                                        <span className="text-sm text-gray-400">-£{example.platformFee}</span>
+                                    </div>
+                                    <div className="border-t border-white/10" />
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-green-300">You Receive</span>
+                                        <span className="font-bold text-green-400">£{example.organiserReceives}</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 text-xs text-gray-400">
+                                    <p className="flex items-start gap-2">
+                                        <span className="text-blue-400">•</span>
+                                        <span>Stripe fees cover payment processing and are charged by Stripe, not LSN</span>
+                                    </p>
+                                    <p className="flex items-start gap-2">
+                                        <span className="text-blue-400">•</span>
+                                        <span>Platform fees help us maintain and improve the LSN platform</span>
+                                    </p>
+                                    <p className="flex items-start gap-2">
+                                        <span className="text-blue-400">•</span>
+                                        <span>Free tickets (£0.00) have no fees at all!</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 // Release Schedule Overview Component
 const ReleaseScheduleOverview = ({ tickets }: { tickets: TicketType[] }) => {
     const ticketsWithReleases = tickets.filter(t => t.release_start_time || t.release_end_time);
@@ -390,13 +498,28 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
     // Helper to parse datetime-local to separate date and time
     const parseDateTimeLocal = (dtString: string | undefined) => {
         if (!dtString) return { date: '', time: '' };
+        // If the string contains timezone info, parse it properly
+        try {
+            const dt = new Date(dtString);
+            if (!isNaN(dt.getTime())) {
+                // Format in London timezone
+                const londonDate = formatInTimeZone(dt, 'Europe/London', 'yyyy-MM-dd');
+                const londonTime = formatInTimeZone(dt, 'Europe/London', 'HH:mm');
+                return { date: londonDate, time: londonTime };
+            }
+        } catch (e) {
+            // Fall back to simple string split
+        }
         const [date, time] = dtString.split('T');
         return { date: date || '', time: time?.substring(0, 5) || '' };
     };
 
-    // Helper to combine date and time into ISO string
+    // Helper to combine date and time into ISO string in London timezone
     const combineDateTimeToISO = (date: string, time: string) => {
         if (!date || !time) return undefined;
+        // Store the datetime in a format that includes the intended timezone context
+        // We'll store it as an ISO string that, when parsed and displayed in London timezone, shows the correct time
+        // The approach: parse the date/time as-is, then format it to ensure consistency
         return `${date}T${time}:00`;
     };
 
@@ -404,9 +527,10 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
         <div className="space-y-4 overflow-visible">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <TicketIcon className="h-5 w-5 text-blue-400" />
                     <h3 className="text-lg font-semibold text-white">Tickets</h3>
+                    <FeeInfoOverlay />
                 </div>
                 <button
                     type="button"
@@ -508,9 +632,9 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                         transition={{ duration: 0.2 }}
                                         className="overflow-visible"
                                     >
-                                        <div className="px-4 pb-4 space-y-4 border-t border-white/10">
+                                        <div className="px-4 pb-4 space-y-4 border-t border-white/10 overflow-visible">
                                             {/* Basic Details */}
-                                            <div className="pt-4 space-y-4">
+                                            <div className="pt-4 space-y-4 overflow-visible">
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                                         Ticket Name
@@ -544,50 +668,45 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                             className="w-full pl-8 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                         />
                                                     </div>
+                                                    {price > 0 && price < 0.30 && (
+                                                        <p className="mt-2 text-xs text-yellow-400 flex items-start gap-1">
+                                                            <span>⚠️</span>
+                                                            <span>Stripe requires a minimum of £0.30 for paid tickets. Please set the price to £0.30 or higher, or make it free (£0.00).</span>
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-300 mb-2">
                                                         Tickets Available
                                                     </label>
-                                                    <div className="flex items-center gap-3">
-                                                        <input
-                                                            type="number"
-                                                            min="1"
-                                                            value={ticket.tickets_available === null ? '' : ticket.tickets_available}
-                                                            onChange={(e) => {
-                                                                const value = e.target.value;
-                                                                updateTicket(
-                                                                    ticket.id,
-                                                                    'tickets_available',
-                                                                    value === '' ? null : parseInt(value)
-                                                                );
-                                                            }}
-                                                            placeholder="Unlimited"
-                                                            className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                            disabled={ticket.tickets_available === null}
-                                                        />
-                                                        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={ticket.tickets_available === null}
-                                                                onChange={(e) => {
-                                                                    updateTicket(
-                                                                        ticket.id,
-                                                                        'tickets_available',
-                                                                        e.target.checked ? null : 100
-                                                                    );
-                                                                }}
-                                                                className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600"
-                                                            />
-                                                            Unlimited
-                                                        </label>
-                                                    </div>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        value={ticket.tickets_available === null ? '' : ticket.tickets_available}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            if (value === '' || value === '0') {
+                                                                // Empty or 0 means unlimited
+                                                                updateTicket(ticket.id, 'tickets_available', null);
+                                                            } else {
+                                                                const numValue = parseInt(value);
+                                                                if (!isNaN(numValue) && numValue > 0) {
+                                                                    updateTicket(ticket.id, 'tickets_available', numValue);
+                                                                }
+                                                            }
+                                                        }}
+                                                        placeholder="Leave empty for unlimited tickets"
+                                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <p className="mt-1.5 text-xs text-gray-400">
+                                                        Leave empty or enter 0 for unlimited tickets
+                                                    </p>
                                                 </div>
                                             </div>
 
                                             {/* Release Schedule */}
-                                            <div className="pt-4 border-t border-white/10 space-y-4">
+                                            <div className="pt-4 border-t border-white/10 space-y-4 overflow-visible">
                                                 <div className="flex items-center justify-between">
                                                     <label className="block text-sm font-medium text-gray-300">
                                                         Release Schedule (Optional)
@@ -610,7 +729,7 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                     />
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-2 gap-3 overflow-visible">
                                                     <CalendarPicker
                                                         value={releaseStart.date}
                                                         onChange={(date) => {
@@ -630,7 +749,7 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                     />
                                                 </div>
 
-                                                <div className="grid grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-2 gap-3 overflow-visible">
                                                     <CalendarPicker
                                                         value={releaseEnd.date}
                                                         onChange={(date) => {

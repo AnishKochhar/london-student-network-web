@@ -20,10 +20,14 @@ export async function GET(req: Request) {
                 ticket_name,
                 ticket_price,
                 tickets_available,
-                price_id
+                price_id,
+                release_name,
+                release_start_time,
+                release_end_time,
+                release_order
             FROM tickets
             WHERE event_uuid = ${event_id}
-            ORDER BY ticket_price::numeric ASC
+            ORDER BY COALESCE(release_order, 999), ticket_price::numeric ASC
         `;
 
         return NextResponse.json({

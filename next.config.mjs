@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+	env: {
+		NEXT_PUBLIC_STRIPE_PLATFORM_FEE_PERCENTAGE: process.env.STRIPE_PLATFORM_FEE_PERCENTAGE || '2.5',
+	},
 	images: {
 		remotePatterns: [{ hostname: "*.public.blob.vercel-storage.com" }],
 		// Modern formats for better compression
