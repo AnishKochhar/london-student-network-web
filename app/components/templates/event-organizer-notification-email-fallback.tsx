@@ -1,5 +1,6 @@
 import { Event } from "@/app/lib/types";
 import { formatInTimeZone } from "date-fns-tz";
+import { TicketInfo } from "./event-registration-email";
 
 interface RegistrationDetails {
     name: string;
@@ -9,7 +10,8 @@ interface RegistrationDetails {
 
 const EventOrganizerNotificationEmailFallbackPayload = (
     event: Event,
-    registration: RegistrationDetails
+    registration: RegistrationDetails,
+    ticketInfo?: TicketInfo
 ) => {
     const LONDON_TZ = 'Europe/London';
 
@@ -25,6 +27,7 @@ HERE'S WHAT YOU NEED TO KNOW:
 👤 Name: ${registration.name}
 📧 Email: ${registration.email}
 🏫 Type: ${registration.external ? 'External student' : 'Internal student'}
+${ticketInfo ? `🎟️ Ticket: ${ticketInfo.ticket_name}${ticketInfo.quantity > 1 ? ` × ${ticketInfo.quantity}` : ''}${parseFloat(ticketInfo.ticket_price) > 0 ? ` (£${(parseFloat(ticketInfo.ticket_price) * ticketInfo.quantity).toFixed(2)})` : ' (FREE)'}` : ''}
 
 ${registration.external ? `📝 NOTE: This is an external student, so they might need additional information about campus access or directions.
 

@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     console.log("Processing checkout.session.completed:", session.id);
 
-    const { event_id, ticket_uuid, user_id, user_email, user_name, quantity, is_external } = session.metadata!;
+    const { event_id, ticket_uuid, user_id, user_email, user_name, quantity, is_external, is_guest } = session.metadata!;
 
     if (!event_id || !ticket_uuid || !user_id) {
         console.error("Missing required metadata in checkout session");
@@ -91,9 +91,10 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
     const quantityNum = parseInt(quantity || '1');
     const isExternalBool = is_external === 'true';
+    const isGuestBool = is_guest === 'true' || user_id === 'guest';
 
     try {
-        // Create registration
+        // Create registration (user_id is NULL for guests)
         const registrationResult = await sql`
             INSERT INTO event_registrations (
                 event_id,
@@ -107,7 +108,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             ) VALUES (
                 ${event_id}::uuid,
                 ${ticket_uuid}::uuid,
-                ${user_id}::uuid,
+                ${isGuestBool ? null : user_id}::uuid,
                 ${user_name},
                 ${user_email},
                 ${quantityNum},
@@ -166,6 +167,27 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
             const event = convertSQLEventToEvent(eventResult.rows[0] as SQLEvent);
 
+            // Fetch ticket information
+            let ticketInfo = undefined;
+            try {
+                const ticketResult = await sql`
+                    SELECT ticket_name, ticket_price
+                    FROM tickets
+                    WHERE ticket_uuid = ${ticket_uuid}::uuid
+                    LIMIT 1
+                `;
+
+                if (ticketResult.rows.length > 0) {
+                    ticketInfo = {
+                        ticket_name: ticketResult.rows[0].ticket_name,
+                        ticket_price: ticketResult.rows[0].ticket_price,
+                        quantity: quantityNum
+                    };
+                }
+            } catch (ticketError) {
+                console.error("Failed to fetch ticket information:", ticketError);
+            }
+
             // Fetch organizer email
             let organiserEmailAddress: string | undefined;
             try {
@@ -178,8 +200,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
             // Send confirmation email to registered user
             try {
                 const emailSubject = `🎉 Registration Confirmed: ${event.title}`;
-                const emailHtml = EventRegistrationEmailPayload(user_name!, event);
-                const emailText = EventRegistrationEmailFallbackPayload(user_name!, event);
+                const emailHtml = EventRegistrationEmailPayload(user_name!, event, ticketInfo);
+                const emailText = EventRegistrationEmailFallbackPayload(user_name!, event, ticketInfo);
 
                 // Generate ICS file for calendar integration
                 const icsContent = generateICSFile(event, user_email!);
@@ -214,7 +236,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
                                 name: user_name!,
                                 email: user_email!,
                                 external: isExternalBool
-                            }
+                            },
+                            ticketInfo
                         );
                         const orgEmailText = EventOrganizerNotificationEmailFallbackPayload(
                             event,
@@ -222,7 +245,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
                                 name: user_name!,
                                 email: user_email!,
                                 external: isExternalBool
-                            }
+                            },
+                            ticketInfo
                         );
 
                         await sendEventRegistrationEmail({

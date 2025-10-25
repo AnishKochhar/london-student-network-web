@@ -1,5 +1,6 @@
 import { Event } from "@/app/lib/types";
 import { formatInTimeZone } from "date-fns-tz";
+import { TicketInfo } from "./event-registration-email";
 
 interface RegistrationDetails {
     name: string;
@@ -9,7 +10,8 @@ interface RegistrationDetails {
 
 const EventOrganizerNotificationEmailPayload = (
     event: Event,
-    registration: RegistrationDetails
+    registration: RegistrationDetails,
+    ticketInfo?: TicketInfo
 ) => {
     const LONDON_TZ = 'Europe/London';
 
@@ -29,6 +31,7 @@ const EventOrganizerNotificationEmailPayload = (
                 👤 <strong>Name:</strong> ${registration.name}<br>
                 📧 <strong>Email:</strong> <a href="mailto:${registration.email}" style="color: #007BFF;">${registration.email}</a><br>
                 🏫 <strong>Type:</strong> ${registration.external ? 'External student' : 'Internal student'}
+                ${ticketInfo ? `<br>🎟️ <strong>Ticket:</strong> ${ticketInfo.ticket_name}${ticketInfo.quantity > 1 ? ` × ${ticketInfo.quantity}` : ''}${parseFloat(ticketInfo.ticket_price) > 0 ? ` (£${(parseFloat(ticketInfo.ticket_price) * ticketInfo.quantity).toFixed(2)})` : ' (FREE)'}` : ''}
             </p>
 
             ${registration.external ? `

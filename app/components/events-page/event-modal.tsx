@@ -18,6 +18,7 @@ import EventRegistrationButton from "./event-registration-button";
 import RegistrationChoiceModal from "./registration-choice-modal";
 import ModernRegistrationModal from "./modern-registration-modal";
 import ReportEventModal from "./report-event-modal";
+import TicketSelectionModal from "./ticket-selection-modal";
 
 export default function EventModal({ event, onClose, isPreview = false, isRegistered: initialIsRegistered = false, onRegistrationChange }: EventModalPropsWithPreview) {
     const modalRef = useRef<HTMLDivElement>(null);
@@ -33,6 +34,12 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const showTicketModalRef = useRef(false);
     const showRegistrationModalRef = useRef(false);
     const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
+
+    // Check if event has paid tickets
+    const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
+        const price = parseFloat(t.ticket_price || '0');
+        return price > 0;
+    }) || false;
 
     // Sync refs with state
     useEffect(() => {
@@ -56,7 +63,13 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
 
     const handleGuestRegister = () => {
         setShowRegistrationChoice(false);
-        setShowGuestRegistration(true);
+        // If event has paid tickets, show ticket selection modal
+        // Otherwise show simple guest registration modal
+        if (hasPaidTickets) {
+            setShowTicketModal(true);
+        } else {
+            setShowGuestRegistration(true);
+        }
     };
 
     const handleGuestRegistrationSuccess = () => {
@@ -64,6 +77,12 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
         // Refresh registration status
         setIsRegistered(true);
         onRegistrationChange?.();
+    };
+
+    const handleGuestFreeTicketRegistration = () => {
+        // For free tickets, show the simple guest registration modal
+        setShowTicketModal(false);
+        setShowGuestRegistration(true);
     };
 
     // Disable background scroll and handle outside click detection
@@ -376,6 +395,16 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                     isGuest={true}
                     onSuccess={handleGuestRegistrationSuccess}
                 />
+
+                {/* Ticket Selection Modal (for guests with paid tickets) */}
+                {showTicketModal && (
+                    <TicketSelectionModal
+                        event={event}
+                        onClose={() => setShowTicketModal(false)}
+                        onFreeRegistration={handleGuestFreeTicketRegistration}
+                        isGuestMode={true}
+                    />
+                )}
 
                 {/* Report Event Modal */}
                 <ReportEventModal

@@ -30,6 +30,7 @@ interface TicketSelectionModalProps {
     onFreeRegistration: (quantity: number) => void;
     userName?: string;
     userEmail?: string;
+    isGuestMode?: boolean;
 }
 
 export default function TicketSelectionModal({
@@ -38,21 +39,32 @@ export default function TicketSelectionModal({
     onFreeRegistration,
     userName = '',
     userEmail = '',
+    isGuestMode = false,
 }: TicketSelectionModalProps) {
     const [mounted, setMounted] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
     const [quantity, setQuantity] = useState(1);
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState(isGuestMode ? 1 : 2);
     const [processingPayment, setProcessingPayment] = useState(false);
+    const [guestInfo, setGuestInfo] = useState({
+        name: '',
+        email: ''
+    });
 
     // Use tickets from event data (already loaded) - memoized to prevent re-renders
     const tickets: Ticket[] = useMemo(() => (event.tickets as Ticket[]) || [], [event.tickets]);
     const loading = false;
 
-    const steps = [
-        { number: 1, label: 'Ticket' },
-        { number: 2, label: 'Confirm' },
-    ];
+    const steps = isGuestMode
+        ? [
+            { number: 1, label: 'Your Info' },
+            { number: 2, label: 'Ticket' },
+            { number: 3, label: 'Confirm' },
+        ]
+        : [
+            { number: 1, label: 'Ticket' },
+            { number: 2, label: 'Confirm' },
+        ];
 
     useEffect(() => {
         setMounted(true);
@@ -104,27 +116,42 @@ export default function TicketSelectionModal({
     };
 
     const handleNextStep = () => {
-        if (!selectedTicket) {
-            toast.error("Please select a ticket");
-            return;
+        if (isGuestMode && currentStep === 1) {
+            // Validate guest info
+            if (!guestInfo.name.trim() || guestInfo.name.trim().length < 2) {
+                toast.error("Please enter your full name");
+                return;
+            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(guestInfo.email)) {
+                toast.error("Please enter a valid email address");
+                return;
+            }
+            setCurrentStep(2);
+        } else if ((isGuestMode && currentStep === 2) || (!isGuestMode && currentStep === 1)) {
+            if (!selectedTicket) {
+                toast.error("Please select a ticket");
+                return;
+            }
+            setCurrentStep(isGuestMode ? 3 : 2);
         }
-        setCurrentStep(2);
     };
 
     const handlePreviousStep = () => {
-        setCurrentStep(1);
+        setCurrentStep(prev => prev - 1);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // If on step 1, go to confirmation step
-        if (currentStep === 1) {
+        // Navigate through steps
+        const lastStep = isGuestMode ? 3 : 2;
+        if (currentStep < lastStep) {
             handleNextStep();
             return;
         }
 
-        // Step 2: Process the purchase
+        // Final step: Process the purchase
         if (!selectedTicket) {
             toast.error("Please select a ticket");
             return;
@@ -147,14 +174,28 @@ export default function TicketSelectionModal({
         const toastId = toast.loading("Redirecting to checkout...");
 
         try {
-            const response = await fetch("/api/events/checkout/create-session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+            const endpoint = isGuestMode
+                ? "/api/events/checkout/create-guest-session"
+                : "/api/events/checkout/create-session";
+
+            const body = isGuestMode
+                ? {
                     event_id: event.id,
                     ticket_uuid: selectedTicket,
                     quantity,
-                }),
+                    guest_name: guestInfo.name.trim(),
+                    guest_email: guestInfo.email.toLowerCase(),
+                }
+                : {
+                    event_id: event.id,
+                    ticket_uuid: selectedTicket,
+                    quantity,
+                };
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
             });
 
             const data = await response.json();
@@ -289,7 +330,56 @@ export default function TicketSelectionModal({
                                 <div className="flex-1 flex items-center justify-center">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                                 </div>
-                            ) : currentStep === 1 ? (
+                            ) : (isGuestMode && currentStep === 1) ? (
+                                <div className="flex-1 space-y-4 md:space-y-6">
+                                    <div>
+                                        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1.5">
+                                            Your Information
+                                        </h3>
+                                        <p className="text-xs md:text-sm text-gray-600">
+                                            We&apos;ll email your ticket confirmation to this address
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label htmlFor="guest-name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                Full Name
+                                            </label>
+                                            <input
+                                                id="guest-name"
+                                                type="text"
+                                                value={guestInfo.name}
+                                                onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
+                                                placeholder="John Doe"
+                                                required
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="guest-email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                                                Email Address
+                                            </label>
+                                            <input
+                                                id="guest-email"
+                                                type="email"
+                                                value={guestInfo.email}
+                                                onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                                                placeholder="john@example.com"
+                                                required
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                            />
+                                        </div>
+
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                            <p className="text-xs text-blue-800">
+                                                💡 <strong>Tip:</strong> Create a free account after purchase to manage your tickets and get event reminders
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : ((isGuestMode && currentStep === 2) || (!isGuestMode && currentStep === 1)) ? (
                                 <div className="flex-1 space-y-4 md:space-y-6">
                                     <div>
                                         <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1.5">
@@ -605,12 +695,12 @@ export default function TicketSelectionModal({
                                 )}
                                 <button
                                     type="submit"
-                                    disabled={processingPayment || (currentStep === 1 && !selectedTicket)}
+                                    disabled={processingPayment || (!isGuestMode && currentStep === 1 && !selectedTicket) || (isGuestMode && currentStep === 2 && !selectedTicket)}
                                     className="flex-1 px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg md:rounded-xl text-sm md:text-base font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     {processingPayment
                                         ? 'Processing...'
-                                        : currentStep === 1
+                                        : currentStep < (isGuestMode ? 3 : 2)
                                         ? 'Continue'
                                         : isFreeTicket
                                         ? 'Register for Free'
