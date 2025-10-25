@@ -44,7 +44,7 @@ export default function TicketSelectionModal({
     const [mounted, setMounted] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
     const [quantity, setQuantity] = useState(1);
-    const [currentStep, setCurrentStep] = useState(isGuestMode ? 1 : 2);
+    const [currentStep, setCurrentStep] = useState(1); // Always start at step 1 (ticket selection)
     const [processingPayment, setProcessingPayment] = useState(false);
     const [guestInfo, setGuestInfo] = useState({
         name: '',
@@ -57,8 +57,8 @@ export default function TicketSelectionModal({
 
     const steps = isGuestMode
         ? [
-            { number: 1, label: 'Your Info' },
-            { number: 2, label: 'Ticket' },
+            { number: 1, label: 'Ticket' },
+            { number: 2, label: 'Your Info' },
             { number: 3, label: 'Confirm' },
         ]
         : [
@@ -116,8 +116,15 @@ export default function TicketSelectionModal({
     };
 
     const handleNextStep = () => {
-        if (isGuestMode && currentStep === 1) {
-            // Validate guest info
+        if (currentStep === 1) {
+            // Step 1: Ticket selection (both guest and authenticated)
+            if (!selectedTicket) {
+                toast.error("Please select a ticket");
+                return;
+            }
+            setCurrentStep(2);
+        } else if (isGuestMode && currentStep === 2) {
+            // Step 2 for guests: Validate guest info
             if (!guestInfo.name.trim() || guestInfo.name.trim().length < 2) {
                 toast.error("Please enter your full name");
                 return;
@@ -127,13 +134,7 @@ export default function TicketSelectionModal({
                 toast.error("Please enter a valid email address");
                 return;
             }
-            setCurrentStep(2);
-        } else if ((isGuestMode && currentStep === 2) || (!isGuestMode && currentStep === 1)) {
-            if (!selectedTicket) {
-                toast.error("Please select a ticket");
-                return;
-            }
-            setCurrentStep(isGuestMode ? 3 : 2);
+            setCurrentStep(3);
         }
     };
 
@@ -330,56 +331,8 @@ export default function TicketSelectionModal({
                                 <div className="flex-1 flex items-center justify-center">
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                                 </div>
-                            ) : (isGuestMode && currentStep === 1) ? (
-                                <div className="flex-1 space-y-4 md:space-y-6">
-                                    <div>
-                                        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1.5">
-                                            Your Information
-                                        </h3>
-                                        <p className="text-xs md:text-sm text-gray-600">
-                                            We&apos;ll email your ticket confirmation to this address
-                                        </p>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label htmlFor="guest-name" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                Full Name
-                                            </label>
-                                            <input
-                                                id="guest-name"
-                                                type="text"
-                                                value={guestInfo.name}
-                                                onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
-                                                placeholder="John Doe"
-                                                required
-                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="guest-email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                                                Email Address
-                                            </label>
-                                            <input
-                                                id="guest-email"
-                                                type="email"
-                                                value={guestInfo.email}
-                                                onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
-                                                placeholder="john@example.com"
-                                                required
-                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                            />
-                                        </div>
-
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                            <p className="text-xs text-blue-800">
-                                                💡 <strong>Tip:</strong> Create a free account after purchase to manage your tickets and get event reminders
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : ((isGuestMode && currentStep === 2) || (!isGuestMode && currentStep === 1)) ? (
+                            ) : currentStep === 1 ? (
+                                // Step 1: Ticket Selection (for both guest and authenticated)
                                 <div className="flex-1 space-y-4 md:space-y-6">
                                     <div>
                                         <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1.5">
@@ -627,7 +580,56 @@ export default function TicketSelectionModal({
                                         </div>
                                     </div>
                                 </div>
+                            ) : isGuestMode && currentStep === 2 ? (
+                                // Step 2 (Guest Only): Collect Guest Information
+                                <div className="flex-1 space-y-6">
+                                    <div>
+                                        <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1.5">
+                                            Your Information
+                                        </h3>
+                                        <p className="text-xs md:text-sm text-gray-600">
+                                            Please provide your details to complete registration
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label htmlFor="guest-name" className="block text-sm font-medium text-gray-700 mb-2">
+                                                Full Name <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                id="guest-name"
+                                                type="text"
+                                                value={guestInfo.name}
+                                                onChange={(e) => setGuestInfo({ ...guestInfo, name: e.target.value })}
+                                                placeholder="Jane Doe"
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="guest-email" className="block text-sm font-medium text-gray-700 mb-2">
+                                                Email Address <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                id="guest-email"
+                                                type="email"
+                                                value={guestInfo.email}
+                                                onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                                                placeholder="jane@example.com"
+                                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                                            />
+                                        </div>
+
+                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                            <p className="text-xs text-blue-800">
+                                                💡 <strong>Tip:</strong> Create a free account after purchase to manage your tickets and get event reminders
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             ) : (
+                                // Step 2 (Authenticated) or Step 3 (Guest): Confirm Registration
                                 <div className="flex-1 space-y-6">
                                     <div>
                                         <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-1.5">
@@ -663,11 +665,11 @@ export default function TicketSelectionModal({
                                             <div className="space-y-2 text-sm">
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Name</span>
-                                                    <span className="font-medium text-gray-900">{userName}</span>
+                                                    <span className="font-medium text-gray-900">{isGuestMode ? guestInfo.name : userName}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Email</span>
-                                                    <span className="font-medium text-gray-900">{userEmail}</span>
+                                                    <span className="font-medium text-gray-900">{isGuestMode ? guestInfo.email : userEmail}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -684,7 +686,7 @@ export default function TicketSelectionModal({
                             )}
 
                             <div className="mt-6 flex gap-2 md:gap-3">
-                                {currentStep === 2 && (
+                                {currentStep > 1 && (
                                     <button
                                         type="button"
                                         onClick={handlePreviousStep}
@@ -695,7 +697,7 @@ export default function TicketSelectionModal({
                                 )}
                                 <button
                                     type="submit"
-                                    disabled={processingPayment || (!isGuestMode && currentStep === 1 && !selectedTicket) || (isGuestMode && currentStep === 2 && !selectedTicket)}
+                                    disabled={processingPayment || (currentStep === 1 && !selectedTicket)}
                                     className="flex-1 px-4 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg md:rounded-xl text-sm md:text-base font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     {processingPayment
@@ -708,7 +710,7 @@ export default function TicketSelectionModal({
                                 </button>
                             </div>
 
-                            {!isFreeTicket && currentStep === 2 && (
+                            {!isFreeTicket && ((isGuestMode && currentStep === 3) || (!isGuestMode && currentStep === 2)) && (
                                 <p className="text-xs text-gray-500 text-center mt-3">
                                     Secure payment powered by Stripe
                                 </p>

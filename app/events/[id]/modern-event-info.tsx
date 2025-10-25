@@ -15,6 +15,7 @@ import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
 import EventEmailSendingModal from "@/app/components/events-page/email-sending-modal";
 import RegistrationChoiceModal from "@/app/components/events-page/registration-choice-modal";
 import ModernRegistrationModal from "@/app/components/events-page/modern-registration-modal";
+import TicketSelectionModal from "@/app/components/events-page/ticket-selection-modal";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
 import ShareEventModal from "@/app/components/events-page/share-event-modal";
 import EventRegistrationButton from "@/app/components/events-page/event-registration-button";
@@ -34,6 +35,7 @@ export default function ModernEventInfo() {
     const [viewEmailSending, setViewEmailSending] = useState<boolean>(false);
     const [showRegistrationChoice, setShowRegistrationChoice] = useState<boolean>(false);
     const [showGuestRegistration, setShowGuestRegistration] = useState<boolean>(false);
+    const [showTicketModal, setShowTicketModal] = useState<boolean>(false);
     const [showShareModal, setShowShareModal] = useState<boolean>(false);
     const [showReportModal, setShowReportModal] = useState<boolean>(false);
     const [isRegistered, setIsRegistered] = useState<boolean>(false);
@@ -171,12 +173,20 @@ export default function ModernEventInfo() {
 
     const handleGuestRegister = () => {
         setShowRegistrationChoice(false);
+        // Always show ticket selection modal for guests (handles both free and paid)
+        setShowTicketModal(true);
+    };
+
+    const handleGuestFreeTicketRegistration = () => {
+        // For free tickets, show the simple guest registration modal
+        setShowTicketModal(false);
         setShowGuestRegistration(true);
     };
 
     const handleGuestRegistrationSuccess = () => {
         setShowGuestRegistration(false);
         toast.success("Successfully registered! Check your email for confirmation.");
+        refetchEventData();
     };
 
     if (loading) {
@@ -426,6 +436,16 @@ export default function ModernEventInfo() {
                 isGuest={true}
                 onSuccess={handleGuestRegistrationSuccess}
             />
+
+            {/* Ticket Selection Modal (for guests) */}
+            {showTicketModal && (
+                <TicketSelectionModal
+                    event={event!}
+                    onClose={() => setShowTicketModal(false)}
+                    onFreeRegistration={handleGuestFreeTicketRegistration}
+                    isGuestMode={true}
+                />
+            )}
 
             <ShareEventModal
                 isOpen={showShareModal}

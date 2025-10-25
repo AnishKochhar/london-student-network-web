@@ -35,12 +35,6 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const showRegistrationModalRef = useRef(false);
     const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
 
-    // Check if event has paid tickets
-    const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
-        const price = parseFloat(t.ticket_price || '0');
-        return price > 0;
-    }) || false;
-
     // Sync refs with state
     useEffect(() => {
         showRegistrationChoiceRef.current = showRegistrationChoice;
@@ -63,13 +57,8 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
 
     const handleGuestRegister = () => {
         setShowRegistrationChoice(false);
-        // If event has paid tickets, show ticket selection modal
-        // Otherwise show simple guest registration modal
-        if (hasPaidTickets) {
-            setShowTicketModal(true);
-        } else {
-            setShowGuestRegistration(true);
-        }
+        // Always show ticket selection modal for guests (handles both free and paid)
+        setShowTicketModal(true);
     };
 
     const handleGuestRegistrationSuccess = () => {
