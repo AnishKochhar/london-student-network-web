@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface BackgroundImageProps {
     src?: string;
     alt?: string;
-    priority?: boolean;
 }
 
 export default function BackgroundImage({
     src = "/images/tower-bridge-1.jpeg",
     alt = "Tower Bridge Background",
-    priority = false,
 }: BackgroundImageProps) {
     const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => setIsLoaded(true);
+    }, [src]);
 
     return (
         <div
@@ -26,14 +30,8 @@ export default function BackgroundImage({
                 opacity: isLoaded ? 1 : 0,
                 transition: 'opacity 0.3s ease-in-out',
             }}
-            onLoad={() => setIsLoaded(true)}
-        >
-            <img
-                src={src}
-                alt={alt}
-                style={{ display: 'none' }}
-                onLoad={() => setIsLoaded(true)}
-            />
-        </div>
+            role="img"
+            aria-label={alt}
+        />
     );
 }
