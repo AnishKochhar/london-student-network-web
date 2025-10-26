@@ -11,6 +11,7 @@ import { Button } from "./button";
 import { useSession } from "next-auth/react";
 import { motion, LayoutGroup } from "framer-motion";
 import SwitchAccountModal from "./switch-account/switch-account-modal";
+import logoImage from "@/public/logo/logo.png";
 
 const navLinks = [
     { href: "/events", label: "Events" },
@@ -80,11 +81,9 @@ function Logo({ closeMenu }: { closeMenu: () => void }) {
             className="flex items-center space-x-2"
         >
             <Image
-                src="/logo/logo.png"
+                src={logoImage}
                 alt="London Student Network logo"
                 priority
-                width={96}
-                height={96}
                 className="w-20 md:w-24"
             />
         </Link>

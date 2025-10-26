@@ -2,26 +2,30 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { EventCardProps } from "@/app/lib/types";
 import { formatEventDateTime } from "@/app/lib/utils";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import EventCardTags from "./event-tags";
 import EventModal from "./event-modal";
-import EventManagementModal from "./event-management-modal";
 import { EyeSlashIcon } from "@heroicons/react/24/outline";
 
-export default function EventCard({ event, editEvent, onEventUpdate }: EventCardProps & { onEventUpdate?: () => void }) {
+export default function EventCard({ event, editEvent }: EventCardProps) {
+    const router = useRouter();
     const [modalChoice, setModalChoice] = useState<"edit" | "view" | "manage" | "waiting">(
         "waiting",
     );
 
-    const openManageModal = () => setModalChoice("manage");
     const openViewModal = () => setModalChoice("view");
     const closeModal = () => setModalChoice("waiting");
 
     const handleCardClick = () => {
-        {
-            editEvent ? openManageModal() : openViewModal();
-        } // !editEvent is the most likely scenario
+        if (editEvent) {
+            // Navigate to manage page instead of opening modal
+            router.push(`/events/${base16ToBase62(event.id)}/manage`);
+        } else {
+            openViewModal();
+        }
     };
 
     // Don't return early for modals, render them alongside the card
@@ -44,8 +48,9 @@ export default function EventCard({ event, editEvent, onEventUpdate }: EventCard
                         alt={event.title}
                         width={400}
                         height={160}
-                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        quality={80}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+                        quality={60}
+                        loading="lazy"
                         className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} border border-gray-200 transition-transform duration-500 group-hover:scale-110`}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -73,9 +78,6 @@ export default function EventCard({ event, editEvent, onEventUpdate }: EventCard
             {/* Render modals conditionally */}
             {modalChoice === "view" && (
                 <EventModal event={event} onClose={closeModal} />
-            )}
-            {modalChoice === "manage" && (
-                <EventManagementModal event={event} onClose={closeModal} onUpdate={onEventUpdate} />
             )}
         </>
     );

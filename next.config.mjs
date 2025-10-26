@@ -5,11 +5,13 @@ const nextConfig = {
 	},
 	images: {
 		remotePatterns: [{ hostname: "*.public.blob.vercel-storage.com" }],
-		// Modern formats for better compression
-		formats: ['image/webp', 'image/avif'],
-		// Responsive image sizes for different breakpoints
-		deviceSizes: [640, 768, 1024, 1280, 1920],
-		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+		// Modern formats for better compression (removed AVIF to reduce transformations)
+		formats: ['image/webp'],
+		// Optimized responsive image sizes for different breakpoints (reduced variants)
+		deviceSizes: [640, 1024, 1920],
+		imageSizes: [32, 64, 128, 256],
+		// Smart caching strategy - 1 year cache for static images
+		minimumCacheTTL: 31536000,
 		// Optimize image loading
 		dangerouslyAllowSVG: true,
 		contentDispositionType: 'attachment',

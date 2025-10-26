@@ -7,6 +7,7 @@ import clsx from "clsx";
 import Image from "next/image";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import arrowIcon from "@/public/icons/arrow-right.svg";
 
 const JoinButton = ({
     text,
@@ -26,11 +27,9 @@ const JoinButton = ({
                 <span className="relative flex items-center space-x-2 text-white font-semibold capitalize tracking-wide">
                     {text}
                     <Image
-                        src="/icons/arrow-right.svg"
+                        src={arrowIcon}
                         alt="next"
-                        width={20}
-                        height={12}
-                        className="h-4 ml-2 transition-transform duration-300 ease-in-out group-hover:translate-x-2"
+                        className="h-4 w-5 ml-2 transition-transform duration-300 ease-in-out group-hover:translate-x-2"
                     />
                 </span>
                 <span className="block w-full h-px bg-white mt-1"></span>
