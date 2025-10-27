@@ -32,8 +32,13 @@ export async function POST(req: Request) {
             );
         }
 
+        // Handle partial UUID (from base62ToBase16) by using LIKE query
+        // Remove dashes from search string to ensure proper matching
+        const searchString = id.replace(/-/g, '');
+
         // Single query to check ownership + fetch event
         // Uses CASE statement to compute is_organiser in database
+        // Uses LIKE to match partial UUIDs (last 20 hex chars) from base62 conversion
         const eventResult = await sql`
             SELECT
                 e.*,
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
                     ELSE false
                 END as is_organiser
             FROM events e
-            WHERE e.id = ${id}
+            WHERE REPLACE(e.id::text, '-', '') LIKE '%' || ${searchString}
             LIMIT 1
         `;
 
