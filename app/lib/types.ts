@@ -36,6 +36,7 @@ export interface Event {
     // Tickets and registration
     tickets?: unknown[]; // Tickets for this event (from get-information API)
     isRegistered?: boolean; // Whether the current user is registered (from get-information API)
+    has_paid_tickets?: boolean; // Whether this event has paid tickets
 }
 
 export interface EditEventProps {
@@ -426,6 +427,9 @@ export interface Registrations {
     user_email: string;
     date_registered: string;
     external: boolean;
+    ticket_name?: string;
+    payment_required?: boolean;
+    payment_id?: string;
 }
 
 export interface SQLRegistrations {
@@ -436,6 +440,9 @@ export interface SQLRegistrations {
     email: string;
     created_at: string;
     external: boolean;
+    ticket_name?: string;
+    payment_required?: boolean;
+    payment_id?: string;
 }
 
 export interface WebsiteStats {

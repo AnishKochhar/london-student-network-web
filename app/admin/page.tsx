@@ -21,15 +21,26 @@ export default async function AdminPage() {
             <div className="flex flex-col h-full justify-center items-center p-6">
                 <div className="flex flex-row items-start justify-between w-full">
                     <h1 className="text-2xl md:text-4xl">ADMIN PAGE</h1>
-                    <Button
-                        variant="outline"
-                        size="lg"
-                        className="text-white border-gray-100"
-                    >
-                        <Link href="/admin/contact-form" replace>
-                            Switch to Contact Form list
-                        </Link>
-                    </Button>
+                    <div className="flex gap-3">
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="text-white border-gray-100"
+                        >
+                            <Link href="/admin/analytics" replace>
+                                Analytics Dashboard
+                            </Link>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="text-white border-gray-100"
+                        >
+                            <Link href="/admin/contact-form" replace>
+                                Contact Forms
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
                 <p className="p-6">
                     {" "}

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import FilteredEventsList from "../events-page/filtered-events-list";
 import { Event } from "@/app/lib/types";
 import { UserEventsListProps } from "@/app/lib/types";
-import { Loader2 } from "lucide-react";
+import { Loader2, CalendarDays, Clock, EyeOff, Banknote, LayoutGrid } from "lucide-react";
 
 interface PaginationInfo {
     total: number;
@@ -13,15 +13,32 @@ interface PaginationInfo {
     hasMore: boolean;
 }
 
+type FilterType = 'all' | 'upcoming' | 'past' | 'hidden' | 'paid';
+
+interface FilterOption {
+    id: FilterType;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    tooltip: string;
+}
+
+const filterOptions: FilterOption[] = [
+    { id: 'all', label: 'All', icon: LayoutGrid, tooltip: 'Show all events' },
+    { id: 'upcoming', label: 'Upcoming', icon: CalendarDays, tooltip: 'Events that haven\'t happened yet' },
+    { id: 'past', label: 'Past', icon: Clock, tooltip: 'Events that have already occurred' },
+    { id: 'hidden', label: 'Hidden', icon: EyeOff, tooltip: 'Events hidden from public view' },
+    { id: 'paid', label: 'Paid', icon: Banknote, tooltip: 'Events with paid tickets' },
+];
+
 export default function UserEventsList({
     user_id,
     editEvent = false,
-    onEventUpdate,
-}: UserEventsListProps & { onEventUpdate?: () => void }) {
+}: UserEventsListProps) {
     const [userEvents, setUserEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [activeFilter, setActiveFilter] = useState<FilterType>('all');
     const [pagination, setPagination] = useState<PaginationInfo>({
         total: 0,
         limit: 12,
@@ -97,17 +114,36 @@ export default function UserEventsList({
         };
     }, [user_id, fetchUserEvents]);
 
-    // Combined update handler for when events are modified
-    const handleEventUpdate = useCallback(() => {
-        fetchUserEvents(false);
-        if (onEventUpdate) onEventUpdate();
-    }, [onEventUpdate, fetchUserEvents]);
-
     const loadMoreEvents = () => {
         if (pagination.hasMore && !loadingMore) {
             fetchUserEvents(true, userEvents.length);
         }
     };
+
+    // Filter events based on selected filter
+    const filteredEvents = useMemo(() => {
+        const now = new Date();
+
+        switch (activeFilter) {
+            case 'upcoming':
+                return userEvents.filter(event => {
+                    const eventDate = new Date(event.start_datetime || event.date);
+                    return eventDate >= now;
+                });
+            case 'past':
+                return userEvents.filter(event => {
+                    const eventDate = new Date(event.start_datetime || event.date);
+                    return eventDate < now;
+                });
+            case 'hidden':
+                return userEvents.filter(event => event.is_hidden);
+            case 'paid':
+                return userEvents.filter(event => event.has_paid_tickets);
+            case 'all':
+            default:
+                return userEvents;
+        }
+    }, [userEvents, activeFilter]);
 
     if (loading) {
         return (
@@ -148,14 +184,72 @@ export default function UserEventsList({
 
     return (
         <div className="space-y-6">
-            <FilteredEventsList
-                allEvents={userEvents}
-                activeTags={[]} // Not used when showAllEvents=true
-                editEvent={editEvent}
-                reverseOrder={true} // Show most recent month/year sections first
-                showAllEvents={true} // Show ALL events regardless of tags
-                onEventUpdate={handleEventUpdate}
-            />
+            {/* Filter Buttons */}
+            <div className="flex flex-wrap gap-2 p-4 bg-white/5 rounded-xl border border-white/10">
+                {filterOptions.map((filter) => {
+                    const Icon = filter.icon;
+                    const isActive = activeFilter === filter.id;
+                    const count = filter.id === 'all' ? userEvents.length :
+                        filter.id === 'upcoming' ? userEvents.filter(e => new Date(e.start_datetime || e.date) >= new Date()).length :
+                        filter.id === 'past' ? userEvents.filter(e => new Date(e.start_datetime || e.date) < new Date()).length :
+                        filter.id === 'hidden' ? userEvents.filter(e => e.is_hidden).length :
+                        filter.id === 'paid' ? userEvents.filter(e => e.has_paid_tickets).length : 0;
+
+                    return (
+                        <button
+                            key={filter.id}
+                            onClick={() => setActiveFilter(filter.id)}
+                            title={filter.tooltip}
+                            className={`
+                                group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
+                                transition-all duration-200
+                                ${isActive
+                                    ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50 shadow-lg shadow-blue-500/20'
+                                    : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:border-white/20'
+                                }
+                            `}
+                        >
+                            <Icon className={`w-4 h-4 ${isActive ? 'scale-110' : 'group-hover:scale-110'} transition-transform`} />
+                            <span>{filter.label}</span>
+                            <span className={`
+                                ml-1 px-2 py-0.5 rounded-full text-xs font-semibold
+                                ${isActive ? 'bg-blue-400/30 text-blue-200' : 'bg-white/10 text-gray-400'}
+                            `}>
+                                {count}
+                            </span>
+                            {/* Tooltip on hover */}
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap">
+                                {filter.tooltip}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Events List */}
+            {filteredEvents.length === 0 ? (
+                <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-2xl">🔍</span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-white mb-2">No Events Found</h3>
+                    <p className="text-gray-400">
+                        {activeFilter === 'all' ? "You haven't created any events yet." :
+                         activeFilter === 'upcoming' ? "No upcoming events." :
+                         activeFilter === 'past' ? "No past events." :
+                         activeFilter === 'hidden' ? "No hidden events." :
+                         "No paid events."}
+                    </p>
+                </div>
+            ) : (
+                <FilteredEventsList
+                    allEvents={filteredEvents}
+                    activeTags={[]} // Not used when showAllEvents=true
+                    editEvent={editEvent}
+                    reverseOrder={true} // Show most recent month/year sections first
+                    showAllEvents={true} // Show ALL events regardless of tags
+                />
+            )}
 
             {/* Load More Button */}
             {pagination.hasMore && (
@@ -183,11 +277,15 @@ export default function UserEventsList({
             )}
 
             {/* Results Summary */}
-            <div className="text-center pt-4 border-t border-white/10">
-                <p className="text-gray-400 text-sm">
-                    Showing {userEvents.length} of {pagination.total} events
-                </p>
-            </div>
+            {filteredEvents.length > 0 && (
+                <div className="text-center pt-4 border-t border-white/10">
+                    <p className="text-gray-400 text-sm">
+                        Showing {filteredEvents.length} {activeFilter !== 'all' ? `${activeFilter} ` : ''}
+                        event{filteredEvents.length !== 1 ? 's' : ''}
+                        {activeFilter === 'all' ? ` of ${pagination.total} total` : ''}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

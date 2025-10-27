@@ -9,12 +9,13 @@ import UserEventsList from "../components/account/user-events-list";
 import UserForumPosts from "../components/account/user-forum-posts";
 import UserRegistrations from "../components/account/user-registrations";
 import UserReferrals from "../components/account/user-referrals";
-import AccountFields from "../components/account/account-fields";
+// import AccountFields from "../components/account/account-fields"; // Unused
 import AccountLogo from "../components/account/account-logo";
 import ForgottenPasswordModal from "../components/login/reset-password-modal";
 import UsernameCreationModal from "../components/forum/username-creation-modal";
 import AddUniversityEmailModal from "../components/account/add-university-email-modal";
 import StripeConnectStatus from "../components/account/stripe-connect-status";
+import OrganiserInfoCard from "../components/account/organiser-info-card";
 import { useReferralTracking } from "../hooks/useReferralTracking";
 import toast from "react-hot-toast";
 import { saveAccount } from "@/app/lib/account-storage";
@@ -599,20 +600,10 @@ export default function AccountPage() {
                                             )}
                                         </div>
 
-                                        {user.role === "organiser" && (
-                                            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10 lg:col-span-2">
-                                                <label className="block text-sm font-medium text-gray-300 mb-2">Organization Logo</label>
-                                                <div className="mt-2">
-                                                    <AccountLogo id={user.id} role={user.role} />
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
                                     {user.role === "organiser" && (
-                                        <div className="mt-8">
-                                            <AccountFields id={user.id} role={user.role} />
-                                        </div>
+                                        <OrganiserInfoCard userId={user.id} />
                                     )}
                                 </section>
 
@@ -664,7 +655,9 @@ export default function AccountPage() {
                                     <div className="space-y-4 md:space-y-6">
                                         {/* Stripe Connect for organizers/companies */}
                                         {(session?.user?.role === 'organiser' || session?.user?.role === 'company') && (
-                                            <StripeConnectStatus />
+                                            <div data-stripe-settings>
+                                                <StripeConnectStatus />
+                                            </div>
                                         )}
 
                                         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">

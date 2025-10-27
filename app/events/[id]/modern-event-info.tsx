@@ -222,9 +222,9 @@ export default function ModernEventInfo() {
             <div className="max-w-6xl mx-auto px-4 py-4 flex justify-end gap-2">
                 {isOrganiser && (
                     <button
-                        onClick={() => router.push(`/events/edit?id=${event.id}`)}
+                        onClick={() => router.push(`/events/${id}/manage`)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit Event"
+                        title="Manage Event"
                     >
                         <Edit className="w-5 h-5" />
                     </button>

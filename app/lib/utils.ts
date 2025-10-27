@@ -132,6 +132,9 @@ export function convertSQLRegistrationsToRegistrations(
 		user_name: registrations.name,
 		date_registered: registrations.created_at,
 		external: registrations.external,
+		ticket_name: registrations.ticket_name,
+		payment_required: registrations.payment_required,
+		payment_id: registrations.payment_id,
 	};
 }
 

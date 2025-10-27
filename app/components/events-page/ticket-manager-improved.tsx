@@ -291,9 +291,9 @@ const TimePicker = ({ value, onChange, label }: {
     );
 };
 
-// Fee Info Component
+// Fee Info Component - Hover Overlay
 const FeeInfoOverlay = () => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
     const PLATFORM_FEE_PERCENTAGE = parseFloat(process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE_PERCENTAGE || '2.5');
 
     const calculateExample = (ticketPrice: number) => {
@@ -312,87 +312,81 @@ const FeeInfoOverlay = () => {
     const example = calculateExample(10);
 
     return (
-        <div className="relative">
+        <div
+            className="relative inline-block"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 text-blue-300 hover:text-blue-200 transition-colors text-sm"
+                className="flex items-center gap-1.5 text-blue-300 hover:text-blue-200 transition-colors text-sm group"
             >
-                <InformationCircleIcon className="w-5 h-5" />
-                <span>How do fees work?</span>
+                <InformationCircleIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className="hidden sm:inline">Fee breakdown</span>
             </button>
 
             <AnimatePresence>
-                {isOpen && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/50 z-50"
-                            onClick={() => setIsOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md"
-                        >
-                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-2xl border border-white/20 p-6">
-                                <div className="flex items-start justify-between mb-4">
-                                    <h3 className="text-lg font-semibold text-white">Fee Breakdown</h3>
-                                    <button
-                                        onClick={() => setIsOpen(false)}
-                                        className="text-gray-400 hover:text-white transition-colors"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
+                {isHovered && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute left-0 top-full mt-2 z-50 w-80 pointer-events-none"
+                    >
+                        <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-xl shadow-2xl border border-white/20 p-5">
+                            {/* Header */}
+                            <div className="flex items-center gap-2 mb-3">
+                                <InformationCircleIcon className="w-5 h-5 text-blue-400" />
+                                <h3 className="text-base font-semibold text-white">Fee Breakdown</h3>
+                            </div>
+
+                            <p className="text-gray-300 text-xs mb-3 leading-relaxed">
+                                Example for a £{example.ticketPrice} ticket:
+                            </p>
+
+                            {/* Fee calculation display */}
+                            <div className="bg-white/5 rounded-lg p-3 mb-3 space-y-2.5">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-300">Ticket Price</span>
+                                    <span className="font-semibold text-white text-sm">£{example.ticketPrice}</span>
                                 </div>
-
-                                <p className="text-gray-300 text-sm mb-4">
-                                    Here&apos;s how the fees work for paid tickets on London Student Network:
-                                </p>
-
-                                <div className="bg-white/5 rounded-lg p-4 mb-4 space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-300">Ticket Price</span>
-                                        <span className="font-semibold text-white">£{example.ticketPrice}</span>
-                                    </div>
-                                    <div className="border-t border-white/10" />
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-400">Stripe Fee (1.5% + 20p)</span>
-                                        <span className="text-sm text-gray-400">-£{example.stripeFee}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-400">Platform Fee ({PLATFORM_FEE_PERCENTAGE}%)</span>
-                                        <span className="text-sm text-gray-400">-£{example.platformFee}</span>
-                                    </div>
-                                    <div className="border-t border-white/10" />
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm font-medium text-green-300">You Receive</span>
-                                        <span className="font-bold text-green-400">£{example.organiserReceives}</span>
-                                    </div>
+                                <div className="border-t border-white/10" />
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-400">Stripe Fee (1.5% + 20p)</span>
+                                    <span className="text-xs text-gray-400">-£{example.stripeFee}</span>
                                 </div>
-
-                                <div className="space-y-2 text-xs text-gray-400">
-                                    <p className="flex items-start gap-2">
-                                        <span className="text-blue-400">•</span>
-                                        <span>Stripe fees cover payment processing and are charged by Stripe, not LSN</span>
-                                    </p>
-                                    <p className="flex items-start gap-2">
-                                        <span className="text-blue-400">•</span>
-                                        <span>Platform fees help us maintain and improve the LSN platform</span>
-                                    </p>
-                                    <p className="flex items-start gap-2">
-                                        <span className="text-blue-400">•</span>
-                                        <span>Free tickets (£0.00) have no fees at all!</span>
-                                    </p>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-400">Platform Fee ({PLATFORM_FEE_PERCENTAGE}%)</span>
+                                    <span className="text-xs text-gray-400">-£{example.platformFee}</span>
+                                </div>
+                                <div className="border-t border-white/10" />
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-medium text-green-300">You Receive</span>
+                                    <span className="font-bold text-green-400 text-sm">£{example.organiserReceives}</span>
                                 </div>
                             </div>
-                        </motion.div>
-                    </>
+
+                            {/* Quick notes */}
+                            <div className="space-y-1.5 text-[10px] text-gray-400 leading-relaxed">
+                                <p className="flex items-start gap-1.5">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>Stripe fees cover payment processing</span>
+                                </p>
+                                <p className="flex items-start gap-1.5">
+                                    <span className="text-blue-400 mt-0.5">•</span>
+                                    <span>Platform fees maintain LSN</span>
+                                </p>
+                                <p className="flex items-start gap-1.5">
+                                    <span className="text-green-400 mt-0.5">✓</span>
+                                    <span>Free tickets (£0.00) have no fees!</span>
+                                </p>
+                            </div>
+
+                            {/* Arrow pointer */}
+                            <div className="absolute -top-2 left-6 w-4 h-4 bg-gray-900 border-t border-l border-white/20 transform rotate-45" />
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>
@@ -659,10 +653,23 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                             min="0"
                                                             step="0.01"
                                                             value={ticket.ticket_price}
-                                                            onChange={(e) => updateTicket(ticket.id, 'ticket_price', e.target.value)}
+                                                            onChange={(e) => {
+                                                                const value = e.target.value;
+                                                                // Allow empty string or valid decimal numbers
+                                                                if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+                                                                    updateTicket(ticket.id, 'ticket_price', value);
+                                                                }
+                                                            }}
                                                             onBlur={(e) => {
-                                                                const value = parseFloat(e.target.value || '0');
-                                                                updateTicket(ticket.id, 'ticket_price', value.toFixed(2));
+                                                                const value = e.target.value;
+                                                                if (value === '' || value === '.') {
+                                                                    updateTicket(ticket.id, 'ticket_price', '0.00');
+                                                                } else {
+                                                                    const numValue = parseFloat(value);
+                                                                    if (!isNaN(numValue)) {
+                                                                        updateTicket(ticket.id, 'ticket_price', numValue.toFixed(2));
+                                                                    }
+                                                                }
                                                             }}
                                                             placeholder="0.00"
                                                             className="w-full pl-8 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -683,14 +690,32 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                     <input
                                                         type="number"
                                                         min="0"
+                                                        step="1"
                                                         value={ticket.tickets_available === null ? '' : ticket.tickets_available}
                                                         onChange={(e) => {
                                                             const value = e.target.value;
-                                                            if (value === '' || value === '0') {
-                                                                // Empty or 0 means unlimited
+                                                            if (value === '') {
+                                                                // Empty means unlimited
                                                                 updateTicket(ticket.id, 'tickets_available', null);
                                                             } else {
-                                                                const numValue = parseInt(value);
+                                                                const numValue = parseInt(value, 10);
+                                                                if (!isNaN(numValue)) {
+                                                                    if (numValue === 0) {
+                                                                        // 0 means unlimited
+                                                                        updateTicket(ticket.id, 'tickets_available', null);
+                                                                    } else if (numValue > 0) {
+                                                                        // Positive integer
+                                                                        updateTicket(ticket.id, 'tickets_available', numValue);
+                                                                    }
+                                                                    // Ignore negative values - don't update
+                                                                }
+                                                            }
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            // Clean up the value on blur
+                                                            const value = e.target.value;
+                                                            if (value !== '' && value !== '0') {
+                                                                const numValue = parseInt(value, 10);
                                                                 if (!isNaN(numValue) && numValue > 0) {
                                                                     updateTicket(ticket.id, 'tickets_available', numValue);
                                                                 }

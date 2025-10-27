@@ -149,7 +149,44 @@ export async function POST(req: Request) {
         if (tickets.length > 0) {
             console.log('=== Updating tickets for event:', id);
             try {
-                // Delete existing tickets
+                // Check if any tickets have been purchased or registered
+                const ticketsWithRegistrations = await sql`
+                    SELECT DISTINCT t.ticket_uuid as id, t.ticket_name
+                    FROM tickets t
+                    INNER JOIN event_registrations er ON er.ticket_uuid = t.ticket_uuid
+                    WHERE t.event_uuid = ${id}
+                `;
+
+                const ticketsWithPayments = await sql`
+                    SELECT DISTINCT t.ticket_uuid as id, t.ticket_name
+                    FROM tickets t
+                    INNER JOIN event_payments ep ON ep.ticket_uuid = t.ticket_uuid
+                    WHERE t.event_uuid = ${id}
+                `;
+
+                // Get all existing ticket IDs that have activity
+                const existingTicketIds = new Set([
+                    ...ticketsWithRegistrations.rows.map(t => t.id),
+                    ...ticketsWithPayments.rows.map(t => t.id)
+                ]);
+
+                if (existingTicketIds.size > 0) {
+                    // Cannot delete tickets with registrations/payments
+                    const ticketNames = [
+                        ...new Set([
+                            ...ticketsWithRegistrations.rows.map(t => t.ticket_name),
+                            ...ticketsWithPayments.rows.map(t => t.ticket_name)
+                        ])
+                    ];
+
+                    return NextResponse.json({
+                        error: "Cannot delete or modify tickets that have been purchased or registered for",
+                        details: `The following ticket types have active registrations/payments: ${ticketNames.join(', ')}. You can add new ticket types, but cannot remove existing ones that have been used.`,
+                        hasActiveTickets: true
+                    }, { status: 400 });
+                }
+
+                // If no tickets have activity, safe to delete and recreate
                 await sql`DELETE FROM tickets WHERE event_uuid = ${id}`;
 
                 // Insert new tickets
@@ -182,7 +219,8 @@ export async function POST(req: Request) {
             } catch (ticketError) {
                 console.error('❌ Failed to update tickets:', ticketError);
                 return NextResponse.json({
-                    error: "Event updated but failed to update tickets"
+                    error: "Event updated but failed to update tickets",
+                    details: ticketError.message
                 }, { status: 500 });
             }
         }

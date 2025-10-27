@@ -10,7 +10,6 @@ interface FilteredEventsListProps {
     editEvent?: boolean;
     reverseOrder?: boolean; // For account page - show most recent first
     showAllEvents?: boolean; // When true, bypasses tag filtering entirely
-    onEventUpdate?: () => void;
 }
 
 export default function FilteredEventsList({
@@ -19,7 +18,6 @@ export default function FilteredEventsList({
     editEvent,
     reverseOrder = false,
     showAllEvents = false,
-    onEventUpdate,
 }: FilteredEventsListProps) {
     const filteredEvents = showAllEvents
         ? allEvents
@@ -82,7 +80,6 @@ export default function FilteredEventsList({
                                     year={year}
                                     events={monthYearGroupings[monthYearKey]}
                                     editEvent={editEvent}
-                                    onEventUpdate={onEventUpdate}
                                 />
                             </motion.div>
                         );

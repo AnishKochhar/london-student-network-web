@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LiquidButton } from "@/app/components/ui/liquid-button";
+import EventAnalyticsTracker from "@/app/components/analytics/event-analytics-tracker";
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -140,27 +141,34 @@ export default async function Page({ params }: PageProps) {
     return (
         <main className="relative flex flex-col min-h-screen mx-auto pt-16 bg-white">
             {event && (
-                <EventStructuredData
-                    name={event.title}
-                    description={event.description || ''}
-                    startDate={event.start_datetime}
-                    endDate={event.end_datetime}
-                    location={{
-                        name: `${event.location_building}, ${event.location_area}`,
-                        address: event.location_address,
-                    }}
-                    organizer={{
-                        name: event.organiser,
-                        url: "https://londonstudentnetwork.com"
-                    }}
-                    url={`https://londonstudentnetwork.com/events/${id}`}
-                    image={event.image_url}
-                    offers={{
-                        price: "0",
-                        priceCurrency: "GBP",
-                        availability: "https://schema.org/InStock"
-                    }}
-                />
+                <>
+                    <EventStructuredData
+                        name={event.title}
+                        description={event.description || ''}
+                        startDate={event.start_datetime}
+                        endDate={event.end_datetime}
+                        location={{
+                            name: `${event.location_building}, ${event.location_area}`,
+                            address: event.location_address,
+                        }}
+                        organizer={{
+                            name: event.organiser,
+                            url: "https://londonstudentnetwork.com"
+                        }}
+                        url={`https://londonstudentnetwork.com/events/${id}`}
+                        image={event.image_url}
+                        offers={{
+                            price: "0",
+                            priceCurrency: "GBP",
+                            availability: "https://schema.org/InStock"
+                        }}
+                    />
+                    {/* Analytics Tracker */}
+                    <EventAnalyticsTracker
+                        eventId={eventId}
+                        eventTitle={event.title}
+                    />
+                </>
             )}
             <ModernEventInfo />
         </main>

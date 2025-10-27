@@ -1236,15 +1236,25 @@ export async function registerForEvent(
 export async function getRegistrationsForEvent(event_id: string) {
     try {
         const result = await sql<SQLRegistrations>`
-		SELECT user_id, name, email, created_at, external
-		FROM event_registrations
-		WHERE event_id = ${event_id}
+		SELECT
+			er.user_id,
+			er.name,
+			er.email,
+			er.created_at,
+			er.external,
+			t.ticket_name,
+			er.payment_required,
+			er.payment_id
+		FROM event_registrations er
+		LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
+		WHERE er.event_id = ${event_id}
 		`;
         const registrations = result.rows.map(
             convertSQLRegistrationsToRegistrations,
         );
         return { success: true, registrations: registrations };
     } catch (error) {
+        console.error("Error fetching registrations:", error);
         return { success: false };
     }
 }

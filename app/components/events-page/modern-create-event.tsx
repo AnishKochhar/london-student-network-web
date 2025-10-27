@@ -933,7 +933,12 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                 toast.success(editMode ? "Event updated successfully!" : "Event created successfully!", { id: toastId });
                 router.push("/events");
             } else {
-                toast.error(result.error || (editMode ? "Failed to update event" : "Failed to create event"), { id: toastId });
+                // Show detailed error message if available
+                const errorMessage = result.details || result.error || (editMode ? "Failed to update event" : "Failed to create event");
+                toast.error(errorMessage, {
+                    id: toastId,
+                    duration: 6000, // Show longer for detailed messages
+                });
             }
         } catch (error) {
             console.error(editMode ? "Error updating event:" : "Error creating event:", error);

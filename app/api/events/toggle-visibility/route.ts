@@ -1,18 +1,33 @@
 import { NextResponse } from "next/server";
-import { toggleEventVisibility } from "@/app/lib/data";
+import { sql } from "@vercel/postgres";
 
 export async function POST(req: Request) {
     try {
-        const { event_id, is_hidden } = await req.json();
+        const { event_id } = await req.json();
+
+        // Get current visibility state
+        const currentState = await sql`
+            SELECT is_hidden FROM events WHERE id = ${event_id}
+        `;
+
+        if (currentState.rows.length === 0) {
+            return NextResponse.json({ error: "Event not found" }, { status: 404 });
+        }
+
+        const currentIsHidden = currentState.rows[0].is_hidden;
+        const newIsHidden = !currentIsHidden;
 
         // Toggle visibility
-        const result = await toggleEventVisibility(event_id, is_hidden);
+        await sql`
+            UPDATE events
+            SET is_hidden = ${newIsHidden}
+            WHERE id = ${event_id}
+        `;
 
-        if (result.success) {
-            return NextResponse.json({ success: true });
-        } else {
-            return NextResponse.json({ error: "Failed to update visibility" }, { status: 500 });
-        }
+        return NextResponse.json({
+            success: true,
+            isHidden: newIsHidden
+        });
     } catch (error) {
         console.error("Toggle visibility error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
