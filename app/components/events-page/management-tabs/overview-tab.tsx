@@ -14,6 +14,7 @@ import RevenueDashboard from "./revenue-dashboard";
 import RegistrationTimelineChart from "./registration-timeline-chart";
 import { useManagementData } from "./data-provider";
 import EventEmailSendingModal from "../email-sending-modal";
+import LinkOnlyManager from "./link-only-manager";
 
 interface OverviewTabProps {
     event: Event;
@@ -92,6 +93,14 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
 
     return (
         <div className="space-y-6">
+            {/* Link-Only Manager (if event is link-only) */}
+            {event.link_only && (
+                <LinkOnlyManager
+                    eventId={base16ToBase62(eventId)}
+                    eventTitle={event.title}
+                />
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Total Registrations */}

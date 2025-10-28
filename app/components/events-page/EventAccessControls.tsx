@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDownIcon, LockClosedIcon, GlobeAltIcon, UserGroupIcon, ShieldCheckIcon, AcademicCapIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, LockClosedIcon, GlobeAltIcon, UserGroupIcon, ShieldCheckIcon, AcademicCapIcon, LinkIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 interface EventAccessControlsProps {
     visibilityLevel: string;
     registrationLevel: string;
     allowedUniversities: string[];
+    linkOnly?: boolean;
     onVisibilityChange: (value: string) => void;
     onRegistrationChange: (value: string) => void;
     onAllowedUniversitiesChange: (universities: string[]) => void;
+    onLinkOnlyChange?: (value: boolean) => void;
 }
 
 // Visibility/Registration level options with descriptions
@@ -381,9 +383,11 @@ export default function EventAccessControls({
     visibilityLevel,
     registrationLevel,
     allowedUniversities,
+    linkOnly = false,
     onVisibilityChange,
     onRegistrationChange,
     onAllowedUniversitiesChange,
+    onLinkOnlyChange,
 }: EventAccessControlsProps) {
     const [hasOpenDropdown, setHasOpenDropdown] = useState(false);
 
@@ -424,6 +428,60 @@ export default function EventAccessControls({
                 </div>
             </motion.div>
 
+            {/* Link-Only Toggle */}
+            {onLinkOnlyChange && (
+                <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+                    <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 mt-1">
+                            <LinkIcon className="w-5 h-5 text-purple-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-2">
+                                <label htmlFor="link-only-toggle" className="font-medium text-white cursor-pointer">
+                                    Link-Only Event
+                                </label>
+                                <button
+                                    type="button"
+                                    id="link-only-toggle"
+                                    role="switch"
+                                    aria-checked={linkOnly}
+                                    onClick={() => onLinkOnlyChange(!linkOnly)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                        linkOnly ? 'bg-purple-500' : 'bg-gray-600'
+                                    }`}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            linkOnly ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-300">
+                                When enabled, this event will be hidden from public event listings but accessible to anyone with the direct link.
+                                {linkOnly && " Perfect for invite-only or private events."}
+                            </p>
+                        </div>
+                    </div>
+
+                    {linkOnly && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-3 pt-3 border-t border-white/10"
+                        >
+                            <div className="flex items-start gap-2 text-xs">
+                                <EyeSlashIcon className="w-4 h-4 text-purple-300 flex-shrink-0 mt-0.5" />
+                                <p className="text-purple-200">
+                                    This event won&apos;t appear in search results or public listings. Share the event link with your invitees.
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+                </div>
+            )}
+
             {/* Visibility Level */}
             <div>
                 <AccessDropdown
@@ -431,9 +489,15 @@ export default function EventAccessControls({
                     onChange={onVisibilityChange}
                     options={VISIBILITY_OPTIONS}
                     label="Who can see this event?"
-                    tooltip="Controls who can view this event on the events page"
+                    tooltip={linkOnly ? "Controls who can access the event page when they have the link" : "Controls who can view this event on the events page"}
                     onOpenChange={setHasOpenDropdown}
+                    disabled={linkOnly}
                 />
+                {linkOnly && (
+                    <p className="mt-2 text-xs text-gray-400">
+                        Not applicable for link-only events (hidden from listings)
+                    </p>
+                )}
             </div>
 
             {/* Registration Level */}

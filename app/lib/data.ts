@@ -75,7 +75,7 @@ export async function fetchAllUpcomingEvents(
 
         // Bypass visibility restrictions for organiser and company accounts
         if (userSession?.role === 'organiser' || userSession?.role === 'company') {
-            // Show ALL events regardless of visibility level
+            // Show ALL events regardless of visibility level (but exclude link-only events)
             data = await sql<SQLEvent>`
                 SELECT e.*, s.slug as organiser_slug
                 FROM events e
@@ -83,12 +83,13 @@ export async function fetchAllUpcomingEvents(
                 WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.link_only IS NULL OR e.link_only = false)
                 ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
                     EXTRACT(hour FROM e.start_time::time)::int,
                     EXTRACT(minute FROM e.start_time::time)::int, 0))
             `;
         } else if (!userSession) {
-            // Not logged in - only show public events
+            // Not logged in - only show public events (exclude link-only)
             data = await sql<SQLEvent>`
                 SELECT e.*, s.slug as organiser_slug
                 FROM events e
@@ -97,12 +98,13 @@ export async function fetchAllUpcomingEvents(
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
                 AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
+                AND (e.link_only IS NULL OR e.link_only = false)
                 ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
                     EXTRACT(hour FROM e.start_time::time)::int,
                     EXTRACT(minute FROM e.start_time::time)::int, 0))
             `;
         } else if (userSession.verified_university) {
-            // Logged in with verified university - can see all except restricted university events they're not part of
+            // Logged in with verified university - can see all except restricted university events they're not part of (exclude link-only)
             data = await sql<SQLEvent>`
                 SELECT e.*, s.slug as organiser_slug
                 FROM events e
@@ -110,6 +112,7 @@ export async function fetchAllUpcomingEvents(
                 WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.link_only IS NULL OR e.link_only = false)
                 AND (
                     e.visibility_level = 'public'
                     OR e.visibility_level = 'students_only'
@@ -125,7 +128,7 @@ export async function fetchAllUpcomingEvents(
                     EXTRACT(minute FROM e.start_time::time)::int, 0))
             `;
         } else {
-            // Logged in but no verified university - can see public and students_only
+            // Logged in but no verified university - can see public and students_only (exclude link-only)
             data = await sql<SQLEvent>`
                 SELECT e.*, s.slug as organiser_slug
                 FROM events e
@@ -133,6 +136,7 @@ export async function fetchAllUpcomingEvents(
                 WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.link_only IS NULL OR e.link_only = false)
                 AND (
                     e.visibility_level = 'public'
                     OR e.visibility_level = 'students_only'
@@ -518,7 +522,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 image_url, image_contain, external_forward_email,
                 capacity, sign_up_link, for_externals, event_type,
                 send_signup_notifications, student_union,
-                visibility_level, registration_level, allowed_universities,
+                visibility_level, registration_level, allowed_universities, link_only,
                 registration_cutoff_hours, external_registration_cutoff_hours
             )
             VALUES (
@@ -529,7 +533,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
                 ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type},
                 ${eventData.send_signup_notifications}, ${eventData.student_union},
-                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${allowedUniversities as unknown as string},
+                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${allowedUniversities as unknown as string}, ${eventData.link_only ?? false},
                 ${eventData.registration_cutoff_hours ?? null}, ${eventData.external_registration_cutoff_hours ?? null}
             )
             RETURNING *

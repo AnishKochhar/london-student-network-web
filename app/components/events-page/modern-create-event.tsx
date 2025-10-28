@@ -646,6 +646,7 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
             visibility_level: event.visibility_level || 'public',
             registration_level: event.registration_level || 'public',
             allowed_universities: event.allowed_universities || [],
+            link_only: event.link_only ?? false,
             registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
             external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
         };
@@ -679,6 +680,7 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         visibility_level: event.visibility_level || 'public',
         registration_level: event.registration_level || 'public',
         allowed_universities: event.allowed_universities || [],
+        link_only: event.link_only ?? false,
         registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
         external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
     };
@@ -806,7 +808,8 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             send_signup_notifications: true,
             visibility_level: 'public',
             registration_level: 'public',
-            allowed_universities: []
+            allowed_universities: [],
+            link_only: false
         }
     });
 
@@ -1611,9 +1614,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     visibilityLevel={watchedValues.visibility_level || 'public'}
                                     registrationLevel={watchedValues.registration_level || 'public'}
                                     allowedUniversities={watchedValues.allowed_universities || []}
+                                    linkOnly={watchedValues.link_only || false}
                                     onVisibilityChange={(value) => setValue("visibility_level", value, { shouldValidate: true })}
                                     onRegistrationChange={(value) => setValue("registration_level", value, { shouldValidate: true })}
                                     onAllowedUniversitiesChange={(universities) => setValue("allowed_universities", universities, { shouldValidate: true })}
+                                    onLinkOnlyChange={(value) => setValue("link_only", value, { shouldValidate: true })}
                                 />
                             </div>
                         </AnimatedSection>
