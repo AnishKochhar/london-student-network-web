@@ -25,7 +25,7 @@ export default function GlassTabPicker({ activeTab, setActiveTab }: GlassTabPick
     const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
     return (
-        <div className="sticky top-4 z-20 mb-6 bg-white/10 backdrop-blur-md rounded-2xl p-1 sm:p-1.5 shadow-2xl border border-white/20 overflow-x-auto">
+        <div className="sticky top-[72px] z-30 mb-6 bg-white/10 backdrop-blur-md rounded-2xl p-1 sm:p-1.5 shadow-2xl border border-white/20 overflow-x-auto">
             {/* Glass shine overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-2xl pointer-events-none" />
 

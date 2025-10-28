@@ -1528,13 +1528,18 @@ export async function getEventRegistrationStats(eventId: string) {
 
 export async function deregisterFromEvent(event_id: string, user_id: string) {
     try {
+        // Soft delete: mark as cancelled instead of hard deleting
         const result = await sql`
-            DELETE FROM event_registrations
-            WHERE event_id = ${event_id} AND user_id = ${user_id}
+            UPDATE event_registrations
+            SET is_cancelled = TRUE,
+                cancelled_at = NOW()
+            WHERE event_id = ${event_id}
+              AND user_id = ${user_id}
+              AND is_cancelled = FALSE
         `;
 
         if (result.rowCount === 0) {
-            return { success: false, error: "Registration not found" };
+            return { success: false, error: "Active registration not found" };
         }
 
         return { success: true, message: "Successfully deregistered from event" };

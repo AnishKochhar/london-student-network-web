@@ -1609,7 +1609,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">Control who can see and register for your event</p>
                             </div>
 
-                            <div className="lg:col-span-9">
+                            <div className="lg:col-span-9 overflow-visible">
                                 <EventAccessControls
                                     visibilityLevel={watchedValues.visibility_level || 'public'}
                                     registrationLevel={watchedValues.registration_level || 'public'}

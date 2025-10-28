@@ -178,7 +178,7 @@ export default function RegistrationTab({ event }: RegistrationTabProps) {
 										</div>
 									</div>
 									<div className="text-right shrink-0">
-										<p className={`text-base sm:text-lg font-bold ${isPaid ? 'text-purple-600' : 'text-green-600'}`}>
+										<p className="text-base sm:text-lg font-bold text-white">
 											{isPaid ? `£${price.toFixed(2)}` : 'Free'}
 										</p>
 									</div>
