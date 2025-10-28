@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { BarChart3, Users, Settings, LayoutDashboard, LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Tab {
     id: string;
@@ -15,6 +16,28 @@ interface GlassTabPickerProps {
 }
 
 export default function GlassTabPicker({ activeTab, setActiveTab }: GlassTabPickerProps) {
+    const [navbarHeight, setNavbarHeight] = useState(0);
+
+    useEffect(() => {
+        // Calculate navbar height dynamically
+        const calculateNavbarHeight = () => {
+            const navbar = document.querySelector('header');
+            if (navbar) {
+                const height = navbar.offsetHeight;
+                setNavbarHeight(height);
+            }
+        };
+
+        // Calculate on mount
+        calculateNavbarHeight();
+
+        // Recalculate on window resize
+        window.addEventListener('resize', calculateNavbarHeight);
+
+        // Cleanup
+        return () => window.removeEventListener('resize', calculateNavbarHeight);
+    }, []);
+
     const tabs: Tab[] = [
         { id: "overview", label: "Overview", icon: LayoutDashboard },
         { id: "guests", label: "Guests", icon: Users },
@@ -25,7 +48,10 @@ export default function GlassTabPicker({ activeTab, setActiveTab }: GlassTabPick
     const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
     return (
-        <div className="sticky top-[72px] z-30 mb-6 bg-white/10 backdrop-blur-md rounded-2xl p-1 sm:p-1.5 shadow-2xl border border-white/20 overflow-x-auto">
+        <div
+            className="sticky z-30 mb-6 bg-white/10 backdrop-blur-md rounded-2xl p-1 sm:p-1.5 shadow-2xl border border-white/20 overflow-x-auto"
+            style={{ top: navbarHeight ? `${navbarHeight + 16}px` : '88px' }} // 16px gap, fallback to 88px
+        >
             {/* Glass shine overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-2xl pointer-events-none" />
 

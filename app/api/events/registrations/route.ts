@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getRegistrationsForEvent } from "@/app/lib/data";
 
 export async function POST(req: Request) {
-    const { event_id }: { event_id: string } = await req.json();
-    const response = await getRegistrationsForEvent(event_id);
+    const { event_id, includeCancelled }: { event_id: string; includeCancelled?: boolean } = await req.json();
+    const response = await getRegistrationsForEvent(event_id, includeCancelled);
 
     if (!response.success) {
         return NextResponse.json(response);
@@ -11,9 +11,12 @@ export async function POST(req: Request) {
 
     // Calculate statistics from registrations
     const registrations = response.registrations;
-    const totalRegistrations = registrations.length;
-    const internalRegistrations = registrations.filter(r => !r.external).length;
-    const externalRegistrations = registrations.filter(r => r.external).length;
+    const activeRegistrations = registrations.filter(r => !r.is_cancelled);
+    const cancelledRegistrations = registrations.filter(r => r.is_cancelled);
+
+    const totalRegistrations = activeRegistrations.length;
+    const internalRegistrations = activeRegistrations.filter(r => !r.external).length;
+    const externalRegistrations = activeRegistrations.filter(r => r.external).length;
 
     // Sort by most recent
     const sortedRegistrations = [...registrations].sort((a, b) => {
@@ -28,5 +31,6 @@ export async function POST(req: Request) {
         totalRegistrations,
         internalRegistrations,
         externalRegistrations,
+        totalCancellations: cancelledRegistrations.length,
     });
 }

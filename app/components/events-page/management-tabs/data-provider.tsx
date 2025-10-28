@@ -6,6 +6,7 @@ interface RegistrationData {
     total: number;
     internal: number;
     external: number;
+    totalCancellations?: number;
     registrations: Array<{
         user_name: string;
         user_email: string;
@@ -13,6 +14,8 @@ interface RegistrationData {
         external: boolean;
         payment_required?: boolean;
         ticket_name?: string;
+        is_cancelled?: boolean;
+        cancelled_at?: string;
     }>;
 }
 
@@ -65,12 +68,12 @@ export function ManagementDataProvider({
             setLoading(true);
             setError(null);
 
-            // Fetch registrations and revenue in parallel
+            // Fetch registrations and revenue in parallel (include cancelled registrations)
             const [regResponse, revResponse] = await Promise.all([
                 fetch("/api/events/registrations", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ event_id: eventId }),
+                    body: JSON.stringify({ event_id: eventId, includeCancelled: true }),
                 }),
                 hasPaidTickets
                     ? fetch("/api/events/revenue", {
@@ -88,12 +91,14 @@ export function ManagementDataProvider({
                     total: regData.totalRegistrations,
                     internal: regData.internalRegistrations,
                     external: regData.externalRegistrations,
+                    totalCancellations: regData.totalCancellations,
                     registrations: regData.registrations,
                 });
                 console.log("Set registrations:", {
                     total: regData.totalRegistrations,
                     internal: regData.internalRegistrations,
                     external: regData.externalRegistrations,
+                    totalCancellations: regData.totalCancellations,
                     count: regData.registrations.length
                 });
             } else {

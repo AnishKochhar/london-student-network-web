@@ -19,10 +19,12 @@ interface Registration {
     payment_required?: boolean;
     quantity?: number;
     ticket_name?: string;
+    is_cancelled?: boolean;
+    cancelled_at?: string;
 }
 
 type SortOption = "recent" | "name-asc" | "name-desc" | "email";
-type FilterOption = "all" | "internal" | "external" | "paid" | "free";
+type FilterOption = "all" | "internal" | "external" | "paid" | "free" | "cancelled";
 
 export default function GuestsTab({ event }: GuestsTabProps) {
     const { registrations: regData, loading } = useManagementData();
@@ -50,13 +52,18 @@ export default function GuestsTab({ event }: GuestsTabProps) {
 
         // Apply category filter
         if (filterBy === "internal") {
-            filtered = filtered.filter((reg) => !reg.external);
+            filtered = filtered.filter((reg) => !reg.external && !reg.is_cancelled);
         } else if (filterBy === "external") {
-            filtered = filtered.filter((reg) => reg.external);
+            filtered = filtered.filter((reg) => reg.external && !reg.is_cancelled);
         } else if (filterBy === "paid") {
-            filtered = filtered.filter((reg) => reg.payment_required);
+            filtered = filtered.filter((reg) => reg.payment_required && !reg.is_cancelled);
         } else if (filterBy === "free") {
-            filtered = filtered.filter((reg) => !reg.payment_required);
+            filtered = filtered.filter((reg) => !reg.payment_required && !reg.is_cancelled);
+        } else if (filterBy === "cancelled") {
+            filtered = filtered.filter((reg) => reg.is_cancelled);
+        } else if (filterBy === "all") {
+            // For "all", exclude cancelled by default
+            filtered = filtered.filter((reg) => !reg.is_cancelled);
         }
 
         // Apply sorting
@@ -238,6 +245,7 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                             <option value="external">External Only</option>
                             <option value="paid">Paid Only</option>
                             <option value="free">Free Only</option>
+                            <option value="cancelled">Cancelled</option>
                         </select>
                     </div>
                 </div>
@@ -322,9 +330,16 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                                                 )}
                                             </td>
 
-                                            {/* Registered */}
+                                            {/* Registered / Cancelled */}
                                             <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                <span className="text-sm text-white/80">{formatRegistrationDate(reg.date_registered)}</span>
+                                                {reg.is_cancelled && reg.cancelled_at ? (
+                                                    <div className="flex flex-col items-end gap-0.5">
+                                                        <span className="text-xs text-red-300 font-medium">Cancelled</span>
+                                                        <span className="text-sm text-white/60">{formatRegistrationDate(reg.cancelled_at)}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-white/80">{formatRegistrationDate(reg.date_registered)}</span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

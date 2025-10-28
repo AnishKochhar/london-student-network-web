@@ -75,17 +75,17 @@ export default function UserRegistrations() {
                 break;
             case "paid":
                 filtered = filtered.filter((event) => event.has_paid_tickets === true);
-                // Sort by date (soonest first)
-                filtered.sort((a, b) => new Date(a.start_datetime || '').getTime() - new Date(b.start_datetime || '').getTime());
+                // Sort by date (latest/furthest future first)
+                filtered.sort((a, b) => new Date(b.start_datetime || '').getTime() - new Date(a.start_datetime || '').getTime());
                 break;
             case "free":
                 filtered = filtered.filter((event) => !event.has_paid_tickets);
-                // Sort by date (soonest first)
-                filtered.sort((a, b) => new Date(a.start_datetime || '').getTime() - new Date(b.start_datetime || '').getTime());
+                // Sort by date (latest/furthest future first)
+                filtered.sort((a, b) => new Date(b.start_datetime || '').getTime() - new Date(a.start_datetime || '').getTime());
                 break;
             default:
-                // "all" - sort by date (soonest first)
-                filtered.sort((a, b) => new Date(a.start_datetime || '').getTime() - new Date(b.start_datetime || '').getTime());
+                // "all" - sort by date (latest/furthest future first)
+                filtered.sort((a, b) => new Date(b.start_datetime || '').getTime() - new Date(a.start_datetime || '').getTime());
         }
 
         setFilteredRegistrations(filtered);

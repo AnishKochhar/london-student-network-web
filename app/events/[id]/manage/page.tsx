@@ -75,6 +75,8 @@ export default function EventManagePage() {
 
     useEffect(() => {
         fetchEvent();
+        // Dismiss loading toast if it exists
+        toast.dismiss("manage-navigation");
     }, [fetchEvent]);
 
     if (status === "loading" || loading) {

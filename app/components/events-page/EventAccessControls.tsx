@@ -439,7 +439,7 @@ export default function EventAccessControls({
     }, [visibilityLevel, registrationLevel, onRegistrationChange, effectiveVisibilityLevel]);
 
     return (
-        <div className={`space-y-6 ${hasOpenDropdown ? 'relative z-[100]' : ''}`}>
+        <div className={`space-y-6 overflow-visible ${hasOpenDropdown ? 'relative z-[100]' : ''}`}>
             {/* Info banner */}
             <motion.div
                 initial={{ opacity: 0, y: -10 }}

@@ -9,6 +9,7 @@ import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import EventCardTags from "./event-tags";
 import EventModal from "./event-modal";
 import { EyeSlashIcon } from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
 
 export default function EventCard({ event, editEvent }: EventCardProps) {
     const router = useRouter();
@@ -21,7 +22,8 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
 
     const handleCardClick = () => {
         if (editEvent) {
-            // Navigate to manage page instead of opening modal
+            // Show loading toast and navigate to manage page
+            toast.loading("Opening event management...", { id: "manage-navigation" });
             router.push(`/events/${base16ToBase62(event.id)}/manage`);
         } else {
             openViewModal();

@@ -396,7 +396,7 @@ const ModernCalendarPicker = ({ value, onChange, label, required = false, classN
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4 w-80"
+                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-[150] p-4 w-80"
                     >
                         {/* Calendar Header */}
                         <div className="flex items-center justify-between mb-4">

@@ -1237,22 +1237,45 @@ export async function registerForEvent(
     }
 }
 
-export async function getRegistrationsForEvent(event_id: string) {
+export async function getRegistrationsForEvent(event_id: string, includeCancelled: boolean = false) {
     try {
-        const result = await sql<SQLRegistrations>`
-		SELECT
-			er.user_id,
-			er.name,
-			er.email,
-			er.created_at,
-			er.external,
-			t.ticket_name,
-			er.payment_required,
-			er.payment_id
-		FROM event_registrations er
-		LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
-		WHERE er.event_id = ${event_id}
-		`;
+        let result;
+        if (includeCancelled) {
+            result = await sql<SQLRegistrations>`
+                SELECT
+                    er.user_id,
+                    er.name,
+                    er.email,
+                    er.created_at,
+                    er.external,
+                    t.ticket_name,
+                    er.payment_required,
+                    er.payment_id,
+                    er.is_cancelled,
+                    er.cancelled_at
+                FROM event_registrations er
+                LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
+                WHERE er.event_id = ${event_id}
+            `;
+        } else {
+            result = await sql<SQLRegistrations>`
+                SELECT
+                    er.user_id,
+                    er.name,
+                    er.email,
+                    er.created_at,
+                    er.external,
+                    t.ticket_name,
+                    er.payment_required,
+                    er.payment_id,
+                    er.is_cancelled,
+                    er.cancelled_at
+                FROM event_registrations er
+                LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
+                WHERE er.event_id = ${event_id}
+                    AND (er.is_cancelled = FALSE OR er.is_cancelled IS NULL)
+            `;
+        }
         const registrations = result.rows.map(
             convertSQLRegistrationsToRegistrations,
         );
