@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDownIcon, LockClosedIcon, GlobeAltIcon, UserGroupIcon, ShieldCheckIcon, AcademicCapIcon, LinkIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, LockClosedIcon, GlobeAltIcon, UserGroupIcon, ShieldCheckIcon, AcademicCapIcon } from "@heroicons/react/24/outline";
 
 interface EventAccessControlsProps {
     visibilityLevel: string;
@@ -43,9 +43,9 @@ const VISIBILITY_OPTIONS = [
     },
     {
         value: 'link_only',
-        label: 'Link-Only (Unlisted)',
-        icon: LinkIcon,
-        description: 'Hidden from all listings - only accessible to anyone with the direct link'
+        label: 'Private',
+        icon: LockClosedIcon,
+        description: 'Hidden from all public listings - only people with the direct link can access this event'
     }
 ];
 
@@ -451,7 +451,7 @@ export default function EventAccessControls({
                     <div className="text-sm text-blue-100">
                         <p className="font-medium mb-1">Access Control</p>
                         <p className="text-xs text-blue-200/80">
-                            Control who can see and register for your event. You can restrict access to logged-in users, verified students, specific universities, or make it link-only for invite-only events.
+                            Control who can see and register for your event. You can restrict access to logged-in users, verified students, specific universities, or make it private for invite-only events.
                         </p>
                     </div>
                 </div>
@@ -464,7 +464,7 @@ export default function EventAccessControls({
                     onChange={handleVisibilityChange}
                     options={VISIBILITY_OPTIONS}
                     label="Who can see this event?"
-                    tooltip="Controls who can view this event. Link-only events are hidden from all listings."
+                    tooltip="Controls who can view this event. Private events are hidden from all listings and only accessible via direct link."
                     onOpenChange={setHasOpenDropdown}
                 />
                 {effectiveVisibilityLevel === 'link_only' && (
@@ -474,9 +474,9 @@ export default function EventAccessControls({
                         className="mt-3 p-3 bg-purple-500/10 border border-purple-400/30 rounded-lg"
                     >
                         <div className="flex items-start gap-2 text-xs">
-                            <EyeSlashIcon className="w-4 h-4 text-purple-300 flex-shrink-0 mt-0.5" />
+                            <LockClosedIcon className="w-4 h-4 text-purple-300 flex-shrink-0 mt-0.5" />
                             <p className="text-purple-200">
-                                This event won&apos;t appear in search results or public listings. Only people with the direct link can find it. Perfect for invite-only or private events.
+                                <strong>Private Event:</strong> This event is hidden from all public listings and search results. Only people you share the direct link with can view and access it.
                             </p>
                         </div>
                     </motion.div>
