@@ -372,7 +372,7 @@ const ModernCalendarPicker = ({ value, onChange, label, required = false, classN
     };
 
     return (
-        <div ref={calendarRef} className={`relative ${className}`}>
+        <div ref={calendarRef} className={`relative z-[150] ${className}`}>
             <label className="block text-sm font-medium text-white mb-3">
                 {label} {required && <span className="text-red-300">*</span>}
             </label>
