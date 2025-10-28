@@ -183,9 +183,9 @@ export default function UserEventsList({
     }
 
     return (
-        <div className="space-y-6">
-            {/* Filter Buttons */}
-            <div className="flex flex-wrap gap-2 p-4 bg-white/5 rounded-xl border border-white/10">
+        <div className="space-y-4">
+            {/* Filter Buttons - Floating Pills */}
+            <div className="flex flex-wrap gap-2">
                 {filterOptions.map((filter) => {
                     const Icon = filter.icon;
                     const isActive = activeFilter === filter.id;
@@ -201,11 +201,11 @@ export default function UserEventsList({
                             onClick={() => setActiveFilter(filter.id)}
                             title={filter.tooltip}
                             className={`
-                                group relative inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
-                                transition-all duration-200
+                                group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm
+                                transition-all duration-200 backdrop-blur-sm
                                 ${isActive
-                                    ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50 shadow-lg shadow-blue-500/20'
-                                    : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:border-white/20'
+                                    ? 'bg-blue-500/30 text-blue-200 border-2 border-blue-400/60 shadow-lg shadow-blue-500/25 scale-105'
+                                    : 'bg-white/10 text-gray-300 border border-white/20 hover:bg-white/15 hover:border-white/30 hover:scale-105'
                                 }
                             `}
                         >

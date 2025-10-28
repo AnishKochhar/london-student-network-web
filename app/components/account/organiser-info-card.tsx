@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PencilIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon, AtSymbolIcon } from "@heroicons/react/24/outline";
 import AccountLogo from "./account-logo";
 import MarkdownRenderer from "../markdown/markdown-renderer";
 import fetchPredefinedTags from "@/app/lib/utils";
@@ -140,25 +140,28 @@ export default function OrganiserInfoCard({ userId }: { userId: string }) {
     };
 
     return (
-        <div className="mt-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
+        <div className="mt-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden shadow-xl">
             {/* Header with logo and name */}
-            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-6 border-b border-white/10">
-                <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
+            <div className="relative bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 p-6 sm:p-8 border-b border-white/10">
+                <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
                     {/* Logo */}
-                    <div className="flex-shrink-0">
-                        <div className="w-24 h-24 rounded-xl overflow-hidden bg-white/10 border border-white/20">
-                            <AccountLogo id={userId} role="organiser" />
+                    <div className="relative flex-shrink-0 group">
+                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/20 shadow-lg transition-transform duration-300 group-hover:scale-105">
+                            <AccountLogo id={userId} role="organiser" compact={true} />
                         </div>
+                        {/* Subtle glow effect */}
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-lg -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
 
-                    {/* Name, username, and Stripe status */}
+                    {/* Name and info */}
                     <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
+                        <div className="flex flex-col gap-3">
                             <div>
-                                <h3 className="text-2xl font-bold text-white mb-1 truncate">
+                                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 tracking-tight">
                                     {session?.user?.name || "Organisation"}
                                 </h3>
-                                <p className="text-sm text-gray-400">
+                                <p className="text-sm text-gray-400 flex items-center gap-2">
+                                    <AtSymbolIcon className="w-4 h-4" />
                                     {session?.user?.email}
                                 </p>
                             </div>

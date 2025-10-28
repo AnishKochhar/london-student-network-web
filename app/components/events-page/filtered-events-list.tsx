@@ -33,10 +33,10 @@ export default function FilteredEventsList({
         const [monthB, yearB] = b.split("/");
         const dateA = new Date(`${yearA}-${monthA}-01`);
         const dateB = new Date(`${yearB}-${monthB}-01`);
-        // Use reverse order for account page, normal order for events page
+        // Use reverse order for account page (furthest future first), normal order for events page
         return reverseOrder
-            ? dateB.getTime() - dateA.getTime()  // Most recent first (account page)
-            : dateA.getTime() - dateB.getTime();  // Chronological order (events page)
+            ? dateB.getTime() - dateA.getTime()  // Descending: Dec 2025 before Nov 2025 (furthest future first)
+            : dateA.getTime() - dateB.getTime();  // Ascending: Chronological order (events page)
     });
 
     return (
@@ -80,6 +80,7 @@ export default function FilteredEventsList({
                                     year={year}
                                     events={monthYearGroupings[monthYearKey]}
                                     editEvent={editEvent}
+                                    reverseOrder={reverseOrder}
                                 />
                             </motion.div>
                         );

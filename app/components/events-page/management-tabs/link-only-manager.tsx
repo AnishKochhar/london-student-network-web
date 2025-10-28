@@ -7,10 +7,9 @@ import toast from "react-hot-toast";
 
 interface LinkOnlyManagerProps {
     eventId: string;
-    eventTitle: string;
 }
 
-export default function LinkOnlyManager({ eventId, eventTitle }: LinkOnlyManagerProps) {
+export default function LinkOnlyManager({ eventId }: LinkOnlyManagerProps) {
     const [copied, setCopied] = useState(false);
 
     const eventUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/events/${eventId}`;

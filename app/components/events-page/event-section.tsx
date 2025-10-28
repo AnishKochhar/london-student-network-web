@@ -9,6 +9,7 @@ interface EventSectionProps {
     year: string;
     events: Event[];
     editEvent?: boolean;
+    reverseOrder?: boolean;
 }
 
 export default function EventSection({
@@ -16,8 +17,9 @@ export default function EventSection({
     year,
     events,
     editEvent,
+    reverseOrder = false,
 }: EventSectionProps) {
-    const sortedEvents = sortEventsByDate(events);
+    const sortedEvents = sortEventsByDate(events, reverseOrder);
 
     const containerVariants = {
         hidden: { opacity: 0 },

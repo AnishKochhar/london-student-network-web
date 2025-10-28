@@ -297,13 +297,15 @@ export default getPredefinedTags;
 
 // MARK: Formatting and Sorting helper functions
 
-export function sortEventsByDate(events: Event[]): Event[] {
+export function sortEventsByDate(events: Event[], reverse: boolean = false): Event[] {
 	return events.sort((a, b) => {
 		const [dayA, monthA, yearA] = a.date.split("/").map(Number);
 		const [dayB, monthB, yearB] = b.date.split("/").map(Number);
 		const dateA = new Date(yearA, monthA - 1, dayA);
 		const dateB = new Date(yearB, monthB - 1, dayB);
-		return dateA.getTime() - dateB.getTime();
+		return reverse
+			? dateB.getTime() - dateA.getTime()  // Descending: furthest future first
+			: dateA.getTime() - dateB.getTime();  // Ascending: chronological
 	});
 }
 
@@ -695,6 +697,7 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		visibility_level: data.visibility_level || 'public',
 		registration_level: data.registration_level || 'public',
 		allowed_universities: data.allowed_universities || [],
+		link_only: data.link_only ?? false,
 		// Registration cutoff fields
 		registration_cutoff_hours: data.registration_cutoff_hours != null && !isNaN(Number(data.registration_cutoff_hours)) && Number(data.registration_cutoff_hours) > 0
 			? Number(data.registration_cutoff_hours)

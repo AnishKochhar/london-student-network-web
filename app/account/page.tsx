@@ -15,6 +15,7 @@ import ForgottenPasswordModal from "../components/login/reset-password-modal";
 import UsernameCreationModal from "../components/forum/username-creation-modal";
 import AddUniversityEmailModal from "../components/account/add-university-email-modal";
 import StripeConnectStatus from "../components/account/stripe-connect-status";
+import StripeConnectStatusCompact from "../components/account/stripe-connect-status-compact";
 import OrganiserInfoCard from "../components/account/organiser-info-card";
 import { useReferralTracking } from "../hooks/useReferralTracking";
 import toast from "react-hot-toast";
@@ -599,6 +600,16 @@ export default function AccountPage() {
                                                 <p className="text-xs text-gray-500">Failed to load verification status</p>
                                             )}
                                         </div>
+
+                                        {/* Stripe Payment Status - For Organisers/Companies */}
+                                        {(user.role === 'organiser' || user.role === 'company') && (
+                                            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
+                                                <label className="block text-sm font-medium text-gray-400 mb-3">
+                                                    Payment Processing
+                                                </label>
+                                                <StripeConnectStatusCompact />
+                                            </div>
+                                        )}
 
                                     </div>
 

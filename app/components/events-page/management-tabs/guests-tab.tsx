@@ -32,6 +32,7 @@ export default function GuestsTab({ event }: GuestsTabProps) {
     const [sortBy, setSortBy] = useState<SortOption>("recent");
     const [filterBy, setFilterBy] = useState<FilterOption>("all");
     const [copiedEmails, setCopiedEmails] = useState(false);
+    const [copiedNames, setCopiedNames] = useState(false);
 
     // Apply filters and sorting
     useEffect(() => {
@@ -72,7 +73,7 @@ export default function GuestsTab({ event }: GuestsTabProps) {
         setFilteredRegistrations(filtered);
     }, [registrations, searchQuery, sortBy, filterBy]);
 
-    const getTimeAgo = (dateString: string) => {
+    const formatRegistrationDate = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
@@ -81,10 +82,13 @@ export default function GuestsTab({ event }: GuestsTabProps) {
         const diffDays = Math.floor(diffHours / 24);
 
         if (diffMins < 1) return "Just now";
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
         if (diffDays === 1) return "Yesterday";
-        return `${diffDays}d ago`;
+        if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+
+        // For older dates, show formatted date
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
     const copyAllEmails = () => {
@@ -93,6 +97,14 @@ export default function GuestsTab({ event }: GuestsTabProps) {
         setCopiedEmails(true);
         toast.success(`Copied ${filteredRegistrations.length} emails to clipboard`);
         setTimeout(() => setCopiedEmails(false), 2000);
+    };
+
+    const copyAllNames = () => {
+        const names = filteredRegistrations.map((reg) => reg.user_name).join(", ");
+        navigator.clipboard.writeText(names);
+        setCopiedNames(true);
+        toast.success(`Copied ${filteredRegistrations.length} names to clipboard`);
+        setTimeout(() => setCopiedNames(false), 2000);
     };
 
     const exportToCSV = () => {
@@ -122,21 +134,42 @@ export default function GuestsTab({ event }: GuestsTabProps) {
     return (
         <div className="space-y-4 sm:space-y-6">
             {/* Header with Actions */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h3 className="text-base sm:text-lg font-semibold text-white">
+                        <h3 className="text-lg sm:text-xl font-bold text-white">
                             Guest List
                         </h3>
-                        <p className="text-xs sm:text-sm text-white/80 mt-1">
-                            {filteredRegistrations.length} of {registrations.length} guests
+                        <p className="text-sm text-white/70 mt-1">
+                            <span className="font-semibold text-blue-300">{filteredRegistrations.length}</span>
+                            {filteredRegistrations.length !== registrations.length && (
+                                <span className="text-white/50"> of {registrations.length}</span>
+                            )}
+                            {filteredRegistrations.length === 1 ? ' guest' : ' guests'}
                         </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                         <button
+                            onClick={copyAllNames}
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-400/30 rounded-lg transition-all hover:scale-105 backdrop-blur-sm"
+                        >
+                            {copiedNames ? (
+                                <>
+                                    <Check className="w-4 h-4 shrink-0" />
+                                    <span className="text-xs sm:text-sm font-medium">Copied!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="w-4 h-4 shrink-0" />
+                                    <span className="text-xs sm:text-sm font-medium">Copy Names</span>
+                                </>
+                            )}
+                        </button>
+
+                        <button
                             onClick={copyAllEmails}
-                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-400/30 rounded-lg transition-all hover:scale-105 backdrop-blur-sm"
                         >
                             {copiedEmails ? (
                                 <>
@@ -145,7 +178,7 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                                 </>
                             ) : (
                                 <>
-                                    <Copy className="w-4 h-4 shrink-0" />
+                                    <Mail className="w-4 h-4 shrink-0" />
                                     <span className="text-xs sm:text-sm font-medium">Copy Emails</span>
                                 </>
                             )}
@@ -153,7 +186,7 @@ export default function GuestsTab({ event }: GuestsTabProps) {
 
                         <button
                             onClick={exportToCSV}
-                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-200 border border-green-400/30 rounded-lg transition-all hover:scale-105 backdrop-blur-sm"
                         >
                             <Download className="w-4 h-4 shrink-0" />
                             <span className="text-xs sm:text-sm font-medium">Export CSV</span>
@@ -210,64 +243,143 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                 </div>
             </div>
 
-            {/* Guest List */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 overflow-hidden">
+            {/* Guest Table */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
                 {loading ? (
-                    <div className="flex justify-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="flex justify-center py-16">
+                        <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-400 border-t-transparent"></div>
                     </div>
                 ) : filteredRegistrations.length > 0 ? (
-                    <div className="divide-y divide-white/20">
-                        {filteredRegistrations.map((reg, index) => (
-                            <div
-                                key={index}
-                                className="p-3 sm:p-4 hover:bg-white/5 transition-colors"
-                            >
-                                <div className="flex items-start sm:items-center justify-between gap-3">
-                                    <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-                                        {/* Avatar */}
-                                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shrink-0">
-                                            <span className="text-white font-semibold text-base sm:text-lg">
-                                                {reg.user_name.charAt(0).toUpperCase()}
-                                            </span>
-                                        </div>
-
-                                        {/* Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                                <p className="text-xs sm:text-sm font-semibold text-white">
+                    <>
+                        {/* Desktop Table View */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-white/5 border-b border-white/20">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">
+                                            Guest
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">
+                                            Email
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">
+                                            Type
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">
+                                            Ticket
+                                        </th>
+                                        <th className="px-6 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">
+                                            Registered
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/10">
+                                    {filteredRegistrations.map((reg, index) => (
+                                        <tr
+                                            key={index}
+                                            className="hover:bg-white/5 transition-colors"
+                                        >
+                                            {/* Name */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="text-sm font-medium text-white">
                                                     {reg.user_name}
-                                                </p>
-                                                {reg.external && (
-                                                    <span className="px-1.5 sm:px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">
-                                                        External
-                                                    </span>
-                                                )}
-                                                {reg.payment_required && (
-                                                    <span className="px-1.5 sm:px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                                                        Paid
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs sm:text-sm text-white/80 truncate">{reg.user_email}</p>
-                                        </div>
-                                    </div>
+                                                </span>
+                                            </td>
 
-                                    {/* Time */}
-                                    <div className="text-right shrink-0">
-                                        <p className="text-xs sm:text-sm text-white/70">{getTimeAgo(reg.date_registered)}</p>
-                                        <p className="text-xs text-white/50 mt-0.5 hidden sm:block">
-                                            {new Date(reg.date_registered).toLocaleDateString()}
+                                            {/* Email */}
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm text-white/70">
+                                                    {reg.user_email}
+                                                </span>
+                                            </td>
+
+                                            {/* Type */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`
+                                                    inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium
+                                                    ${reg.external
+                                                        ? 'bg-orange-500/20 text-orange-200'
+                                                        : 'bg-blue-500/20 text-blue-200'
+                                                    }
+                                                `}>
+                                                    {reg.external ? 'External' : 'Internal'}
+                                                </span>
+                                            </td>
+
+                                            {/* Ticket */}
+                                            <td className="px-6 py-4">
+                                                {reg.ticket_name ? (
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-sm text-white/90">{reg.ticket_name}</span>
+                                                        {reg.quantity && reg.quantity > 1 && (
+                                                            <span className="text-xs text-white/60">Quantity: {reg.quantity}</span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-white/70">
+                                                        {reg.payment_required ? 'Paid Entry' : 'Standard'}
+                                                    </span>
+                                                )}
+                                            </td>
+
+                                            {/* Registered */}
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <span className="text-sm text-white/80">{formatRegistrationDate(reg.date_registered)}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden divide-y divide-white/10">
+                            {filteredRegistrations.map((reg, index) => (
+                                <div
+                                    key={index}
+                                    className="p-4 hover:bg-white/5 transition-colors"
+                                >
+                                    <div className="space-y-3">
+                                        {/* Name & Email */}
+                                        <div>
+                                            <p className="text-sm font-semibold text-white mb-1">
+                                                {reg.user_name}
+                                            </p>
+                                            <p className="text-xs text-white/70 truncate">{reg.user_email}</p>
+                                        </div>
+
+                                        {/* Metadata */}
+                                        <div className="flex flex-wrap gap-2">
+                                            <span className={`
+                                                inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium
+                                                ${reg.external
+                                                    ? 'bg-orange-500/20 text-orange-200'
+                                                    : 'bg-blue-500/20 text-blue-200'
+                                                }
+                                            `}>
+                                                {reg.external ? 'External' : 'Internal'}
+                                            </span>
+                                            {reg.ticket_name && (
+                                                <span className="inline-flex items-center px-2.5 py-1 bg-white/10 text-white/90 rounded-md text-xs font-medium">
+                                                    {reg.ticket_name}
+                                                    {reg.quantity && reg.quantity > 1 && ` (${reg.quantity})`}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Time */}
+                                        <p className="text-xs text-white/60">
+                                            Registered {formatRegistrationDate(reg.date_registered)}
                                         </p>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    </>
                 ) : (
-                    <div className="text-center py-12">
-                        <Mail className="w-12 h-12 text-white/50 mx-auto mb-3" />
-                        <p className="text-white/70">
+                    <div className="text-center py-16">
+                        <Mail className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                        <p className="text-white/70 text-lg mb-2">
                             {searchQuery || filterBy !== "all"
                                 ? "No guests match your filters"
                                 : "No registrations yet"}
@@ -278,7 +390,7 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                                     setSearchQuery("");
                                     setFilterBy("all");
                                 }}
-                                className="text-sm text-blue-600 hover:text-blue-700 mt-2"
+                                className="text-sm text-blue-400 hover:text-blue-300 underline transition mt-2"
                             >
                                 Clear filters
                             </button>

@@ -97,7 +97,6 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
             {event.link_only && (
                 <LinkOnlyManager
                     eventId={base16ToBase62(eventId)}
-                    eventTitle={event.title}
                 />
             )}
 

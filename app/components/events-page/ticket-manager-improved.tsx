@@ -299,7 +299,7 @@ const FeeInfoOverlay = () => {
     const calculateExample = (ticketPrice: number) => {
         const stripeFee = Math.round((ticketPrice * 100 * 0.015) + 20); // 1.5% + 20p in pence
         const platformFee = Math.round((ticketPrice * 100 * (PLATFORM_FEE_PERCENTAGE / 100)));
-        const organiserReceives = (ticketPrice * 100) - platformFee;
+        const organiserReceives = (ticketPrice * 100) - stripeFee - platformFee; // Subtract BOTH fees
 
         return {
             ticketPrice: ticketPrice.toFixed(2),
@@ -671,6 +671,8 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                                     }
                                                                 }
                                                             }}
+                                                            onWheel={(e) => e.currentTarget.blur()} // Prevent scroll from changing value
+                                                            onFocus={(e) => e.target.select()} // Select all on focus for easy editing
                                                             placeholder="0.00"
                                                             className="w-full pl-8 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                         />
@@ -721,6 +723,8 @@ export default function TicketManager({ tickets, onChange, hasStripeAccount }: T
                                                                 }
                                                             }
                                                         }}
+                                                        onWheel={(e) => e.currentTarget.blur()} // Prevent scroll from changing value
+                                                        onFocus={(e) => e.target.select()} // Select all on focus for easy editing
                                                         placeholder="Leave empty for unlimited tickets"
                                                         className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     />
