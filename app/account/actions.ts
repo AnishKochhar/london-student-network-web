@@ -46,10 +46,18 @@ export async function resendPrimaryVerificationEmail() {
   }
 
   try {
-    // Import the email sending function
-    const { sendVerificationEmail } = await import('@/app/lib/send-verification-email');
+    const { sendEmailVerificationEmail } = await import('@/app/lib/send-email');
+    const { insertToken } = await import('@/app/lib/redis-operations');
+    const { generateToken } = await import('@/app/lib/utils');
 
-    await sendVerificationEmail(session.user.email);
+    const token = generateToken();
+    const response = await insertToken(session.user.email, token, 'verify');
+
+    if (!response.success) {
+      throw new Error('Failed to generate verification token');
+    }
+
+    await sendEmailVerificationEmail(session.user.email, token);
 
     return { success: true };
   } catch (error) {
@@ -66,10 +74,44 @@ export async function resendUniversityVerificationEmail(universityEmail: string)
   }
 
   try {
-    // Import the email sending function
-    const { sendUniversityVerificationEmail } = await import('@/app/lib/send-university-verification-email');
+    const { sendUniversityVerificationEmail } = await import('@/app/lib/send-email');
+    const {
+      extractUniversityFromEmail,
+      generateVerificationToken,
+      storeUniversityVerificationToken,
+    } = await import('@/app/lib/university-verification');
 
-    await sendUniversityVerificationEmail(session.user.id, universityEmail);
+    // Validate university email domain
+    const universityResult = await extractUniversityFromEmail(universityEmail);
+
+    if (!universityResult.success || !universityResult.universityName) {
+      return {
+        success: false,
+        error: universityResult.error || 'Invalid university email domain',
+      };
+    }
+
+    // Generate and store verification token
+    const token = await generateVerificationToken();
+    const storeResult = await storeUniversityVerificationToken(
+      session.user.id,
+      universityEmail,
+      token
+    );
+
+    if (!storeResult.success) {
+      return {
+        success: false,
+        error: 'Failed to generate verification token',
+      };
+    }
+
+    // Send verification email
+    await sendUniversityVerificationEmail(
+      universityEmail,
+      token,
+      universityResult.universityName
+    );
 
     return { success: true };
   } catch (error) {
