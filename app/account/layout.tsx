@@ -52,7 +52,19 @@ interface Props {
 
 export default function AccountLayout({ children, accountData }: Props) {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+
+  // Show loading state while session is loading
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   // 1. Referral tracking (runs once per session)
   useReferralTracking();
@@ -141,9 +153,9 @@ export default function AccountLayout({ children, accountData }: Props) {
                   <span className="text-xl lg:text-2xl">👤</span>
                 </div>
                 <h1 className="text-lg lg:text-2xl font-semibold text-white mb-2 truncate">
-                  {session.user?.name || "Your Account"}
+                  {session?.user?.name || "Your Account"}
                 </h1>
-                <p className="text-gray-300 text-xs lg:text-sm truncate">{session.user?.email}</p>
+                <p className="text-gray-300 text-xs lg:text-sm truncate">{session?.user?.email}</p>
               </div>
 
               {/* Navigation */}
