@@ -19,10 +19,10 @@ interface StripeAccountStatus {
     } | null;
 }
 
-export default function StripeConnectStatus() {
+export default function StripeConnectStatus({ initialStatus }: { initialStatus?: StripeAccountStatus | null }) {
     const { data: session } = useSession();
-    const [accountStatus, setAccountStatus] = useState<StripeAccountStatus | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [accountStatus, setAccountStatus] = useState<StripeAccountStatus | null>(initialStatus || null);
+    const [loading, setLoading] = useState(!initialStatus);
     const [actionLoading, setActionLoading] = useState(false);
 
     // Fetch account status
@@ -44,13 +44,13 @@ export default function StripeConnectStatus() {
     };
 
     useEffect(() => {
-        // Only fetch if user is an organizer or company
-        if (session?.user?.role === 'organiser' || session?.user?.role === 'company') {
+        // Only fetch if we don't have initial data and user is an organizer or company
+        if (!initialStatus && (session?.user?.role === 'organiser' || session?.user?.role === 'company')) {
             fetchAccountStatus();
-        } else {
+        } else if (!initialStatus) {
             setLoading(false);
         }
-    }, [session?.user?.role]);
+    }, [session?.user?.role, initialStatus]);
 
     // Handle creating new Stripe account
     const handleCreateAccount = async () => {

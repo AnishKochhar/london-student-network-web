@@ -27,9 +27,9 @@ interface ReferralData {
     recentReferrals: ReferralItem[];
 }
 
-export default function UserReferrals() {
-    const [referralData, setReferralData] = useState<ReferralData | null>(null);
-    const [loading, setLoading] = useState(true);
+export default function UserReferrals({ initialReferralData }: { initialReferralData?: ReferralData }) {
+    const [referralData, setReferralData] = useState<ReferralData | null>(initialReferralData || null);
+    const [loading, setLoading] = useState(!initialReferralData);
     const [error, setError] = useState<string | null>(null);
     const [showShareModal, setShowShareModal] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -39,8 +39,11 @@ export default function UserReferrals() {
     }, []);
 
     useEffect(() => {
-        fetchReferralStats();
-    }, []);
+        // Only fetch if we don't have initial data
+        if (!initialReferralData) {
+            fetchReferralStats();
+        }
+    }, [initialReferralData]);
 
     const fetchReferralStats = async () => {
         try {

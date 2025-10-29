@@ -16,67 +16,86 @@ interface StripeStatus {
     payoutsEnabled: boolean;
 }
 
-export default function OrganiserInfoCard({ userId }: { userId: string }) {
+export default function OrganiserInfoCard({
+  userId,
+  initialAccountFields,
+  initialStripeStatus,
+  initialPredefinedTags,
+}: {
+  userId: string;
+  initialAccountFields?: any;
+  initialStripeStatus?: any;
+  initialPredefinedTags?: any[];
+}) {
     const router = useRouter();
     const { data: session } = useSession();
-    const [description, setDescription] = useState("");
-    const [website, setWebsite] = useState("");
-    const [tags, setTags] = useState<number[]>([]);
-    const [predefinedTags, setPredefinedTags] = useState([]);
-    const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
-    const [loadingStripe, setLoadingStripe] = useState(true);
+    const [description, setDescription] = useState(initialAccountFields?.description || "");
+    const [website, setWebsite] = useState(initialAccountFields?.website || "");
+    const [tags, setTags] = useState<number[]>(initialAccountFields?.tags || []);
+    const [predefinedTags, setPredefinedTags] = useState(initialPredefinedTags || []);
+    const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(initialStripeStatus || null);
+    const [loadingStripe, setLoadingStripe] = useState(!initialStripeStatus);
     // const stripeSettingsRef = useRef<HTMLElement | null>(null); // Unused
 
     useEffect(() => {
-        const fetchTags = async () => {
-            const tags = await fetchPredefinedTags();
-            setPredefinedTags(tags);
-        };
-        fetchTags();
-    }, []);
+        // Only fetch if we don't have initial data
+        if (!initialPredefinedTags || initialPredefinedTags.length === 0) {
+            const fetchTags = async () => {
+                const tags = await fetchPredefinedTags();
+                setPredefinedTags(tags);
+            };
+            fetchTags();
+        }
+    }, [initialPredefinedTags]);
 
     useEffect(() => {
-        const fetchAccountInfo = async () => {
-            try {
-                const res = await fetch("/api/user/get-account-fields", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(userId),
-                });
-                const { description, website, tags } = await res.json();
-                setDescription(description);
-                setWebsite(website);
-                setTags(tags);
-            } catch (error) {
-                console.error("Error loading account info:", error);
-            }
-        };
-
-        fetchAccountInfo();
-    }, [userId]);
-
-    useEffect(() => {
-        const fetchStripeStatus = async () => {
-            try {
-                const response = await fetch("/api/stripe/connect/account-status");
-                const data = await response.json();
-                if (data.success) {
-                    setStripeStatus({
-                        hasAccount: data.hasAccount,
-                        onboardingComplete: data.status?.onboardingComplete || false,
-                        chargesEnabled: data.status?.chargesEnabled || false,
-                        payoutsEnabled: data.status?.payoutsEnabled || false,
+        // Only fetch if we don't have initial data
+        if (!initialAccountFields) {
+            const fetchAccountInfo = async () => {
+                try {
+                    const res = await fetch("/api/user/get-account-fields", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(userId),
                     });
+                    const { description, website, tags } = await res.json();
+                    setDescription(description);
+                    setWebsite(website);
+                    setTags(tags);
+                } catch (error) {
+                    console.error("Error loading account info:", error);
                 }
-            } catch (error) {
-                console.error("Error fetching Stripe status:", error);
-            } finally {
-                setLoadingStripe(false);
-            }
-        };
+            };
 
-        fetchStripeStatus();
-    }, []);
+            fetchAccountInfo();
+        }
+    }, [userId, initialAccountFields]);
+
+    useEffect(() => {
+        // Only fetch if we don't have initial data
+        if (!initialStripeStatus) {
+            const fetchStripeStatus = async () => {
+                try {
+                    const response = await fetch("/api/stripe/connect/account-status");
+                    const data = await response.json();
+                    if (data.success) {
+                        setStripeStatus({
+                            hasAccount: data.hasAccount,
+                            onboardingComplete: data.status?.onboardingComplete || false,
+                            chargesEnabled: data.status?.chargesEnabled || false,
+                            payoutsEnabled: data.status?.payoutsEnabled || false,
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error fetching Stripe status:", error);
+                } finally {
+                    setLoadingStripe(false);
+                }
+            };
+
+            fetchStripeStatus();
+        }
+    }, [initialStripeStatus]);
 
     const handleStripeStatusClick = () => {
         // Find the Stripe settings section and scroll to it

@@ -20,10 +20,10 @@ interface StripeAccountStatus {
     } | null;
 }
 
-export default function StripeConnectStatusCompact() {
+export default function StripeConnectStatusCompact({ initialStatus }: { initialStatus?: StripeAccountStatus | null }) {
     const { data: session } = useSession();
-    const [accountStatus, setAccountStatus] = useState<StripeAccountStatus | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [accountStatus, setAccountStatus] = useState<StripeAccountStatus | null>(initialStatus || null);
+    const [loading, setLoading] = useState(!initialStatus);
     const [actionLoading, setActionLoading] = useState(false);
 
     const fetchAccountStatus = async () => {
@@ -42,12 +42,13 @@ export default function StripeConnectStatusCompact() {
     };
 
     useEffect(() => {
-        if (session?.user?.role === 'organiser' || session?.user?.role === 'company') {
+        // Only fetch if we don't have initial data
+        if (!initialStatus && (session?.user?.role === 'organiser' || session?.user?.role === 'company')) {
             fetchAccountStatus();
-        } else {
+        } else if (!initialStatus) {
             setLoading(false);
         }
-    }, [session?.user?.role]);
+    }, [session?.user?.role, initialStatus]);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleCreateAccount = async () => {

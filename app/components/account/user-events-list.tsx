@@ -33,9 +33,10 @@ const filterOptions: FilterOption[] = [
 export default function UserEventsList({
     user_id,
     editEvent = false,
-}: UserEventsListProps) {
-    const [userEvents, setUserEvents] = useState<Event[]>([]);
-    const [loading, setLoading] = useState(true);
+    initialEvents = [],
+}: UserEventsListProps & { initialEvents?: Event[] }) {
+    const [userEvents, setUserEvents] = useState<Event[]>(initialEvents);
+    const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -92,8 +93,11 @@ export default function UserEventsList({
     }, [user_id, editEvent]);
 
     useEffect(() => {
-        fetchUserEvents();
-    }, [fetchUserEvents]);
+        // Only fetch if we don't have initial data
+        if (initialEvents.length === 0) {
+            fetchUserEvents();
+        }
+    }, [initialEvents.length, fetchUserEvents]);
 
     // Only refetch data when returning from edit page or after a significant time away
     useEffect(() => {

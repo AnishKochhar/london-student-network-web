@@ -16,11 +16,11 @@ interface FilterOption {
     tooltip: string;
 }
 
-export default function UserRegistrations() {
+export default function UserRegistrations({ initialRegistrations = [] }: { initialRegistrations?: Event[] }) {
     const [registrations, setRegistrations] = useState<Event[]>([]);
-    const [allRegistrations, setAllRegistrations] = useState<Event[]>([]);
+    const [allRegistrations, setAllRegistrations] = useState<Event[]>(initialRegistrations);
     const [filteredRegistrations, setFilteredRegistrations] = useState<Event[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [displayCount, setDisplayCount] = useState(12);
     const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -54,8 +54,11 @@ export default function UserRegistrations() {
     }, []);
 
     useEffect(() => {
-        fetchRegistrations();
-    }, [fetchRegistrations]);
+        // Only fetch if we don't have initial data
+        if (initialRegistrations.length === 0) {
+            fetchRegistrations();
+        }
+    }, [initialRegistrations.length, fetchRegistrations]);
 
     // Apply filters
     useEffect(() => {

@@ -35,10 +35,10 @@ interface Reply {
     is_liked: boolean;
 }
 
-export default function UserForumPosts() {
-    const [threads, setThreads] = useState<Thread[]>([]);
-    const [replies, setReplies] = useState<Reply[]>([]);
-    const [loading, setLoading] = useState(true);
+export default function UserForumPosts({ initialPosts }: { initialPosts?: { threads: Thread[], replies: Reply[] } }) {
+    const [threads, setThreads] = useState<Thread[]>(initialPosts?.threads || []);
+    const [replies, setReplies] = useState<Reply[]>(initialPosts?.replies || []);
+    const [loading, setLoading] = useState(!initialPosts);
     const [activeTab, setActiveTab] = useState<"threads" | "replies">("threads");
     const [selectedThread, setSelectedThread] = useState<ThreadData | null>(null);
     const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
@@ -47,8 +47,11 @@ export default function UserForumPosts() {
     const itemsPerPage = 6;
 
     useEffect(() => {
-        fetchUserPosts();
-    }, []);
+        // Only fetch if we don't have initial data
+        if (!initialPosts) {
+            fetchUserPosts();
+        }
+    }, [initialPosts]);
 
     const fetchUserPosts = async () => {
         try {
