@@ -176,6 +176,7 @@ export default function AccountDropdown({
                 isOpen={showSwitchModal}
                 onClose={() => setShowSwitchModal(false)}
                 currentUserEmail={userEmail || undefined}
+                triggerRef={triggerRef}
             />
         </>
     );

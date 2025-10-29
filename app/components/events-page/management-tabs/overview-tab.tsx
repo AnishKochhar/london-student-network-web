@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Event } from "@/app/lib/types";
 import {
     Users, Calendar, MapPin, Mail,
-    Edit, Eye, EyeOff, TrendingUp, ExternalLink
+    Edit, Eye, EyeOff, TrendingUp, ExternalLink, Trash2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
@@ -28,6 +28,8 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
     const [togglingVisibility, setTogglingVisibility] = useState(false);
     const [navigating, setNavigating] = useState<string | null>(null);
     const [showEmailModal, setShowEmailModal] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
         const price = parseFloat(t.ticket_price || '0');
@@ -65,6 +67,34 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
         setNavigating(type);
         router.push(path);
         // Toast will auto-dismiss when page unloads
+    };
+
+    const handleDeleteEvent = async () => {
+        setDeleting(true);
+        try {
+            const response = await fetch("/api/events/delete", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ event_id: eventId }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast.success("Event deleted successfully");
+                // Redirect to events page after deletion
+                router.push("/events");
+            } else {
+                toast.error(data.error || "Failed to delete event");
+                setDeleting(false);
+            }
+        } catch (error) {
+            console.error("Error deleting event:", error);
+            toast.error("An error occurred while deleting the event");
+            setDeleting(false);
+        }
     };
 
     const capacityPercentage = event.capacity && registrations
@@ -206,7 +236,7 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
             {/* Quick Actions */}
             <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
                 <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
                     <button
                         onClick={() => handleNavigation(`/events/edit?id=${eventId}`, "Editor")}
                         disabled={navigating === "Editor"}
@@ -246,6 +276,14 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
                         <span className="text-xs sm:text-sm font-medium truncate">
                             {navigating === "Event Page" ? "Loading..." : "View Page"}
                         </span>
+                    </button>
+
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-lg"
+                    >
+                        <Trash2 className="w-4 h-4 shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium truncate">Delete Event</span>
                     </button>
                 </div>
             </div>
@@ -312,6 +350,76 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
                     event={event}
                     onClose={() => setShowEmailModal(false)}
                 />
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && typeof window !== 'undefined' && (
+                <>
+                    {/* Portal to body to avoid z-index issues */}
+                    <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                        style={{ zIndex: 100000 }}
+                        onClick={() => !deleting && setShowDeleteConfirm(false)}
+                    >
+                        <div
+                            className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative border border-red-500/30"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <Trash2 className="w-6 h-6 text-red-500" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white">Delete Event</h3>
+                                <p className="text-sm text-white/70">This action cannot be undone</p>
+                            </div>
+                        </div>
+
+                        <div className="mb-6 space-y-3">
+                            <p className="text-white/90">
+                                Are you sure you want to delete <span className="font-semibold text-white">{event.title}</span>?
+                            </p>
+                            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                                <p className="text-sm text-red-300">
+                                    <strong>Warning:</strong> Deleting this event will:
+                                </p>
+                                <ul className="text-sm text-red-200/80 mt-2 space-y-1 ml-4 list-disc">
+                                    <li>Remove it from all public listings</li>
+                                    <li>Prevent new registrations</li>
+                                    <li>Hide it from attendees</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={deleting}
+                                className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors border border-white/20 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteEvent}
+                                disabled={deleting}
+                                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {deleting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        Delete Event
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                </>
             )}
         </div>
     );

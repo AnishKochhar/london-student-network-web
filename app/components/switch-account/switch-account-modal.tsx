@@ -13,15 +13,17 @@ interface SwitchAccountModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	currentUserEmail?: string;
+	triggerRef?: React.RefObject<HTMLButtonElement>;
 }
 
-export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }: SwitchAccountModalProps) {
+export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail, triggerRef }: SwitchAccountModalProps) {
 	const [accounts, setAccounts] = useState<SavedAccount[]>([]);
 	const [selectedAccount, setSelectedAccount] = useState<SavedAccount | null>(null);
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [mounted, setMounted] = useState(false);
+	const [position, setPosition] = useState({ top: 0, left: 0 });
 	const router = useRouter();
 	const y = useMotionValue(0);
 	const sheetRef = useRef<HTMLDivElement>(null);
@@ -31,15 +33,40 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 		setMounted(true);
 	}, []);
 
-	// Body scroll lock
+	// Calculate position based on trigger button
+	const updatePosition = () => {
+		if (triggerRef?.current) {
+			const rect = triggerRef.current.getBoundingClientRect();
+			setPosition({
+				top: rect.bottom + 8,
+				left: rect.right - 384, // 384px = max-w-sm (24rem)
+			});
+		}
+	};
+
+	// Update position when modal opens
 	useEffect(() => {
-		if (isOpen) {
+		if (isOpen && triggerRef) {
+			updatePosition();
+			window.addEventListener('resize', updatePosition);
+			window.addEventListener('scroll', updatePosition);
+			return () => {
+				window.removeEventListener('resize', updatePosition);
+				window.removeEventListener('scroll', updatePosition);
+			};
+		}
+	}, [isOpen, triggerRef]);
+
+	// Body scroll lock (only on mobile)
+	useEffect(() => {
+		if (isOpen && !triggerRef) {
+			// Only lock scroll on mobile (when no triggerRef, modal is centered)
 			document.body.style.overflow = 'hidden';
 			return () => {
 				document.body.style.overflow = '';
 			};
 		}
-	}, [isOpen]);
+	}, [isOpen, triggerRef]);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -135,13 +162,21 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 						onClick={onClose}
 					/>
 
-					{/* Modal - Desktop centered, Mobile bottom sheet */}
+					{/* Modal - Desktop positioned near button, Mobile bottom sheet */}
 					<motion.div
-						initial={{ opacity: 0, scale: 0.96, y: 10 }}
+						initial={{ opacity: 0, scale: 0.96, y: triggerRef ? -10 : 10 }}
 						animate={{ opacity: 1, scale: 1, y: 0 }}
-						exit={{ opacity: 0, scale: 0.96, y: 10 }}
+						exit={{ opacity: 0, scale: 0.96, y: triggerRef ? -10 : 10 }}
 						transition={{ type: "spring", damping: 30, stiffness: 300 }}
-						className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm z-[100000] hidden sm:block"
+						className="fixed w-full max-w-sm z-[100000] hidden sm:block"
+						style={triggerRef ? {
+							top: position.top,
+							left: position.left,
+						} : {
+							left: '50%',
+							top: '50%',
+							transform: 'translate(-50%, -50%)',
+						}}
 					>
 						<div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden mx-4 border border-gray-200/50">
 							{/* Header */}

@@ -59,6 +59,10 @@ export default function EditDetailsPage() {
         setIsSubmitting(true);
         const toastId = toast.loading("Updating your society's details...");
 
+        // Prepare update payload with only changed/valid fields
+        const updatePayload: Partial<OrganiserAccountEditFormData> = {};
+
+        // Handle image upload if there's a new image
         if (data.uploadedImage && typeof data.uploadedImage !== "string") {
             try {
                 const newBlob = await upload(
@@ -70,7 +74,7 @@ export default function EditDetailsPage() {
                     },
                 );
 
-                data.imageUrl = newBlob.url;
+                updatePayload.imageUrl = newBlob.url;
             } catch (error) {
                 toast.error(`Error uploading image: ${error.message}`, {
                     id: toastId,
@@ -80,13 +84,42 @@ export default function EditDetailsPage() {
             }
         }
 
+        // Only include description if it has a value
+        if (data.description && data.description.trim() !== "") {
+            updatePayload.description = data.description;
+        }
+
+        // Only include website if it has a value and looks like a URL
+        if (data.website && data.website.trim() !== "") {
+            let websiteValue = data.website.trim();
+
+            // Auto-prepend https:// if URL starts with www.
+            if (websiteValue.startsWith('www.')) {
+                websiteValue = 'https://' + websiteValue;
+            }
+
+            // Basic URL validation - must start with http:// or https://
+            if (websiteValue.startsWith('http://') || websiteValue.startsWith('https://')) {
+                updatePayload.website = websiteValue;
+            } else {
+                toast.error("Website must be a valid URL (e.g., https://example.com or www.example.com)", {
+                    id: toastId,
+                });
+                setIsSubmitting(false);
+                return;
+            }
+        }
+
+        // Always include tags (can be empty array)
+        updatePayload.tags = data.tags || [];
+
         try {
             const res = await fetch("/api/user/update-account-fields", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ id: session?.user?.id, data: data }),
+                body: JSON.stringify({ id: session?.user?.id, data: updatePayload }),
             });
 
             const result = await res.json();
@@ -296,15 +329,16 @@ export default function EditDetailsPage() {
 
                             <div>
                                 <label className="block text-sm font-medium text-white/90 mb-2">
-                                    Website
+                                    Website <span className="text-white/50 text-xs">(Optional)</span>
                                 </label>
                                 <Input
-                                    type="url"
-                                    placeholder="https://your-society-website.com"
+                                    type="text"
+                                    placeholder="www.your-society.com or https://your-society.com"
                                     className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                                     {...register("website")}
                                     disabled={isSubmitting}
                                 />
+                                <p className="text-xs text-white/50 mt-1">You can enter www.example.com (we&apos;ll add https:// automatically)</p>
                             </div>
 
                             <div>

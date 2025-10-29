@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { Event } from "@/app/lib/types";
 import { ArrowLeft } from "lucide-react";
+import { ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import EventManagementTabs from "@/app/components/events-page/event-management-tabs";
 
@@ -15,8 +16,11 @@ export default function EventManagePage() {
     const { data: session, status } = useSession();
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
 
     const event_id = base62ToBase16(id);
+    const eventUrl = `https://londonstudentnetwork.com/events/${id}`;
+    const displayBaseUrl = "londonstudentnetwork.com/events/";
 
     /**
      * Fetch event data and verify management permissions
@@ -79,6 +83,20 @@ export default function EventManagePage() {
         toast.dismiss("manage-navigation");
     }, [fetchEvent]);
 
+    const copyEventLink = async () => {
+        try {
+            await navigator.clipboard.writeText(eventUrl);
+            setCopied(true);
+            toast.success("Event link copied to clipboard!");
+
+            // Reset copied state after 2 seconds
+            setTimeout(() => setCopied(false), 2000);
+        } catch (error) {
+            console.error("Failed to copy:", error);
+            toast.error("Failed to copy link");
+        }
+    };
+
     if (status === "loading" || loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#083157] to-[#064580] flex items-center justify-center">
@@ -110,6 +128,45 @@ export default function EventManagePage() {
                             {event.title}
                         </h1>
                         <p className="text-white/70 mt-1 text-sm sm:text-base">Event Management Dashboard</p>
+
+                        {/* Copyable Event Link */}
+                        <div className="mt-4  backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                            <label className="block text-xs font-medium text-white/60 mb-2">
+                                Event Page Link
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-black/20 rounded-md px-3 py-2 overflow-x-auto">
+                                    <div className="flex items-center gap-1 whitespace-nowrap text-sm">
+                                        <span className="text-white/60">
+                                            {displayBaseUrl}
+                                        </span>
+                                        <span className="font-mono font-bold text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded flex-shrink-0">
+                                            {id}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={copyEventLink}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-md font-medium transition-all text-sm flex-shrink-0 ${
+                                        copied
+                                            ? "bg-green-600 text-white"
+                                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                                    }`}
+                                >
+                                    {copied ? (
+                                        <>
+                                            <CheckIcon className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Copied!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ClipboardIcon className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Copy</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

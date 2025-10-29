@@ -31,7 +31,7 @@ export default function ShareEventModal({ isOpen, onClose, event }: ShareEventMo
 
     if (!isOpen || !event) return null;
 
-    const eventUrl = `${window.location.origin}/events/${base16ToBase62(event.id)}`;
+    const eventUrl = `https://londonstudentnetwork.com/events/${base16ToBase62(event.id)}`;
     const shareText = `Check out this event: ${event.title}`;
 
     const copyToClipboard = async () => {

@@ -819,6 +819,46 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const selectedPlaceholder = watch("image_url");
     const watchedValues = watch();
 
+    // Form autosave to localStorage (only for create mode, not edit mode)
+    const AUTOSAVE_KEY = `event-form-autosave-${organiser_id}`;
+
+    // Restore form data from localStorage on mount (only in create mode)
+    useEffect(() => {
+        if (!editMode) {
+            try {
+                const saved = localStorage.getItem(AUTOSAVE_KEY);
+                if (saved) {
+                    const parsedData = JSON.parse(saved);
+                    // Restore all form fields
+                    Object.keys(parsedData).forEach((key) => {
+                        setValue(key as keyof EventFormData, parsedData[key]);
+                    });
+                    toast.success("Draft restored from autosave", { duration: 3000 });
+                }
+            } catch (error) {
+                console.error("Failed to restore autosave:", error);
+            }
+        }
+    }, [editMode, AUTOSAVE_KEY, setValue]);
+
+    // Save form data to localStorage on every change (debounced)
+    useEffect(() => {
+        if (!editMode) {
+            const timer = setTimeout(() => {
+                try {
+                    // Don't save if form is empty
+                    if (watchedValues.title || watchedValues.description) {
+                        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(watchedValues));
+                    }
+                } catch (error) {
+                    console.error("Failed to autosave:", error);
+                }
+            }, 1000); // Debounce by 1 second
+
+            return () => clearTimeout(timer);
+        }
+    }, [watchedValues, editMode, AUTOSAVE_KEY]);
+
     useEffect(() => {
         if (watchedImage) {
             const file = watchedImage;
@@ -934,7 +974,21 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             const result = await response.json();
             if (result.success) {
                 toast.success(editMode ? "Event updated successfully!" : "Event created successfully!", { id: toastId });
-                router.push("/events");
+                // Clear autosave on successful submission
+                if (!editMode) {
+                    try {
+                        localStorage.removeItem(AUTOSAVE_KEY);
+                    } catch (error) {
+                        console.error("Failed to clear autosave:", error);
+                    }
+                }
+                // Redirect to the event page (or manage page if just created)
+                if (result.event?.id) {
+                    const eventId = result.event.id;
+                    router.push(editMode ? `/events/${eventId}` : `/events/${eventId}/manage`);
+                } else {
+                    router.push("/events");
+                }
             } else {
                 // Show detailed error message if available
                 const errorMessage = result.details || result.error || (editMode ? "Failed to update event" : "Failed to create event");
@@ -980,7 +1034,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const imageOptions = placeholderImages.map((img) => ({ value: img.src, label: img.name }));
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#083157] to-[#064580]">
+        <div className="min-h-screen bg-gradient-to-b from-[#083157] to-[#064580] overflow-visible">
             {/* Fixed Header with blue theme */}
             <div className="sticky top-20 md:top-24 z-40 bg-gradient-to-r from-blue-600/20 to-blue-700/70 backdrop-blur-sm border-b border-blue-500/20 shadow-lg">
                 <div className="w-full px-4 sm:px-6 lg:px-8">

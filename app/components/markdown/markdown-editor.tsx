@@ -239,6 +239,7 @@ export default function MarkdownEditor({
                     <div className="flex">
                         <button
                             type="button"
+                            tabIndex={-1}
                             onClick={() => setViewMode("write")}
                             className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${
                                 viewMode === "write"
@@ -251,6 +252,7 @@ export default function MarkdownEditor({
                         </button>
                         <button
                             type="button"
+                            tabIndex={-1}
                             onClick={() => setViewMode("preview")}
                             className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 ${
                                 viewMode === "preview"
@@ -263,6 +265,7 @@ export default function MarkdownEditor({
                         </button>
                         <button
                             type="button"
+                            tabIndex={-1}
                             onClick={() => setViewMode("split")}
                             className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-2 hidden md:flex ${
                                 viewMode === "split"
@@ -283,6 +286,7 @@ export default function MarkdownEditor({
                                     <div key={index} className="flex items-center">
                                         <button
                                             type="button"
+                                            tabIndex={-1}
                                             onClick={button.action}
                                             title={button.title}
                                             className="p-1.5 hover:bg-white/10 rounded transition-colors text-white/70 hover:text-white flex-shrink-0"

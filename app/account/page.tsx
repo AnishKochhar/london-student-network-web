@@ -11,8 +11,7 @@ import UserEventsList from '../components/account/user-events-list';
 import UserRegistrations from '../components/account/user-registrations';
 import UserReferrals from '../components/account/user-referrals';
 import UserForumPosts from '../components/account/user-forum-posts';
-import StripeConnectStatus from '../components/account/stripe-connect-status';
-import { Button } from '@/app/components/button';
+import AccountSettingsSection from './account-settings-section';
 
 // Force dynamic rendering (no caching for user-specific pages)
 export const dynamic = 'force-dynamic';
@@ -85,31 +84,7 @@ export default async function AccountPage() {
       </section>
 
       {/* Account Settings Section */}
-      <section id="account" className="scroll-mt-8">
-        <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Account settings</h2>
-        <p className="text-gray-300 mb-4 md:mb-8">Manage your account security and preferences</p>
-
-        <div className="space-y-4 md:space-y-6">
-          {/* Stripe Connect for organizers/companies */}
-          {(session?.user?.role === 'organiser' || session?.user?.role === 'company') && (
-            <div data-stripe-settings>
-              <StripeConnectStatus initialStatus={accountData.stripeStatus} />
-            </div>
-          )}
-
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
-            <h3 className="text-lg font-semibold text-white mb-4">Security</h3>
-            <p className="text-gray-300 mb-4">Update your password to keep your account secure</p>
-            <Button
-              variant="ghost"
-              className="bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 text-sm md:text-base"
-              onClick={() => {}} // Will be handled by client component
-            >
-              Reset Your Password
-            </Button>
-          </div>
-        </div>
-      </section>
+      <AccountSettingsSection stripeStatus={accountData.stripeStatus} />
 
       {/* Bottom padding for scroll */}
       <div className="h-32"></div>

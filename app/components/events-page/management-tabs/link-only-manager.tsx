@@ -12,7 +12,7 @@ interface LinkOnlyManagerProps {
 export default function LinkOnlyManager({ eventId }: LinkOnlyManagerProps) {
     const [copied, setCopied] = useState(false);
 
-    const eventUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/events/${eventId}`;
+    const eventUrl = `https://londonstudentnetwork.com/events/${eventId}`;
 
     const copyToClipboard = async () => {
         try {

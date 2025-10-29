@@ -708,20 +708,47 @@ export async function updateDescription(id: string, newDescription: string) {
 
 export async function updateAccountInfo(
     id: string,
-    data: OrganiserAccountEditFormData,
+    data: Partial<OrganiserAccountEditFormData>,
 ) {
     try {
-        // console.log(data.tags); // debugging
-        const formattedTags = `{${data.tags.join(",")}}`; // Format as an array string. Below, cast from string[] to text[]
+        // Get current values first to merge with updates
+        const current = await sql`
+            SELECT logo_url, description, website, tags
+            FROM society_information
+            WHERE user_id = ${id}
+        `;
+
+        if (current.rows.length === 0) {
+            throw new Error("Society information not found");
+        }
+
+        const currentData = current.rows[0];
+
+        // Use provided values, otherwise keep current values
+        const logoUrl = data.imageUrl !== undefined ? data.imageUrl : currentData.logo_url;
+        const description = data.description !== undefined ? data.description : currentData.description;
+        const website = data.website !== undefined ? data.website : currentData.website;
+
+        let tags;
+        if (data.tags !== undefined) {
+            const formattedTags = `{${data.tags.join(",")}}`;
+            tags = formattedTags;
+        } else {
+            // Keep current tags
+            tags = currentData.tags ? `{${currentData.tags.join(",")}}` : "{}";
+        }
+
+        // Update all fields (this ensures no fields become null accidentally)
         await sql`
-		UPDATE society_information
-		SET 
-			logo_url = ${data.imageUrl},
-			description = ${data.description},
-			website = ${data.website},
-			tags = ${formattedTags}::integer[]  -- Cast to integer[]
-		WHERE user_id = ${id}
-	    `;
+            UPDATE society_information
+            SET
+                logo_url = ${logoUrl},
+                description = ${description},
+                website = ${website},
+                tags = ${tags}::integer[]
+            WHERE user_id = ${id}
+        `;
+
         return { success: true };
     } catch (error) {
         console.error("Database error:", error);

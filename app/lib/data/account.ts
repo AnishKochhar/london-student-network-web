@@ -5,62 +5,63 @@
 
 import { sql } from "@vercel/postgres";
 import Stripe from "stripe";
+import { convertSQLEventToEvent } from "@/app/lib/utils";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-10-28.acacia",
+	apiVersion: "2024-10-28.acacia",
 });
 
 // Main function to fetch all account data in parallel
 export async function getAccountData(userId: string) {
-  const [
-    user,
-    verificationStatus,
-    username,
-    events,
-    registrations,
-    referralStats,
-    forumPosts,
-    stripeStatus,
-    accountFields,
-    predefinedTags,
-  ] = await Promise.all([
-    getUserBasicInfo(userId),
-    getVerificationStatus(userId),
-    getUsername(userId),
-    getUserEvents(userId),
-    getUserRegistrations(userId),
-    getReferralStats(userId),
-    getForumPosts(userId),
-    getStripeAccountStatus(userId),
-    getAccountFields(userId),
-    getPredefinedTags(),
-  ]);
+	const [
+		user,
+		verificationStatus,
+		username,
+		events,
+		registrations,
+		referralStats,
+		forumPosts,
+		stripeStatus,
+		accountFields,
+		predefinedTags,
+	] = await Promise.all([
+		getUserBasicInfo(userId),
+		getVerificationStatus(userId),
+		getUsername(userId),
+		getUserEvents(userId),
+		getUserRegistrations(userId),
+		getReferralStats(userId),
+		getForumPosts(userId),
+		getStripeAccountStatus(userId),
+		getAccountFields(userId),
+		getPredefinedTags(),
+	]);
 
-  return {
-    user,
-    verificationStatus,
-    username,
-    events,
-    registrations,
-    referralStats,
-    forumPosts,
-    stripeStatus,
-    accountFields,
-    predefinedTags,
-  };
+	return {
+		user,
+		verificationStatus,
+		username,
+		events,
+		registrations,
+		referralStats,
+		forumPosts,
+		stripeStatus,
+		accountFields,
+		predefinedTags,
+	};
 }
 
 async function getUserBasicInfo(userId: string) {
-  const result = await sql`
+	const result = await sql`
     SELECT id, name, email, role, verified_university
     FROM users
     WHERE id = ${userId}
   `;
-  return result.rows[0] || null;
+	return result.rows[0] || null;
 }
 
 async function getVerificationStatus(userId: string) {
-  const result = await sql`
+	const result = await sql`
     SELECT
       emailverified,
       university_email,
@@ -70,73 +71,49 @@ async function getVerificationStatus(userId: string) {
     FROM users
     WHERE id = ${userId}
   `;
-  return result.rows[0] || null;
+	return result.rows[0] || null;
 }
 
 async function getUsername(userId: string) {
-  const result = await sql`
+	const result = await sql`
     SELECT username
-    FROM users
-    WHERE id = ${userId}
+    FROM usernames
+    WHERE user_id = ${userId}
   `;
-  return result.rows[0]?.username || null;
+	return result.rows[0]?.username || null;
 }
 
 async function getUserEvents(userId: string) {
-  const result = await sql`
-    SELECT
-      id,
-      name,
-      description,
-      location,
-      date,
-      start_datetime,
-      end_datetime,
-      organiser_id,
-      capacity,
-      image_url,
-      is_hidden,
-      visibility,
-      created_at,
-      has_paid_tickets,
-      (SELECT COUNT(*) FROM registrations WHERE event_id = events.id) as registration_count
-    FROM events
-    WHERE organiser_id = ${userId}
-    ORDER BY start_datetime DESC
+	// Just select all columns like the existing API does
+	const result = await sql`
+    SELECT * FROM events
+    WHERE organiser_uid = ${userId}
+    AND (is_deleted IS NULL OR is_deleted = false)
+    ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
+      EXTRACT(hour FROM start_time::time)::int,
+      EXTRACT(minute FROM start_time::time)::int, 0)) DESC
   `;
 
-  return result.rows.map(event => ({
-    ...event,
-    registration_count: parseInt(event.registration_count || '0'),
-  }));
+	// Transform SQL rows to Event objects (adds date field and other transformations)
+	return result.rows.map(convertSQLEventToEvent);
 }
 
 async function getUserRegistrations(userId: string) {
-  const result = await sql`
-    SELECT
-      e.id,
-      e.name,
-      e.description,
-      e.location,
-      e.date,
-      e.start_datetime,
-      e.end_datetime,
-      e.organiser_id,
-      e.capacity,
-      e.image_url,
-      e.has_paid_tickets,
-      r.created_at as registered_at
+	const result = await sql`
+    SELECT e.*
     FROM events e
-    INNER JOIN registrations r ON e.id = r.event_id
-    WHERE r.user_id = ${userId}
-    ORDER BY e.start_datetime DESC
+    INNER JOIN event_registrations er ON e.id = er.event_id
+    WHERE er.user_id = ${userId}
+    AND (e.is_deleted IS NULL OR e.is_deleted = false)
+    ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) ASC
   `;
 
-  return result.rows;
+	// Transform SQL rows to Event objects (adds date field and other transformations)
+	return result.rows.map(convertSQLEventToEvent);
 }
 
 async function getReferralStats(userId: string) {
-  const statsResult = await sql`
+	const statsResult = await sql`
     SELECT
       COUNT(*) as total_referrals,
       COUNT(CASE WHEN referred_user_id IS NOT NULL THEN 1 END) as successful_referrals,
@@ -145,9 +122,9 @@ async function getReferralStats(userId: string) {
     WHERE referrer_id = ${userId}
   `;
 
-  const recentResult = await sql`
+	const recentResult = await sql`
     SELECT
-      r.code,
+      r.referral_code,
       r.created_at,
       r.registered_at,
       u.name as referred_user_name,
@@ -155,151 +132,157 @@ async function getReferralStats(userId: string) {
     FROM referrals r
     LEFT JOIN users u ON r.referred_user_id = u.id
     WHERE r.referrer_id = ${userId}
-    ORDER BY COALESCE(r.registered_at, r.created_at) DESC
+    ORDER BY r.created_at DESC
     LIMIT 10
   `;
 
-  const stats = statsResult.rows[0];
+	const stats = statsResult.rows[0];
 
-  return {
-    stats: {
-      totalReferrals: parseInt(stats.total_referrals || '0'),
-      successfulReferrals: parseInt(stats.successful_referrals || '0'),
-      completedRegistrations: parseInt(stats.completed_registrations || '0'),
-    },
-    recentReferrals: recentResult.rows.map(r => ({
-      code: r.code,
-      createdAt: r.created_at?.toISOString() || '',
-      registeredAt: r.registered_at?.toISOString() || null,
-      referredUser: r.referred_user_name ? {
-        name: r.referred_user_name,
-        email: r.referred_user_email,
-      } : null,
-    })),
-  };
+	return {
+		stats: {
+			totalReferrals: parseInt(stats.total_referrals || '0'),
+			successfulReferrals: parseInt(stats.successful_referrals || '0'),
+			completedRegistrations: parseInt(stats.completed_registrations || '0'),
+		},
+		recentReferrals: recentResult.rows.map(row => ({
+			code: row.referral_code,
+			createdAt: row.created_at,
+			registeredAt: row.registered_at,
+			referredUser: row.referred_user_name ? {
+				name: row.referred_user_name,
+				email: row.referred_user_email,
+			} : null,
+		})),
+	};
 }
 
 async function getForumPosts(userId: string) {
-  const threadsResult = await sql`
+	const threadsResult = await sql`
     SELECT
       t.id,
       t.title,
       t.content,
-      t.tags,
       t.upvotes,
       t.downvotes,
-      t.score,
       t.created_at,
       t.updated_at,
       u.username,
-      (SELECT COUNT(*) FROM replies WHERE thread_id = t.id) as reply_count
+      (SELECT COUNT(*) FROM comments WHERE thread_id = t.id) as reply_count,
+      (t.upvotes - t.downvotes) as score,
+      ARRAY(
+        SELECT ft.name
+        FROM thread_tags tt
+        JOIN forum_tags ft ON tt.forum_tag_id = ft.id
+        WHERE tt.thread_id = t.id
+      ) as tags
     FROM threads t
-    LEFT JOIN users u ON t.user_id = u.id
-    WHERE t.user_id = ${userId}
+    JOIN usernames u ON t.author_id = u.user_id
+    WHERE t.author_id = ${userId}
     ORDER BY t.created_at DESC
   `;
 
-  const repliesResult = await sql`
+	const repliesResult = await sql`
     SELECT
-      r.id,
-      r.content,
-      r.thread_id,
-      r.parent_reply_id,
-      r.created_at,
-      r.updated_at,
+      c.id,
+      c.content,
+      c.thread_id,
+      c.parent_id as parent_reply_id,
+      c.created_at,
+      c.updated_at,
       t.title as thread_title,
       u.username,
-      (SELECT COUNT(*) FROM reply_likes WHERE reply_id = r.id) as like_count,
-      EXISTS(SELECT 1 FROM reply_likes WHERE reply_id = r.id AND user_id = ${userId}) as is_liked
-    FROM replies r
-    INNER JOIN threads t ON r.thread_id = t.id
-    LEFT JOIN users u ON r.user_id = u.id
-    WHERE r.user_id = ${userId}
-    ORDER BY r.created_at DESC
+      c.upvotes as like_count,
+      EXISTS(SELECT 1 FROM comments_votes WHERE comment_id = c.id AND user_id = ${userId} AND vote_type = 'up') as is_liked
+    FROM comments c
+    JOIN threads t ON c.thread_id = t.id
+    JOIN usernames u ON c.author_id = u.user_id
+    WHERE c.author_id = ${userId}
+    ORDER BY c.created_at DESC
   `;
 
-  return {
-    threads: threadsResult.rows.map(t => ({
-      ...t,
-      reply_count: parseInt(t.reply_count || '0'),
-      tags: t.tags || [],
-    })),
-    replies: repliesResult.rows.map(r => ({
-      ...r,
-      like_count: parseInt(r.like_count || '0'),
-      is_liked: Boolean(r.is_liked),
-    })),
-  };
+	return {
+		threads: threadsResult.rows.map(t => ({
+			...t,
+			reply_count: parseInt(t.reply_count || '0'),
+			tags: t.tags || [],
+		})),
+		replies: repliesResult.rows.map(r => ({
+			...r,
+			like_count: parseInt(r.like_count || '0'),
+			is_liked: Boolean(r.is_liked),
+		})),
+	};
 }
 
 async function getStripeAccountStatus(userId: string) {
-  const result = await sql`
-    SELECT stripe_account_id, role
+	const result = await sql`
+    SELECT stripe_connect_account_id, role
     FROM users
     WHERE id = ${userId}
   `;
 
-  const user = result.rows[0];
-  const stripeAccountId = user?.stripe_account_id;
+	const user = result.rows[0];
+	const stripeAccountId = user?.stripe_connect_account_id;
 
-  // Only fetch Stripe data for organizers/companies
-  if (!stripeAccountId || (user.role !== 'organiser' && user.role !== 'company')) {
-    return {
-      hasAccount: false,
-      accountId: null,
-      status: null,
-    };
-  }
+	// Only fetch Stripe data for organizers/companies
+	if (!stripeAccountId || !user || (user.role !== 'organiser' && user.role !== 'company')) {
+		return {
+			hasAccount: false,
+			accountId: null,
+			status: null,
+		};
+	}
 
-  try {
-    const account = await stripe.accounts.retrieve(stripeAccountId);
+	try {
+		const account = await stripe.accounts.retrieve(stripeAccountId);
 
-    return {
-      hasAccount: true,
-      accountId: stripeAccountId,
-      status: {
-        detailsSubmitted: account.details_submitted || false,
-        chargesEnabled: account.charges_enabled || false,
-        payoutsEnabled: account.payouts_enabled || false,
-        onboardingComplete: (account.details_submitted && account.charges_enabled) || false,
-        email: account.email || undefined,
-        country: account.country || undefined,
-        defaultCurrency: account.default_currency || undefined,
-      },
-    };
-  } catch (error) {
-    console.error('Error fetching Stripe account:', error);
-    return {
-      hasAccount: true,
-      accountId: stripeAccountId,
-      status: null,
-      error: 'Failed to fetch Stripe account status',
-    };
-  }
+		return {
+			hasAccount: true,
+			accountId: stripeAccountId,
+			status: {
+				detailsSubmitted: account.details_submitted || false,
+				chargesEnabled: account.charges_enabled || false,
+				payoutsEnabled: account.payouts_enabled || false,
+				onboardingComplete: (account.details_submitted && account.charges_enabled) || false,
+				email: account.email || undefined,
+				country: account.country || undefined,
+				defaultCurrency: account.default_currency || undefined,
+			},
+		};
+	} catch (error) {
+		console.error('Error fetching Stripe account:', error);
+		return {
+			hasAccount: true,
+			accountId: stripeAccountId,
+			status: null,
+			error: 'Failed to fetch Stripe account status',
+		};
+	}
 }
 
 async function getAccountFields(userId: string) {
-  const result = await sql`
+	const result = await sql`
     SELECT logo_url, description, website, tags
-    FROM users
-    WHERE id = ${userId}
+    FROM society_information
+    WHERE user_id = ${userId}
+    LIMIT 1
   `;
 
-  const data = result.rows[0];
-  return {
-    logo_url: data?.logo_url || null,
-    description: data?.description || '',
-    website: data?.website || '',
-    tags: data?.tags || [],
-  };
+	const data = result.rows[0];
+	return {
+		logo_url: data?.logo_url || null,
+		description: data?.description || '',
+		website: data?.website || '',
+		tags: data?.tags || [],
+	};
 }
 
 async function getPredefinedTags() {
-  const result = await sql`
-    SELECT id, name as label, id as value
+	const result = await sql`
+    SELECT value, label
     FROM tags
-    ORDER BY name ASC
+    ORDER BY label ASC
   `;
 
-  return result.rows;
+	return result.rows;
 }
