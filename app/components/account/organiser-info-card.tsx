@@ -11,9 +11,28 @@ import { useSession } from "next-auth/react";
 
 interface StripeStatus {
     hasAccount: boolean;
-    onboardingComplete: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
+    accountId: string | null;
+    status: {
+        detailsSubmitted: boolean;
+        chargesEnabled: boolean;
+        payoutsEnabled: boolean;
+        onboardingComplete: boolean;
+        email?: string;
+        country?: string;
+        defaultCurrency?: string;
+    } | null;
+}
+
+interface AccountFields {
+    description?: string;
+    website?: string;
+    tags?: number[];
+    logoUrl?: string;
+}
+
+interface Tag {
+    value: number;
+    label: string;
 }
 
 export default function OrganiserInfoCard({
@@ -23,9 +42,9 @@ export default function OrganiserInfoCard({
   initialPredefinedTags,
 }: {
   userId: string;
-  initialAccountFields?: any;
-  initialStripeStatus?: any;
-  initialPredefinedTags?: any[];
+  initialAccountFields?: AccountFields;
+  initialStripeStatus?: StripeStatus;
+  initialPredefinedTags?: Tag[];
 }) {
     const router = useRouter();
     const { data: session } = useSession();
@@ -81,9 +100,8 @@ export default function OrganiserInfoCard({
                     if (data.success) {
                         setStripeStatus({
                             hasAccount: data.hasAccount,
-                            onboardingComplete: data.status?.onboardingComplete || false,
-                            chargesEnabled: data.status?.chargesEnabled || false,
-                            payoutsEnabled: data.status?.payoutsEnabled || false,
+                            accountId: data.accountId || null,
+                            status: data.status || null,
                         });
                     }
                 } catch (error) {
@@ -135,7 +153,7 @@ export default function OrganiserInfoCard({
             );
         }
 
-        if (!stripeStatus.onboardingComplete) {
+        if (!stripeStatus.status?.onboardingComplete) {
             return (
                 <button
                     onClick={handleStripeStatusClick}

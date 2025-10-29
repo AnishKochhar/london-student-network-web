@@ -1,24 +1,62 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ExclamationCircleIcon, CheckIcon, XMarkIcon, AtSymbolIcon } from "@heroicons/react/24/outline";
-import { Button } from "@/app/components/button";
-import AccountLogo from "../components/account/account-logo";
 import StripeConnectStatusCompact from "../components/account/stripe-connect-status-compact";
 import OrganiserInfoCard from "../components/account/organiser-info-card";
 import { updateName, resendPrimaryVerificationEmail, resendUniversityVerificationEmail } from './actions';
 import { getUniversityNameFromCode } from "@/app/lib/university-email-mapping";
 import toast from "react-hot-toast";
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+interface VerificationStatus {
+  emailVerified: boolean;
+  universityEmail?: string;
+  universityEmailVerified: boolean;
+  verifiedUniversity?: string;
+  accountType?: string;
+}
+
+interface StripeStatus {
+  hasAccount: boolean;
+  accountId: string | null;
+  status: {
+    detailsSubmitted: boolean;
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+    onboardingComplete: boolean;
+    email?: string;
+    country?: string;
+    defaultCurrency?: string;
+  } | null;
+}
+
+interface AccountFields {
+  description?: string;
+  website?: string;
+  tags?: number[];
+  logoUrl?: string;
+}
+
+interface Tag {
+  value: number;
+  label: string;
+}
+
 interface Props {
-  user: any;
-  verificationStatus: any;
+  user: User;
+  verificationStatus: VerificationStatus;
   username: string | null;
-  stripeStatus: any;
-  accountFields: any;
-  predefinedTags: any[];
+  stripeStatus: StripeStatus | null;
+  accountFields: AccountFields | null;
+  predefinedTags: Tag[];
 }
 
 export default function PersonalInfoSection({
@@ -29,7 +67,6 @@ export default function PersonalInfoSection({
   accountFields,
   predefinedTags,
 }: Props) {
-  const router = useRouter();
   const { data: session } = useSession();
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -105,13 +142,13 @@ export default function PersonalInfoSection({
   };
 
   const handleResendUniversityEmail = async () => {
-    if (resendingEmail || !verificationStatus?.university_email) return;
+    if (resendingEmail || !verificationStatus?.universityEmail) return;
 
     setResendingEmail('university');
     const toastId = toast.loading("Sending university verification email...");
 
     try {
-      const result = await resendUniversityVerificationEmail(verificationStatus.university_email);
+      const result = await resendUniversityVerificationEmail(verificationStatus.universityEmail);
 
       if (result.success) {
         toast.success("University verification email sent! Check your inbox and junk folder.", { id: toastId, duration: 6000 });
@@ -246,7 +283,7 @@ export default function PersonalInfoSection({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-300">Primary Email</span>
-                    {verificationStatus.emailverified ? (
+                    {verificationStatus.emailVerified ? (
                       <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
                         <CheckIcon className="h-3 w-3" />
                         Verified
@@ -258,7 +295,7 @@ export default function PersonalInfoSection({
                       </span>
                     )}
                   </div>
-                  {!verificationStatus.emailverified && (
+                  {!verificationStatus.emailVerified && (
                     <button
                       onClick={handleResendPrimaryEmail}
                       disabled={resendingEmail === 'primary'}
@@ -276,12 +313,12 @@ export default function PersonalInfoSection({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-300">University Email</span>
-                    {verificationStatus.verified_university ? (
+                    {verificationStatus.verifiedUniversity ? (
                       <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
                         <CheckIcon className="h-3 w-3" />
                         Verified
                       </span>
-                    ) : verificationStatus.university_email ? (
+                    ) : verificationStatus.universityEmail ? (
                       <span className="flex items-center gap-1 text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
                         <ExclamationCircleIcon className="h-3 w-3" />
                         Not Verified
@@ -293,7 +330,7 @@ export default function PersonalInfoSection({
                       </span>
                     )}
                   </div>
-                  {verificationStatus.university_email && !verificationStatus.verified_university && (
+                  {verificationStatus.universityEmail && !verificationStatus.verifiedUniversity && (
                     <button
                       onClick={handleResendUniversityEmail}
                       disabled={resendingEmail === 'university'}
@@ -303,12 +340,12 @@ export default function PersonalInfoSection({
                     </button>
                   )}
                 </div>
-                {verificationStatus.university_email ? (
+                {verificationStatus.universityEmail ? (
                   <>
-                    <p className="text-xs text-gray-500 mb-2">{verificationStatus.university_email}</p>
-                    {verificationStatus.verified_university && (
+                    <p className="text-xs text-gray-500 mb-2">{verificationStatus.universityEmail}</p>
+                    {verificationStatus.verifiedUniversity && (
                       <p className="text-xs text-green-400/80">
-                        ✓ Verified with {getUniversityNameFromCode(verificationStatus.verified_university) || verificationStatus.verified_university}
+                        ✓ Verified with {getUniversityNameFromCode(verificationStatus.verifiedUniversity) || verificationStatus.verifiedUniversity}
                       </p>
                     )}
                   </>

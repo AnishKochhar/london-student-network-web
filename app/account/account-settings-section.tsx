@@ -6,8 +6,22 @@ import StripeConnectStatus from '../components/account/stripe-connect-status';
 import ForgottenPasswordModal from '../components/login/reset-password-modal';
 import { useSession } from 'next-auth/react';
 
+interface StripeAccountStatus {
+  hasAccount: boolean;
+  accountId: string | null;
+  status: {
+    detailsSubmitted: boolean;
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+    onboardingComplete: boolean;
+    email?: string;
+    country?: string;
+    defaultCurrency?: string;
+  };
+}
+
 interface Props {
-  stripeStatus: any;
+  stripeStatus: StripeAccountStatus | null;
 }
 
 export default function AccountSettingsSection({ stripeStatus }: Props) {

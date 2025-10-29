@@ -20,18 +20,6 @@ export default function AccountLayout({ children }: Props) {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  // Show loading state while session is loading
-  if (status === 'loading') {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white">Loading your account...</p>
-        </div>
-      </div>
-    );
-  }
-
   // 1. Referral tracking (runs once per session)
   useReferralTracking();
 
@@ -88,6 +76,18 @@ export default function AccountLayout({ children }: Props) {
     { id: "forum", label: "Forum activity", icon: "💬" },
     { id: "account", label: "Account settings", icon: "⚙️" },
   ];
+
+  // Show loading state while session is loading
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">

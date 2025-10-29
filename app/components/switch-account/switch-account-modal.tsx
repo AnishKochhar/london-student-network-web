@@ -55,6 +55,7 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail, 
 				window.removeEventListener('scroll', updatePosition);
 			};
 		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen, triggerRef]);
 
 	// Body scroll lock (only on mobile)

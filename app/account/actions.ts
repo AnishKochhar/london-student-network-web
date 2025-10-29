@@ -8,7 +8,6 @@
 import { auth } from '@/auth';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 export async function updateName(newName: string) {
   const session = await auth();

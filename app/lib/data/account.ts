@@ -8,7 +8,7 @@ import Stripe from "stripe";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-	apiVersion: "2024-10-28.acacia",
+	apiVersion: "2025-09-30.clover",
 });
 
 // Main function to fetch all account data in parallel
@@ -51,16 +51,37 @@ export async function getAccountData(userId: string) {
 	};
 }
 
-async function getUserBasicInfo(userId: string) {
+async function getUserBasicInfo(userId: string): Promise<{
+	id: string;
+	name: string;
+	email: string;
+	role: string;
+	verified_university?: string;
+} | null> {
 	const result = await sql`
     SELECT id, name, email, role, verified_university
     FROM users
     WHERE id = ${userId}
   `;
-	return result.rows[0] || null;
+	const row = result.rows[0];
+	if (!row) return null;
+
+	return {
+		id: row.id as string,
+		name: row.name as string,
+		email: row.email as string,
+		role: row.role as string,
+		verified_university: row.verified_university as string | undefined,
+	};
 }
 
-async function getVerificationStatus(userId: string) {
+async function getVerificationStatus(userId: string): Promise<{
+	emailVerified: boolean;
+	universityEmail?: string;
+	universityEmailVerified: boolean;
+	verifiedUniversity?: string;
+	accountType?: string;
+} | null> {
 	const result = await sql`
     SELECT
       emailverified,
@@ -71,7 +92,16 @@ async function getVerificationStatus(userId: string) {
     FROM users
     WHERE id = ${userId}
   `;
-	return result.rows[0] || null;
+	const row = result.rows[0];
+	if (!row) return null;
+
+	return {
+		emailVerified: row.emailverified as boolean,
+		universityEmail: row.university_email as string | undefined,
+		universityEmailVerified: row.university_email_verified as boolean,
+		verifiedUniversity: row.verified_university as string | undefined,
+		accountType: row.account_type as string | undefined,
+	};
 }
 
 async function getUsername(userId: string) {
@@ -277,12 +307,15 @@ async function getAccountFields(userId: string) {
 	};
 }
 
-async function getPredefinedTags() {
+async function getPredefinedTags(): Promise<Array<{ value: number; label: string }>> {
 	const result = await sql`
     SELECT value, label
     FROM tags
     ORDER BY label ASC
   `;
 
-	return result.rows;
+	return result.rows.map(row => ({
+		value: row.value as number,
+		label: row.label as string,
+	}));
 }
