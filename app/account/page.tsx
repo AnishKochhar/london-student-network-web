@@ -32,7 +32,6 @@ export default async function AccountPage() {
     <div className="p-4 md:p-8 space-y-8 md:space-y-16">
       {/* Personal Information Section */}
       <PersonalInfoSection
-        session={session}
         user={accountData.user}
         verificationStatus={accountData.verificationStatus}
         username={accountData.username}

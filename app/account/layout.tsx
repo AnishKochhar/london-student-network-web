@@ -8,13 +8,13 @@
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useReferralTracking } from '@/app/hooks/useReferralTracking';
 import { saveAccount } from '@/app/lib/account-storage';
 import ForgottenPasswordModal from '../components/login/reset-password-modal';
 import UsernameCreationModal from '../components/forum/username-creation-modal';
 import AddUniversityEmailModal from '../components/account/add-university-email-modal';
 import toast from 'react-hot-toast';
-import { Session } from 'next-auth';
 
 // Types
 export interface AccountData {
@@ -47,22 +47,22 @@ export function useAccountData() {
 
 interface Props {
   children: ReactNode;
-  session: Session;
   accountData: AccountData;
 }
 
-export default function AccountLayout({ children, session, accountData }: Props) {
+export default function AccountLayout({ children, accountData }: Props) {
   const router = useRouter();
+  const { data: session } = useSession();
 
   // 1. Referral tracking (runs once per session)
   useReferralTracking();
 
   // 2. Save to localStorage for account switching
   useEffect(() => {
-    if (session.user?.email && session.user?.name) {
+    if (session?.user?.email && session?.user?.name) {
       saveAccount(session.user.email, session.user.name);
     }
-  }, [session.user?.email, session.user?.name]);
+  }, [session?.user?.email, session?.user?.name]);
 
   // 3. Scroll spy state
   const [activeSection, setActiveSection] = useState("personal");

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Session } from 'next-auth';
+import { useSession } from 'next-auth/react';
 import { ExclamationCircleIcon, CheckIcon, XMarkIcon, AtSymbolIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/app/components/button";
 import AccountLogo from "../components/account/account-logo";
@@ -13,7 +13,6 @@ import { getUniversityNameFromCode } from "@/app/lib/university-email-mapping";
 import toast from "react-hot-toast";
 
 interface Props {
-  session: Session;
   user: any;
   verificationStatus: any;
   username: string | null;
@@ -23,7 +22,6 @@ interface Props {
 }
 
 export default function PersonalInfoSection({
-  session,
   user,
   verificationStatus,
   username,
@@ -32,6 +30,7 @@ export default function PersonalInfoSection({
   predefinedTags,
 }: Props) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
