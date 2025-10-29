@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, PanInfo, useMotionValue } from "framer-motion";
 import { XMarkIcon, EyeIcon, EyeSlashIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import { getSavedAccounts, getInitials, removeAccount, saveAccount, type SavedAccount } from "@/app/lib/account-storage";
 import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 
 interface SwitchAccountModalProps {
 	isOpen: boolean;
@@ -20,7 +21,25 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
+	const [mounted, setMounted] = useState(false);
 	const router = useRouter();
+	const y = useMotionValue(0);
+	const sheetRef = useRef<HTMLDivElement>(null);
+
+	// Mount check for portal
+	useEffect(() => {
+		setMounted(true);
+	}, []);
+
+	// Body scroll lock
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = 'hidden';
+			return () => {
+				document.body.style.overflow = '';
+			};
+		}
+	}, [isOpen]);
 
 	useEffect(() => {
 		if (isOpen) {
@@ -90,9 +109,20 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 		router.push("/logout?redirect=/login");
 	};
 
-	if (!isOpen) return null;
+	// Drag to close handlers for mobile
+	const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+		const shouldClose = info.velocity.y > 500 || (info.velocity.y >= 0 && info.offset.y > 100);
+		if (shouldClose) {
+			onClose();
+		} else {
+			y.set(0);
+		}
+	};
 
-	return (
+	if (!isOpen) return null;
+	if (!mounted) return null;
+
+	const modalContent = (
 		<AnimatePresence>
 			{isOpen && (
 				<>
@@ -101,7 +131,7 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0 }}
-						className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10000]"
+						className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999]"
 						onClick={onClose}
 					/>
 
@@ -111,7 +141,7 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 						animate={{ opacity: 1, scale: 1, y: 0 }}
 						exit={{ opacity: 0, scale: 0.96, y: 10 }}
 						transition={{ type: "spring", damping: 30, stiffness: 300 }}
-						className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm z-[10001] sm:block hidden"
+						className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm z-[100000] hidden sm:block"
 					>
 						<div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden mx-4 border border-gray-200/50">
 							{/* Header */}
@@ -277,15 +307,21 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 
 					{/* Mobile Bottom Sheet */}
 					<motion.div
+						ref={sheetRef}
 						initial={{ y: "100%" }}
 						animate={{ y: 0 }}
 						exit={{ y: "100%" }}
 						transition={{ type: "spring", damping: 30, stiffness: 300 }}
-						className="fixed bottom-0 left-0 right-0 z-[10001] sm:hidden pb-safe"
+						drag="y"
+						dragConstraints={{ top: 0, bottom: 0 }}
+						dragElastic={{ top: 0, bottom: 0.5 }}
+						onDragEnd={handleDragEnd}
+						style={{ y }}
+						className="fixed bottom-0 left-0 right-0 z-[100000] sm:hidden pb-safe"
 					>
 						<div className="bg-white rounded-t-3xl shadow-2xl border-t border-gray-200/50 max-h-[85vh] overflow-y-auto pb-safe">
-							{/* Mobile Handle */}
-							<div className="flex justify-center pt-3 pb-2">
+							{/* Mobile Handle - Now interactive */}
+							<div className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing">
 								<div className="w-10 h-1 bg-gray-300 rounded-full" />
 							</div>
 
@@ -452,4 +488,7 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail }
 			)}
 		</AnimatePresence>
 	);
+
+	// Use portal to escape stacking context issues
+	return createPortal(modalContent, document.body);
 }

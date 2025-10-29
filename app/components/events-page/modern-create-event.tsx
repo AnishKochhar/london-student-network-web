@@ -1120,7 +1120,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">When is your event happening?</p>
                             </div>
 
-                            <div className="lg:col-span-9 space-y-6">
+                            <div className="lg:col-span-9 space-y-6 relative z-[200]">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <ModernCalendarPicker
                                         value={watchedValues.start_datetime || ""}
