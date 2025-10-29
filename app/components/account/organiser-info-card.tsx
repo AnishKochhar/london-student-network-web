@@ -6,7 +6,6 @@ import { PencilIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon, AtSymbolIcon }
 import AccountLogo from "./account-logo";
 import MarkdownRenderer from "../markdown/markdown-renderer";
 import fetchPredefinedTags from "@/app/lib/utils";
-import { useSession } from "next-auth/react";
 // import toast from "react-hot-toast"; // Unused
 
 interface StripeStatus {
@@ -37,17 +36,20 @@ interface Tag {
 
 export default function OrganiserInfoCard({
   userId,
+  userName,
+  userEmail,
   initialAccountFields,
   initialStripeStatus,
   initialPredefinedTags,
 }: {
   userId: string;
+  userName: string;
+  userEmail: string;
   initialAccountFields?: AccountFields;
   initialStripeStatus?: StripeStatus;
   initialPredefinedTags?: Tag[];
 }) {
     const router = useRouter();
-    const { data: session } = useSession();
     const [description, setDescription] = useState(initialAccountFields?.description || "");
     const [website, setWebsite] = useState(initialAccountFields?.website || "");
     const [tags, setTags] = useState<number[]>(initialAccountFields?.tags || []);
@@ -195,11 +197,11 @@ export default function OrganiserInfoCard({
                         <div className="flex flex-col gap-3">
                             <div>
                                 <h3 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 tracking-tight">
-                                    {session?.user?.name || "Organisation"}
+                                    {userName || "Organisation"}
                                 </h3>
                                 <p className="text-sm text-gray-400 flex items-center gap-2">
                                     <AtSymbolIcon className="w-4 h-4" />
-                                    {session?.user?.email}
+                                    {userEmail}
                                 </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">

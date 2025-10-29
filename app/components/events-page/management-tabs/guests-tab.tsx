@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Event } from "@/app/lib/types";
-import { Search, Download, Mail, Copy, Check, SortAsc, Filter } from "lucide-react";
+import { Search, Download, Mail, Copy, Check, SortAsc, Filter, DollarSign, AlertTriangle, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useManagementData } from "./data-provider";
 
@@ -12,22 +12,26 @@ interface GuestsTabProps {
 }
 
 interface Registration {
+    event_registration_uuid: string;
     user_name: string;
     user_email: string;
     date_registered: string;
     external: boolean;
     payment_required?: boolean;
+    payment_status?: string;
     quantity?: number;
     ticket_name?: string;
+    ticket_price?: string;
     is_cancelled?: boolean;
     cancelled_at?: string;
+    payment_id?: string;
 }
 
 type SortOption = "recent" | "name-asc" | "name-desc" | "email";
 type FilterOption = "all" | "internal" | "external" | "paid" | "free" | "cancelled";
 
-export default function GuestsTab({ event }: GuestsTabProps) {
-    const { registrations: regData, loading } = useManagementData();
+export default function GuestsTab({ event, eventId }: GuestsTabProps) {
+    const { registrations: regData, loading, refetch } = useManagementData();
     const registrations = useMemo(() => regData?.registrations || [], [regData]);
     const [filteredRegistrations, setFilteredRegistrations] = useState<Registration[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -35,6 +39,12 @@ export default function GuestsTab({ event }: GuestsTabProps) {
     const [filterBy, setFilterBy] = useState<FilterOption>("all");
     const [copiedEmails, setCopiedEmails] = useState(false);
     const [copiedNames, setCopiedNames] = useState(false);
+
+    // Refund modal state
+    const [refundModalOpen, setRefundModalOpen] = useState(false);
+    const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
+    const [refundReason, setRefundReason] = useState("");
+    const [isProcessingRefund, setIsProcessingRefund] = useState(false);
 
     // Apply filters and sorting
     useEffect(() => {
@@ -136,6 +146,113 @@ export default function GuestsTab({ event }: GuestsTabProps) {
         URL.revokeObjectURL(url);
 
         toast.success("CSV downloaded successfully");
+    };
+
+    const openRefundModal = (registration: Registration) => {
+        setSelectedRegistration(registration);
+        setRefundReason("");
+        setRefundModalOpen(true);
+    };
+
+    const closeRefundModal = () => {
+        setRefundModalOpen(false);
+        setSelectedRegistration(null);
+        setRefundReason("");
+    };
+
+    const handleRefund = async () => {
+        if (!selectedRegistration) return;
+
+        setIsProcessingRefund(true);
+        const toastId = toast.loading("Processing refund...");
+
+        try {
+            const response = await fetch("/api/events/refund", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    event_id: eventId,
+                    registration_uuid: selectedRegistration.event_registration_uuid,
+                    reason: refundReason || undefined,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                toast.success(
+                    `Refund processed successfully! £${(data.refund.amount / 100).toFixed(2)} will be returned to the customer within 5-10 business days.`,
+                    { id: toastId, duration: 6000 }
+                );
+                closeRefundModal();
+                // Refresh the registrations data
+                refetch();
+            } else {
+                toast.error(data.error || "Failed to process refund", { id: toastId });
+            }
+        } catch (error) {
+            console.error("Error processing refund:", error);
+            toast.error("An unexpected error occurred", { id: toastId });
+        } finally {
+            setIsProcessingRefund(false);
+        }
+    };
+
+    const canRefund = (registration: Registration): boolean => {
+        return (
+            registration.payment_required === true &&
+            registration.payment_id != null &&
+            registration.payment_status === "paid" &&
+            !registration.is_cancelled
+        );
+    };
+
+    const getPaymentStatusBadge = (registration: Registration) => {
+        if (registration.is_cancelled) {
+            return (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/20 text-red-200">
+                    Refunded
+                </span>
+            );
+        }
+
+        if (!registration.payment_required) {
+            return (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-green-500/20 text-green-200">
+                    Free
+                </span>
+            );
+        }
+
+        if (registration.payment_status === "paid" || registration.payment_status === "succeeded") {
+            return (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500/20 text-blue-200">
+                    Paid
+                </span>
+            );
+        }
+
+        if (registration.payment_status === "refunded") {
+            return (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/20 text-red-200">
+                    Refunded
+                </span>
+            );
+        }
+
+        if (registration.payment_status === "partially_refunded") {
+            return (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-orange-500/20 text-orange-200">
+                    Partial Refund
+                </span>
+            );
+        }
+
+        return (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-500/20 text-gray-200">
+                {registration.payment_status || "Unknown"}
+            </span>
+        );
     };
 
     return (
@@ -276,8 +393,14 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">
                                             Ticket
                                         </th>
+                                        <th className="px-6 py-3 text-left text-xs font-semibold text-white/80 uppercase tracking-wider">
+                                            Payment
+                                        </th>
                                         <th className="px-6 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">
                                             Registered
+                                        </th>
+                                        <th className="px-6 py-3 text-right text-xs font-semibold text-white/80 uppercase tracking-wider">
+                                            Actions
                                         </th>
                                     </tr>
                                 </thead>
@@ -330,6 +453,11 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                                                 )}
                                             </td>
 
+                                            {/* Payment Status */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                {getPaymentStatusBadge(reg)}
+                                            </td>
+
                                             {/* Registered / Cancelled */}
                                             <td className="px-6 py-4 whitespace-nowrap text-right">
                                                 {reg.is_cancelled && reg.cancelled_at ? (
@@ -339,6 +467,20 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                                                     </div>
                                                 ) : (
                                                     <span className="text-sm text-white/80">{formatRegistrationDate(reg.date_registered)}</span>
+                                                )}
+                                            </td>
+
+                                            {/* Actions */}
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                {canRefund(reg) && (
+                                                    <button
+                                                        onClick={() => openRefundModal(reg)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/30 rounded-lg transition-all text-xs font-medium hover:scale-105"
+                                                        title="Issue refund"
+                                                    >
+                                                        <DollarSign className="w-3.5 h-3.5" />
+                                                        Refund
+                                                    </button>
                                                 )}
                                             </td>
                                         </tr>
@@ -380,12 +522,25 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                                                     {reg.quantity && reg.quantity > 1 && ` (${reg.quantity})`}
                                                 </span>
                                             )}
+                                            {getPaymentStatusBadge(reg)}
                                         </div>
 
-                                        {/* Time */}
-                                        <p className="text-xs text-white/60">
-                                            Registered {formatRegistrationDate(reg.date_registered)}
-                                        </p>
+                                        {/* Time & Actions */}
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs text-white/60">
+                                                Registered {formatRegistrationDate(reg.date_registered)}
+                                            </p>
+                                            {canRefund(reg) && (
+                                                <button
+                                                    onClick={() => openRefundModal(reg)}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/30 rounded-lg transition-all text-xs font-medium"
+                                                    title="Issue refund"
+                                                >
+                                                    <DollarSign className="w-3.5 h-3.5" />
+                                                    Refund
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -413,6 +568,131 @@ export default function GuestsTab({ event }: GuestsTabProps) {
                     </div>
                 )}
             </div>
+
+            {/* Refund Confirmation Modal */}
+            {refundModalOpen && selectedRegistration && (
+                <div
+                    className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100000]"
+                    onClick={closeRefundModal}
+                >
+                    <div
+                        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl border border-white/20 shadow-2xl max-w-lg w-full overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border-b border-white/10 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-red-500/20 rounded-lg">
+                                        <DollarSign className="w-6 h-6 text-red-300" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white">Issue Refund</h3>
+                                </div>
+                                <button
+                                    onClick={closeRefundModal}
+                                    disabled={isProcessingRefund}
+                                    className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                    <X className="w-5 h-5 text-white/70" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="px-6 py-6 space-y-6">
+                            {/* Warning Banner */}
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-semibold text-amber-200">
+                                            This action cannot be undone
+                                        </p>
+                                        <p className="text-xs text-amber-300/80">
+                                            The refund will be processed immediately and the customer will receive their money within 5-10 business days.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Registration Details */}
+                            <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-3">
+                                <div className="flex items-start justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-medium text-white/60 uppercase tracking-wider">Customer</p>
+                                        <p className="text-sm font-semibold text-white">{selectedRegistration.user_name}</p>
+                                        <p className="text-xs text-white/70">{selectedRegistration.user_email}</p>
+                                    </div>
+                                    {getPaymentStatusBadge(selectedRegistration)}
+                                </div>
+
+                                {selectedRegistration.ticket_name && (
+                                    <div className="pt-3 border-t border-white/10">
+                                        <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Ticket</p>
+                                        <p className="text-sm text-white/90">
+                                            {selectedRegistration.ticket_name}
+                                            {selectedRegistration.quantity && selectedRegistration.quantity > 1 && (
+                                                <span className="text-white/60"> × {selectedRegistration.quantity}</span>
+                                            )}
+                                        </p>
+                                        {selectedRegistration.ticket_price && parseFloat(selectedRegistration.ticket_price) > 0 && (
+                                            <p className="text-lg font-bold text-blue-300 mt-1">
+                                                £{(parseFloat(selectedRegistration.ticket_price) * (selectedRegistration.quantity || 1)).toFixed(2)}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Refund Reason */}
+                            <div>
+                                <label className="block text-sm font-medium text-white/80 mb-2">
+                                    Refund Reason <span className="text-white/50">(optional)</span>
+                                </label>
+                                <textarea
+                                    value={refundReason}
+                                    onChange={(e) => setRefundReason(e.target.value)}
+                                    disabled={isProcessingRefund}
+                                    placeholder="E.g., Event cancelled, customer request, technical issues..."
+                                    rows={3}
+                                    className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+                                />
+                                <p className="text-xs text-white/50 mt-1">
+                                    This will be included in the refund confirmation email
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-white/5 border-t border-white/10 px-6 py-4 flex items-center justify-end gap-3">
+                            <button
+                                onClick={closeRefundModal}
+                                disabled={isProcessingRefund}
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleRefund}
+                                disabled={isProcessingRefund}
+                                className="px-6 py-2 bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white rounded-lg transition-all text-sm font-semibold shadow-lg hover:shadow-red-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center gap-2"
+                            >
+                                {isProcessingRefund ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <DollarSign className="w-4 h-4" />
+                                        Issue Full Refund
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

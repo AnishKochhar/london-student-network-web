@@ -221,6 +221,32 @@ export async function POST(req: Request) {
             ? 'http://localhost:3000'
             : (process.env.NEXT_PUBLIC_BASE_URL || 'https://londonstudentnetwork.com');
 
+        // Validate and normalize image URL for Stripe
+        const getValidImageUrl = (url: string | null | undefined): string | null => {
+            if (!url || typeof url !== 'string') return null;
+
+            // Handle relative paths from /public/*
+            if (url.startsWith('/public/')) {
+                return `https://londonstudentnetwork.com${url}`;
+            }
+
+            // Validate absolute URLs
+            try {
+                const parsed = new URL(url);
+                // Must be https and not localhost
+                if (parsed.protocol === 'https:' && !parsed.hostname.includes('localhost')) {
+                    return url;
+                }
+            } catch {
+                // Invalid URL
+            }
+
+            return null;
+        };
+
+        const validImageUrl = getValidImageUrl(event.image_url);
+        const productImages = validImageUrl ? [validImageUrl] : [];
+
         // Create Stripe Checkout Session with guest metadata
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
@@ -230,7 +256,7 @@ export async function POST(req: Request) {
                     product_data: {
                         name: `${event.title} - ${ticket.ticket_name}`,
                         description: `${eventDate} at ${eventTime}\n${event.location_building}, ${event.location_area}`,
-                        images: event.image_url ? [event.image_url] : [],
+                        images: productImages,
                     },
                     unit_amount: ticketPriceInPence,
                 },

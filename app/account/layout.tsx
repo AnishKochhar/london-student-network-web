@@ -18,19 +18,25 @@ interface Props {
 
 export default function AccountLayout({ children }: Props) {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
 
   // 1. Referral tracking (runs once per session)
   useReferralTracking();
 
-  // 2. Save to localStorage for account switching
+  // 2. Force session refresh on mount to ensure fresh data
+  useEffect(() => {
+    // Immediately update session on mount to prevent stale data
+    update().catch(console.error);
+  }, [update]);
+
+  // 3. Save to localStorage for account switching
   useEffect(() => {
     if (session?.user?.email && session?.user?.name) {
       saveAccount(session.user.email, session.user.name);
     }
   }, [session?.user?.email, session?.user?.name]);
 
-  // 3. Scroll spy state
+  // 4. Scroll spy state
   const [activeSection, setActiveSection] = useState("personal");
 
   useEffect(() => {
@@ -55,7 +61,7 @@ export default function AccountLayout({ children }: Props) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 4. Scroll to section helper
+  // 5. Scroll to section helper
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -77,8 +83,17 @@ export default function AccountLayout({ children }: Props) {
     { id: "account", label: "Account settings", icon: "⚙️" },
   ];
 
-  // Show loading state while session is loading
-  if (status === 'loading') {
+  // Show loading state ONLY initially, but render children even if session is stale
+  // This prevents black screens and allows server-rendered content to show
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+
+  useEffect(() => {
+    if (status !== 'loading') {
+      setHasInitiallyLoaded(true);
+    }
+  }, [status]);
+
+  if (status === 'loading' && !hasInitiallyLoaded) {
     return (
       <div className="flex justify-center items-center h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
         <div className="text-center">

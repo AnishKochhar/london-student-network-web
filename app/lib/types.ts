@@ -426,27 +426,39 @@ export interface UserInformation {
 }
 
 export interface Registrations {
+    event_registration_uuid: string;
     user_id: string;
     user_name: string;
     user_email: string;
     date_registered: string;
     external: boolean;
+    quantity?: number;
     ticket_name?: string;
+    ticket_price?: string;
     payment_required?: boolean;
     payment_id?: string;
+    payment_status?: string;
+    is_cancelled?: boolean;
+    cancelled_at?: string;
 }
 
 export interface SQLRegistrations {
     id: string;
+    event_registration_uuid: string;
     user_id: string;
     event_id: string;
     name: string;
     email: string;
     created_at: string;
     external: boolean;
+    quantity?: number;
     ticket_name?: string;
+    ticket_price?: string;
     payment_required?: boolean;
     payment_id?: string;
+    payment_status?: string;
+    is_cancelled?: boolean;
+    cancelled_at?: string;
 }
 
 export interface WebsiteStats {

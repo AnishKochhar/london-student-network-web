@@ -8,12 +8,17 @@ interface RegistrationData {
     external: number;
     totalCancellations?: number;
     registrations: Array<{
+        event_registration_uuid: string;
         user_name: string;
         user_email: string;
         date_registered: string;
         external: boolean;
+        quantity?: number;
         payment_required?: boolean;
+        payment_status?: string;
+        payment_id?: string;
         ticket_name?: string;
+        ticket_price?: string;
         is_cancelled?: boolean;
         cancelled_at?: string;
     }>;

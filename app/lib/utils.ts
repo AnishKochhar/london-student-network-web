@@ -127,14 +127,20 @@ export function convertSQLRegistrationsToRegistrations(
 	registrations: SQLRegistrations,
 ): Registrations {
 	return {
+		event_registration_uuid: registrations.event_registration_uuid,
 		user_id: registrations.user_id,
 		user_email: registrations.email,
 		user_name: registrations.name,
 		date_registered: registrations.created_at,
 		external: registrations.external,
+		quantity: registrations.quantity,
 		ticket_name: registrations.ticket_name,
+		ticket_price: registrations.ticket_price,
 		payment_required: registrations.payment_required,
 		payment_id: registrations.payment_id,
+		payment_status: registrations.payment_status,
+		is_cancelled: registrations.is_cancelled,
+		cancelled_at: registrations.cancelled_at,
 	};
 }
 

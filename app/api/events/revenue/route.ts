@@ -38,12 +38,26 @@ export async function POST(req: Request) {
         const pendingPayments = payments.filter(p => p.payment_status === "pending");
         const failedPayments = payments.filter(p => p.payment_status === "failed");
         const refundedPayments = payments.filter(p => p.payment_status === "refunded");
+        const partiallyRefundedPayments = payments.filter(p => p.payment_status === "partially_refunded");
 
-        const totalRevenue = successfulPayments.reduce((sum, p) => sum + parseInt(p.amount_total || "0"), 0);
-        const platformFee = successfulPayments.reduce((sum, p) => sum + parseInt(p.platform_fee || "0"), 0);
-        const organizerEarnings = successfulPayments.reduce((sum, p) => sum + parseInt(p.organizer_amount || "0"), 0);
+        // Calculate total amounts for successful and partially refunded payments
+        const allCompletedPayments = [...successfulPayments, ...partiallyRefundedPayments];
+
+        const totalRevenue = allCompletedPayments.reduce((sum, p) => sum + parseInt(p.amount_total || "0"), 0);
+        const platformFee = allCompletedPayments.reduce((sum, p) => sum + parseInt(p.platform_fee || "0"), 0);
+        const organizerEarnings = allCompletedPayments.reduce((sum, p) => sum + parseInt(p.organizer_amount || "0"), 0);
         const pendingAmount = pendingPayments.reduce((sum, p) => sum + parseInt(p.amount_total || "0"), 0);
-        const refundedAmount = refundedPayments.reduce((sum, p) => sum + parseInt(p.refund_amount || "0"), 0);
+
+        // Calculate total refunded amount from all payments (including partial refunds)
+        const refundedAmount = payments.reduce((sum, p) => {
+            if (p.payment_status === "refunded" || p.payment_status === "partially_refunded") {
+                return sum + parseInt(p.refund_amount || "0");
+            }
+            return sum;
+        }, 0);
+
+        // Calculate net revenue after refunds
+        const netRevenue = totalRevenue - refundedAmount;
 
         const averageTransactionValue = successfulPayments.length > 0
             ? totalRevenue / successfulPayments.length
@@ -54,6 +68,7 @@ export async function POST(req: Request) {
             id: p.id,
             user_name: p.user_name,
             amount_total: parseInt(p.amount_total || "0"),
+            refund_amount: parseInt(p.refund_amount || "0"),
             payment_status: p.payment_status,
             created_at: p.created_at,
             quantity: parseInt(p.quantity || "1"),
@@ -63,11 +78,14 @@ export async function POST(req: Request) {
             success: true,
             revenue: {
                 totalRevenue,
+                netRevenue,
                 platformFee,
                 organizerEarnings,
                 totalTransactions: payments.length,
-                successfulPayments: successfulPayments.length,
+                successfulPayments: allCompletedPayments.length,
                 failedPayments: failedPayments.length,
+                refundedPayments: refundedPayments.length,
+                partiallyRefundedPayments: partiallyRefundedPayments.length,
                 pendingAmount,
                 refundedAmount,
                 averageTransactionValue: Math.round(averageTransactionValue),

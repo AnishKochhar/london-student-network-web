@@ -1270,37 +1270,47 @@ export async function getRegistrationsForEvent(event_id: string, includeCancelle
         if (includeCancelled) {
             result = await sql<SQLRegistrations>`
                 SELECT
+                    er.event_registration_uuid,
                     er.user_id,
                     er.name,
                     er.email,
                     er.created_at,
                     er.external,
+                    er.quantity,
                     t.ticket_name,
+                    t.ticket_price,
                     er.payment_required,
                     er.payment_id,
+                    er.payment_status,
                     er.is_cancelled,
                     er.cancelled_at
                 FROM event_registrations er
                 LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
                 WHERE er.event_id = ${event_id}
+                ORDER BY er.created_at DESC
             `;
         } else {
             result = await sql<SQLRegistrations>`
                 SELECT
+                    er.event_registration_uuid,
                     er.user_id,
                     er.name,
                     er.email,
                     er.created_at,
                     er.external,
+                    er.quantity,
                     t.ticket_name,
+                    t.ticket_price,
                     er.payment_required,
                     er.payment_id,
+                    er.payment_status,
                     er.is_cancelled,
                     er.cancelled_at
                 FROM event_registrations er
                 LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
                 WHERE er.event_id = ${event_id}
                     AND (er.is_cancelled = FALSE OR er.is_cancelled IS NULL)
+                ORDER BY er.created_at DESC
             `;
         }
         const registrations = result.rows.map(

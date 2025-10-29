@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import { ExclamationCircleIcon, CheckIcon, XMarkIcon, AtSymbolIcon } from "@heroicons/react/24/outline";
 import StripeConnectStatusCompact from "../components/account/stripe-connect-status-compact";
 import OrganiserInfoCard from "../components/account/organiser-info-card";
@@ -67,16 +66,17 @@ export default function PersonalInfoSection({
   accountFields,
   predefinedTags,
 }: Props) {
-  const { data: session } = useSession();
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [resendingEmail, setResendingEmail] = useState<'primary' | 'university' | null>(null);
 
   const handleNameDoubleClick = () => {
-    if (session?.user?.role === "organiser") {
+    // Use server-provided user role instead of potentially stale session
+    if (user?.role === "organiser") {
       setIsEditingName(true);
-      setEditedName(session.user.name || "");
+      // Use server-provided name as the source of truth
+      setEditedName(user.name || "");
     }
   };
 
@@ -375,6 +375,8 @@ export default function PersonalInfoSection({
       {user.role === "organiser" && (
         <OrganiserInfoCard
           userId={user.id}
+          userName={user.name}
+          userEmail={user.email}
           initialAccountFields={accountFields}
           initialStripeStatus={stripeStatus}
           initialPredefinedTags={predefinedTags}
