@@ -12,6 +12,7 @@ import UserRegistrations from '../components/account/user-registrations';
 import UserReferrals from '../components/account/user-referrals';
 import UserForumPosts from '../components/account/user-forum-posts';
 import AccountSettingsSection from './account-settings-section';
+import AccountLayoutClient from './account-layout-client';
 
 // Force dynamic rendering (no caching for user-specific pages)
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,8 @@ export default async function AccountPage() {
   const accountData = await getAccountData(session.user.id);
 
   return (
-    <div className="p-4 md:p-8 space-y-8 md:space-y-16">
+    <AccountLayoutClient userName={session.user.name || ''} userEmail={session.user.email || ''}>
+      <div className="p-4 md:p-8 space-y-8 md:space-y-16">
       {/* Personal Information Section */}
       <PersonalInfoSection
         user={accountData.user}
@@ -89,6 +91,7 @@ export default async function AccountPage() {
 
       {/* Bottom padding for scroll */}
       <div className="h-32"></div>
-    </div>
+      </div>
+    </AccountLayoutClient>
   );
 }

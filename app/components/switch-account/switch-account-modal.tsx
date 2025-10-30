@@ -123,8 +123,9 @@ export default function SwitchAccountModal({ isOpen, onClose, currentUserEmail, 
 
 			toast.success(`Switched to ${selectedAccount.name}`, { id: toastId });
 			onClose();
-			router.push("/account");
-			router.refresh();
+
+			// Hard reload to ensure fresh session everywhere (no client-side caching issues)
+			window.location.href = "/account";
 		} catch (error) {
 			console.error("Switch error:", error);
 			toast.error("Failed to switch account", { id: toastId });
