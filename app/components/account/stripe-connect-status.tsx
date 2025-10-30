@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { CheckCircleIcon, XCircleIcon, ArrowPathIcon, BanknotesIcon } from "@heroicons/react/24/outline";
 
@@ -19,8 +18,12 @@ interface StripeAccountStatus {
     } | null;
 }
 
-export default function StripeConnectStatus({ initialStatus }: { initialStatus?: StripeAccountStatus | null }) {
-    const { data: session } = useSession();
+interface Props {
+    initialStatus?: StripeAccountStatus | null;
+    userRole: string;
+}
+
+export default function StripeConnectStatus({ initialStatus, userRole }: Props) {
     const [accountStatus, setAccountStatus] = useState<StripeAccountStatus | null>(initialStatus || null);
     const [loading, setLoading] = useState(!initialStatus);
     const [actionLoading, setActionLoading] = useState(false);
@@ -44,13 +47,14 @@ export default function StripeConnectStatus({ initialStatus }: { initialStatus?:
     };
 
     useEffect(() => {
-        // Only fetch if we don't have initial data and user is an organizer or company
-        if (!initialStatus && (session?.user?.role === 'organiser' || session?.user?.role === 'company')) {
+        // Only fetch if we don't have initial data
+        const canUseStripe = userRole === 'organiser' || userRole === 'company' || userRole === 'user';
+        if (!initialStatus && canUseStripe) {
             fetchAccountStatus();
         } else if (!initialStatus) {
             setLoading(false);
         }
-    }, [session?.user?.role, initialStatus]);
+    }, [userRole, initialStatus]);
 
     // Handle creating new Stripe account
     const handleCreateAccount = async () => {
@@ -134,11 +138,6 @@ export default function StripeConnectStatus({ initialStatus }: { initialStatus?:
         }
     };
 
-    // Don't show for regular users
-    if (session?.user?.role !== 'organiser' && session?.user?.role !== 'company') {
-        return null;
-    }
-
     if (loading) {
         return (
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
@@ -149,6 +148,23 @@ export default function StripeConnectStatus({ initialStatus }: { initialStatus?:
             </div>
         );
     }
+
+    // Tailor messaging based on user role
+    const getTitle = () => {
+        if (userRole === 'organiser') return 'Accept Payments for Your Events';
+        if (userRole === 'company') return 'Accept Payments for Your Events';
+        return 'Start Selling Tickets'; // user role
+    };
+
+    const getDescription = () => {
+        if (userRole === 'organiser') {
+            return 'Connect with Stripe to sell tickets and collect payments for your events. Stripe handles all payment processing securely.';
+        }
+        if (userRole === 'company') {
+            return 'Connect with Stripe to monetize your events and manage payments. Perfect for corporate events and sponsorships.';
+        }
+        return 'Want to host your own events? Connect with Stripe to sell tickets and start earning. Anyone can organize events!';
+    };
 
     return (
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
@@ -174,11 +190,10 @@ export default function StripeConnectStatus({ initialStatus }: { initialStatus?:
                     <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center">
                         <BanknotesIcon className="h-12 w-12 text-white/40 mx-auto mb-3" />
                         <h4 className="text-sm font-medium text-white mb-2">
-                            Accept Payments for Your Events
+                            {getTitle()}
                         </h4>
                         <p className="text-sm text-gray-300 mb-4 max-w-md mx-auto">
-                            Connect with Stripe to sell tickets and collect payments for your events.
-                            Stripe handles all payment processing securely.
+                            {getDescription()}
                         </p>
                         <button
                             onClick={handleCreateAccount}

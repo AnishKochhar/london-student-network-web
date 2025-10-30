@@ -87,7 +87,10 @@ export default async function AccountPage() {
       </section>
 
       {/* Account Settings Section */}
-      <AccountSettingsSection stripeStatus={accountData.stripeStatus} />
+      <AccountSettingsSection
+        stripeStatus={accountData.stripeStatus}
+        userRole={accountData.user.role}
+      />
 
       {/* Bottom padding for scroll */}
       <div className="h-32"></div>

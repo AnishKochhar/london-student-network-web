@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { CheckCircleIcon, XCircleIcon, ArrowPathIcon, BanknotesIcon, CreditCardIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
@@ -20,8 +19,12 @@ interface StripeAccountStatus {
     } | null;
 }
 
-export default function StripeConnectStatusCompact({ initialStatus }: { initialStatus?: StripeAccountStatus | null }) {
-    const { data: session } = useSession();
+interface Props {
+    initialStatus?: StripeAccountStatus | null;
+    userRole?: string;
+}
+
+export default function StripeConnectStatusCompact({ initialStatus, userRole }: Props) {
     const [accountStatus, setAccountStatus] = useState<StripeAccountStatus | null>(initialStatus || null);
     const [loading, setLoading] = useState(!initialStatus);
     const [actionLoading, setActionLoading] = useState(false);
@@ -43,12 +46,13 @@ export default function StripeConnectStatusCompact({ initialStatus }: { initialS
 
     useEffect(() => {
         // Only fetch if we don't have initial data
-        if (!initialStatus && (session?.user?.role === 'organiser' || session?.user?.role === 'company')) {
+        const canUseStripe = userRole && (userRole === 'organiser' || userRole === 'company' || userRole === 'user');
+        if (!initialStatus && canUseStripe) {
             fetchAccountStatus();
         } else if (!initialStatus) {
             setLoading(false);
         }
-    }, [session?.user?.role, initialStatus]);
+    }, [userRole, initialStatus]);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const handleCreateAccount = async () => {

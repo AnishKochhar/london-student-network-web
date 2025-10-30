@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Button } from '@/app/components/button';
 import StripeConnectStatus from '../components/account/stripe-connect-status';
 import ForgottenPasswordModal from '../components/login/reset-password-modal';
-import { useSession } from 'next-auth/react';
 
 interface StripeAccountStatus {
   hasAccount: boolean;
@@ -22,11 +21,15 @@ interface StripeAccountStatus {
 
 interface Props {
   stripeStatus: StripeAccountStatus | null;
+  userRole: string;
 }
 
-export default function AccountSettingsSection({ stripeStatus }: Props) {
-  const { data: session } = useSession();
+export default function AccountSettingsSection({ stripeStatus, userRole }: Props) {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  // Stripe Connect is available for all users (not just organisers/companies)
+  // Users can create events and sell tickets too!
+  const canUseStripe = userRole === 'organiser' || userRole === 'company' || userRole === 'user';
 
   return (
     <section id="account" className="scroll-mt-8">
@@ -34,10 +37,10 @@ export default function AccountSettingsSection({ stripeStatus }: Props) {
       <p className="text-gray-300 mb-4 md:mb-8">Manage your account security and preferences</p>
 
       <div className="space-y-4 md:space-y-6">
-        {/* Stripe Connect for organizers/companies */}
-        {(session?.user?.role === 'organiser' || session?.user?.role === 'company') && (
+        {/* Stripe Connect for payment processing */}
+        {canUseStripe && (
           <div data-stripe-settings>
-            <StripeConnectStatus initialStatus={stripeStatus} />
+            <StripeConnectStatus initialStatus={stripeStatus} userRole={userRole} />
           </div>
         )}
 

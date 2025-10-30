@@ -7,5 +7,12 @@ export default function SessionProviderWrapper({
 }: {
     children: React.ReactNode;
 }) {
-    return <SessionProvider>{children}</SessionProvider>;
+    return (
+        <SessionProvider
+            refetchInterval={0}  // Disable automatic background polling
+            refetchOnWindowFocus={false}  // Disable refetch on window focus
+        >
+            {children}
+        </SessionProvider>
+    );
 }
