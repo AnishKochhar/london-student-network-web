@@ -1,5 +1,6 @@
 import { Event } from "@/app/lib/types";
 import { formatInTimeZone } from "date-fns-tz";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 
 interface RegistrationInfo {
     name: string;
@@ -23,6 +24,8 @@ const EventOrganizerSummaryEmailPayload = (
 
     const internalCount = registrations.filter(r => !r.external).length;
     const externalCount = registrations.filter(r => r.external).length;
+
+    const manageUrl = `https://londonstudentnetwork.com/events/${base16ToBase62(event.id)}/manage`;
 
     return `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 600px; margin: 0 auto;">
@@ -96,7 +99,13 @@ const EventOrganizerSummaryEmailPayload = (
                 ✓ Any special arrangements for external students
             </p>
 
-            <p>If you need to make any last-minute changes or contact attendees, you can manage everything from your dashboard.</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="${manageUrl}" style="display: inline-block; background: #007BFF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                    📊 Manage Event
+                </a>
+            </div>
+
+            <p>Make last-minute changes, view all registrations, download attendee lists, and contact attendees directly from your event management page.</p>
 
             <p>Best of luck with your event!</p>
 

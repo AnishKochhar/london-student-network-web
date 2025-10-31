@@ -1,6 +1,7 @@
 import { Event } from "@/app/lib/types";
 import { formatInTimeZone } from "date-fns-tz";
 import { TicketInfo } from "./event-registration-email";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 
 interface RegistrationDetails {
     name: string;
@@ -19,6 +20,8 @@ const EventOrganizerNotificationEmailFallbackPayload = (
         ? formatInTimeZone(new Date(event.start_datetime), LONDON_TZ, 'dd/MM/yyyy')
         : event.date;
 
+    const manageUrl = `https://londonstudentnetwork.com/events/${base16ToBase62(event.id)}/manage`;
+
     return `🎉 SOMEONE JUST SIGNED UP FOR YOUR EVENT!
 
 Good news! ${registration.name} has registered for "${event.title}" (${eventDate}).
@@ -31,7 +34,11 @@ ${ticketInfo ? `🎟️ Ticket: ${ticketInfo.ticket_name}${ticketInfo.quantity >
 
 ${registration.external ? `📝 NOTE: This is an external student, so they might need additional information about campus access or directions.
 
-` : ''}You can manage all your registrations through your account dashboard. If you need to contact them directly, just reply to this email!
+` : ''}MANAGE YOUR EVENT
+View all registrations, manage attendees, and update event details:
+${manageUrl}
+
+If you need to contact this attendee directly, just reply to this email!
 
 Cheers,
 The LSN team

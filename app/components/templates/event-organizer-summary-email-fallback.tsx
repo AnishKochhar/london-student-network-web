@@ -1,5 +1,6 @@
 import { Event } from "@/app/lib/types";
 import { formatInTimeZone } from "date-fns-tz";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 
 interface RegistrationInfo {
     name: string;
@@ -23,6 +24,8 @@ const EventOrganizerSummaryEmailFallbackPayload = (
 
     const internalCount = registrations.filter(r => !r.external).length;
     const externalCount = registrations.filter(r => r.external).length;
+
+    const manageUrl = `https://londonstudentnetwork.com/events/${base16ToBase62(event.id)}/manage`;
 
     let text = `EVENT REGISTRATION SUMMARY\n\n`;
     text += `Hi there,\n\n`;
@@ -77,7 +80,10 @@ const EventOrganizerSummaryEmailFallbackPayload = (
     text += `✓ Any special arrangements for external students\n`;
     text += `\n`;
 
-    text += `If you need to make any last-minute changes or contact attendees, you can manage everything from your dashboard.\n\n`;
+    text += `MANAGE YOUR EVENT\n`;
+    text += `Make last-minute changes, view all registrations, download attendee lists, and contact attendees:\n`;
+    text += `${manageUrl}\n\n`;
+
     text += `Best of luck with your event!\n\n`;
     text += `Best regards,\n`;
     text += `London Student Network\n\n`;

@@ -158,7 +158,7 @@ export async function POST(req: Request) {
                         t.ticket_price,
                         t.tickets_available,
                         t.release_order,
-                        COUNT(DISTINCT er.id) as registration_count,
+                        COUNT(DISTINCT er.event_registration_uuid) as registration_count,
                         COUNT(DISTINCT ep.id) as payment_count
                     FROM tickets t
                     LEFT JOIN event_registrations er ON er.ticket_uuid = t.ticket_uuid
