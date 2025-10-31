@@ -8,10 +8,10 @@ export async function POST() {
         // Authenticate user
         const user = await requireAuth();
 
-        // Only organizers and companies can create Stripe Connect accounts
-        if (user.role !== 'organiser' && user.role !== 'company') {
+        // Allow organizers, companies, and regular users to create Stripe Connect accounts
+        if (user.role !== 'organiser' && user.role !== 'company' && user.role !== 'user') {
             return NextResponse.json(
-                { success: false, error: "Only organizers and companies can create Stripe Connect accounts" },
+                { success: false, error: "You cannot create a Stripe Connect account with your account type" },
                 { status: 403 }
             );
         }

@@ -61,8 +61,10 @@ export async function POST(req: Request) {
             )
         `;
 
-        // Update referrer stats if applicable
-        if (referrer_domain && referrer_domain !== window.location.hostname) {
+        // Update referrer stats if applicable (skip internal referrals)
+        // Note: We filter out same-site referrals by checking against known domain
+        const ourDomain = 'londonstudentnetwork.com';
+        if (referrer_domain && !referrer_domain.includes(ourDomain)) {
             await sql`
                 INSERT INTO referrer_stats (referrer_domain, total_views, last_seen)
                 VALUES (${referrer_domain}, 1, NOW())

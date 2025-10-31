@@ -361,13 +361,13 @@ export default function PersonalInfoSection({
           )}
         </div>
 
-        {/* Stripe Payment Status - For Organisers/Companies */}
-        {(user.role === 'organiser' || user.role === 'company') && (
+        {/* Stripe Payment Status - For Organisers/Companies/Users */}
+        {(user.role === 'organiser' || user.role === 'company' || user.role === 'user') && (
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-white/10">
             <label className="block text-sm font-medium text-gray-400 mb-3">
               Payment Processing
             </label>
-            <StripeConnectStatusCompact initialStatus={stripeStatus} />
+            <StripeConnectStatusCompact initialStatus={stripeStatus} userRole={user.role} />
           </div>
         )}
       </div>

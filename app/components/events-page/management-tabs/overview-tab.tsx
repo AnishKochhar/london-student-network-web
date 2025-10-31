@@ -14,7 +14,6 @@ import RevenueDashboard from "./revenue-dashboard";
 import RegistrationTimelineChart from "./registration-timeline-chart";
 import { useManagementData } from "./data-provider";
 import EventEmailSendingModal from "../email-sending-modal";
-import LinkOnlyManager from "./link-only-manager";
 
 interface OverviewTabProps {
     event: Event;
@@ -123,117 +122,8 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
 
     return (
         <div className="space-y-6">
-            {/* Link-Only Manager (if event is link-only) */}
-            {event.link_only && (
-                <LinkOnlyManager
-                    eventId={base16ToBase62(eventId)}
-                />
-            )}
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Total Registrations */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-white/80">Total Registrations</p>
-                        <Users className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <p className="text-3xl font-bold text-white">{registrations?.total || 0}</p>
-                    {event.capacity && registrations && (
-                        <div className="mt-3">
-                            <div className="flex justify-between text-xs text-white/80 mb-1">
-                                <span>{capacityPercentage}% filled</span>
-                                <span>{event.capacity - registrations.total} spots left</span>
-                            </div>
-                            <div className="w-full bg-white/20 rounded-full h-2">
-                                <div
-                                    className="bg-blue-600 h-2 rounded-full transition-all"
-                                    style={{ width: `${Math.min(capacityPercentage, 100)}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Internal/External Split */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-white/80">Breakdown</p>
-                        <TrendingUp className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm text-white/80">Internal</span>
-                            <span className="text-lg font-semibold text-white">{registrations?.internal || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm text-white/80">External</span>
-                            <span className="text-lg font-semibold text-white">{registrations?.external || 0}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Revenue Dashboard (for paid events) */}
-            {hasPaidTickets && (
-                <RevenueDashboard eventId={eventId} hasPaidTickets={hasPaidTickets} />
-            )}
-
-            {/* Registration Timeline Chart */}
-            {registrations && registrations.total > 0 && (
-                <RegistrationTimelineChart />
-            )}
-
-            {/* Event Details Card */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Event Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-start gap-3">
-                        <Calendar className="w-5 h-5 text-white/50 mt-0.5" />
-                        <div>
-                            <p className="text-sm text-white/80">Date & Time</p>
-                            <p className="text-sm font-medium text-white">{formatEventDateTime(event)}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-white/50 mt-0.5" />
-                        <div>
-                            <p className="text-sm text-white/80">Location</p>
-                            <p className="text-sm font-medium text-white">{event.location_building}</p>
-                            {event.location_area && (
-                                <p className="text-xs text-white/70">{event.location_area}</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {event.capacity && (
-                        <div className="flex items-start gap-3">
-                            <Users className="w-5 h-5 text-white/50 mt-0.5" />
-                            <div>
-                                <p className="text-sm text-white/80">Capacity</p>
-                                <p className="text-sm font-medium text-white">{event.capacity} people</p>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex items-start gap-3">
-                        {event.is_hidden ? (
-                            <EyeOff className="w-5 h-5 text-white/50 mt-0.5" />
-                        ) : (
-                            <Eye className="w-5 h-5 text-white/50 mt-0.5" />
-                        )}
-                        <div>
-                            <p className="text-sm text-white/80">Visibility</p>
-                            <p className="text-sm font-medium text-white">
-                                {event.is_hidden ? "Hidden" : "Public"}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Actions */}
+            {/* Quick Actions - Moved to Top! */}
             <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
                 <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
@@ -287,6 +177,109 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
                     </button>
                 </div>
             </div>
+
+            {/* Event Details Card - Moved to Second Position! */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Event Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-start gap-3">
+                        <Calendar className="w-5 h-5 text-white/50 mt-0.5" />
+                        <div>
+                            <p className="text-sm text-white/80">Date & Time</p>
+                            <p className="text-sm font-medium text-white">{formatEventDateTime(event)}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-white/50 mt-0.5" />
+                        <div>
+                            <p className="text-sm text-white/80">Location</p>
+                            <p className="text-sm font-medium text-white">{event.location_building}</p>
+                            {event.location_area && (
+                                <p className="text-xs text-white/70">{event.location_area}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {event.capacity && (
+                        <div className="flex items-start gap-3">
+                            <Users className="w-5 h-5 text-white/50 mt-0.5" />
+                            <div>
+                                <p className="text-sm text-white/80">Capacity</p>
+                                <p className="text-sm font-medium text-white">{event.capacity} people</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex items-start gap-3">
+                        {event.is_hidden ? (
+                            <EyeOff className="w-5 h-5 text-white/50 mt-0.5" />
+                        ) : (
+                            <Eye className="w-5 h-5 text-white/50 mt-0.5" />
+                        )}
+                        <div>
+                            <p className="text-sm text-white/80">Visibility</p>
+                            <p className="text-sm font-medium text-white">
+                                {event.is_hidden ? "Hidden" : "Public"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Stats Cards - Now in Third Position */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Total Registrations */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-white/80">Total Registrations</p>
+                        <Users className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <p className="text-3xl font-bold text-white">{registrations?.total || 0}</p>
+                    {event.capacity && registrations && (
+                        <div className="mt-3">
+                            <div className="flex justify-between text-xs text-white/80 mb-1">
+                                <span>{capacityPercentage}% filled</span>
+                                <span>{event.capacity - registrations.total} spots left</span>
+                            </div>
+                            <div className="w-full bg-white/20 rounded-full h-2">
+                                <div
+                                    className="bg-blue-600 h-2 rounded-full transition-all"
+                                    style={{ width: `${Math.min(capacityPercentage, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Internal/External Split */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-white/80">Breakdown</p>
+                        <TrendingUp className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-white/80">Internal</span>
+                            <span className="text-lg font-semibold text-white">{registrations?.internal || 0}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-white/80">External</span>
+                            <span className="text-lg font-semibold text-white">{registrations?.external || 0}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Revenue Dashboard (for paid events) */}
+            {hasPaidTickets && (
+                <RevenueDashboard eventId={eventId} hasPaidTickets={hasPaidTickets} />
+            )}
+
+            {/* Registration Timeline Chart */}
+            {registrations && registrations.total > 0 && (
+                <RegistrationTimelineChart />
+            )}
 
             {/* Recent Registrations */}
             <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-6">

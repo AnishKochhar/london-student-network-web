@@ -150,78 +150,167 @@ export async function POST(req: Request) {
         if (tickets.length > 0) {
             console.log('=== Updating tickets for event:', id);
             try {
-                // Check if any tickets have been purchased or registered
-                const ticketsWithRegistrations = await sql`
-                    SELECT DISTINCT t.ticket_uuid as id, t.ticket_name
+                // Get existing tickets with full activity information
+                const existingTicketsResult = await sql`
+                    SELECT
+                        t.ticket_uuid as id,
+                        t.ticket_name,
+                        t.ticket_price,
+                        t.tickets_available,
+                        t.release_order,
+                        COUNT(DISTINCT er.id) as registration_count,
+                        COUNT(DISTINCT ep.id) as payment_count
                     FROM tickets t
-                    INNER JOIN event_registrations er ON er.ticket_uuid = t.ticket_uuid
+                    LEFT JOIN event_registrations er ON er.ticket_uuid = t.ticket_uuid
+                    LEFT JOIN event_payments ep ON ep.ticket_uuid = t.ticket_uuid
                     WHERE t.event_uuid = ${id}
+                    GROUP BY t.ticket_uuid, t.ticket_name, t.ticket_price, t.tickets_available, t.release_order
+                    ORDER BY t.release_order, t.ticket_name
                 `;
+                const existingTickets = existingTicketsResult.rows;
 
-                const ticketsWithPayments = await sql`
-                    SELECT DISTINCT t.ticket_uuid as id, t.ticket_name
-                    FROM tickets t
-                    INNER JOIN event_payments ep ON ep.ticket_uuid = t.ticket_uuid
-                    WHERE t.event_uuid = ${id}
-                `;
+                // Create a normalized set of incoming ticket names for comparison
+                const incomingTicketSet = new Set(
+                    tickets.map(t => t.ticket_name.trim().toLowerCase())
+                );
 
-                // Get all existing ticket IDs that have activity
-                const existingTicketIds = new Set([
-                    ...ticketsWithRegistrations.rows.map(t => t.id),
-                    ...ticketsWithPayments.rows.map(t => t.id)
-                ]);
+                // Identify tickets with activity that are being removed
+                const ticketsWithActivity = existingTickets.filter(
+                    t => parseInt(t.registration_count) > 0 || parseInt(t.payment_count) > 0
+                );
 
-                if (existingTicketIds.size > 0) {
-                    // Cannot delete tickets with registrations/payments
-                    const ticketNames = [
-                        ...new Set([
-                            ...ticketsWithRegistrations.rows.map(t => t.ticket_name),
-                            ...ticketsWithPayments.rows.map(t => t.ticket_name)
-                        ])
-                    ];
+                const removedActiveTickets = ticketsWithActivity.filter(
+                    t => !incomingTicketSet.has(t.ticket_name.trim().toLowerCase())
+                );
+
+                if (removedActiveTickets.length > 0) {
+                    // Build detailed error message
+                    const ticketDetails = removedActiveTickets.map(t => {
+                        const regCount = parseInt(t.registration_count);
+                        const payCount = parseInt(t.payment_count);
+                        const parts = [];
+                        if (regCount > 0) parts.push(`${regCount} registration${regCount !== 1 ? 's' : ''}`);
+                        if (payCount > 0) parts.push(`${payCount} payment${payCount !== 1 ? 's' : ''}`);
+                        return `"${t.ticket_name}" (${parts.join(', ')})`;
+                    }).join(', ');
 
                     return NextResponse.json({
-                        error: "Cannot delete or modify tickets that have been purchased or registered for",
-                        details: `The following ticket types have active registrations/payments: ${ticketNames.join(', ')}. You can add new ticket types, but cannot remove existing ones that have been used.`,
-                        hasActiveTickets: true
+                        error: "Cannot delete tickets with existing registrations or payments",
+                        details: `You're trying to remove ticket type(s) that people have already registered for or paid for:\n\n${ticketDetails}\n\nYou can:\n• Keep these tickets and add new ones\n• Modify the price/availability of existing tickets\n• Contact support if you need to cancel this event`,
+                        ticketsBlocked: removedActiveTickets.map(t => ({
+                            name: t.ticket_name,
+                            registrations: parseInt(t.registration_count),
+                            payments: parseInt(t.payment_count)
+                        }))
                     }, { status: 400 });
                 }
 
-                // If no tickets have activity, safe to delete and recreate
-                await sql`DELETE FROM tickets WHERE event_uuid = ${id}`;
+                // Check if tickets actually changed (deep comparison by name and key properties)
+                const existingNormalized = existingTickets.map(t => ({
+                    name: t.ticket_name.trim().toLowerCase(),
+                    price: parseFloat(t.ticket_price),
+                    available: t.tickets_available
+                })).sort((a, b) => a.name.localeCompare(b.name));
 
-                // Insert new tickets
-                for (const ticket of tickets) {
-                    await sql`
-                        INSERT INTO tickets (
-                            event_uuid,
-                            ticket_name,
-                            ticket_price,
-                            tickets_available,
-                            price_id,
-                            release_name,
-                            release_start_time,
-                            release_end_time,
-                            release_order
-                        ) VALUES (
-                            ${id},
-                            ${ticket.ticket_name},
-                            ${ticket.ticket_price},
-                            ${ticket.tickets_available},
-                            NULL,
-                            ${ticket.release_name || null},
-                            ${ticket.release_start_time || null},
-                            ${ticket.release_end_time || null},
-                            ${ticket.release_order || 1}
-                        )
-                    `;
+                const incomingNormalized = tickets.map(t => ({
+                    name: t.ticket_name.trim().toLowerCase(),
+                    price: parseFloat(t.ticket_price),
+                    available: t.tickets_available
+                })).sort((a, b) => a.name.localeCompare(b.name));
+
+                const ticketsUnchanged =
+                    existingNormalized.length === incomingNormalized.length &&
+                    existingNormalized.every((existing, idx) => {
+                        const incoming = incomingNormalized[idx];
+                        return existing.name === incoming.name &&
+                               existing.price === incoming.price &&
+                               existing.available === incoming.available;
+                    });
+
+                if (ticketsUnchanged) {
+                    console.log('✅ Tickets unchanged, skipping ticket update');
+                    return NextResponse.json({ success: true });
                 }
+
+                console.log('🔄 Tickets have changed, performing update...');
+
+                // Delete only tickets that don't have activity (safe to remove)
+                const ticketsToDelete = existingTickets
+                    .filter(t => parseInt(t.registration_count) === 0 && parseInt(t.payment_count) === 0)
+                    .map(t => t.id);
+
+                if (ticketsToDelete.length > 0) {
+                    for (const ticketId of ticketsToDelete) {
+                        await sql`DELETE FROM tickets WHERE ticket_uuid = ${ticketId}`;
+                    }
+                }
+
+                // For tickets with activity that still exist (by name), update them in place
+                for (const ticket of tickets) {
+                    const existingMatch = existingTickets.find(
+                        et => et.ticket_name.trim().toLowerCase() === ticket.ticket_name.trim().toLowerCase()
+                    );
+
+                    if (existingMatch && (parseInt(existingMatch.registration_count) > 0 || parseInt(existingMatch.payment_count) > 0)) {
+                        // Update existing ticket (preserve UUID)
+                        await sql`
+                            UPDATE tickets SET
+                                ticket_price = ${ticket.ticket_price},
+                                tickets_available = ${ticket.tickets_available},
+                                release_name = ${ticket.release_name || null},
+                                release_start_time = ${ticket.release_start_time || null},
+                                release_end_time = ${ticket.release_end_time || null},
+                                release_order = ${ticket.release_order || 1}
+                            WHERE ticket_uuid = ${existingMatch.id}
+                        `;
+                    } else if (!existingMatch) {
+                        // Insert new ticket
+                        await sql`
+                            INSERT INTO tickets (
+                                event_uuid,
+                                ticket_name,
+                                ticket_price,
+                                tickets_available,
+                                price_id,
+                                release_name,
+                                release_start_time,
+                                release_end_time,
+                                release_order
+                            ) VALUES (
+                                ${id},
+                                ${ticket.ticket_name},
+                                ${ticket.ticket_price},
+                                ${ticket.tickets_available},
+                                NULL,
+                                ${ticket.release_name || null},
+                                ${ticket.release_start_time || null},
+                                ${ticket.release_end_time || null},
+                                ${ticket.release_order || 1}
+                            )
+                        `;
+                    }
+                }
+
                 console.log('✅ Tickets updated successfully');
             } catch (ticketError) {
                 console.error('❌ Failed to update tickets:', ticketError);
+
+                // Parse database errors for better messaging
+                let userMessage = "Failed to update tickets";
+                if (ticketError instanceof Error) {
+                    if (ticketError.message.includes('foreign key constraint')) {
+                        userMessage = "Cannot modify tickets: Some tickets are linked to existing payments or registrations. Please contact support if you need assistance.";
+                    } else if (ticketError.message.includes('duplicate')) {
+                        userMessage = "Cannot create duplicate ticket names. Each ticket type must have a unique name.";
+                    } else {
+                        userMessage = ticketError.message;
+                    }
+                }
+
                 return NextResponse.json({
                     error: "Event updated but failed to update tickets",
-                    details: ticketError.message
+                    details: userMessage,
+                    technicalDetails: ticketError instanceof Error ? ticketError.message : String(ticketError)
                 }, { status: 500 });
             }
         }
