@@ -27,6 +27,8 @@ export function base62ToBase16(base62: string): string {
     const hex = bigInt.toString(16).padStart(20, "0");
     const formattedHex = hex.toLowerCase();
 
+    // Return partial UUID (last 20 hex chars formatted)
+    // This is used with LIKE '%partial_uuid' queries in fetchEventById
     return `${formattedHex.slice(0, 4)}-${formattedHex.slice(4, 8)}-${formattedHex.slice(8)}`;
 }
 

@@ -163,9 +163,9 @@ export default async function Page({ params }: PageProps) {
                             availability: "https://schema.org/InStock"
                         }}
                     />
-                    {/* Analytics Tracker */}
+                    {/* Analytics Tracker - pass the actual event.id from database */}
                     <EventAnalyticsTracker
-                        eventId={eventId}
+                        eventId={event.id}
                         eventTitle={event.title}
                     />
                 </>
