@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChatBubbleLeftIcon } from "@heroicons/react/24/solid";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import { ForumPost } from "@/app/lib/types";
@@ -15,26 +15,35 @@ interface PostItemProps {
         downvotes: number,
         userVote: string | null,
     ) => void;
+    onTagClick?: (tag: string) => void;
 }
 
 export default function PostItem({
     post,
     onPostClick,
     onVoteChange,
+    onTagClick,
 }: PostItemProps) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [shouldTruncate, setShouldTruncate] = useState(false);
 
     // Character limit for truncated content
     const CHAR_LIMIT = 240;
 
     // Determine if content needs truncation based on character count
-    const shouldTruncateContent = post.content.length > CHAR_LIMIT;
+    const shouldTruncate = post.content.length > CHAR_LIMIT;
 
-    // Set truncation state on initial render
-    useEffect(() => {
-        setShouldTruncate(shouldTruncateContent);
-    }, [shouldTruncateContent]);
+    // Get reply count badge styling based on activity level
+    const getReplyCountStyle = (count: number) => {
+        if (count === 0) {
+            return "text-white/40";
+        } else if (count < 5) {
+            return "text-gray-400";
+        } else if (count < 20) {
+            return "text-blue-400";
+        } else {
+            return "text-yellow-400";
+        }
+    };
 
     const handlePostClick = () => {
         if (onPostClick) {
@@ -122,12 +131,19 @@ export default function PostItem({
                         onClick={handleInteractiveClick}
                     >
                         {post.tags.map((tag) => (
-                            <span
+                            <button
                                 key={`${post.id}-${tag}`}
-                                className="px-3 py-1 bg-blue-600/30 border border-blue-400/30 rounded-full text-sm text-blue-300 hover:bg-blue-600/50 cursor-pointer transition-colors truncate max-w-full"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onTagClick) {
+                                        onTagClick(tag);
+                                    }
+                                }}
+                                className="px-3 py-1 bg-blue-600/30 border border-blue-400/30 rounded-full text-sm text-blue-300 hover:bg-blue-600/50 hover:border-blue-400/50 active:bg-blue-600/60 cursor-pointer transition-all duration-200 truncate max-w-full"
+                                title={`Filter by ${tag}`}
                             >
                                 {tag}
-                            </span>
+                            </button>
                         ))}
                     </div>
 
@@ -148,9 +164,11 @@ export default function PostItem({
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 px-2 py-1 rounded flex-shrink-0">
-                            <ChatBubbleLeftIcon className="w-4 h-4 text-white/60" />
-                            <span className="text-white/60">
+                        <div className={`flex items-center gap-2 px-2 py-1 rounded flex-shrink-0 ${
+                            post.replyCount > 0 ? "bg-white/5" : ""
+                        }`}>
+                            <ChatBubbleLeftIcon className={`w-4 h-4 ${getReplyCountStyle(post.replyCount)}`} />
+                            <span className={`font-medium ${getReplyCountStyle(post.replyCount)}`}>
                                 {post.replyCount}
                             </span>
                         </div>
@@ -219,12 +237,19 @@ export default function PostItem({
                     onClick={handleInteractiveClick}
                 >
                     {post.tags.map((tag) => (
-                        <span
+                        <button
                             key={`${post.id}-${tag}`}
-                            className="px-2 py-0.5 bg-blue-600/30 border border-blue-400/30 rounded-full text-xs text-blue-300 hover:bg-blue-600/50 cursor-pointer transition-colors truncate max-w-full"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (onTagClick) {
+                                    onTagClick(tag);
+                                }
+                            }}
+                            className="px-2 py-0.5 bg-blue-600/30 border border-blue-400/30 rounded-full text-xs text-blue-300 hover:bg-blue-600/50 hover:border-blue-400/50 active:bg-blue-600/60 cursor-pointer transition-all duration-200 truncate max-w-full"
+                            title={`Filter by ${tag}`}
                         >
                             {tag}
-                        </span>
+                        </button>
                     ))}
                 </div>
 
@@ -241,9 +266,11 @@ export default function PostItem({
                         <span className="flex-shrink-0">{post.timeAgo}</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded flex-shrink-0">
-                        <ChatBubbleLeftIcon className="w-3.5 h-3.5 text-white/60" />
-                        <span className="text-white/60">{post.replyCount}</span>
+                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded flex-shrink-0 ${
+                        post.replyCount > 0 ? "bg-white/5" : ""
+                    }`}>
+                        <ChatBubbleLeftIcon className={`w-3.5 h-3.5 ${getReplyCountStyle(post.replyCount)}`} />
+                        <span className={`font-medium ${getReplyCountStyle(post.replyCount)}`}>{post.replyCount}</span>
                     </div>
                 </div>
             </div>

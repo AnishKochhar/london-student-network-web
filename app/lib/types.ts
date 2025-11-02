@@ -13,6 +13,7 @@ export interface Event {
     image_url: string;
     image_contain: boolean;
     event_type: number;
+    external_forward_email?: string;
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;
@@ -25,6 +26,18 @@ export interface Event {
     is_deleted?: boolean;
     send_signup_notifications?: boolean;
     student_union?: boolean;
+    // Access control fields
+    visibility_level?: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
+    registration_level?: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
+    allowed_universities?: string[];
+    link_only?: boolean; // When true, event is hidden from public listings but accessible via direct link
+    // Registration cutoff fields
+    registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
+    external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
+    // Tickets and registration
+    tickets?: unknown[]; // Tickets for this event (from get-information API)
+    isRegistered?: boolean; // Whether the current user is registered (from get-information API)
+    has_paid_tickets?: boolean; // Whether this event has paid tickets
 }
 
 export interface EditEventProps {
@@ -90,6 +103,7 @@ export interface SQLEvent {
     image_url: string;
     image_contain: boolean;
     event_type: number;
+    external_forward_email?: string;
     capacity?: number;
     sign_up_link?: string;
     for_externals?: string;
@@ -98,6 +112,14 @@ export interface SQLEvent {
     is_deleted?: boolean;
     send_signup_notifications?: boolean;
     student_union?: boolean;
+    // Access control fields
+    visibility_level?: string; // 'public' | 'students_only' | 'verified_students' | 'university_exclusive'
+    registration_level?: string; // 'public' | 'students_only' | 'verified_students' | 'university_exclusive'
+    allowed_universities?: string[];
+    link_only?: boolean; // When true, event is hidden from public listings but accessible via direct link
+    // Registration cutoff fields
+    registration_cutoff_hours?: number | null;
+    external_registration_cutoff_hours?: number | null;
 }
 
 export type User = {
@@ -107,6 +129,7 @@ export type User = {
     password: string;
     role: string;
     email_verified: boolean;
+    verified_university?: string | null;
     last_login?: string; // TIMESTAMPTZ from database
 };
 
@@ -197,6 +220,14 @@ export interface EventFormData {
     sign_up_link?: string;
     for_externals?: string;
     send_signup_notifications: boolean;
+    // Access control fields
+    visibility_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
+    registration_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
+    allowed_universities?: string[]; // Array of university codes (e.g., ['imperial', 'ucl'])
+    link_only: boolean; // When true, event is hidden from public listings but accessible via direct link
+    // Registration cutoff fields
+    registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
+    external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
 }
 
 export interface SQLEventData {
@@ -219,6 +250,14 @@ export interface SQLEventData {
     for_externals?: string;
     send_signup_notifications: boolean;
     student_union: boolean;
+    // Access control fields
+    visibility_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
+    registration_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
+    allowed_universities?: string[];
+    link_only: boolean; // When true, event is hidden from public listings but accessible via direct link
+    // Registration cutoff fields
+    registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
+    external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
 }
 
 export interface UserRegisterFormData {
@@ -239,6 +278,26 @@ export interface UserRegisterFormData {
     otherSocietyReferrer: string;
     hasAgreedToTerms: boolean;
     isNewsletterSubscribed: boolean;
+    // University verification fields
+    accountType?: "student" | "alumni" | "staff" | "external";
+    universityEmail?: string;
+}
+
+export interface OtherRegisterFormData {
+    email: string;
+    password: string;
+    confirmPassword: string;
+    firstname: string;
+    surname: string;
+    hasAgreedToTerms: boolean;
+    // Affiliation fields
+    accountType: "alumni" | "staff" | "prospective" | "parent" | "educator" | "professional" | "community" | "external";
+    otherAccountType?: string; // If accountType is "external"
+    universityEmail?: string; // Optional for verification
+    wantsUniversityVerification: boolean;
+    // Optional university affiliation (self-reported)
+    university?: string;
+    otherUniversity?: string;
 }
 
 export interface ResetPasswordFormData {
@@ -295,7 +354,7 @@ export interface OrganiserAccountEditFormData {
     imageUrl: string | null;
     description: string | null;
     website: string | null;
-    tags: Array<string> | null;
+    tags: Array<number> | null;
 }
 
 export type Tag = {
@@ -367,21 +426,39 @@ export interface UserInformation {
 }
 
 export interface Registrations {
+    event_registration_uuid: string;
     user_id: string;
     user_name: string;
     user_email: string;
     date_registered: string;
     external: boolean;
+    quantity?: number;
+    ticket_name?: string;
+    ticket_price?: string;
+    payment_required?: boolean;
+    payment_id?: string;
+    payment_status?: string;
+    is_cancelled?: boolean;
+    cancelled_at?: string;
 }
 
 export interface SQLRegistrations {
     id: string;
+    event_registration_uuid: string;
     user_id: string;
     event_id: string;
     name: string;
     email: string;
     created_at: string;
     external: boolean;
+    quantity?: number;
+    ticket_name?: string;
+    ticket_price?: string;
+    payment_required?: boolean;
+    payment_id?: string;
+    payment_status?: string;
+    is_cancelled?: boolean;
+    cancelled_at?: string;
 }
 
 export interface WebsiteStats {

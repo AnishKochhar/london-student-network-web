@@ -1,4 +1,7 @@
 import Image from "next/image";
+import connectionIcon from "@/public/images/about/connection-icon.png";
+import collaborationIcon from "@/public/images/about/collaboration-icon.png";
+import careersIcon from "@/public/images/about/careers-icon.png";
 
 export default function SolutionSection() {
     return (
@@ -18,11 +21,9 @@ export default function SolutionSection() {
                     {/* Connection Section */}
                     <div>
                         <Image
-                            src="/images/about/connection-icon.png"
+                            src={connectionIcon}
                             alt="Connection Icon"
-                            width={96}
-                            height={96}
-                            className="bg-gray-500 rounded-full mx-auto mb-6"
+                            className="bg-gray-500 rounded-full mx-auto mb-6 w-24 h-24"
                         />
                         <h2 className="text-3xl tracking-widest mb-10">
                             Connection.
@@ -37,11 +38,9 @@ export default function SolutionSection() {
                     {/* Collaboration Section */}
                     <div>
                         <Image
-                            src="/images/about/collaboration-icon.png"
+                            src={collaborationIcon}
                             alt="Collaboration Icon"
-                            width={96}
-                            height={96}
-                            className="bg-gray-500 rounded-full mx-auto mb-6"
+                            className="bg-gray-500 rounded-full mx-auto mb-6 w-24 h-24"
                         />
                         <h2 className="text-3xl tracking-widest mb-10">
                             Collaboration.
@@ -56,11 +55,9 @@ export default function SolutionSection() {
                     {/* Careers Section */}
                     <div>
                         <Image
-                            src="/images/about/careers-icon.png"
+                            src={careersIcon}
                             alt="Careers Icon"
-                            width={96}
-                            height={96}
-                            className="bg-gray-500 rounded-full mx-auto mb-6"
+                            className="bg-gray-500 rounded-full mx-auto mb-6 w-24 h-24"
                         />
                         <h2 className="text-3xl tracking-widest mb-10">
                             Careers.

@@ -1,8 +1,29 @@
 import { EmailPayloadType } from "@/app/lib/types";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import remarkRehype from "remark-rehype";
+import rehypeSanitize from "rehype-sanitize";
+import rehypeStringify from "rehype-stringify";
 
-const EmailPayload = ({ email, subject, text }: EmailPayloadType) => {
-    // Replace newline characters with <br/> to preserve line breaks in HTML
-    const formattedText = text.replace(/\n/g, "<br/>");
+const EmailPayload = async ({ email, subject, text }: EmailPayloadType) => {
+    // Convert markdown to HTML
+    let formattedText: string;
+    try {
+        const result = await unified()
+            .use(remarkParse)
+            .use(remarkGfm)
+            .use(remarkRehype)
+            .use(rehypeSanitize)
+            .use(rehypeStringify)
+            .process(text);
+
+        formattedText = String(result);
+    } catch (error) {
+        // Fallback to plain text with line breaks if markdown parsing fails
+        console.error("Error parsing markdown:", error);
+        formattedText = text.replace(/\n/g, "<br/>");
+    }
 
     return `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">

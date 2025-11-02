@@ -1,0 +1,23 @@
+
+> london-student-network-website@0.1.1 build /Users/anishkochhar/Desktop/london-student-network-website
+> next build && next-sitemap
+
+  ▲ Next.js 15.0.0-canary.152
+  - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/account/account-settings-section.tsx:30:34
+Type error: Type '{ connected: boolean; accountId?: string; detailsSubmitted?: boolean; }' is missing the following properties from type 'StripeAccountStatus': hasAccount, status
+
+[0m [90m 28 |[39m         {(session[33m?[39m[33m.[39muser[33m?[39m[33m.[39mrole [33m===[39m [32m'organiser'[39m [33m||[39m session[33m?[39m[33m.[39muser[33m?[39m[33m.[39mrole [33m===[39m [32m'company'[39m) [33m&&[39m ([0m
+[0m [90m 29 |[39m           [33m<[39m[33mdiv[39m data[33m-[39mstripe[33m-[39msettings[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 30 |[39m             [33m<[39m[33mStripeConnectStatus[39m initialStatus[33m=[39m{stripeStatus} [33m/[39m[33m>[39m[0m
+[0m [90m    |[39m                                  [31m[1m^[22m[39m[0m
+[0m [90m 31 |[39m           [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+[0m [90m 32 |[39m         )}[0m
+[0m [90m 33 |[39m[0m
+ ELIFECYCLE  Command failed with exit code 1.

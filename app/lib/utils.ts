@@ -113,6 +113,13 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		is_deleted: sqlEvent.is_deleted,
 		send_signup_notifications: sqlEvent.send_signup_notifications,
 		student_union: sqlEvent.student_union,
+		// Access control fields
+		visibility_level: sqlEvent.visibility_level,
+		registration_level: sqlEvent.registration_level,
+		allowed_universities: sqlEvent.allowed_universities,
+		// Registration cutoff fields
+		registration_cutoff_hours: sqlEvent.registration_cutoff_hours,
+		external_registration_cutoff_hours: sqlEvent.external_registration_cutoff_hours,
 	};
 }
 
@@ -120,11 +127,20 @@ export function convertSQLRegistrationsToRegistrations(
 	registrations: SQLRegistrations,
 ): Registrations {
 	return {
+		event_registration_uuid: registrations.event_registration_uuid,
 		user_id: registrations.user_id,
 		user_email: registrations.email,
 		user_name: registrations.name,
 		date_registered: registrations.created_at,
 		external: registrations.external,
+		quantity: registrations.quantity,
+		ticket_name: registrations.ticket_name,
+		ticket_price: registrations.ticket_price,
+		payment_required: registrations.payment_required,
+		payment_id: registrations.payment_id,
+		payment_status: registrations.payment_status,
+		is_cancelled: registrations.is_cancelled,
+		cancelled_at: registrations.cancelled_at,
 	};
 }
 
@@ -287,13 +303,15 @@ export default getPredefinedTags;
 
 // MARK: Formatting and Sorting helper functions
 
-export function sortEventsByDate(events: Event[]): Event[] {
+export function sortEventsByDate(events: Event[], reverse: boolean = false): Event[] {
 	return events.sort((a, b) => {
 		const [dayA, monthA, yearA] = a.date.split("/").map(Number);
 		const [dayB, monthB, yearB] = b.date.split("/").map(Number);
 		const dateA = new Date(yearA, monthA - 1, dayA);
 		const dateB = new Date(yearB, monthB - 1, dayB);
-		return dateA.getTime() - dateB.getTime();
+		return reverse
+			? dateB.getTime() - dateA.getTime()  // Descending: furthest future first
+			: dateA.getTime() - dateB.getTime();  // Ascending: chronological
 	});
 }
 
@@ -377,22 +395,22 @@ export function selectUniversity(university: string, otherUniversity: string) {
 export const EVENT_TAG_TYPES: {
 	[key: number]: { label: string; color: string; description: string };
 } = {
-	1: { label: "SOCIAL", color: "bg-[#f3a51a] opacity-95", description: "Social gatherings, parties, meet-ups, and casual events" },
-	2: { label: "ACADEMIC", color: "bg-[#079fbf] opacity-95", description: "Educational events, lectures, study groups, and academic discussions" },
-	4: { label: "SPORTING", color: "bg-[#041A2E] opacity-95", description: "Sports activities, fitness events, tournaments, and athletic competitions" },
-	8: { label: "NETWORKING", color: "bg-[#8B5CF6] opacity-95", description: "Professional networking events and industry meet-ups" },
-	16: { label: "CAREER", color: "bg-[#059669] opacity-95", description: "Career fairs, job opportunities, internship events, and professional development" },
-	32: { label: "CULTURAL", color: "bg-[#DC2626] opacity-95", description: "Cultural celebrations, heritage events, and diversity initiatives" },
-	64: { label: "TECHNOLOGY", color: "bg-[#2563EB] opacity-95", description: "Tech talks, coding events, hackathons, and innovation showcases" },
-	128: { label: "BUSINESS", color: "bg-[#7C3AED] opacity-95", description: "Business events, entrepreneurship, startup pitches, and commercial activities" },
-	256: { label: "ARTS", color: "bg-[#DB2777] opacity-95", description: "Art exhibitions, creative workshops, design events, and artistic performances" },
-	512: { label: "MUSIC", color: "bg-[#EA580C] opacity-95", description: "Concerts, music performances, open mic nights, and musical events" },
-	1024: { label: "FOOD", color: "bg-[#65A30D] opacity-95", description: "Food tastings, cooking events, restaurant visits, and culinary experiences" },
-	2048: { label: "WELLNESS", color: "bg-[#0891B2] opacity-95", description: "Mental health events, fitness classes, meditation, and wellbeing activities" },
-	4096: { label: "VOLUNTEER", color: "bg-[#7C2D12] opacity-95", description: "Community service, charity events, volunteering opportunities, and social impact" },
-	8192: { label: "WORKSHOP", color: "bg-[#4338CA] opacity-95", description: "Hands-on learning sessions, skill-building workshops, and practical training" },
-	16384: { label: "SEMINAR", color: "bg-[#B91C1C] opacity-95", description: "Educational seminars, expert talks, and knowledge-sharing sessions" },
-	32768: { label: "CONFERENCE", color: "bg-[#374151] opacity-95", description: "Large-scale conferences, symposiums, and professional gatherings" },
+	1: { label: "Social", color: "bg-[#f3a51a] opacity-95", description: "Social gatherings, parties, meet-ups, and casual events" },
+	2: { label: "Academic", color: "bg-[#079fbf] opacity-95", description: "Educational events, lectures, study groups, and academic discussions" },
+	4: { label: "Sporting", color: "bg-[#041A2E] opacity-95", description: "Sports activities, fitness events, tournaments, and athletic competitions" },
+	8: { label: "Networking", color: "bg-[#8B5CF6] opacity-95", description: "Professional networking events and industry meet-ups" },
+	16: { label: "Career", color: "bg-[#059669] opacity-95", description: "Career fairs, job opportunities, internship events, and professional development" },
+	32: { label: "Cultural", color: "bg-[#DC2626] opacity-95", description: "Cultural celebrations, heritage events, and diversity initiatives" },
+	64: { label: "Technology", color: "bg-[#2563EB] opacity-95", description: "Tech talks, coding events, hackathons, and innovation showcases" },
+	128: { label: "Business", color: "bg-[#7C3AED] opacity-95", description: "Business events, entrepreneurship, startup pitches, and commercial activities" },
+	256: { label: "Arts", color: "bg-[#DB2777] opacity-95", description: "Art exhibitions, creative workshops, design events, and artistic performances" },
+	512: { label: "Music", color: "bg-[#EA580C] opacity-95", description: "Concerts, music performances, open mic nights, and musical events" },
+	1024: { label: "Food", color: "bg-[#65A30D] opacity-95", description: "Food tastings, cooking events, restaurant visits, and culinary experiences" },
+	2048: { label: "Wellness", color: "bg-[#0891B2] opacity-95", description: "Mental health events, fitness classes, meditation, and wellbeing activities" },
+	4096: { label: "Volunteer", color: "bg-[#7C2D12] opacity-95", description: "Community service, charity events, volunteering opportunities, and social impact" },
+	8192: { label: "Workshop", color: "bg-[#4338CA] opacity-95", description: "Hands-on learning sessions, skill-building workshops, and practical training" },
+	16384: { label: "Seminar", color: "bg-[#B91C1C] opacity-95", description: "Educational seminars, expert talks, and knowledge-sharing sessions" },
+	32768: { label: "Conference", color: "bg-[#374151] opacity-95", description: "Large-scale conferences, symposiums, and professional gatherings" },
 };
 
 export function generateDays() {
@@ -610,22 +628,46 @@ export function createModernEventObject(data: EventFormData): Event {
  * Handles BST (UTC+1) and GMT (UTC+0) automatically
  */
 function londonTimeToUTC(dateString: string, timeString: string): Date {
-	// Parse components
-	const [year, month, day] = dateString.split('-').map(Number);
-	const [hour, minute] = timeString.split(':').map(Number);
+	try {
+		// Parse components
+		const [year, month, day] = dateString.split('-').map(Number);
+		const [hour, minute] = timeString.split(':').map(Number);
 
-	// Create a date at noon in London to determine if DST is active
-	const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
-	const londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+		// Create a date at noon in London to determine if DST is active
+		const testDate = new Date(Date.UTC(year, month - 1, day, 12, 0));
 
-	// Extract offset from the formatted string (e.g., "BST" or "GMT")
-	const isBST = londonTimeStr.includes('BST');
+		// Try formatInTimeZone
+		let londonTimeStr;
+		try {
+			londonTimeStr = formatInTimeZone(testDate, 'Europe/London', 'yyyy-MM-dd HH:mm zzz');
+		} catch (fmtError) {
+			console.error('formatInTimeZone ERROR:', fmtError);
+			throw fmtError;
+		}
 
-	// BST is UTC+1, GMT is UTC+0
-	const offsetHours = isBST ? 1 : 0;
+		// Extract offset from the formatted string
+		// Can be "BST", "GMT", "GMT+1", or "GMT+0"
+		let offsetHours = 0;
 
-	// Create UTC date by subtracting the offset
-	return new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+		if (londonTimeStr.includes('BST')) {
+			// British Summer Time = UTC+1
+			offsetHours = 1;
+		} else if (londonTimeStr.includes('GMT+1')) {
+			// GMT+1 = BST (numeric format)
+			offsetHours = 1;
+		} else if (londonTimeStr.includes('GMT+0') || londonTimeStr.includes('GMT')) {
+			// GMT or GMT+0 = UTC+0
+			offsetHours = 0;
+		}
+
+		// Create UTC date by subtracting the offset
+		const result = new Date(Date.UTC(year, month - 1, day, hour - offsetHours, minute));
+
+		return result;
+	} catch (error) {
+		console.error('Error converting London time to UTC:', error);
+		throw error;
+	}
 }
 
 export function createSQLEventData(data: EventFormData): SQLEventData {
@@ -637,7 +679,7 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 	const startDateTimeUTC = londonTimeToUTC(data.start_datetime, data.start_time);
 	const endDateTimeUTC = londonTimeToUTC(data.end_datetime, data.end_time);
 
-	return {
+	const sqlData = {
 		title: data.title,
 		description: data.description,
 		organiser: data.organiser,
@@ -657,7 +699,21 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		for_externals: data.for_externals || undefined,
 		send_signup_notifications: data.send_signup_notifications ?? true,
 		student_union: false, // Default to false for now, can be updated later if needed
+		// Access control fields
+		visibility_level: data.visibility_level || 'public',
+		registration_level: data.registration_level || 'public',
+		allowed_universities: data.allowed_universities || [],
+		link_only: data.link_only ?? false,
+		// Registration cutoff fields
+		registration_cutoff_hours: data.registration_cutoff_hours != null && !isNaN(Number(data.registration_cutoff_hours)) && Number(data.registration_cutoff_hours) > 0
+			? Number(data.registration_cutoff_hours)
+			: undefined,
+		external_registration_cutoff_hours: data.external_registration_cutoff_hours != null && !isNaN(Number(data.external_registration_cutoff_hours)) && Number(data.external_registration_cutoff_hours) > 0
+			? Number(data.external_registration_cutoff_hours)
+			: undefined
 	};
+
+	return sqlData;
 }
 
 export const LondonUniversities = [
@@ -753,6 +809,7 @@ export const SocietyLogos = [
 	{ name: "European Affairs Institute", src: "/societies/LSN.png" },
 	{ name: "Imperial College Union", src: "/societies/imperial-union.png" },
 	{ name: "UCL Students' Union", src: "/societies/ucl-union.png" },
+	{ name: "LSE Students' Union", src: "/societies/lse-union.svg" },
 	{ name: "KCLSU Events", src: "/societies/kclsu.png" },
 ];
 

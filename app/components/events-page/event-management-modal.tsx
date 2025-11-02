@@ -465,10 +465,11 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 					<div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
 						<div
 							ref={registrationModalRef}
-							className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl"
+							className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
 							onClick={(e) => e.stopPropagation()}
 						>
-							<div className="p-6 border-b border-gray-200">
+							{/* Fixed Header */}
+							<div className="flex-shrink-0 p-6 border-b border-gray-200">
 								<div className="flex items-center justify-between">
 									<h3 className="text-xl font-semibold text-gray-900">
 										{showRegistrationDetails === 'all' && 'All Registrations'}
@@ -484,7 +485,8 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 								</div>
 							</div>
 
-							<div className="p-6 max-h-[60vh] overflow-y-auto">
+							{/* Scrollable Content */}
+							<div className="flex-grow overflow-y-auto p-6 min-h-0">
 								{(() => {
 									let filteredRegistrations = registrations;
 									if (showRegistrationDetails === 'internal') {
@@ -534,8 +536,9 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 								})()}
 							</div>
 
-							<div className="p-6 border-t border-gray-200 bg-gray-50">
-								<div className="flex items-center justify-between">
+							{/* Fixed Footer with Copy Buttons */}
+							<div className="flex-shrink-0 p-6 border-t border-gray-200 bg-gray-50">
+								<div className="flex items-center justify-between gap-3">
 									<span className="text-sm text-gray-600">
 										{(() => {
 											let count = 0;
@@ -545,34 +548,64 @@ export default function EventManagementModal({ event, onClose, onUpdate }: Event
 											return `${count} registration${count !== 1 ? 's' : ''}`;
 										})()}
 									</span>
-									<button
-										onClick={() => {
-											let emails: string[] = [];
-											if (showRegistrationDetails === 'all') {
-												emails = registrations.map(r => r.user_email);
-											} else if (showRegistrationDetails === 'internal') {
-												emails = registrations.filter(r => !r.external).map(r => r.user_email);
-											} else if (showRegistrationDetails === 'external') {
-												emails = registrations.filter(r => r.external).map(r => r.user_email);
-											}
-											navigator.clipboard.writeText(emails.join(', '));
-											setCopiedField('all-emails');
-											setTimeout(() => setCopiedField(null), 2000);
-										}}
-										className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-									>
-										{copiedField === 'all-emails' ? (
-											<>
-												<CheckIcon className="h-4 w-4" />
-												<span>Copied!</span>
-											</>
-										) : (
-											<>
-												<ClipboardDocumentIcon className="h-4 w-4" />
-												<span>Copy All Emails</span>
-											</>
-										)}
-									</button>
+									<div className="flex gap-2">
+										<button
+											onClick={() => {
+												let names: string[] = [];
+												if (showRegistrationDetails === 'all') {
+													names = registrations.map(r => r.user_name);
+												} else if (showRegistrationDetails === 'internal') {
+													names = registrations.filter(r => !r.external).map(r => r.user_name);
+												} else if (showRegistrationDetails === 'external') {
+													names = registrations.filter(r => r.external).map(r => r.user_name);
+												}
+												navigator.clipboard.writeText(names.map((name, idx) => `${idx + 1}. ${name}`).join('\n'));
+												setCopiedField('all-names');
+												setTimeout(() => setCopiedField(null), 2000);
+											}}
+											className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+										>
+											{copiedField === 'all-names' ? (
+												<>
+													<CheckIcon className="h-4 w-4" />
+													<span>Copied!</span>
+												</>
+											) : (
+												<>
+													<ClipboardDocumentIcon className="h-4 w-4" />
+													<span>Copy Names</span>
+												</>
+											)}
+										</button>
+										<button
+											onClick={() => {
+												let emails: string[] = [];
+												if (showRegistrationDetails === 'all') {
+													emails = registrations.map(r => r.user_email);
+												} else if (showRegistrationDetails === 'internal') {
+													emails = registrations.filter(r => !r.external).map(r => r.user_email);
+												} else if (showRegistrationDetails === 'external') {
+													emails = registrations.filter(r => r.external).map(r => r.user_email);
+												}
+												navigator.clipboard.writeText(emails.join(', '));
+												setCopiedField('all-emails');
+												setTimeout(() => setCopiedField(null), 2000);
+											}}
+											className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+										>
+											{copiedField === 'all-emails' ? (
+												<>
+													<CheckIcon className="h-4 w-4" />
+													<span>Copied!</span>
+												</>
+											) : (
+												<>
+													<ClipboardDocumentIcon className="h-4 w-4" />
+													<span>Copy Emails</span>
+												</>
+											)}
+										</button>
+									</div>
 								</div>
 							</div>
 						</div>

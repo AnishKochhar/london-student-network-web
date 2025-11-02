@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { UserCircleIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon, ChevronDownIcon, ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import SwitchAccountModal from "./switch-account/switch-account-modal";
 
 interface AccountDropdownProps {
     userName: string | null;
@@ -17,6 +18,7 @@ export default function AccountDropdown({
 }: AccountDropdownProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [showSwitchModal, setShowSwitchModal] = useState(false);
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -106,6 +108,17 @@ export default function AccountDropdown({
                             <span className="font-medium">My Account</span>
                         </Link>
 
+                        <button
+                            onClick={() => {
+                                handleClose();
+                                setShowSwitchModal(true);
+                            }}
+                            className="flex items-center space-x-3 py-3 px-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors group w-full"
+                        >
+                            <ArrowsRightLeftIcon className="h-5 w-5 text-gray-500 group-hover:text-blue-600 transition-colors" />
+                            <span className="font-medium">Switch Account</span>
+                        </button>
+
                         <div className="h-px bg-gray-200 my-1" />
 
                         <Link
@@ -158,6 +171,13 @@ export default function AccountDropdown({
             </motion.button>
 
             {mounted && createPortal(dropdownContent, document.body)}
+
+            <SwitchAccountModal
+                isOpen={showSwitchModal}
+                onClose={() => setShowSwitchModal(false)}
+                currentUserEmail={userEmail || undefined}
+                triggerRef={triggerRef}
+            />
         </>
     );
 }

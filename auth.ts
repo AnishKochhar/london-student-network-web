@@ -7,7 +7,12 @@ import bcrypt from "bcrypt";
 
 async function getUser(email: string): Promise<User | undefined> {
     try {
-        const user = await sql<User>`SELECT * FROM users WHERE email=${email}`;
+        const user = await sql<User>`
+            SELECT
+                id, name, email, password, role, verified_university
+            FROM users
+            WHERE email=${email}
+        `;
         return user.rows[0];
     } catch (error) {
         console.error("Failed to fetch user:", error);
@@ -64,6 +69,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 token.role = user.role;
                 token.loginTime = Date.now();
 
+                // Single field: verified_university (null if unverified or no uni email)
+                token.verified_university = user.verified_university || null;
+
                 // Update last_login in database
                 try {
                     await sql`
@@ -74,7 +82,22 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                 } catch (error) {
                     console.error("Failed to update last_login:", error);
                 }
-                // token.email_verified = !!user.email_verified;
+            }
+
+            // Refresh verified_university on session update (lightweight)
+            if (trigger === "update" && token.id) {
+                try {
+                    const updatedUser = await sql<User>`
+                        SELECT verified_university
+                        FROM users
+                        WHERE id = ${String(token.id)}
+                    `;
+                    if (updatedUser.rows[0]) {
+                        token.verified_university = updatedUser.rows[0].verified_university || null;
+                    }
+                } catch (error) {
+                    console.error("Failed to refresh verification status:", error);
+                }
             }
 
             // Check for session timeout (additional security)
@@ -101,7 +124,10 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
             session.user.id = String(token?.id) || "";
             session.user.role = String(token?.role) || "";
             session.user.name = token?.name || "";
-            // session.user.lastActivity = token?.lastActivity;
+            // Single field for authorization: verified_university
+            // null = unverified or no university email
+            // string (e.g., "imperial") = verified university
+            session.user.verified_university = token?.verified_university as string | null || null;
 
             return session;
         },

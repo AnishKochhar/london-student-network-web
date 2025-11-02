@@ -8,6 +8,7 @@ import EventRegistrationEmailFallbackPayload from "@/app/components/templates/ev
 import EventOrganizerNotificationEmailPayload from "@/app/components/templates/event-organizer-notification-email";
 import EventOrganizerNotificationEmailFallbackPayload from "@/app/components/templates/event-organizer-notification-email-fallback";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
+import { generateICSFile } from "@/app/lib/ics-generator";
 
 export async function POST(req: Request) {
 	try {
@@ -65,8 +66,43 @@ export async function POST(req: Request) {
 		if (now > eventEndTime) {
 			return NextResponse.json({
 				success: false,
-				error: "This event has already ended. Registration is no longer available.",
+				error: "EVENT_ENDED|This event has ended",
 			});
+		}
+
+		// ===== ACCESS CONTROL FOR GUEST REGISTRATION =====
+		// Guest registration is ONLY allowed for public events
+		const registrationLevel = event.registration_level || 'public';
+
+		if (registrationLevel !== 'public') {
+			// For any restricted event (students_only, verified_students, university_exclusive),
+			// guests cannot register - they must create an account
+			return NextResponse.json({
+				success: false,
+				error: "ACCOUNT_REQUIRED|Please log in or sign up to register",
+			});
+		}
+
+		// Check registration cutoff (general cutoff only - no external cutoff for guests)
+		if (event.registration_cutoff_hours != null && event.registration_cutoff_hours > 0) {
+			let eventStartTime: Date;
+
+			if (event.start_datetime) {
+				eventStartTime = new Date(event.start_datetime);
+			} else {
+				const eventDate = new Date(event.year, event.month - 1, event.day);
+				const [hours, minutes] = event.start_time.split(':').map(Number);
+				eventDate.setHours(hours, minutes, 0, 0);
+				eventStartTime = eventDate;
+			}
+
+			const cutoffTime = new Date(eventStartTime.getTime() - event.registration_cutoff_hours * 60 * 60 * 1000);
+			if (now >= cutoffTime) {
+				return NextResponse.json({
+					success: false,
+					error: "REGISTRATION_CLOSED|Registration has closed",
+				});
+			}
 		}
 
 		// Check if email is already registered for this event
@@ -82,6 +118,45 @@ export async function POST(req: Request) {
 				alreadyRegistered: true,
 				error: "This email is already registered for the event",
 			});
+		}
+
+		// Determine if guest is internal based on email domain
+		// Internal = guest's email university matches event organizer's university
+		let isInternal = false;
+
+		try {
+			const emailDomain = email.toLowerCase().split('@')[1];
+
+			if (emailDomain) {
+				// Query to check if email domain matches organizer's university
+				const universityCheckResult = await sql`
+					SELECT
+						ued.university_name,
+						si.university_affiliation as organizer_university
+					FROM university_email_domains ued
+					CROSS JOIN users u
+					LEFT JOIN society_information si ON u.id = si.user_id
+					WHERE u.id = ${event.organiser_uid}
+					  AND ued.email_domain = ${emailDomain}
+					  AND ued.is_active = true
+					  AND si.university_affiliation IS NOT NULL
+					  AND si.university_affiliation = ued.university_name
+				`;
+
+				// If domain is recognized AND matches organizer's university → internal
+				if (universityCheckResult.rows.length > 0) {
+					const row = universityCheckResult.rows[0];
+					isInternal = true;
+
+					if (isInternal) {
+						console.log(`[GUEST-REG] Guest ${email} recognized as internal (${row.university_name})`);
+					}
+				}
+			}
+		} catch (universityCheckError) {
+			console.error('[GUEST-REG] Error checking university status:', universityCheckError);
+			// Default to external on error (safe fallback)
+			isInternal = false;
 		}
 
 		// Register the guest
@@ -100,9 +175,18 @@ export async function POST(req: Request) {
                 NULL,
                 ${fullName},
                 ${email.toLowerCase()},
-                true
+                ${!isInternal}
             )
         `;
+
+		// Fetch organizer email once for use in both emails
+		let organiserEmailAddress: string | undefined;
+		try {
+			const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
+			organiserEmailAddress = organiserEmail?.email;
+		} catch (err) {
+			console.error("Failed to fetch organiser email:", err);
+		}
 
 		// Send confirmation email to guest
 		try {
@@ -111,11 +195,20 @@ export async function POST(req: Request) {
 			const guestEmailHtml = EventRegistrationEmailPayload(firstName, eventData);
 			const guestEmailText = EventRegistrationEmailFallbackPayload(firstName, eventData);
 
+			// Generate ICS file for calendar integration
+			const icsContent = generateICSFile(eventData, email.toLowerCase());
+			const icsFilename = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+
 			await sendEventRegistrationEmail({
 				toEmail: email.toLowerCase(),
 				subject: guestEmailSubject,
 				html: guestEmailHtml,
 				text: guestEmailText,
+				replyTo: organiserEmailAddress, // Reply to organizer
+				icsAttachment: {
+					content: icsContent,
+					filename: icsFilename
+				}
 			});
 		} catch (emailError) {
 			console.error("Failed to send confirmation email to guest:", emailError);
@@ -126,12 +219,9 @@ export async function POST(req: Request) {
 		const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
 		if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
 			try {
-				const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
-
-				if (!organiserEmail || !organiserEmail.email || organiserEmail.email === "") {
+				if (!organiserEmailAddress || organiserEmailAddress === "") {
 					console.log(`Warning: Organiser email not found in database for organiser ID: ${event.organiser_uid}`);
 					console.log(`Event title: ${event.title}, Organiser name: ${event.organiser}`);
-					console.log(`getEventOrganiserEmail returned:`, organiserEmail);
 				} else {
 					const eventData = convertSQLEventToEvent(event);
 					const organiserEmailSubject = `🔔 New Guest Registration: ${event.title}`;
@@ -140,7 +230,7 @@ export async function POST(req: Request) {
 						{
 							name: fullName,
 							email: email.toLowerCase(),
-							external: true // Guests are always external
+							external: !isInternal
 						}
 					);
 					const organiserEmailText = EventOrganizerNotificationEmailFallbackPayload(
@@ -148,15 +238,16 @@ export async function POST(req: Request) {
 						{
 							name: fullName,
 							email: email.toLowerCase(),
-							external: true
+							external: !isInternal
 						}
 					);
 
 					await sendEventRegistrationEmail({
-						toEmail: organiserEmail.email,
+						toEmail: organiserEmailAddress,
 						subject: organiserEmailSubject,
 						html: organiserEmailHtml,
 						text: organiserEmailText,
+						replyTo: email.toLowerCase(), // Reply to the guest
 					});
 				}
 			} catch (organiserEmailError) {

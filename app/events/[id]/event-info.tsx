@@ -2,13 +2,14 @@
 
 import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
 import { EVENT_TAG_TYPES, returnLogo, formatEventDateTime } from "@/app/lib/utils";
-import { ArrowRightIcon, ShareIcon } from "@heroicons/react/24/outline";
+import { ArrowRightIcon, ShareIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
 import EventEmailSendingModal from "@/app/components/events-page/email-sending-modal";
@@ -25,8 +26,9 @@ export default function EventInfo() {
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
     const session = useSession();
+    const router = useRouter();
     const loggedIn = session.status === "authenticated";
-    const isOrganiser = useRef<boolean>(false);
+    const [isOrganiser, setIsOrganiser] = useState<boolean>(false);
     const [viewEmailSending, setViewEmailSending] = useState<boolean>(false);
     const [showRegistrationChoice, setShowRegistrationChoice] = useState<boolean>(false);
     const [showGuestRegistration, setShowGuestRegistration] = useState<boolean>(false);
@@ -34,11 +36,6 @@ export default function EventInfo() {
     const [isRegistered, setIsRegistered] = useState<boolean>(false);
     const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
     const [isLoadingLogo, setIsLoadingLogo] = useState(false);
-
-    // Debug logging for isRegistered state changes
-    useEffect(() => {
-        console.log("🔍 EventInfo: isRegistered state changed to:", isRegistered);
-    }, [isRegistered]);
 
     // dont know why the event type does not include organiser_uid, defaulting to this instead
     async function checkIsOrganiser(id: string, user_id: string) {
@@ -50,17 +47,15 @@ export default function EventInfo() {
                 },
                 body: JSON.stringify({ id, user_id }),
             });
-            console.log(response);
             if (!response.ok) {
                 throw new Error(
                     "Failed to check if the current user is the organiser of the event",
                 );
             }
             const data = await response.json();
-            console.log(data);
 
             if (data.success) {
-                isOrganiser.current = data.success;
+                setIsOrganiser(data.success);
             }
             // we dont need the data now
         } catch (err) {
@@ -103,11 +98,9 @@ export default function EventInfo() {
     const checkRegistrationStatus = useCallback(async () => {
         // Only use the actual event.id - don't fall back to converted event_id to avoid race conditions
         if (!loggedIn || !event?.id) {
-            console.log("checkRegistrationStatus: Missing requirements", { loggedIn, hasEvent: !!event, eventId: event?.id });
             return;
         }
 
-        console.log("Checking registration status for event:", event.id, "(converted:", event_id, ")");
 
         try {
             const response = await fetch("/api/events/registration-status", {
@@ -121,18 +114,16 @@ export default function EventInfo() {
             });
 
             const result = await response.json();
-            console.log("Registration status result:", result);
 
             if (result.success) {
                 setIsRegistered(result.isRegistered);
-                console.log("Set isRegistered to:", result.isRegistered);
             } else {
                 console.error("Registration status check failed:", result.error);
             }
         } catch (error) {
             console.error("Error checking registration status:", error);
         }
-    }, [loggedIn, event_id, event]);
+    }, [loggedIn, event]);
 
     useEffect(() => {
         const helper = async () => {
@@ -145,18 +136,10 @@ export default function EventInfo() {
         helper();
     }, [session.status, session.data?.user?.id, event_id, event, checkRegistrationStatus]);
 
-    // Additional useEffect to check registration when event loads
-    useEffect(() => {
-        if (event && session.status === "authenticated" && session.data?.user?.id) {
-            checkRegistrationStatus();
-        }
-    }, [event, session.status, session.data?.user?.id, checkRegistrationStatus]);
-
     useEffect(() => {
         const fetchData = async () => {
             const result = await fetchEventInformation(event_id);
             // await checkIsOrganiser(event_id, session.data.user.id)
-            console.log(result);
             setEvent(result);
         };
         fetchData();
@@ -232,16 +215,28 @@ export default function EventInfo() {
         <div className="relative w-full h-full m-[10px]">
 
             <div className="flex flex-col md:flex-row h-full overflow-y-auto">
-                {/* Desktop Share Button - absolute positioned */}
+                {/* Desktop Edit and Share Buttons - absolute positioned */}
                 {event && (
-                    <button
-                        onClick={() => setShowShareModal(true)}
-                        className="hidden md:block absolute top-4 right-4 z-30 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                        aria-label="Share this event"
-                        title="Share"
-                    >
-                        <ShareIcon className="w-5 h-5" />
-                    </button>
+                    <div className="hidden md:flex absolute top-4 right-4 z-30 gap-2">
+                        {isOrganiser && (
+                            <button
+                                onClick={() => router.push(`/events/edit?id=${event.id}`)}
+                                className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                                aria-label="Edit this event"
+                                title="Edit Event"
+                            >
+                                <PencilSquareIcon className="w-5 h-5" />
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setShowShareModal(true)}
+                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
+                            aria-label="Share this event"
+                            title="Share"
+                        >
+                            <ShareIcon className="w-5 h-5" />
+                        </button>
+                    </div>
                 )}
                 {/* Event Image  */}
                 <div className="h-full md:w-1/2 mb-6 md:mb-0 md:mr-6 flex flex-col justify-between">
@@ -317,8 +312,18 @@ export default function EventInfo() {
                         {event.location_address}
                     </p>
 
-                    {/* Share Button for Mobile - positioned after address */}
-                    <div className="md:hidden mt-4">
+                    {/* Edit and Share Buttons for Mobile - positioned after address */}
+                    <div className="md:hidden mt-4 flex gap-2">
+                        {isOrganiser && (
+                            <button
+                                onClick={() => router.push(`/events/edit?id=${event.id}`)}
+                                className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-blue-300"
+                                aria-label="Edit this event"
+                            >
+                                <PencilSquareIcon className="w-5 h-5" />
+                                <span>Edit Event</span>
+                            </button>
+                        )}
                         <button
                             onClick={() => setShowShareModal(true)}
                             className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-gray-300"
@@ -373,11 +378,6 @@ export default function EventInfo() {
                                 </button>
                             ) : (
                                 <>
-                                    {console.log("🔍 EventInfo: Rendering EventRegistrationButton with props:", {
-                                        eventId: event.id,
-                                        isRegistered,
-                                        context: "page"
-                                    })}
                                     <EventRegistrationButton
                                         event={event}
                                         isRegistered={isRegistered}
@@ -388,7 +388,7 @@ export default function EventInfo() {
                                 </>
                             )}
                         </div>
-                        {isOrganiser.current && (
+                        {isOrganiser && (
                             <>
                                 <hr className="border-t-1 border-gray-300 m-2" />
                                 <div className="w-full flex flex-row justify-center">
@@ -420,6 +420,7 @@ export default function EventInfo() {
                 onClose={() => setShowRegistrationChoice(false)}
                 onGuestRegister={handleGuestRegister}
                 eventTitle={event?.title || "Event"}
+                eventId={id}
             />
 
             <GuestRegistrationModal

@@ -33,7 +33,7 @@ export default function Home() {
                     queryInput: "required name=search_term_string"
                 }}
             />
-            <BackgroundImage priority />
+            <BackgroundImage />
             <main className="relative overflow-x-hidden">
                 <HomePageTopSection />
                 <ScrollingPartnersSection />

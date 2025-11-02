@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { useForm } from "react-hook-form";
 import { LoginPageFormData } from "@/app/lib/types";
 import Link from "next/link";
+import { saveAccount } from "@/app/lib/account-storage";
 
 export default function LoginForm() {
     const [isPending, setIsPending] = useState<boolean>(false);
@@ -69,6 +70,10 @@ export default function LoginForm() {
             toast.error("Login failed.", { id: toastId });
         } else {
             toast.success("Successfully logged in!", { id: toastId });
+
+            // Save account for quick switching (name will be available after redirect)
+            // We'll also save it in the account page to ensure we have the user's name
+            saveAccount(data.email, data.email.split('@')[0]);
 
             // Check for redirect URL stored in sessionStorage
             const redirectUrl = sessionStorage.getItem("redirectAfterLogin");

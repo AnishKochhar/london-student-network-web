@@ -15,7 +15,6 @@ export async function authenticate(
             email: formData.email,
             password: formData.password,
         });
-        console.log(formData.email, formData.password, result);
 
         if (result?.error) {
             return { response: false, error: "Invalid credentials" };

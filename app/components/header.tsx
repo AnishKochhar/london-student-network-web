@@ -5,11 +5,23 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import Link from "next/link";
 import Image from "next/image";
-import AuthButton from "./auth-button";
 import AccountButton from "./account-button";
-import { Button } from "./button";
 import { useSession } from "next-auth/react";
 import { motion, LayoutGroup } from "framer-motion";
+import SwitchAccountModal from "./switch-account/switch-account-modal";
+import AnimatedHamburger from "./animated-hamburger";
+import RadialMobileMenu from "./radial-mobile-menu";
+import CurtainMobileMenu from "./curtain-mobile-menu";
+import logoImage from "@/public/logo/logo.png";
+
+/**
+ * Menu Style Configuration
+ *
+ * Change this to switch between menu animations:
+ * - "radial": Circular expansion from button (Option 2) - Enhanced with swipe gestures
+ * - "curtain": Drops down from top with bounce (Option 4)
+ */
+const MENU_STYLE: "radial" | "curtain" = "radial"; // <-- Radial is active!
 
 const navLinks = [
     { href: "/events", label: "Events" },
@@ -79,100 +91,78 @@ function Logo({ closeMenu }: { closeMenu: () => void }) {
             className="flex items-center space-x-2"
         >
             <Image
-                src="/logo/LSN LOGO 1.png"
-                alt="LSN logo"
+                src={logoImage}
+                alt="London Student Network logo"
                 priority
-                width={96}
-                height={96}
                 className="w-20 md:w-24"
             />
         </Link>
     );
 }
 
-function FullScreenMenu({ closeMenu }: { closeMenu: () => void }) {
-    const { data: session } = useSession();
-
-    // Prevent body scroll when menu is open
-    React.useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
-    }, []);
-
-    return (
-        <div className="fixed inset-0 z-[100] bg-[#041A2E] overflow-hidden">
-            <div className="h-full overflow-y-auto">
-                <div className="min-h-full flex flex-col px-8 pt-4 pb-8">
-                    <div className="flex justify-between items-center mb-8">
-                        <Logo closeMenu={closeMenu} />
-                        <Button
-                            variant="ghost"
-                            onClick={closeMenu}
-                            className="text-xl font-semibold text-white"
-                        >
-                            Close
-                        </Button>
-                    </div>
-                    <div className="flex-grow flex flex-col justify-center py-8">
-                        <NavLinks
-                            onClick={closeMenu}
-                            showAll={true}
-                            className="flex flex-col items-start space-y-6 text-2xl"
-                        />
-                    </div>
-                    <div className="flex flex-col items-end mt-auto space-y-4">
-                        {session?.user && (
-                            <Link
-                                href="/account"
-                                onClick={closeMenu}
-                                className="py-2 text-xl text-gray-400 hover:cursor-pointer hover:text-gray-100"
-                            >
-                                My Account
-                            </Link>
-                        )}
-                        <AuthButton onClick={closeMenu} />
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
+// FullScreenMenu component removed - replaced with RadialMobileMenu
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showSwitchModal, setShowSwitchModal] = useState(false);
+    const { data: session } = useSession();
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
     const closeMenu = () => setIsMenuOpen(false);
 
+    const handleSwitchAccount = () => {
+        setShowSwitchModal(true);
+    };
+
     return (
         <>
             <header className="sticky top-0 left-0 w-full backdrop-blur border-b-2 border-gray-300 border-opacity-25 flex justify-between items-center px-4 md:px-6 lg:px-8 shadow-md text-white bg-[#041A2E]/80 z-40">
-            <Logo closeMenu={closeMenu} />
+                <Logo closeMenu={closeMenu} />
 
-            <nav className="hidden md:flex">
-                <NavLinks
-                    showAll={true}
-                    className="flex space-x-4 lg:space-x-6 xl:space-x-8"
-                />
-            </nav>
+                <nav className="hidden md:flex">
+                    <NavLinks
+                        showAll={true}
+                        className="flex space-x-4 lg:space-x-6 xl:space-x-8"
+                    />
+                </nav>
 
-            <div className="flex items-center space-x-4">
-                <div className="hidden md:flex">
-                    <AccountButton />
+                <div className="flex items-center space-x-4">
+                    <div className="hidden md:flex">
+                        <AccountButton />
+                    </div>
+
+                    {/* Animated hamburger for mobile */}
+                    <div className="md:hidden">
+                        <AnimatedHamburger
+                            isOpen={isMenuOpen}
+                            onClick={toggleMenu}
+                        />
+                    </div>
                 </div>
-                <Button
-                    variant="ghost"
-                    onClick={toggleMenu}
-                    className="md:hidden text-white text-xl"
-                >
-                    Menu
-                </Button>
-            </div>
-
             </header>
-            {isMenuOpen && <FullScreenMenu closeMenu={closeMenu} />}
+
+            {/* Mobile menu - style controlled by MENU_STYLE constant */}
+            {MENU_STYLE === "radial" ? (
+                <RadialMobileMenu
+                    isOpen={isMenuOpen}
+                    onClose={closeMenu}
+                    onSwitchAccount={handleSwitchAccount}
+                    navLinks={navLinks}
+                />
+            ) : (
+                <CurtainMobileMenu
+                    isOpen={isMenuOpen}
+                    onClose={closeMenu}
+                    onSwitchAccount={handleSwitchAccount}
+                    navLinks={navLinks}
+                />
+            )}
+
+            <SwitchAccountModal
+                isOpen={showSwitchModal}
+                onClose={() => setShowSwitchModal(false)}
+                currentUserEmail={session?.user?.email || undefined}
+            />
         </>
     );
 }

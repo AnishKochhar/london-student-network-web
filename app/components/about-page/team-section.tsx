@@ -1,77 +1,91 @@
 import Image from "next/image";
+import joshImage from "@/public/images/about/josh-robinson.png";
+import anishImage from "@/public/images/about/anish-kochhar.jpg";
+import zainImage from "@/public/images/about/zain-ahmad.png";
+import amberImage from "@/public/images/about/amber-ella.jpeg";
+import caspiaImage from "@/public/images/about/caspia-nadapdap.jpeg";
+import nourImage from "@/public/images/about/nour-zalaquett.jpeg";
+import daryusImage from "@/public/images/about/daryus-marchant.jpeg";
+import mikaelImage from "@/public/images/about/mikhael-bashir.jpeg";
+import hongleiImage from "@/public/images/about/honglei-gu.jpeg";
+import gurvirImage from "@/public/images/about/gurvir-singh.jpeg";
+import valeriaImage from "@/public/images/about/valeria-centola.jpeg";
+import leyanImage from "@/public/images/about/leyan-jiang.jpeg";
+import emilyImage from "@/public/images/about/emily-li.jpeg";
+import scarlettImage from "@/public/images/about/scarlett-phillips.jpeg";
 
 export default function TeamSection() {
     const teamMembers = [
         {
             name: "Josh Robinson",
             title: "Founder and CEO",
-            image: "/images/about/josh-robinson.png",
+            image: joshImage,
         },
         {
             name: "Anish Kochhar",
             title: "Chief Technology Officer",
-            image: "/images/about/anish-kochhar.jpg",
+            image: anishImage,
         },
         {
             name: "Zain Ahmad",
             title: "Chief Strategy Officer",
-            image: "/images/about/zain-ahmad.png",
+            image: zainImage,
         },
+		{
+			name: "Nour Zalaquett",
+			title: "Chief Partnerships Officer",
+			image: nourImage,
+		},
         {
             name: "Amber Ella",
             title: "Chief Operating Officer",
-            image: "/images/about/amber-ella.jpeg",
+            image: amberImage,
         },
         {
             name: "Caspia Nadapdap",
             title: "Head of Events",
-            image: "/images/about/caspia-nadapdap.jpeg",
-        },
-        {
-            name: "Nour Zalaquett",
-            title: "Head of Outreach",
-            image: "/images/about/nour-zalaquett.jpeg",
+            image: caspiaImage,
         },
 
         {
             name: "Daryus Marchant",
             title: "Corporate Outreach Officer",
-            image: "/images/about/daryus-marchant.jpeg",
+            image: daryusImage,
         },
         {
             name: "Mikael Bashir",
             title: "Senior Developer",
-            image: "/images/about/mikhael-bashir.jpeg",
+            image: mikaelImage,
         },
         {
             name: "Honglei Gu",
             title: "Web Developer",
-            image: "/images/about/honglei-gu.jpeg",
+            image: hongleiImage,
         },
         {
             name: "Gurvir Singh",
             title: "Web Developer",
-            image: "/images/about/gurvir-singh.jpeg",
+            image: gurvirImage,
         },
         {
             name: "Valeria Centola",
             title: "Marketing Officer",
-            image: "/images/about/valeria-centola.jpeg",
+            image: valeriaImage,
         },
         {
             name: "Leyan Jiang",
             title: "Marketing Officer",
-            image: "/images/about/leyan-jiang.jpeg",
+            image: leyanImage,
         },
         {
             name: "Emily Li",
             title: "Outreach Officer",
-            image: "/images/about/emily-li.jpeg",
+            image: emilyImage,
         },
         {
             name: "Scarlett Phillips",
             title: "Marketing Officer",
-            image: "/images/about/scarlett-phillips.jpeg",
+            image: scarlettImage,
         },
     ];
 

@@ -14,6 +14,9 @@ import EventModal from "./event-modal";
 import Image from "next/image";
 import MarkdownEditor from "../markdown/markdown-editor";
 import { formatInTimeZone } from "date-fns-tz";
+import EventAccessControls from "./EventAccessControls";
+import TicketManager, { TicketType } from "./ticket-manager-improved";
+import { useStripeAccount } from "@/app/hooks/useStripeAccount";
 
 interface ModernCreateEventProps {
     organiser_id: string;
@@ -53,7 +56,7 @@ const AnimatedSection = ({ children, className = "" }: { children: React.ReactNo
             variants={sectionVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            className={className}
+            className={`${className} overflow-visible`}
         >
             {children}
         </motion.section>
@@ -369,7 +372,7 @@ const ModernCalendarPicker = ({ value, onChange, label, required = false, classN
     };
 
     return (
-        <div ref={calendarRef} className={`relative ${className}`}>
+        <div ref={calendarRef} className={`relative z-[150] ${className}`}>
             <label className="block text-sm font-medium text-white mb-3">
                 {label} {required && <span className="text-red-300">*</span>}
             </label>
@@ -393,7 +396,7 @@ const ModernCalendarPicker = ({ value, onChange, label, required = false, classN
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4 w-80"
+                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-[150] p-4 w-80"
                     >
                         {/* Calendar Header */}
                         <div className="flex items-center justify-between mb-4">
@@ -639,7 +642,13 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
             sign_up_link: event.sign_up_link,
             for_externals: event.for_externals,
             is_multi_day: false,
-            send_signup_notifications: event.send_signup_notifications ?? true
+            send_signup_notifications: event.send_signup_notifications ?? true,
+            visibility_level: event.visibility_level || 'public',
+            registration_level: event.registration_level || 'public',
+            allowed_universities: event.allowed_universities || [],
+            link_only: event.link_only ?? false,
+            registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
+            external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
         };
     }
 
@@ -667,7 +676,13 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         capacity: event.capacity,
         sign_up_link: event.sign_up_link,
         for_externals: event.for_externals,
-        send_signup_notifications: event.send_signup_notifications ?? true
+        send_signup_notifications: event.send_signup_notifications ?? true,
+        visibility_level: event.visibility_level || 'public',
+        registration_level: event.registration_level || 'public',
+        allowed_universities: event.allowed_universities || [],
+        link_only: event.link_only ?? false,
+        registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
+        external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
     };
 };
 
@@ -679,6 +694,59 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const [eventData, setEventData] = useState(existingEvent || DefaultEvent);
     const [selectedTags, setSelectedTags] = useState<number>(existingEvent?.event_type || 0);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Ticket management state
+    const [tickets, setTickets] = useState<TicketType[]>([{
+        id: 'temp-1',
+        ticket_name: 'General Admission',
+        ticket_price: '0.00',
+        tickets_available: null,
+    }]);
+    const [ticketsLoaded, setTicketsLoaded] = useState(false);
+
+    // Check Stripe account status
+    const { isReady } = useStripeAccount();
+
+    // Load existing tickets in edit mode
+    useEffect(() => {
+        const loadTickets = async () => {
+            if (editMode && existingEvent?.id && !ticketsLoaded) {
+                try {
+                    const response = await fetch(`/api/events/tickets?event_id=${existingEvent.id}`);
+                    const data = await response.json();
+
+                    if (data.success && data.tickets && data.tickets.length > 0) {
+                        // Convert database tickets to form format
+                        const loadedTickets: TicketType[] = data.tickets.map((t: {
+                            ticket_uuid: string;
+                            ticket_name: string;
+                            ticket_price: string;
+                            tickets_available: number | null;
+                            release_name?: string;
+                            release_start_time?: string;
+                            release_end_time?: string;
+                            release_order?: number;
+                        }) => ({
+                            id: t.ticket_uuid,
+                            ticket_name: t.ticket_name,
+                            ticket_price: t.ticket_price,
+                            tickets_available: t.tickets_available,
+                            release_name: t.release_name,
+                            release_start_time: t.release_start_time,
+                            release_end_time: t.release_end_time,
+                            release_order: t.release_order,
+                        }));
+                        setTickets(loadedTickets);
+                    }
+                    setTicketsLoaded(true);
+                } catch (error) {
+                    console.error('Failed to load tickets:', error);
+                    setTicketsLoaded(true);
+                }
+            }
+        };
+        loadTickets();
+    }, [editMode, existingEvent, ticketsLoaded]);
 
     // Track whether end date/time have been manually set by user
     // In edit mode, consider them as already touched since they're pre-populated
@@ -737,7 +805,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             start_time: defaultTimes.startTime,
             end_time: defaultTimes.endTime,
             is_multi_day: false,
-            send_signup_notifications: true
+            send_signup_notifications: true,
+            visibility_level: 'public',
+            registration_level: 'public',
+            allowed_universities: [],
+            link_only: false
         }
     });
 
@@ -746,6 +818,46 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const watchedImage = watch("uploaded_image");
     const selectedPlaceholder = watch("image_url");
     const watchedValues = watch();
+
+    // Form autosave to localStorage (only for create mode, not edit mode)
+    const AUTOSAVE_KEY = `event-form-autosave-${organiser_id}`;
+
+    // Restore form data from localStorage on mount (only in create mode)
+    useEffect(() => {
+        if (!editMode) {
+            try {
+                const saved = localStorage.getItem(AUTOSAVE_KEY);
+                if (saved) {
+                    const parsedData = JSON.parse(saved);
+                    // Restore all form fields
+                    Object.keys(parsedData).forEach((key) => {
+                        setValue(key as keyof EventFormData, parsedData[key]);
+                    });
+                    toast.success("Draft restored from autosave", { duration: 3000 });
+                }
+            } catch (error) {
+                console.error("Failed to restore autosave:", error);
+            }
+        }
+    }, [editMode, AUTOSAVE_KEY, setValue]);
+
+    // Save form data to localStorage on every change (debounced)
+    useEffect(() => {
+        if (!editMode) {
+            const timer = setTimeout(() => {
+                try {
+                    // Don't save if form is empty
+                    if (watchedValues.title || watchedValues.description) {
+                        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(watchedValues));
+                    }
+                } catch (error) {
+                    console.error("Failed to autosave:", error);
+                }
+            }, 1000); // Debounce by 1 second
+
+            return () => clearTimeout(timer);
+        }
+    }, [watchedValues, editMode, AUTOSAVE_KEY]);
 
     useEffect(() => {
         if (watchedImage) {
@@ -811,6 +923,15 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
     // Form submission
     const onSubmit = async (data: EventFormData) => {
+        // Check if any tickets are paid
+        const hasPaidTickets = tickets.some(t => parseFloat(t.ticket_price || '0') > 0);
+
+        // If there are paid tickets, verify Stripe account is ready
+        if (hasPaidTickets && !isReady) {
+            toast.error("You need to complete Stripe Connect setup before creating events with paid tickets. Go to your Account page to set up Stripe.");
+            return;
+        }
+
         setIsSubmitting(true);
         const toastId = toast.loading(editMode ? "Updating event..." : "Creating event...");
 
@@ -830,12 +951,13 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             const isMultiDay = calculateIsMultiDay(data.start_datetime, data.end_datetime);
 
             // Prepare the data for submission
-            const eventData: EventFormData = {
+            const eventData: EventFormData & { tickets: TicketType[] } = {
                 ...data,
                 image_url: imageUrl,
                 organiser_uid: organiser_id,
                 is_multi_day: isMultiDay,
                 tags: selectedTags,
+                tickets: tickets, // Include tickets in submission
             };
 
             const apiEndpoint = editMode ? "/api/events/update" : "/api/events/create";
@@ -852,9 +974,28 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             const result = await response.json();
             if (result.success) {
                 toast.success(editMode ? "Event updated successfully!" : "Event created successfully!", { id: toastId });
-                router.push("/events");
+                // Clear autosave on successful submission
+                if (!editMode) {
+                    try {
+                        localStorage.removeItem(AUTOSAVE_KEY);
+                    } catch (error) {
+                        console.error("Failed to clear autosave:", error);
+                    }
+                }
+                // Redirect to the event page (or manage page if just created)
+                if (result.event?.id) {
+                    const eventId = result.event.id;
+                    router.push(editMode ? `/events/${eventId}` : `/events/${eventId}/manage`);
+                } else {
+                    router.push("/events");
+                }
             } else {
-                toast.error(result.error || (editMode ? "Failed to update event" : "Failed to create event"), { id: toastId });
+                // Show detailed error message if available
+                const errorMessage = result.details || result.error || (editMode ? "Failed to update event" : "Failed to create event");
+                toast.error(errorMessage, {
+                    id: toastId,
+                    duration: 6000, // Show longer for detailed messages
+                });
             }
         } catch (error) {
             console.error(editMode ? "Error updating event:" : "Error creating event:", error);
@@ -893,7 +1034,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const imageOptions = placeholderImages.map((img) => ({ value: img.src, label: img.name }));
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#083157] to-[#064580]">
+        <div className="min-h-screen bg-gradient-to-b from-[#083157] to-[#064580] overflow-visible">
             {/* Fixed Header with blue theme */}
             <div className="sticky top-20 md:top-24 z-40 bg-gradient-to-r from-blue-600/20 to-blue-700/70 backdrop-blur-sm border-b border-blue-500/20 shadow-lg">
                 <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -947,9 +1088,9 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             </div>
 
             {/* Main Content */}
-            <div className="w-full px-4 sm:px-6 lg:px-8 pb-12">
-                <div className="max-w-6xl mx-auto">
-                    <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12 sm:space-y-16">
+            <div className="w-full px-4 sm:px-6 lg:px-8 pb-12 relative z-20 overflow-visible">
+                <div className="max-w-6xl mx-auto overflow-visible">
+                    <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12 sm:space-y-16 overflow-visible">
                         {/* Basic Information */}
                         <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
@@ -1033,7 +1174,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">When is your event happening?</p>
                             </div>
 
-                            <div className="lg:col-span-9 space-y-6">
+                            <div className="lg:col-span-9 space-y-6 relative z-[200]">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <ModernCalendarPicker
                                         value={watchedValues.start_datetime || ""}
@@ -1216,96 +1357,6 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                             </div>
                         </AnimatedSection>
 
-                        {/* Additional Details */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Additional Details</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Optional information to help attendees</p>
-                            </div>
-
-                            <div className="lg:col-span-9 space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-white mb-3 w-full">
-											<span className="flex justify-between w-full">
-												<span>Sign-up Link (optional).</span>
-												<span className="italic text-right whitespace-nowrap">LSN hosts all ticketing internal!</span>
-											</span>
-                                        </label>
-                                        <input
-                                            {...register("sign_up_link", {
-                                                pattern: {
-                                                    value: /^https?:\/\/.+/,
-                                                    message: "Please enter a valid URL"
-                                                }
-                                            })}
-                                            type="url"
-                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
-                                            placeholder="https://example.com/signup"
-                                        />
-                                        {errors.sign_up_link && (
-                                            <p className="mt-2 text-sm text-red-300">{errors.sign_up_link.message}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-white mb-3">
-                                            External Forward Email (optional)
-                                        </label>
-                                        <input
-                                            {...register("external_forward_email", {
-                                                pattern: {
-                                                    value: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-                                                    message: "Please enter a valid email address"
-                                                }
-                                            })}
-                                            type="email"
-                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
-                                            placeholder="e.g. reception@building.ac.uk"
-                                        />
-                                        <p className="mt-2 text-xs text-blue-200">
-                                            Email for external inquiries (e.g. building reception)
-                                        </p>
-                                        {errors.external_forward_email && (
-                                            <p className="mt-2 text-sm text-red-300">{errors.external_forward_email.message}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-white mb-3">
-                                        Information for External Students (optional)
-                                    </label>
-                                    <textarea
-                                        {...register("for_externals")}
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none backdrop-blur"
-                                        placeholder="e.g. Building access instructions, contact information..."
-                                    />
-                                </div>
-
-                                {/* Email Notifications */}
-                                <div className="lg:col-span-2 mt-6">
-                                    <div className="flex items-start space-x-3">
-                                        <input
-                                            {...register("send_signup_notifications")}
-                                            type="checkbox"
-                                            id="send_signup_notifications"
-                                            className="mt-1 h-4 w-4 text-blue-600 bg-white/10 border border-white/30 rounded focus:ring-blue-500 focus:ring-2"
-                                        />
-                                        <div>
-                                            <label htmlFor="send_signup_notifications" className="text-sm font-medium text-white cursor-pointer">
-                                                Email me when someone registers
-                                            </label>
-                                            <p className="text-xs text-blue-200 mt-1">
-                                                Get notified via email every time someone signs up for your event
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </AnimatedSection>
-
                         {/* Event Image */}
                         <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
@@ -1419,6 +1470,212 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 </div>
                             </div>
                         </AnimatedSection>
+                        {/* Additional Details */}
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Additional Details</h2>
+                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Optional information to help attendees</p>
+                            </div>
+
+                            <div className="lg:col-span-9 space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-white mb-3 w-full">
+											<span className="flex justify-between w-full">
+												<span>Sign-up Link (optional).</span>
+												<span className="italic text-right whitespace-nowrap">LSN hosts all ticketing internal!</span>
+											</span>
+                                        </label>
+                                        <input
+                                            {...register("sign_up_link", {
+                                                pattern: {
+                                                    value: /^https?:\/\/.+/,
+                                                    message: "Please enter a valid URL"
+                                                }
+                                            })}
+                                            type="url"
+                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
+                                            placeholder="https://example.com/signup"
+                                        />
+                                        {errors.sign_up_link && (
+                                            <p className="mt-2 text-sm text-red-300">{errors.sign_up_link.message}</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-white mb-3">
+                                            External Forward Email (optional)
+                                        </label>
+                                        <input
+                                            {...register("external_forward_email", {
+                                                pattern: {
+                                                    value: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
+                                                    message: "Please enter a valid email address"
+                                                }
+                                            })}
+                                            type="email"
+                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
+                                            placeholder="e.g. reception@building.ac.uk"
+                                        />
+                                        <p className="mt-2 text-xs text-blue-200">
+                                            Email for external inquiries (e.g. building reception)
+                                        </p>
+                                        {errors.external_forward_email && (
+                                            <p className="mt-2 text-sm text-red-300">{errors.external_forward_email.message}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-white mb-3">
+                                        Information for External Students (optional)
+                                    </label>
+                                    <textarea
+                                        {...register("for_externals")}
+                                        rows={3}
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none backdrop-blur"
+                                        placeholder="e.g. Building access instructions, contact information..."
+                                    />
+                                </div>
+
+                                {/* Registration Cutoff Settings */}
+                                <div className="space-y-4 pt-4 border-t border-white/10">
+                                    <div>
+                                        <label className="block text-sm font-medium text-white mb-1">
+                                            Registration Deadline
+                                        </label>
+                                        <p className="text-xs text-blue-200/80 mb-3">
+                                            Automatically close registrations before your event starts
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        {/* Main cutoff */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-white/80 mb-2">
+                                                Close registrations
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    {...register("registration_cutoff_hours", {
+                                                        min: { value: 0, message: "Cannot be negative" },
+                                                        max: { value: 168, message: "Cannot exceed 1 week (168 hours)" },
+                                                        valueAsNumber: true
+                                                    })}
+                                                    type="number"
+                                                    min="0"
+                                                    max="168"
+                                                    step="1"
+                                                    className="w-full px-4 py-2.5 pr-20 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    placeholder="No deadline"
+                                                />
+                                                <span className="absolute right-4 top-2.5 text-xs text-white/60">hours before</span>
+                                            </div>
+                                            <p className="mt-1.5 text-xs text-blue-200/70">
+                                                For all students (your university & external)
+                                            </p>
+                                            {errors.registration_cutoff_hours && (
+                                                <p className="mt-1.5 text-xs text-red-300">{errors.registration_cutoff_hours.message}</p>
+                                            )}
+                                        </div>
+
+                                        {/* External-specific cutoff */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-white/80 mb-2">
+                                                Close for external students
+                                                <span className="text-white/50 font-normal ml-1">(optional)</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    {...register("external_registration_cutoff_hours", {
+                                                        min: { value: 0, message: "Cannot be negative" },
+                                                        max: { value: 168, message: "Cannot exceed 1 week (168 hours)" },
+                                                        valueAsNumber: true
+                                                    })}
+                                                    type="number"
+                                                    min="0"
+                                                    max="168"
+                                                    step="1"
+                                                    className="w-full px-4 py-2.5 pr-20 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    placeholder="Same as above"
+                                                />
+                                                <span className="absolute right-4 top-2.5 text-xs text-white/60">hours before</span>
+                                            </div>
+                                            <p className="mt-1.5 text-xs text-blue-200/70">
+                                                Set earlier deadline for students from other universities
+                                            </p>
+                                            {errors.external_registration_cutoff_hours && (
+                                                <p className="mt-1.5 text-xs text-red-300">{errors.external_registration_cutoff_hours.message}</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Helpful examples */}
+                                    <div className="bg-blue-500/5 border border-blue-400/20 rounded-lg p-3">
+                                        <p className="text-xs text-blue-200/90">
+                                            <span className="font-medium">💡 Examples:</span> 24 hours = closes 1 day before event | 48 hours = closes 2 days before
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Email Notifications */}
+                                <div className="lg:col-span-2 mt-6">
+                                    <div className="flex items-start space-x-3">
+                                        <input
+                                            {...register("send_signup_notifications")}
+                                            type="checkbox"
+                                            id="send_signup_notifications"
+                                            className="mt-1 h-4 w-4 text-blue-600 bg-white/10 border border-white/30 rounded focus:ring-blue-500 focus:ring-2"
+                                        />
+                                        <div>
+                                            <label htmlFor="send_signup_notifications" className="text-sm font-medium text-white cursor-pointer">
+                                                Email me when someone registers
+                                            </label>
+                                            <p className="text-xs text-blue-200 mt-1">
+                                                Get notified via email every time someone signs up for your event
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </AnimatedSection>
+
+                        {/* Tickets & Pricing */}
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Tickets & Pricing</h2>
+                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Set up ticket types and pricing for your event</p>
+                            </div>
+
+                            <div className="lg:col-span-9 overflow-visible">
+                                <TicketManager
+                                    tickets={tickets}
+                                    onChange={setTickets}
+                                    hasStripeAccount={isReady}
+                                />
+                            </div>
+                        </AnimatedSection>
+
+                        {/* Access Controls */}
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Access Control</h2>
+                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Control who can see and register for your event</p>
+                            </div>
+
+                            <div className="lg:col-span-9 overflow-visible">
+                                <EventAccessControls
+                                    visibilityLevel={watchedValues.visibility_level || 'public'}
+                                    registrationLevel={watchedValues.registration_level || 'public'}
+                                    allowedUniversities={watchedValues.allowed_universities || []}
+                                    linkOnly={watchedValues.link_only || false}
+                                    onVisibilityChange={(value) => setValue("visibility_level", value, { shouldValidate: true })}
+                                    onRegistrationChange={(value) => setValue("registration_level", value, { shouldValidate: true })}
+                                    onAllowedUniversitiesChange={(universities) => setValue("allowed_universities", universities, { shouldValidate: true })}
+                                    onLinkOnlyChange={(value) => setValue("link_only", value, { shouldValidate: true })}
+                                />
+                            </div>
+                        </AnimatedSection>
                     </form>
                 </div>
             </div>
@@ -1436,3 +1693,4 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
         </div>
     );
 }
+

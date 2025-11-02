@@ -9,7 +9,7 @@ interface EventSectionProps {
     year: string;
     events: Event[];
     editEvent?: boolean;
-    onEventUpdate?: () => void;
+    reverseOrder?: boolean;
 }
 
 export default function EventSection({
@@ -17,9 +17,9 @@ export default function EventSection({
     year,
     events,
     editEvent,
-    onEventUpdate,
+    reverseOrder = false,
 }: EventSectionProps) {
-    const sortedEvents = sortEventsByDate(events);
+    const sortedEvents = sortEventsByDate(events, reverseOrder);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -60,7 +60,7 @@ export default function EventSection({
             </motion.div>
 
             <motion.div
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
@@ -78,7 +78,6 @@ export default function EventSection({
                         <EventCard
                             event={event}
                             editEvent={editEvent}
-                            onEventUpdate={onEventUpdate}
                         />
                     </motion.div>
                 ))}

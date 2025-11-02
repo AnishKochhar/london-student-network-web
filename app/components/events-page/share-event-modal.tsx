@@ -1,7 +1,7 @@
 "use client";
 
 import { Event } from "@/app/lib/types";
-import { XMarkIcon, ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
@@ -31,7 +31,7 @@ export default function ShareEventModal({ isOpen, onClose, event }: ShareEventMo
 
     if (!isOpen || !event) return null;
 
-    const eventUrl = `${window.location.origin}/events/${base16ToBase62(event.id)}`;
+    const eventUrl = `https://londonstudentnetwork.com/events/${base16ToBase62(event.id)}`;
     const shareText = `Check out this event: ${event.title}`;
 
     const copyToClipboard = async () => {
@@ -132,79 +132,66 @@ export default function ShareEventModal({ isOpen, onClose, event }: ShareEventMo
 
     return (
         <div
-            className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-[9999] p-4 animate-fade-in"
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-3xl shadow-xl w-full max-w-[90%] sm:max-w-[70%] md:max-w-md mx-4 p-6 sm:p-8 animate-scale-in max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header with icon and close button */}
-                <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center space-x-2 sm:space-x-3 flex-1">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Share with Friends</h3>
-                            <p className="text-xs sm:text-sm text-gray-500 mt-1">Share this event with your network</p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                        aria-label="Close"
-                    >
-                        <XMarkIcon className="h-5 w-5 text-gray-400" />
-                    </button>
+                {/* Close button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    aria-label="Close"
+                >
+                    <XMarkIcon className="h-5 w-5 text-gray-500" />
+                </button>
+
+                {/* Header */}
+                <div className="mb-6">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-1">Share Event</h3>
+                    <p className="text-sm text-gray-500">Share this event with your friends</p>
                 </div>
 
                 {/* Share link section */}
-                <div className="mb-8">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Share your link</label>
-                    <div className="flex items-center space-x-2 bg-gray-50 rounded-xl p-3">
+                <div className="mb-6">
+                    <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3 border border-gray-200">
                         <input
                             type="text"
                             value={eventUrl}
                             readOnly
-                            className="flex-1 bg-transparent text-sm text-gray-700 outline-none"
+                            className="flex-1 bg-transparent text-sm text-gray-600 outline-none"
                         />
                         <button
                             onClick={copyToClipboard}
-                            className={`p-2 rounded-lg transition-all ${
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                 copied
-                                    ? "bg-green-100 text-green-600"
-                                    : "hover:bg-gray-200 text-gray-600"
+                                    ? "bg-green-500 text-white"
+                                    : "bg-gray-900 hover:bg-gray-800 text-white"
                             }`}
                             aria-label="Copy link"
                         >
-                            {copied ? (
-                                <CheckIcon className="h-5 w-5" />
-                            ) : (
-                                <ClipboardIcon className="h-5 w-5" />
-                            )}
+                            {copied ? "Copied!" : "Copy"}
                         </button>
                     </div>
                 </div>
 
                 {/* Share to section */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-4">Share to</label>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                        {shareOptions.map((option) => (
+                    <label className="block text-sm font-medium text-gray-700 mb-3">Or share via</label>
+                    <div className="grid grid-cols-3 gap-3">
+                        {shareOptions.slice(0, 6).map((option) => (
                             <button
                                 key={option.name}
                                 onClick={() => handleShareClick(option)}
-                                className="flex flex-col items-center justify-center space-y-2 p-2 hover:bg-gray-50 rounded-xl transition-colors"
+                                className="flex flex-col items-center gap-2 p-3 hover:bg-gray-50 rounded-xl transition-all hover:scale-105"
                                 aria-label={`Share on ${option.name}`}
                             >
-                                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gradient-to-br ${option.bgColor} text-white shadow-md ${option.hoverColor}`}>
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br ${option.bgColor} text-white shadow-lg`}>
                                     {option.icon}
                                 </div>
-                                <span className="text-xs text-gray-600">{option.name}</span>
+                                <span className="text-xs font-medium text-gray-700">{option.name}</span>
                             </button>
                         ))}
                     </div>

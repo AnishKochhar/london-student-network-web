@@ -1,0 +1,45 @@
+
+> london-student-network-website@0.1.1 build /Users/anishkochhar/Desktop/london-student-network-website
+> next build && next-sitemap
+
+  ▲ Next.js 15.0.0-canary.152
+  - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./app/account/account-settings-section.tsx
+10:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/account/actions.ts
+11:10  Error: 'redirect' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/account/layout.tsx
+36:3  Error: React Hook "useReferralTracking" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+39:3  Error: React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render.  react-hooks/rules-of-hooks
+46:45  Error: React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+48:3  Error: React Hook "useEffect" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return?  react-hooks/rules-of-hooks
+
+./app/account/personal-info-section.tsx
+7:10  Error: 'Button' is defined but never used.  @typescript-eslint/no-unused-vars
+8:8  Error: 'AccountLogo' is defined but never used.  @typescript-eslint/no-unused-vars
+16:9  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+17:23  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+19:17  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+20:18  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+21:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+32:9  Error: 'router' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/components/account/organiser-info-card.tsx
+26:26  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+27:25  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+28:27  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/components/switch-account/switch-account-modal.tsx
+58:5  Warning: React Hook useEffect has a missing dependency: 'updatePosition'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+ ELIFECYCLE  Command failed with exit code 1.

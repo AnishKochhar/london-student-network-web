@@ -3,6 +3,9 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import instagramIcon from "@/public/icons/instagram.svg";
+import linkedinIcon from "@/public/icons/linkedin.svg";
+import mailIcon from "@/public/icons/mail.svg";
 import { Button } from "@/app/components/button";
 import { Input } from "@/app/components/input";
 
@@ -157,10 +160,8 @@ export default function Footer() {
                             >
                                 <div className="w-12 h-12 flex items-center justify-center hover:opacity-80 transition-opacity">
                                     <Image
-                                        src="/icons/instagram.svg"
+                                        src={instagramIcon}
                                         alt="Instagram"
-                                        width={32}
-                                        height={32}
                                         className="w-6 h-6"
                                     />
                                 </div>
@@ -177,10 +178,8 @@ export default function Footer() {
                             >
                                 <div className="w-12 h-12 flex items-center justify-center hover:opacity-80 transition-opacity">
                                     <Image
-                                        src="/icons/linkedin.svg"
+                                        src={linkedinIcon}
                                         alt="LinkedIn"
-                                        width={32}
-                                        height={32}
                                         className="w-6 h-6"
                                     />
                                 </div>
@@ -195,10 +194,8 @@ export default function Footer() {
                             >
                                 <div className="w-12 h-12 flex items-center justify-center hover:opacity-80 transition-opacity">
                                     <Image
-                                        src="/icons/mail.svg"
+                                        src={mailIcon}
                                         alt="Email"
-                                        width={32}
-                                        height={32}
                                         className="w-6 h-6"
                                     />
                                 </div>
@@ -216,9 +213,21 @@ export default function Footer() {
                     <nav className="flex gap-4 text-sm">
                         <Link
                             href="/terms-conditions"
-                            className="transition-colors hover:text-primary"
+                            className="relative transition-colors hover:text-primary group inline-block"
                         >
-                            Terms and Conditions
+                            <span className="relative inline-block pb-1">
+                                Terms and Conditions
+                                <span className="absolute left-0 -bottom-0.5 w-0 h-[2px] bg-primary transition-all duration-700 ease-out group-hover:w-full"></span>
+                            </span>
+                        </Link>
+                        <Link
+                            href="/privacy-policy"
+                            className="relative transition-colors hover:text-primary group inline-block"
+                        >
+                            <span className="relative inline-block pb-1">
+                                Privacy Policy
+                                <span className="absolute left-0 -bottom-0.5 w-0 h-[2px] bg-primary transition-all duration-700 ease-out group-hover:w-full"></span>
+                            </span>
                         </Link>
                     </nav>
                 </div>

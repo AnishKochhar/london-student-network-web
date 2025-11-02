@@ -2,6 +2,31 @@ import { Reply, ThreadData, TrendingTopic } from "@/app/lib/types";
 import { toast } from "react-hot-toast";
 
 // Fetch thread replies
+/**
+ * Fetch a single thread by ID
+ */
+export async function fetchThreadById(threadId: number): Promise<ThreadData | null> {
+    try {
+        const response = await fetch(`/api/forum/thread/${threadId}`);
+
+        if (!response.ok) {
+            console.error('Failed to fetch thread:', response.statusText);
+            return null;
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.thread) {
+            return null;
+        }
+
+        return data.thread;
+    } catch (error) {
+        console.error('Error fetching thread:', error);
+        return null;
+    }
+}
+
 export async function fetchThreadReplies(
     threadId: number,
     page: number = 1,

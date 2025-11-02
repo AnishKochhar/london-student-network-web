@@ -67,38 +67,213 @@ export async function fetchEvents() {
     }
 }
 
-export async function fetchAllUpcomingEvents() {
+export async function fetchAllUpcomingEvents(
+    userSession?: { id?: string; verified_university?: string; role?: string } | null
+) {
     try {
-        const data = await sql<SQLEvent>`
-			SELECT e.*, s.slug as organiser_slug
-			FROM events e
-			LEFT JOIN society_information s ON e.organiser_uid = s.user_id
-			WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
-			AND (e.is_deleted IS NULL OR e.is_deleted = false)
-			AND (e.is_hidden IS NULL OR e.is_hidden = false)
-			ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
-				EXTRACT(hour FROM e.start_time::time)::int,
-				EXTRACT(minute FROM e.start_time::time)::int, 0))
-		`;
-        return data.rows.map(convertSQLEventToEvent);
+        let data;
+
+        // Bypass visibility restrictions for organiser and company accounts
+        if (userSession?.role === 'organiser' || userSession?.role === 'company') {
+            // Show ALL events regardless of visibility level (but exclude link-only events)
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.link_only IS NULL OR e.link_only = false)
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        } else if (!userSession) {
+            // Not logged in - only show public events (exclude link-only)
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
+                AND (e.link_only IS NULL OR e.link_only = false)
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        } else if (userSession.verified_university) {
+            // Logged in with verified university - can see all except restricted university events they're not part of (exclude link-only)
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.link_only IS NULL OR e.link_only = false)
+                AND (
+                    e.visibility_level = 'public'
+                    OR e.visibility_level = 'students_only'
+                    OR e.visibility_level = 'verified_students'
+                    OR e.visibility_level IS NULL
+                    OR (
+                        e.visibility_level = 'university_exclusive'
+                        AND ${userSession.verified_university} = ANY(e.allowed_universities)
+                    )
+                )
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        } else {
+            // Logged in but no verified university - can see public and students_only (exclude link-only)
+            data = await sql<SQLEvent>`
+                SELECT e.*, s.slug as organiser_slug
+                FROM events e
+                LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+                WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+                AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                AND (e.is_hidden IS NULL OR e.is_hidden = false)
+                AND (e.link_only IS NULL OR e.link_only = false)
+                AND (
+                    e.visibility_level = 'public'
+                    OR e.visibility_level = 'students_only'
+                    OR e.visibility_level IS NULL
+                )
+                ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                    EXTRACT(hour FROM e.start_time::time)::int,
+                    EXTRACT(minute FROM e.start_time::time)::int, 0))
+            `;
+        }
+
+        // Fetch tickets for all events - OPTIMIZED: Single query instead of N+1
+        const events = data.rows.map(convertSQLEventToEvent);
+
+        if (events.length === 0) {
+            return [];
+        }
+
+        // Get all event IDs
+        const eventIds = events.map(e => e.id);
+
+        // Fetch ALL tickets for ALL events in ONE query
+        const ticketsResult = await sql`
+            SELECT
+                t.event_uuid,
+                t.ticket_uuid,
+                t.ticket_name,
+                t.ticket_price,
+                -- Calculate ACTUAL remaining tickets
+                CASE
+                    WHEN t.tickets_available IS NOT NULL THEN
+                        GREATEST(0, t.tickets_available - COALESCE(
+                            (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                            0
+                        ))
+                    ELSE NULL
+                END as tickets_available
+            FROM tickets t
+            WHERE t.event_uuid = ANY(${eventIds})
+            ORDER BY t.event_uuid, t.ticket_price::numeric ASC
+        `;
+
+        // Group tickets by event_uuid
+        const ticketsByEvent = ticketsResult.rows.reduce((acc, ticket) => {
+            if (!acc[ticket.event_uuid]) {
+                acc[ticket.event_uuid] = [];
+            }
+            acc[ticket.event_uuid].push(ticket);
+            return acc;
+        }, {} as Record<string, typeof ticketsResult.rows>);
+
+        // Add tickets to their respective events
+        const eventsWithTickets = events.map(event => ({
+            ...event,
+            tickets: ticketsByEvent[event.id] || []
+        }));
+
+        return eventsWithTickets;
     } catch (error) {
         console.error("Database error:", error);
         throw new Error("Failed to fetch upcoming events");
     }
 }
 
-export async function fetchUpcomingEvents() {
+export async function fetchUpcomingEvents(
+    userSession?: { id?: string; verified_university?: string; role?: string } | null
+) {
     try {
-        const data = await sql<SQLEvent>`
-			SELECT * FROM events
-			WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
-			AND (is_deleted IS NULL OR is_deleted = false)
-			AND (is_hidden IS NULL OR is_hidden = false)
-			ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
-				EXTRACT(hour FROM start_time::time)::int,
-				EXTRACT(minute FROM start_time::time)::int, 0))
-			LIMIT 6
-		`;
+        let data;
+
+        // Bypass visibility restrictions for organiser and company accounts
+        if (userSession?.role === 'organiser' || userSession?.role === 'company') {
+            // Show ALL events regardless of visibility level
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        } else if (!userSession) {
+            // Not logged in - only show public events
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                AND (visibility_level = 'public' OR visibility_level IS NULL)
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        } else if (userSession.verified_university) {
+            // Logged in with verified university - can see all except restricted university events they're not part of
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                AND (
+                    visibility_level = 'public'
+                    OR visibility_level = 'students_only'
+                    OR visibility_level = 'verified_students'
+                    OR visibility_level IS NULL
+                    OR (
+                        visibility_level = 'university_exclusive'
+                        AND ${userSession.verified_university} = ANY(allowed_universities)
+                    )
+                )
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        } else {
+            // Logged in but no verified university - can see public and students_only
+            data = await sql<SQLEvent>`
+                SELECT * FROM events
+                WHERE COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+                AND (is_deleted IS NULL OR is_deleted = false)
+                AND (is_hidden IS NULL OR is_hidden = false)
+                AND (
+                    visibility_level = 'public'
+                    OR visibility_level = 'students_only'
+                    OR visibility_level IS NULL
+                )
+                ORDER BY COALESCE(start_datetime, make_timestamp(year, month, day,
+                    EXTRACT(hour FROM start_time::time)::int,
+                    EXTRACT(minute FROM start_time::time)::int, 0))
+                LIMIT 6
+            `;
+        }
+
         return data.rows.map(convertSQLEventToEvent);
     } catch (error) {
         console.error("Database error:", error);
@@ -203,11 +378,13 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
 export async function fetchEventById(id: string) {
     try {
+        // Remove dashes from both the UUID and search string to ensure proper matching
+        const searchString = id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
-			SELECT e.*, s.slug as organiser_slug
+			SELECT e.*, s.slug as organiser_slug, s.logo_url as society_logo_url
 			FROM events e
 			LEFT JOIN society_information s ON e.organiser_uid = s.user_id
-			WHERE e.id::text LIKE '%' || ${id}
+			WHERE REPLACE(e.id::text, '-', '') LIKE '%' || ${searchString}
 			AND (e.is_deleted IS NULL OR e.is_deleted = false);
 		`;
 
@@ -246,10 +423,12 @@ export async function fetchHighlightedEvent(eventId: string) {
 
 export async function fetchSQLEventById(id: string) {
     try {
+        // Remove dashes from both the UUID and search string to ensure proper matching
+        const searchString = id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
 			SELECT *
 			FROM events
-			WHERE id::text LIKE '%' || ${id};
+			WHERE REPLACE(id::text, '-', '') LIKE '%' || ${searchString};
 		`;
         return data.rows[0];
     } catch (error) {
@@ -286,10 +465,11 @@ export async function fetchBase16ConvertedEventWithUserId(
     user_id: string,
 ) {
     try {
-        const pattern = `%${event_id}%`;
+        // Remove dashes from search string to ensure proper matching
+        const searchString = event_id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
 			SELECT * FROM events
-			WHERE organiser_uid = ${user_id} AND id::text LIKE ${pattern}
+			WHERE organiser_uid = ${user_id} AND REPLACE(id::text, '-', '') LIKE '%' || ${searchString}
 			LIMIT 1
 		`;
         // console.log("Data rows: ", data.rows);
@@ -332,7 +512,8 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
         const startTime = `${startDateTime.getHours().toString().padStart(2, '0')}:${startDateTime.getMinutes().toString().padStart(2, '0')}`;
         const endTime = `${endDateTime.getHours().toString().padStart(2, '0')}:${endDateTime.getMinutes().toString().padStart(2, '0')}`;
 
-        await sql`
+        const allowedUniversities = eventData.allowed_universities ?? [];
+        const result = await sql`
             INSERT INTO events (
                 title, description, organiser, organiser_uid,
                 start_datetime, end_datetime, is_multi_day,
@@ -340,7 +521,9 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 location_building, location_area, location_address,
                 image_url, image_contain, external_forward_email,
                 capacity, sign_up_link, for_externals, event_type,
-                send_signup_notifications
+                send_signup_notifications, student_union,
+                visibility_level, registration_level, allowed_universities, link_only,
+                registration_cutoff_hours, external_registration_cutoff_hours
             )
             VALUES (
                 ${eventData.title}, ${eventData.description}, ${eventData.organiser}, ${eventData.organiser_uid},
@@ -349,10 +532,13 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 ${eventData.location_building}, ${eventData.location_area}, ${eventData.location_address},
                 ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
                 ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type},
-                ${eventData.send_signup_notifications}
+                ${eventData.send_signup_notifications}, ${eventData.student_union},
+                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${allowedUniversities as unknown as string}, ${eventData.link_only ?? false},
+                ${eventData.registration_cutoff_hours ?? null}, ${eventData.external_registration_cutoff_hours ?? null}
             )
+            RETURNING *
         `;
-        return { success: true };
+        return { success: true, event: result.rows[0] };
     } catch (error) {
         console.error("Error creating modern event:", error);
         return { success: false, error: error.message || "Unknown database error" };
@@ -522,20 +708,47 @@ export async function updateDescription(id: string, newDescription: string) {
 
 export async function updateAccountInfo(
     id: string,
-    data: OrganiserAccountEditFormData,
+    data: Partial<OrganiserAccountEditFormData>,
 ) {
     try {
-        // console.log(data.tags); // debugging
-        const formattedTags = `{${data.tags.join(",")}}`; // Format as an array string. Below, cast from string[] to text[]
+        // Get current values first to merge with updates
+        const current = await sql`
+            SELECT logo_url, description, website, tags
+            FROM society_information
+            WHERE user_id = ${id}
+        `;
+
+        if (current.rows.length === 0) {
+            throw new Error("Society information not found");
+        }
+
+        const currentData = current.rows[0];
+
+        // Use provided values, otherwise keep current values
+        const logoUrl = data.imageUrl !== undefined ? data.imageUrl : currentData.logo_url;
+        const description = data.description !== undefined ? data.description : currentData.description;
+        const website = data.website !== undefined ? data.website : currentData.website;
+
+        let tags;
+        if (data.tags !== undefined) {
+            const formattedTags = `{${data.tags.join(",")}}`;
+            tags = formattedTags;
+        } else {
+            // Keep current tags
+            tags = currentData.tags ? `{${currentData.tags.join(",")}}` : "{}";
+        }
+
+        // Update all fields (this ensures no fields become null accidentally)
         await sql`
-		UPDATE society_information
-		SET 
-			logo_url = ${data.imageUrl},
-			description = ${data.description},
-			website = ${data.website},
-			tags = ${formattedTags}::integer[]  -- Cast to integer[]
-		WHERE user_id = ${id}
-	    `;
+            UPDATE society_information
+            SET
+                logo_url = ${logoUrl},
+                description = ${description},
+                website = ${website},
+                tags = ${tags}::integer[]
+            WHERE user_id = ${id}
+        `;
+
         return { success: true };
     } catch (error) {
         console.error("Database error:", error);
@@ -679,19 +892,67 @@ export async function insertUser(formData: UserRegisterFormData) {
     try {
         const hashedPassword = await bcrypt.hash(formData.password, 10);
         const username = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`;
+        // Default to 'student' for student registration form
+        const accountType = formData.accountType || 'student';
 
         const result = await sql`
-			INSERT INTO users (name, email, password)
-			VALUES (${username}, ${formData.email}, ${hashedPassword})
+			INSERT INTO users (name, email, password, account_type)
+			VALUES (${username}, ${formData.email}, ${hashedPassword}, ${accountType})
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
 
-        console.log(`Created a user with id: ${result.rows[0].id}`);
-
         return { success: true, id: result.rows[0].id };
     } catch (error) {
         console.error("Error creating user:", error);
+        return { success: false, error };
+    }
+}
+
+export async function insertOtherUser(formData: Record<string, unknown>) {
+    try {
+        const hashedPassword = await bcrypt.hash(formData.password as string, 10);
+        const username = `${capitalize(formData.firstname as string)} ${capitalize(formData.surname as string)}`;
+        const accountType = formData.accountType === 'external' && formData.otherAccountType
+            ? formData.otherAccountType
+            : formData.accountType;
+
+        const result = await sql`
+			INSERT INTO users (name, email, password, account_type)
+			VALUES (${username}, ${formData.email as string}, ${hashedPassword}, ${accountType as string})
+			ON CONFLICT (email) DO NOTHING
+			RETURNING id
+		`;
+
+        if (result.rows.length === 0) {
+            return { success: false, error: "Email already exists" };
+        }
+
+        const userId = result.rows[0].id;
+
+        // Insert minimal user_information (only user_id and optional self-reported university)
+        // Note: verified_university in users table is set separately when they verify their .ac.uk email
+        const university = formData.university
+            ? selectUniversity(formData.university as string, formData.otherUniversity as string | undefined)
+            : null;
+
+        // Only insert into user_information if there's a university affiliation to store
+        if (university) {
+            await sql`
+                INSERT INTO user_information (user_id, university_attended)
+                VALUES (${userId}, ${university})
+            `;
+        } else {
+            // Still insert a row with just user_id to maintain referential integrity
+            await sql`
+                INSERT INTO user_information (user_id)
+                VALUES (${userId})
+            `;
+        }
+
+        return { success: true, id: userId };
+    } catch (error) {
+        console.error("Error creating other user:", error);
         return { success: false, error };
     }
 }
@@ -757,8 +1018,6 @@ export async function insertOrganiserIntoUsers(
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
-
-        console.log(`Created a organiser with id: ${result.rows[0].id}`);
 
         return { success: true, id: result.rows[0].id };
     } catch (error) {
@@ -830,7 +1089,6 @@ export async function insertCompany(formData: CompanyRegisterFormData) {
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
-        console.log(`Created a company with id: ${result.rows[0].id}`);
         return { success: true, id: result.rows[0].id };
     } catch (error) {
         console.error("Error creating user:", error);
@@ -870,7 +1128,6 @@ export async function fetchOrganisers() {
 }
 
 export async function updatePassword(email: string, password: string) {
-    console.log(`Resetting ${email} password to ${password}`);
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         await sql`
@@ -928,7 +1185,7 @@ export async function checkEmail(email: string) {
     try {
         const result = await sql`
 			SELECT id FROM users
-			WHERE email = ${email}
+			WHERE email = ${email} OR university_email = ${email}
 			LIMIT 1
 		`;
         if (result.rows.length > 0) {
@@ -1007,18 +1264,61 @@ export async function registerForEvent(
     }
 }
 
-export async function getRegistrationsForEvent(event_id: string) {
+export async function getRegistrationsForEvent(event_id: string, includeCancelled: boolean = false) {
     try {
-        const result = await sql<SQLRegistrations>`
-		SELECT user_id, name, email, created_at, external
-		FROM event_registrations
-		WHERE event_id = ${event_id}
-		`;
+        let result;
+        if (includeCancelled) {
+            result = await sql<SQLRegistrations>`
+                SELECT
+                    er.event_registration_uuid,
+                    er.user_id,
+                    er.name,
+                    er.email,
+                    er.created_at,
+                    er.external,
+                    er.quantity,
+                    t.ticket_name,
+                    t.ticket_price,
+                    er.payment_required,
+                    er.payment_id,
+                    er.payment_status,
+                    er.is_cancelled,
+                    er.cancelled_at
+                FROM event_registrations er
+                LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
+                WHERE er.event_id = ${event_id}
+                ORDER BY er.created_at DESC
+            `;
+        } else {
+            result = await sql<SQLRegistrations>`
+                SELECT
+                    er.event_registration_uuid,
+                    er.user_id,
+                    er.name,
+                    er.email,
+                    er.created_at,
+                    er.external,
+                    er.quantity,
+                    t.ticket_name,
+                    t.ticket_price,
+                    er.payment_required,
+                    er.payment_id,
+                    er.payment_status,
+                    er.is_cancelled,
+                    er.cancelled_at
+                FROM event_registrations er
+                LEFT JOIN tickets t ON er.ticket_uuid = t.ticket_uuid
+                WHERE er.event_id = ${event_id}
+                    AND (er.is_cancelled = FALSE OR er.is_cancelled IS NULL)
+                ORDER BY er.created_at DESC
+            `;
+        }
         const registrations = result.rows.map(
             convertSQLRegistrationsToRegistrations,
         );
         return { success: true, registrations: registrations };
     } catch (error) {
+        console.error("Error fetching registrations:", error);
         return { success: false };
     }
 }
@@ -1288,13 +1588,18 @@ export async function getEventRegistrationStats(eventId: string) {
 
 export async function deregisterFromEvent(event_id: string, user_id: string) {
     try {
+        // Soft delete: mark as cancelled instead of hard deleting
         const result = await sql`
-            DELETE FROM event_registrations
-            WHERE event_id = ${event_id} AND user_id = ${user_id}
+            UPDATE event_registrations
+            SET is_cancelled = TRUE,
+                cancelled_at = NOW()
+            WHERE event_id = ${event_id}
+              AND user_id = ${user_id}
+              AND is_cancelled = FALSE
         `;
 
         if (result.rowCount === 0) {
-            return { success: false, error: "Registration not found" };
+            return { success: false, error: "Active registration not found" };
         }
 
         return { success: true, message: "Successfully deregistered from event" };

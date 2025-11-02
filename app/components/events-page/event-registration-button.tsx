@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Event } from "@/app/lib/types";
 import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
-import { ShimmerButton } from "@/app/components/ui/shimmer-button";
+import { GlassButton } from "@/app/components/ui/glass-button";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
-import RegistrationConfirmationModal from "./registration-confirmation-modal";
+import ModernRegistrationModal from "./modern-registration-modal";
+import TicketSelectionModal from "./ticket-selection-modal";
+import UniversityVerificationPrompt from "./UniversityVerificationPrompt";
+import EventCountdown from "./event-countdown";
+import { Check, Calendar } from "lucide-react";
+import CalendarModal from "@/app/components/ui/calendar-modal";
 
 interface EventRegistrationButtonProps {
     event: Event;
@@ -17,6 +22,8 @@ interface EventRegistrationButtonProps {
     isPreview?: boolean;
     context?: "modal" | "page";
     onShowRegistrationChoice?: () => void;
+    onTicketModalChange?: (isOpen: boolean) => void;
+    onRegistrationModalChange?: (isOpen: boolean) => void;
 }
 
 export default function EventRegistrationButton({
@@ -25,14 +32,59 @@ export default function EventRegistrationButton({
     onRegistrationChange,
     isPreview = false,
     context = "modal",
-    onShowRegistrationChoice
+    onShowRegistrationChoice,
+    onTicketModalChange,
+    onRegistrationModalChange
 }: EventRegistrationButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [showRegistrationConfirmation, setShowRegistrationConfirmation] = useState(false);
+    const [showTicketSelection, setShowTicketSelection] = useState(false);
+    const [showUniversityPrompt, setShowUniversityPrompt] = useState(false);
+    const [showCalendarModal, setShowCalendarModal] = useState(false);
+    const [universityPromptData, setUniversityPromptData] = useState<{
+        userEmail: string;
+        universityName?: string;
+    } | null>(null);
     const [isCheckingStatus] = useState(false);
-    const { data: session } = useSession();
+    const { data: session} = useSession();
     const router = useRouter();
+
+    // Check if event has paid tickets (now comes with event data)
+    const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
+        const price = parseFloat(t.ticket_price || '0');
+        return price > 0;
+    }) || false;
+
+    // Notify parent when ticket modal state changes
+    useEffect(() => {
+        onTicketModalChange?.(showTicketSelection);
+    }, [showTicketSelection, onTicketModalChange]);
+
+    // Notify parent when registration modal state changes
+    useEffect(() => {
+        onRegistrationModalChange?.(showRegistrationConfirmation);
+    }, [showRegistrationConfirmation, onRegistrationModalChange]);
+
+    const checkAndShowUniversityPrompt = async () => {
+        try {
+            const response = await fetch('/api/user/check-university-email');
+            const data = await response.json();
+
+            if (data.success && !data.alreadyVerified) {
+                // Show prompt after a short delay to let the success toast finish
+                setTimeout(() => {
+                    setUniversityPromptData({
+                        userEmail: session?.user?.email || '',
+                        universityName: data.isUniversityEmail ? data.universityName : undefined
+                    });
+                    setShowUniversityPrompt(true);
+                }, 1500);
+            }
+        } catch (error) {
+            console.error('Error checking university status:', error);
+        }
+    };
 
     const handleRegisterClick = () => {
         // If there's an external registration link, open it in a new tab
@@ -47,7 +99,9 @@ export default function EventRegistrationButton({
                 onShowRegistrationChoice();
             } else {
                 toast.error("Please sign in to register for events");
-                router.push("/login");
+                // Redirect to login with callback to return to this event page
+                const eventPageUrl = `/events/${base16ToBase62(event.id)}`;
+                router.push(`/login?redirect=${encodeURIComponent(eventPageUrl)}`);
             }
             return;
         }
@@ -58,14 +112,20 @@ export default function EventRegistrationButton({
             return;
         }
 
-        // Show confirmation modal for logged-in users
-        setShowRegistrationConfirmation(true);
+        // If event has paid tickets, show ticket selection modal
+        if (hasPaidTickets) {
+            setShowTicketSelection(true);
+        } else {
+            // Show confirmation modal for free events
+            setShowRegistrationConfirmation(true);
+        }
     };
 
-    const handleRegister = async () => {
+    const handleRegister = async (tickets: number = 1) => {
         setShowRegistrationConfirmation(false);
 
         setIsLoading(true);
+        const toastId = toast.loading("Registering for event...");
 
         try {
             const response = await fetch("/api/events/register", {
@@ -76,25 +136,29 @@ export default function EventRegistrationButton({
                 body: JSON.stringify({
                     event_id: event.id,
                     user_information: {
-                        id: session.user.id,
-                        email: session.user.email,
-                        name: session.user.name
-                    }
+                        id: session?.user?.id,
+                        email: session?.user?.email,
+                        name: session?.user?.name
+                    },
+                    tickets
                 }),
             });
 
             const result = await response.json();
 
             if (result.success) {
-                toast.success("Successfully registered! Check your email for confirmation.");
+                toast.success("Successfully registered! Check your email for confirmation.", { id: toastId });
                 onRegistrationChange?.();
+
+                // Check if user should be prompted for university verification
+                checkAndShowUniversityPrompt();
 
                 // If in modal context, redirect to event page
                 if (context === "modal") {
                     router.push(`/events/${base16ToBase62(event.id)}`);
                 }
             } else if (result.registered) {
-                toast.success("You're already registered for this event");
+                toast.success("You're already registered for this event", { id: toastId });
                 onRegistrationChange?.();
 
                 // If in modal context, redirect to event page
@@ -102,19 +166,70 @@ export default function EventRegistrationButton({
                     router.push(`/events/${base16ToBase62(event.id)}`);
                 }
             } else {
-                // Provide helpful error messages based on the error
-                const errorMessage = result.error || "Failed to register for event";
-                if (errorMessage.includes("Event not found")) {
-                    toast.error("This event no longer exists");
-                } else if (errorMessage.includes("university")) {
-                    toast.error("Could not verify your university. Please contact support.");
-                } else {
-                    toast.error(errorMessage);
+                // Parse error code and message (format: "ERROR_CODE|Message")
+                const errorResponse = result.error || "Failed to register for event";
+                const [errorCode, errorMessage] = errorResponse.includes('|')
+                    ? errorResponse.split('|')
+                    : [null, errorResponse];
+
+                // Handle specific error cases with clear messaging and ❌ icon
+                switch (errorCode) {
+                    case 'UNVERIFIED_UNIVERSITY':
+                        toast.error(errorMessage, {
+                            id: toastId,
+                            duration: 7000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'UNIVERSITY_NOT_ALLOWED':
+                        toast.error(errorMessage, {
+                            id: toastId,
+                            duration: 6000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'REGISTRATION_CLOSED':
+                        toast.error(errorMessage, {
+                            id: toastId,
+                            duration: 7000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'EVENT_ENDED':
+                        toast.error(errorMessage, {
+                            id: toastId,
+                            duration: 5000,
+                            icon: '❌'
+                        });
+                        break;
+
+                    case 'MISCONFIGURED':
+                        toast.error(errorMessage, {
+                            id: toastId,
+                            duration: 7000,
+                            icon: '⚠️'
+                        });
+                        break;
+
+                    default:
+                        // Fallback for any other errors
+                        if (errorMessage.includes("Event not found")) {
+                            toast.error("This event no longer exists", { id: toastId, icon: '❌' });
+                        } else {
+                            toast.error(errorMessage, {
+                                id: toastId,
+                                duration: 5000,
+                                icon: '❌'
+                            });
+                        }
                 }
             }
         } catch (error) {
             console.error("Error registering:", error);
-            toast.error("Network error. Please check your connection and try again.");
+            toast.error("Network error. Please check your connection and try again.", { id: toastId });
         } finally {
             setIsLoading(false);
         }
@@ -127,6 +242,7 @@ export default function EventRegistrationButton({
         }
 
         setIsLoading(true);
+        const toastId = toast.loading("Leaving event...");
 
         try {
             const response = await fetch("/api/events/deregister", {
@@ -146,27 +262,27 @@ export default function EventRegistrationButton({
             const result = await response.json();
 
             if (result.success) {
-                toast.success("Successfully left the event");
+                toast.success("Successfully left the event", { id: toastId });
                 onRegistrationChange?.();
                 setShowConfirmation(false);
             } else {
                 const errorMessage = result.error || "Failed to leave event";
                 if (errorMessage.includes("not registered")) {
-                    toast.success("You weren't registered for this event");
+                    toast.success("You weren't registered for this event", { id: toastId });
                     onRegistrationChange?.(); // Refresh status
                     setShowConfirmation(false);
                 } else if (errorMessage.includes("Event not found")) {
-                    toast.error("This event no longer exists");
+                    toast.error("This event no longer exists", { id: toastId });
                 } else {
-                    toast.error(errorMessage);
+                    toast.error(errorMessage, { id: toastId });
                 }
             }
         } catch (error) {
             console.error("Error deregistering:", error);
             if (error instanceof TypeError && error.message.includes('fetch')) {
-                toast.error("Network error. Please check your connection and try again.");
+                toast.error("Network error. Please check your connection and try again.", { id: toastId });
             } else {
-                toast.error("Failed to leave event. Please try again.");
+                toast.error("Failed to leave event. Please try again.", { id: toastId });
             }
         } finally {
             setIsLoading(false);
@@ -177,7 +293,7 @@ export default function EventRegistrationButton({
     if (isCheckingStatus) {
         return (
             <div className="w-full max-w-md mx-auto">
-                <ShimmerButton
+                <GlassButton
                     variant="register"
                     size={context === "page" ? "lg" : "md"}
                     icon="arrow"
@@ -186,10 +302,13 @@ export default function EventRegistrationButton({
                     className="w-full"
                 >
                     Checking Status...
-                </ShimmerButton>
+                </GlassButton>
             </div>
         );
     }
+
+    // Check if event is virtual/online (event_type & 8 for Zoom/Virtual)
+    const isVirtualEvent = event.event_type && (event.event_type & 8) !== 0;
 
     // Different styles for modal vs page context
     if (context === "page") {
@@ -198,24 +317,58 @@ export default function EventRegistrationButton({
             return (
                 <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
                     {!showConfirmation ? (
-                        <div className="space-y-3">
-                            <ShimmerButton
-                                variant="registered"
-                                size="lg"
-                                icon="check"
-                                className="w-full min-w-0"
-                                disabled
-                            >
-                                You&apos;re Registered
-                            </ShimmerButton>
-                            <div className="text-center">
-                                <button
-                                    onClick={() => setShowConfirmation(true)}
-                                    disabled={isPreview || isLoading}
-                                    className="text-sm text-gray-500 hover:text-red-600 transition-colors duration-200 underline"
-                                >
-                                    Leave Event
-                                </button>
+                        <div className="space-y-4">
+                            {/* You're In Card - Clean Luma Style */}
+                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                {/* Header - Minimal Badge Style */}
+                                <div className="px-6 py-5 border-b border-gray-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Check className="w-5 h-5 text-green-600" strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-lg font-semibold text-gray-900">You&apos;re In</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="px-6 py-5 space-y-4">
+                                    {/* Countdown */}
+                                    {event.start_datetime && (
+                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                            <EventCountdown startDateTime={event.start_datetime} />
+                                            {isVirtualEvent && (
+                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                    <p className="text-xs text-gray-600 flex items-start gap-2">
+                                                        <span className="text-sm">🔗</span>
+                                                        <span>Join link will be sent via email before the event</span>
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Calendar Button */}
+                                    <button
+                                        onClick={() => setShowCalendarModal(true)}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
+                                    >
+                                        <Calendar className="w-4 h-4" />
+                                        Add to Calendar
+                                    </button>
+
+                                    {/* Cancel Link */}
+                                    <div className="text-center pt-2">
+                                        <button
+                                            onClick={() => setShowConfirmation(true)}
+                                            disabled={isPreview || isLoading}
+                                            className="text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
+                                        >
+                                            Cancel registration
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     ) : (
@@ -249,7 +402,7 @@ export default function EventRegistrationButton({
                                 >
                                     Keep Registration
                                 </button>
-                                <ShimmerButton
+                                <GlassButton
                                     onClick={handleDeregister}
                                     disabled={isLoading}
                                     variant="leave"
@@ -259,10 +412,22 @@ export default function EventRegistrationButton({
                                     className="flex-1"
                                 >
                                     {isLoading ? "Leaving..." : "Leave Event"}
-                                </ShimmerButton>
+                                </GlassButton>
                             </motion.div>
                         </motion.div>
                     )}
+                    <UniversityVerificationPrompt
+                        isOpen={showUniversityPrompt && universityPromptData !== null}
+                        onClose={() => setShowUniversityPrompt(false)}
+                        userEmail={universityPromptData?.userEmail || ''}
+                        universityName={universityPromptData?.universityName}
+                    />
+                    <CalendarModal
+                        isOpen={showCalendarModal}
+                        onClose={() => setShowCalendarModal(false)}
+                        event={event}
+                        userEmail={session?.user?.email}
+                    />
                 </div>
             );
         }
@@ -270,7 +435,7 @@ export default function EventRegistrationButton({
         return (
             <>
                 <div className="w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
-                    <ShimmerButton
+                    <GlassButton
                         onClick={handleRegisterClick}
                         disabled={isPreview || isLoading}
                         variant="register"
@@ -280,20 +445,38 @@ export default function EventRegistrationButton({
                         className="w-full min-w-0"
                     >
                         {isLoading ? "Registering..." : "Register for Event"}
-                    </ShimmerButton>
+                    </GlassButton>
                 </div>
-                <RegistrationConfirmationModal
+                <ModernRegistrationModal
                     isOpen={showRegistrationConfirmation}
                     onClose={() => setShowRegistrationConfirmation(false)}
                     onConfirm={handleRegister}
-                    eventTitle={event.title}
+                    event={event}
                     isRegistering={isLoading}
+                    userName={session?.user?.name}
+                    userEmail={session?.user?.email}
+                />
+                {/* Paid event ticket selection modal */}
+                {showTicketSelection && (
+                    <TicketSelectionModal
+                        event={event}
+                        onClose={() => setShowTicketSelection(false)}
+                        onFreeRegistration={handleRegister}
+                        userName={session?.user?.name}
+                        userEmail={session?.user?.email}
+                    />
+                )}
+                <UniversityVerificationPrompt
+                    isOpen={showUniversityPrompt && universityPromptData !== null}
+                    onClose={() => setShowUniversityPrompt(false)}
+                    userEmail={universityPromptData?.userEmail || ''}
+                    universityName={universityPromptData?.universityName}
                 />
             </>
         );
     }
 
-    // Simpler, compact design for modal context
+    // Modal context - show compact "You're In" card
     if (isRegistered) {
         return (
             <div className="w-full">
@@ -307,23 +490,50 @@ export default function EventRegistrationButton({
                             transition={{ duration: 0.2 }}
                             className="space-y-3"
                         >
-                            <ShimmerButton
-                                variant="registered"
-                                size="md"
-                                icon="check"
-                                className="w-full"
-                                disabled
-                            >
-                                You&apos;re Registered
-                            </ShimmerButton>
-                            <div className="text-center">
-                                <button
-                                    onClick={() => setShowConfirmation(true)}
-                                    disabled={isPreview || isLoading}
-                                    className="text-xs text-gray-500 hover:text-red-600 transition-colors duration-200 underline"
-                                >
-                                    Leave Event
-                                </button>
+                            {/* You're In Card - Compact Modal Version */}
+                            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                {/* Header */}
+                                <div className="px-5 py-4 border-b border-gray-100">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-9 h-9 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Check className="w-4 h-4 text-green-600" strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-base font-semibold text-gray-900">You&apos;re In</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="px-5 py-4 space-y-3">
+                                    {/* Countdown */}
+                                    {event.start_datetime && (
+                                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                            <p className="text-xs text-gray-600 font-medium mb-1.5">Event starts in</p>
+                                            <EventCountdown startDateTime={event.start_datetime} />
+                                        </div>
+                                    )}
+
+                                    {/* Calendar Button */}
+                                    <button
+                                        onClick={() => setShowCalendarModal(true)}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
+                                    >
+                                        <Calendar className="w-4 h-4" />
+                                        Add to Calendar
+                                    </button>
+
+                                    {/* Cancel Link */}
+                                    <div className="text-center pt-1">
+                                        <button
+                                            onClick={() => setShowConfirmation(true)}
+                                            disabled={isPreview || isLoading}
+                                            className="text-xs text-gray-500 hover:text-red-600 transition-colors duration-200"
+                                        >
+                                            Cancel registration
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     ) : (
@@ -359,7 +569,7 @@ export default function EventRegistrationButton({
                                 >
                                     Cancel
                                 </button>
-                                <ShimmerButton
+                                <GlassButton
                                     onClick={handleDeregister}
                                     disabled={isLoading}
                                     variant="leave"
@@ -369,18 +579,31 @@ export default function EventRegistrationButton({
                                     className="flex-1"
                                 >
                                     {isLoading ? "Leaving..." : "Leave"}
-                                </ShimmerButton>
+                                </GlassButton>
                             </motion.div>
                         </motion.div>
                     )}
                 </AnimatePresence>
+                <UniversityVerificationPrompt
+                    isOpen={showUniversityPrompt && universityPromptData !== null}
+                    onClose={() => setShowUniversityPrompt(false)}
+                    userEmail={universityPromptData?.userEmail || ''}
+                    universityName={universityPromptData?.universityName}
+                />
+                <CalendarModal
+                    isOpen={showCalendarModal}
+                    onClose={() => setShowCalendarModal(false)}
+                    event={event}
+                    userEmail={session?.user?.email}
+                />
             </div>
         );
     }
 
+    // Simpler, compact design for modal context
     return (
         <>
-            <ShimmerButton
+            <GlassButton
                 onClick={handleRegisterClick}
                 disabled={isPreview || isLoading}
                 variant="register"
@@ -390,13 +613,34 @@ export default function EventRegistrationButton({
                 className="w-full"
             >
                 {isLoading ? "Registering..." : "Register for Event"}
-            </ShimmerButton>
-            <RegistrationConfirmationModal
+            </GlassButton>
+            {/* Free event registration modal */}
+            <ModernRegistrationModal
                 isOpen={showRegistrationConfirmation}
                 onClose={() => setShowRegistrationConfirmation(false)}
                 onConfirm={handleRegister}
-                eventTitle={event.title}
+                event={event}
                 isRegistering={isLoading}
+                userName={session?.user?.name}
+                userEmail={session?.user?.email}
+            />
+
+            {/* Paid event ticket selection modal */}
+            {showTicketSelection && (
+                <TicketSelectionModal
+                    event={event}
+                    onClose={() => setShowTicketSelection(false)}
+                    onFreeRegistration={handleRegister}
+                    userName={session?.user?.name}
+                    userEmail={session?.user?.email}
+                />
+            )}
+
+            <UniversityVerificationPrompt
+                isOpen={showUniversityPrompt && universityPromptData !== null}
+                onClose={() => setShowUniversityPrompt(false)}
+                userEmail={universityPromptData?.userEmail || ''}
+                universityName={universityPromptData?.universityName}
             />
         </>
     );
