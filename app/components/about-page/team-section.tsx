@@ -31,6 +31,11 @@ export default function TeamSection() {
             title: "Chief Strategy Officer",
             image: zainImage,
         },
+		{
+			name: "Nour Zalaquett",
+			title: "Chief Partnerships Officer",
+			image: nourImage,
+		},
         {
             name: "Amber Ella",
             title: "Chief Operating Officer",
@@ -40,11 +45,6 @@ export default function TeamSection() {
             name: "Caspia Nadapdap",
             title: "Head of Events",
             image: caspiaImage,
-        },
-        {
-            name: "Nour Zalaquett",
-            title: "Head of Outreach",
-            image: nourImage,
         },
 
         {
