@@ -7,6 +7,7 @@ const HIGHLIGHTED_EVENT_ID = "3af0dc9f-bdd4-4e7e-9695-d5e334ec5886";
 const HOTTEST_EVENT_DESCRIPTION = "KCL Neurotech presents their most anticipated academic talk of the year! Join Mr Jonathan Shapey, a clinical reader in neurosurgery and honorary consultant neurosurgeon, as he explores how cutting-edge neurotechnology is revolutionizing surgical outcomes. Slots are limited—register now for this groundbreaking session!";
 
 export default async function HottestEventSection() {
+	// Homepage shows public events only - no session filtering needed
 	const event = await fetchHighlightedEvent(HIGHLIGHTED_EVENT_ID);
 
 	if (!event) {

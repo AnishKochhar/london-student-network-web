@@ -30,7 +30,6 @@ export interface Event {
     visibility_level?: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     registration_level?: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[];
-    link_only?: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
@@ -116,7 +115,6 @@ export interface SQLEvent {
     visibility_level?: string; // 'public' | 'students_only' | 'verified_students' | 'university_exclusive'
     registration_level?: string; // 'public' | 'students_only' | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[];
-    link_only?: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null;
     external_registration_cutoff_hours?: number | null;
@@ -224,7 +222,6 @@ export interface EventFormData {
     visibility_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     registration_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[]; // Array of university codes (e.g., ['imperial', 'ucl'])
-    link_only: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
@@ -254,7 +251,6 @@ export interface SQLEventData {
     visibility_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     registration_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[];
-    link_only: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close

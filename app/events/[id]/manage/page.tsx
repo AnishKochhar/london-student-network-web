@@ -22,6 +22,17 @@ export default function EventManagePage() {
     const eventUrl = `https://londonstudentnetwork.com/events/${id}`;
     const displayBaseUrl = "londonstudentnetwork.com/events/";
 
+    // Handle back navigation intelligently
+    const handleBackNavigation = () => {
+        // Check if we have navigation history
+        if (window.history.length > 1) {
+            router.back();
+        } else {
+            // Fallback to event page if no history
+            router.push(`/events/${id}`);
+        }
+    };
+
     /**
      * Fetch event data and verify management permissions
      * This replaces the previous two-step process (check-is-organiser + get-information)
@@ -115,11 +126,11 @@ export default function EventManagePage() {
             <div className="bg-white/5 backdrop-blur-lg border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
                     <button
-                        onClick={() => router.push(`/events/${id}`)}
+                        onClick={handleBackNavigation}
                         className="flex items-center gap-2 text-white/70 hover:text-white mb-3 sm:mb-4 transition-colors text-sm"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        <span className="hidden sm:inline">Back to Event Page</span>
+                        <span className="hidden sm:inline">Back</span>
                         <span className="sm:hidden">Back</span>
                     </button>
 

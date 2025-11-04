@@ -21,6 +21,9 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
 
     const handleCardClick = (e: React.MouseEvent) => {
         if (editEvent) {
+            // Save scroll position before navigating
+            sessionStorage.setItem('accountPageScrollPosition', window.scrollY.toString());
+            sessionStorage.setItem('lastViewedEventId', event.id);
             // Show loading toast for manage navigation
             toast.loading("Opening event management...", { id: "manage-navigation" });
             // Link will handle the navigation with prefetching

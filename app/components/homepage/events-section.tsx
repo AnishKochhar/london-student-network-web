@@ -1,21 +1,10 @@
 import { fetchUpcomingEvents } from "@/app/lib/data";
 import { sortEventsByDate } from "@/app/lib/utils";
 import UpcomingEventsView from "./upcoming-events";
-import { auth } from "@/auth";
 
 export default async function UpcomingEventsSection() {
-    const session = await auth();
-
-    // Pass session to filter events based on visibility level
-    const userSession = session?.user
-        ? {
-              id: session.user.id,
-              verified_university: session.user.verified_university,
-              role: session.user.role,
-          }
-        : null;
-
-    const allEvents = await fetchUpcomingEvents(userSession);
+    // Homepage shows public events only - treat all users as non-logged-in
+    const allEvents = await fetchUpcomingEvents(null);
     const sortedEvents = sortEventsByDate(allEvents);
 
     return (

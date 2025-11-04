@@ -93,11 +93,36 @@ export default function UserEventsList({
     }, [user_id, editEvent]);
 
     useEffect(() => {
-        // Only fetch if we don't have initial data
-        if (initialEvents.length === 0) {
+        // Always set the initial data first
+        if (initialEvents.length > 0) {
+            setUserEvents(initialEvents);
+            // Set pagination based on what we have
+            // Since server fetches ALL events, we have everything - no pagination needed
+            setPagination({
+                total: initialEvents.length,
+                limit: initialEvents.length,
+                offset: 0,
+                hasMore: false
+            });
+        } else {
+            // No initial data, fetch from API
             fetchUserEvents();
         }
-    }, [initialEvents.length, fetchUserEvents]);
+
+        // Restore scroll position if returning from manage page
+        const savedScrollPosition = sessionStorage.getItem('accountPageScrollPosition');
+        if (savedScrollPosition) {
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                window.scrollTo({
+                    top: parseInt(savedScrollPosition),
+                    behavior: 'smooth'
+                });
+                // Clear the saved position
+                sessionStorage.removeItem('accountPageScrollPosition');
+            }, 100);
+        }
+    }, [initialEvents, fetchUserEvents]);
 
     // Only refetch data when returning from edit page or after a significant time away
     useEffect(() => {

@@ -703,7 +703,6 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		visibility_level: data.visibility_level || 'public',
 		registration_level: data.registration_level || 'public',
 		allowed_universities: data.allowed_universities || [],
-		link_only: data.link_only ?? false,
 		// Registration cutoff fields
 		registration_cutoff_hours: data.registration_cutoff_hours != null && !isNaN(Number(data.registration_cutoff_hours)) && Number(data.registration_cutoff_hours) > 0
 			? Number(data.registration_cutoff_hours)

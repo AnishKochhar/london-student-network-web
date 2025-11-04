@@ -8,11 +8,9 @@ interface EventAccessControlsProps {
     visibilityLevel: string;
     registrationLevel: string;
     allowedUniversities: string[];
-    linkOnly?: boolean;
     onVisibilityChange: (value: string) => void;
     onRegistrationChange: (value: string) => void;
     onAllowedUniversitiesChange: (universities: string[]) => void;
-    onLinkOnlyChange?: (value: boolean) => void;
 }
 
 // Visibility/Registration level options with descriptions
@@ -42,7 +40,7 @@ const VISIBILITY_OPTIONS = [
         description: 'Only verified students from specific universities can see this event'
     },
     {
-        value: 'link_only',
+        value: 'private',
         label: 'Private',
         icon: LockClosedIcon,
         description: 'Hidden from all public listings - only people with the direct link can access this event'
@@ -389,45 +387,28 @@ export default function EventAccessControls({
     visibilityLevel,
     registrationLevel,
     allowedUniversities,
-    linkOnly = false,
     onVisibilityChange,
     onRegistrationChange,
     onAllowedUniversitiesChange,
-    onLinkOnlyChange,
 }: EventAccessControlsProps) {
     const [hasOpenDropdown, setHasOpenDropdown] = useState(false);
 
-    // Sync visibility level with link_only flag
-    const effectiveVisibilityLevel = linkOnly ? 'link_only' : visibilityLevel;
-
-    // Handle visibility change - set link_only flag if 'link_only' is selected
-    const handleVisibilityChange = (value: string) => {
-        if (value === 'link_only') {
-            onLinkOnlyChange?.(true);
-            // When switching to link_only, set visibility to public (doesn't matter since it's hidden)
-            onVisibilityChange('public');
-        } else {
-            onLinkOnlyChange?.(false);
-            onVisibilityChange(value);
-        }
-    };
-
     // Get available registration options based on visibility level
     const getAvailableRegistrationOptions = () => {
-        // Link-only events can have any registration level
-        if (effectiveVisibilityLevel === 'link_only') {
-            return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'link_only');
+        // Private events can have any registration level (for who can register via direct link)
+        if (visibilityLevel === 'private') {
+            return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'private');
         }
 
         const visibilityIndex = VISIBILITY_OPTIONS.findIndex(opt => opt.value === visibilityLevel);
         // Registration can only be as restrictive or more restrictive than visibility
-        return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'link_only').slice(visibilityIndex);
+        return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'private').slice(visibilityIndex);
     };
 
     // Auto-adjust registration level if visibility becomes more restrictive
     useEffect(() => {
-        // Skip auto-adjustment for link-only events
-        if (effectiveVisibilityLevel === 'link_only') return;
+        // Skip auto-adjustment for private events
+        if (visibilityLevel === 'private') return;
 
         const visibilityIndex = VISIBILITY_OPTIONS.findIndex(opt => opt.value === visibilityLevel);
         const registrationIndex = VISIBILITY_OPTIONS.findIndex(opt => opt.value === registrationLevel);
@@ -436,7 +417,7 @@ export default function EventAccessControls({
             // Visibility is more restrictive, so registration must match or be more restrictive
             onRegistrationChange(visibilityLevel);
         }
-    }, [visibilityLevel, registrationLevel, onRegistrationChange, effectiveVisibilityLevel]);
+    }, [visibilityLevel, registrationLevel, onRegistrationChange]);
 
     return (
         <div className={`space-y-6 overflow-visible ${hasOpenDropdown ? 'relative z-[100]' : ''}`}>
@@ -460,14 +441,14 @@ export default function EventAccessControls({
             {/* Visibility Level */}
             <div>
                 <AccessDropdown
-                    value={effectiveVisibilityLevel}
-                    onChange={handleVisibilityChange}
+                    value={visibilityLevel}
+                    onChange={onVisibilityChange}
                     options={VISIBILITY_OPTIONS}
                     label="Who can see this event?"
                     tooltip="Controls who can view this event. Private events are hidden from all listings and only accessible via direct link."
                     onOpenChange={setHasOpenDropdown}
                 />
-                {effectiveVisibilityLevel === 'link_only' && (
+                {visibilityLevel === 'private' && (
                     <motion.div
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -490,7 +471,7 @@ export default function EventAccessControls({
                     onChange={onRegistrationChange}
                     options={getAvailableRegistrationOptions()}
                     label="Who can register?"
-                    tooltip={effectiveVisibilityLevel === 'link_only'
+                    tooltip={visibilityLevel === 'private'
                         ? "Controls who can register when they access the event via the direct link"
                         : "Controls who can sign up for this event. Must be at least as restrictive as visibility."}
                     disabled={visibilityLevel === 'university_exclusive'} // Auto-match for university exclusive
