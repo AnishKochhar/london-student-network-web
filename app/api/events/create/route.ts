@@ -81,14 +81,16 @@ export async function POST(req: Request) {
 
 		// Validate access control fields
 		// Note: 'students_only' includes all account types (students, societies, companies)
-		const validVisibilityLevels = ['public', 'students_only', 'verified_students', 'university_exclusive'];
+		const validVisibilityLevels = ['public', 'students_only', 'verified_students', 'university_exclusive', 'private'];
+		const validRegistrationLevels = ['public', 'students_only', 'verified_students', 'university_exclusive'];
+
 		if (data.visibility_level && !validVisibilityLevels.includes(data.visibility_level)) {
 			return NextResponse.json(
 				{ success: false, error: "Invalid visibility level" },
 				{ status: 400 }
 			);
 		}
-		if (data.registration_level && !validVisibilityLevels.includes(data.registration_level)) {
+		if (data.registration_level && !validRegistrationLevels.includes(data.registration_level)) {
 			return NextResponse.json(
 				{ success: false, error: "Invalid registration level" },
 				{ status: 400 }
@@ -105,15 +107,18 @@ export async function POST(req: Request) {
 		}
 
 		// Validate that registration level is at least as restrictive as visibility level
-		// Restrictiveness hierarchy: public (0) < logged-in users (1) < verified students (2) < university exclusive (3)
-		const restrictiveness = { 'public': 0, 'students_only': 1, 'verified_students': 2, 'university_exclusive': 3 };
-		const visibilityRestriction = restrictiveness[data.visibility_level as keyof typeof restrictiveness] || 0;
-		const registrationRestriction = restrictiveness[data.registration_level as keyof typeof restrictiveness] || 0;
-		if (registrationRestriction < visibilityRestriction) {
-			return NextResponse.json(
-				{ success: false, error: "Registration level must be at least as restrictive as visibility level" },
-				{ status: 400 }
-			);
+		// Skip this check for private events (they can have any registration level since only people with direct link can access)
+		if (data.visibility_level !== 'private') {
+			// Restrictiveness hierarchy: public (0) < logged-in users (1) < verified students (2) < university exclusive (3)
+			const restrictiveness = { 'public': 0, 'students_only': 1, 'verified_students': 2, 'university_exclusive': 3 };
+			const visibilityRestriction = restrictiveness[data.visibility_level as keyof typeof restrictiveness] || 0;
+			const registrationRestriction = restrictiveness[data.registration_level as keyof typeof restrictiveness] || 0;
+			if (registrationRestriction < visibilityRestriction) {
+				return NextResponse.json(
+					{ success: false, error: "Registration level must be at least as restrictive as visibility level" },
+					{ status: 400 }
+				);
+			}
 		}
 
 		// Convert form data to SQL format

@@ -25,6 +25,9 @@ export async function POST(req: Request) {
 
         if (visibilityLevel === 'public' || !visibilityLevel) {
             hasAccess = true;
+        } else if (visibilityLevel === 'private') {
+            // Private events are accessible to anyone with the direct link
+            hasAccess = true;
         } else if (visibilityLevel === 'students_only') {
             hasAccess = isLoggedIn;
         } else if (visibilityLevel === 'verified_students') {
