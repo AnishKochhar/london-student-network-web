@@ -35,6 +35,11 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const showRegistrationModalRef = useRef(false);
     const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
 
+    // Lazy loading state for full event data with release schedules
+    const [fullEventData, setFullEventData] = useState(event);
+    const [isLoadingFullData, setIsLoadingFullData] = useState(false);
+    const hasFullDataRef = useRef(false);
+
     // Sync refs with state
     useEffect(() => {
         showRegistrationChoiceRef.current = showRegistrationChoice;
@@ -55,10 +60,41 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const jumpToEvent = () =>
         router.push(`/events/${base16ToBase62(event.id)}`);
 
-    const handleGuestRegister = () => {
-        setShowRegistrationChoice(false);
-        // Always show ticket selection modal for guests (handles both free and paid)
+    // Fetch full event data with release schedules
+    const fetchFullEventData = async () => {
+        // Skip if already loaded and return current data
+        if (hasFullDataRef.current) return fullEventData;
+
+        try {
+            setIsLoadingFullData(true);
+            const response = await fetch("/api/events/get-information", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: event.id }),
+            });
+
+            if (!response.ok) throw new Error("Failed to fetch event data");
+
+            const data = await response.json();
+            setFullEventData(data);
+            hasFullDataRef.current = true;
+            return data;
+        } catch (error) {
+            console.error("Error fetching full event data:", error);
+            // Fall back to original event data if fetch fails
+            setFullEventData(event);
+            return event;
+        } finally {
+            setIsLoadingFullData(false);
+        }
+    };
+
+    const handleGuestRegister = async () => {
+        // Fetch full data first
+        await fetchFullEventData();
+        // Set new modal true BEFORE closing old one to prevent click-outside race condition
         setShowTicketModal(true);
+        setShowRegistrationChoice(false);
     };
 
     const handleGuestRegistrationSuccess = () => {
@@ -290,7 +326,7 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                 <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
                                     <h3 className="text-lg font-bold text-gray-900 mb-4">Registration</h3>
                                     <EventRegistrationButton
-                                        event={event}
+                                        event={fullEventData}
                                         isRegistered={isRegistered}
                                         onRegistrationChange={() => {
                                             setIsRegistered(!isRegistered);
@@ -299,6 +335,7 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                         context="modal"
                                         isPreview={isPreview}
                                         onShowRegistrationChoice={() => setShowRegistrationChoice(true)}
+                                        onFetchFullEventData={fetchFullEventData}
                                         onTicketModalChange={setShowTicketModal}
                                         onRegistrationModalChange={setShowRegistrationModal}
                                     />
@@ -388,10 +425,11 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                 {/* Ticket Selection Modal (for guests with paid tickets) */}
                 {showTicketModal && (
                     <TicketSelectionModal
-                        event={event}
+                        event={fullEventData}
                         onClose={() => setShowTicketModal(false)}
                         onFreeRegistration={handleGuestFreeTicketRegistration}
                         isGuestMode={true}
+                        isLoadingTickets={isLoadingFullData}
                     />
                 )}
 

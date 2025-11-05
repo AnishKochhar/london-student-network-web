@@ -31,6 +31,7 @@ interface TicketSelectionModalProps {
     userName?: string;
     userEmail?: string;
     isGuestMode?: boolean;
+    isLoadingTickets?: boolean;
 }
 
 export default function TicketSelectionModal({
@@ -40,6 +41,7 @@ export default function TicketSelectionModal({
     userName = '',
     userEmail = '',
     isGuestMode = false,
+    isLoadingTickets = false,
 }: TicketSelectionModalProps) {
     const [mounted, setMounted] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function TicketSelectionModal({
 
     // Use tickets from event data (already loaded) - memoized to prevent re-renders
     const tickets: Ticket[] = useMemo(() => (event.tickets as Ticket[]) || [], [event.tickets]);
-    const loading = false;
+    const loading = isLoadingTickets;
 
     const steps = isGuestMode
         ? [
@@ -263,17 +265,19 @@ export default function TicketSelectionModal({
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-white rounded-xl md:rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto flex flex-col md:flex-row"
+                    className="relative bg-white rounded-xl md:rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-4xl max-h-[95vh] md:max-h-[90vh] flex flex-col md:flex-row overflow-hidden"
                 >
+                    {/* Close button - positioned on modal container for proper top-right placement */}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 p-2.5 bg-white hover:bg-gray-50 rounded-full transition-all shadow-lg border border-gray-200 z-50 hover:scale-110"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5 text-gray-700" />
+                    </button>
+
                     {/* Left Side - Event Info - Hidden on mobile for better UX */}
-                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8 flex-col">
-                        <button
-                            onClick={onClose}
-                            className="absolute top-4 right-4 md:right-auto md:left-4 p-2 hover:bg-white/80 rounded-full transition-colors z-10"
-                            aria-label="Close modal"
-                        >
-                            <X className="w-5 h-5 text-gray-700" />
-                        </button>
+                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8 flex-col relative">
 
                         <div className="mt-8 md:mt-0">
                             <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-6">
@@ -312,24 +316,75 @@ export default function TicketSelectionModal({
                     </div>
 
                     {/* Right Side - Registration Form */}
-                    <div className="w-full md:w-1/2 bg-white p-4 md:p-8 flex flex-col relative">
-                        {/* Close button for mobile */}
-                        <button
-                            onClick={onClose}
-                            className="md:hidden absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
-                            aria-label="Close modal"
-                        >
-                            <X className="w-5 h-5 text-gray-700" />
-                        </button>
-
+                    <div className="w-full md:w-1/2 bg-white p-4 md:p-8 flex flex-col relative overflow-y-auto">
                         <div className="mb-4 md:mb-6">
                             <RegistrationStepper currentStep={currentStep} steps={steps} />
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
                             {loading ? (
-                                <div className="flex-1 flex items-center justify-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                <div className="flex-1 space-y-4 md:space-y-6 animate-pulse">
+                                    {/* Header skeleton */}
+                                    <div>
+                                        <div className="h-6 md:h-7 bg-gray-200 rounded-md w-2/3 mb-2"></div>
+                                        <div className="h-4 bg-gray-100 rounded-md w-1/2"></div>
+                                    </div>
+
+                                    {/* Ticket selection skeleton */}
+                                    <div className="space-y-3">
+                                        {/* Skeleton ticket 1 */}
+                                        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-white">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-5 h-5 bg-gray-200 rounded-full mt-1"></div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                                        <div className="h-5 bg-gray-200 rounded w-32"></div>
+                                                        <div className="h-5 bg-gray-200 rounded w-16"></div>
+                                                    </div>
+                                                    <div className="h-3 bg-gray-100 rounded w-24"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Skeleton ticket 2 */}
+                                        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-white">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-5 h-5 bg-gray-200 rounded-full mt-1"></div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                                        <div className="h-5 bg-gray-200 rounded w-28"></div>
+                                                        <div className="h-5 bg-gray-200 rounded w-16"></div>
+                                                    </div>
+                                                    <div className="h-3 bg-gray-100 rounded w-20"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Skeleton ticket 3 */}
+                                        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-white">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-5 h-5 bg-gray-200 rounded-full mt-1"></div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                                        <div className="h-5 bg-gray-200 rounded w-36"></div>
+                                                        <div className="h-5 bg-gray-200 rounded w-12"></div>
+                                                    </div>
+                                                    <div className="h-3 bg-gray-100 rounded w-28"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quantity skeleton */}
+                                    <div>
+                                        <div className="h-4 bg-gray-200 rounded w-20 mb-3"></div>
+                                        <div className="h-10 bg-gray-100 rounded-lg w-36"></div>
+                                    </div>
+
+                                    {/* Button skeleton */}
+                                    <div className="mt-auto pt-4">
+                                        <div className="h-11 md:h-12 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg md:rounded-xl"></div>
+                                    </div>
                                 </div>
                             ) : currentStep === 1 ? (
                                 // Step 1: Ticket Selection (for both guest and authenticated)

@@ -22,6 +22,7 @@ interface EventRegistrationButtonProps {
     isPreview?: boolean;
     context?: "modal" | "page";
     onShowRegistrationChoice?: () => void;
+    onFetchFullEventData?: () => Promise<void>;
     onTicketModalChange?: (isOpen: boolean) => void;
     onRegistrationModalChange?: (isOpen: boolean) => void;
 }
@@ -33,6 +34,7 @@ export default function EventRegistrationButton({
     isPreview = false,
     context = "modal",
     onShowRegistrationChoice,
+    onFetchFullEventData,
     onTicketModalChange,
     onRegistrationModalChange
 }: EventRegistrationButtonProps) {
@@ -50,11 +52,14 @@ export default function EventRegistrationButton({
     const { data: session} = useSession();
     const router = useRouter();
 
-    // Check if event has paid tickets (now comes with event data)
-    const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
+    // Check if we have ticket data loaded
+    const hasTicketsData = event.tickets && event.tickets.length > 0;
+
+    // Check if event has paid tickets (for Stripe setup validation)
+    const hasPaidTickets = hasTicketsData && event.tickets?.some((t: { ticket_price?: string }) => {
         const price = parseFloat(t.ticket_price || '0');
         return price > 0;
-    }) || false;
+    });
 
     // Notify parent when ticket modal state changes
     useEffect(() => {
@@ -86,7 +91,7 @@ export default function EventRegistrationButton({
         }
     };
 
-    const handleRegisterClick = () => {
+    const handleRegisterClick = async () => {
         // If there's an external registration link, open it in a new tab
         if (event?.sign_up_link) {
             window.open(event.sign_up_link, '_blank', 'noopener,noreferrer');
@@ -112,11 +117,50 @@ export default function EventRegistrationButton({
             return;
         }
 
-        // If event has paid tickets, show ticket selection modal
-        if (hasPaidTickets) {
+        // Debug logging
+        console.log('[EventRegistrationButton] Initial state:', {
+            hasTicketsData,
+            ticketsCount: event.tickets?.length,
+            hasPaidTickets,
+            context,
+            hasCallback: !!onFetchFullEventData,
+            note: 'Will show ticket modal if hasTicketsData=true (regardless of price)'
+        });
+
+        // Determine which event data to use for checking tickets
+        let eventToCheck = event;
+
+        // If tickets haven't been loaded yet, fetch them first (for modal context)
+        if (!hasTicketsData && onFetchFullEventData) {
+            console.log('[EventRegistrationButton] Fetching full event data...');
+            setIsLoading(true);
+            const fetchedEvent = await onFetchFullEventData();
+            setIsLoading(false);
+            // Use the fetched event data to check for paid tickets
+            if (fetchedEvent) {
+                eventToCheck = fetchedEvent;
+                console.log('[EventRegistrationButton] Fetched event:', {
+                    ticketsCount: fetchedEvent.tickets?.length,
+                    tickets: fetchedEvent.tickets
+                });
+            }
+        }
+
+        // Check if event has ANY tickets (free or paid)
+        const hasTickets = eventToCheck.tickets && eventToCheck.tickets.length > 0;
+
+        console.log('[EventRegistrationButton] Final decision:', {
+            hasTickets,
+            ticketCount: eventToCheck.tickets?.length,
+            tickets: eventToCheck.tickets,
+            willShowTicketModal: hasTickets
+        });
+
+        // If event has tickets (free or paid), show ticket selection modal
+        if (hasTickets) {
             setShowTicketSelection(true);
         } else {
-            // Show confirmation modal for free events
+            // Show confirmation modal only for events without ticketing
             setShowRegistrationConfirmation(true);
         }
     };
