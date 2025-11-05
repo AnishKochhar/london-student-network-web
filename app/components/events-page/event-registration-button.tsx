@@ -22,7 +22,7 @@ interface EventRegistrationButtonProps {
     isPreview?: boolean;
     context?: "modal" | "page";
     onShowRegistrationChoice?: () => void;
-    onFetchFullEventData?: () => Promise<void>;
+    onFetchFullEventData?: () => Promise<Event>;
     onTicketModalChange?: (isOpen: boolean) => void;
     onRegistrationModalChange?: (isOpen: boolean) => void;
 }
@@ -49,10 +49,17 @@ export default function EventRegistrationButton({
         universityName?: string;
     } | null>(null);
     const [isCheckingStatus] = useState(false);
+    const [fullEventData, setFullEventData] = useState<Event | null>(null);
+    const [isFetchingTickets, setIsFetchingTickets] = useState(false);
     const { data: session} = useSession();
     const router = useRouter();
 
-    // Check if we have ticket data loaded
+    // Check if we have COMPLETE ticket data (including release schedules)
+    const hasCompleteTicketData = event.tickets &&
+        event.tickets.length > 0 &&
+        event.tickets.some((t) => (t as Record<string, unknown>).availability_status !== undefined);
+
+    // Check if we have basic ticket data
     const hasTicketsData = event.tickets && event.tickets.length > 0;
 
     // Check if event has paid tickets (for Stripe setup validation)
@@ -120,48 +127,61 @@ export default function EventRegistrationButton({
         // Debug logging
         console.log('[EventRegistrationButton] Initial state:', {
             hasTicketsData,
+            hasCompleteTicketData,
             ticketsCount: event.tickets?.length,
             hasPaidTickets,
             context,
             hasCallback: !!onFetchFullEventData,
-            note: 'Will show ticket modal if hasTicketsData=true (regardless of price)'
+            firstTicket: event.tickets?.[0]
         });
 
-        // Determine which event data to use for checking tickets
-        let eventToCheck = event;
+        // Check if event has ANY tickets (free or paid) in the current data
+        const hasTickets = hasTicketsData;
 
-        // If tickets haven't been loaded yet, fetch them first (for modal context)
-        if (!hasTicketsData && onFetchFullEventData) {
-            console.log('[EventRegistrationButton] Fetching full event data...');
-            setIsLoading(true);
-            const fetchedEvent = await onFetchFullEventData();
-            setIsLoading(false);
-            // Use the fetched event data to check for paid tickets
-            if (fetchedEvent) {
-                eventToCheck = fetchedEvent;
-                console.log('[EventRegistrationButton] Fetched event:', {
-                    ticketsCount: fetchedEvent.tickets?.length,
-                    tickets: fetchedEvent.tickets
-                });
-            }
-        }
-
-        // Check if event has ANY tickets (free or paid)
-        const hasTickets = eventToCheck.tickets && eventToCheck.tickets.length > 0;
-
-        console.log('[EventRegistrationButton] Final decision:', {
-            hasTickets,
-            ticketCount: eventToCheck.tickets?.length,
-            tickets: eventToCheck.tickets,
-            willShowTicketModal: hasTickets
-        });
-
-        // If event has tickets (free or paid), show ticket selection modal
+        // If event has tickets, show ticket selection modal
         if (hasTickets) {
-            setShowTicketSelection(true);
+            // If tickets don't have complete data, we need to fetch while modal is open
+            if (!hasCompleteTicketData && onFetchFullEventData) {
+                console.log('[EventRegistrationButton] Tickets exist but missing release data, will fetch while modal is open...');
+                setShowTicketSelection(true);
+                setIsFetchingTickets(true);
+
+                // Fetch complete data in the background
+                const fetchedEvent = await onFetchFullEventData();
+                setIsFetchingTickets(false);
+
+                if (fetchedEvent) {
+                    setFullEventData(fetchedEvent);
+                    console.log('[EventRegistrationButton] Fetched complete event:', {
+                        ticketsCount: fetchedEvent.tickets?.length,
+                        firstTicket: fetchedEvent.tickets?.[0],
+                        hasReleaseData: fetchedEvent.tickets?.[0] ? (fetchedEvent.tickets[0] as Record<string, unknown>).availability_status !== undefined : false
+                    });
+                }
+            } else {
+                // Has complete data already, just show modal
+                setShowTicketSelection(true);
+            }
         } else {
-            // Show confirmation modal only for events without ticketing
-            setShowRegistrationConfirmation(true);
+            // No tickets in current data, check if we need to fetch
+            if (onFetchFullEventData) {
+                console.log('[EventRegistrationButton] No tickets found, fetching to check...');
+                setIsLoading(true);
+                const fetchedEvent = await onFetchFullEventData();
+                setIsLoading(false);
+
+                if (fetchedEvent && fetchedEvent.tickets && fetchedEvent.tickets.length > 0) {
+                    // Found tickets after fetch, show ticket modal
+                    setFullEventData(fetchedEvent);
+                    setShowTicketSelection(true);
+                } else {
+                    // Still no tickets, show simple registration
+                    setShowRegistrationConfirmation(true);
+                }
+            } else {
+                // No way to fetch, show simple registration
+                setShowRegistrationConfirmation(true);
+            }
         }
     };
 
@@ -503,11 +523,16 @@ export default function EventRegistrationButton({
                 {/* Paid event ticket selection modal */}
                 {showTicketSelection && (
                     <TicketSelectionModal
-                        event={event}
-                        onClose={() => setShowTicketSelection(false)}
+                        event={fullEventData ?? event}
+                        onClose={() => {
+                            setShowTicketSelection(false);
+                            setFullEventData(null);
+                            setIsFetchingTickets(false);
+                        }}
                         onFreeRegistration={handleRegister}
                         userName={session?.user?.name}
                         userEmail={session?.user?.email}
+                        isLoadingTickets={isFetchingTickets}
                     />
                 )}
                 <UniversityVerificationPrompt
@@ -672,11 +697,16 @@ export default function EventRegistrationButton({
             {/* Paid event ticket selection modal */}
             {showTicketSelection && (
                 <TicketSelectionModal
-                    event={event}
-                    onClose={() => setShowTicketSelection(false)}
+                    event={fullEventData ?? event}
+                    onClose={() => {
+                        setShowTicketSelection(false);
+                        setFullEventData(null);
+                        setIsFetchingTickets(false);
+                    }}
                     onFreeRegistration={handleRegister}
                     userName={session?.user?.name}
                     userEmail={session?.user?.email}
+                    isLoadingTickets={isFetchingTickets}
                 />
             )}
 

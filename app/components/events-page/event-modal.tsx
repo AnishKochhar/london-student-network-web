@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { X, Calendar, MapPin, Users, Mail, Flag, ExternalLink } from "lucide-react";
-import { EventModalProps } from "@/app/lib/types";
+import { EventModalProps, Event as EventType } from "@/app/lib/types";
 import { motion } from "framer-motion";
 
 interface EventModalPropsWithPreview extends EventModalProps {
@@ -61,7 +61,7 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
         router.push(`/events/${base16ToBase62(event.id)}`);
 
     // Fetch full event data with release schedules
-    const fetchFullEventData = async () => {
+    const fetchFullEventData = async (): Promise<EventType> => {
         // Skip if already loaded and return current data
         if (hasFullDataRef.current) return fullEventData;
 

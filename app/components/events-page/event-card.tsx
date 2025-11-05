@@ -11,10 +11,18 @@ import EventModal from "./event-modal";
 import { EyeSlashIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 
+// Simple image loading skeleton
+function ImageSkeleton() {
+    return (
+        <div className="w-full h-40 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse rounded-md" />
+    );
+}
+
 export default function EventCard({ event, editEvent }: EventCardProps) {
     const [modalChoice, setModalChoice] = useState<"edit" | "view" | "manage" | "waiting">(
         "waiting",
     );
+    const [imageLoaded, setImageLoaded] = useState(false);
 
     const openViewModal = () => setModalChoice("view");
     const closeModal = () => setModalChoice("waiting");
@@ -46,7 +54,8 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                     <EyeSlashIcon className="h-4 w-4 text-red-600" />
                 </div>
             )}
-            <div className="relative overflow-hidden rounded-md mb-1">
+            <div className="relative overflow-hidden rounded-md mb-1 min-h-[160px] bg-gray-100">
+                {!imageLoaded && <ImageSkeleton />}
                 <Image
                     src={event.image_url}
                     alt={event.title}
@@ -54,8 +63,8 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                     height={160}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
                     quality={60}
-                    loading="lazy"
-                    className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} border border-gray-200 transition-transform duration-500 group-hover:scale-110`}
+                    onLoad={() => setImageLoaded(true)}
+                    className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} border border-gray-200 transition-transform duration-500 group-hover:scale-110 ${!imageLoaded ? 'opacity-0 absolute' : 'opacity-100'}`}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
