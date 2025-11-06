@@ -99,17 +99,6 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
 
             {/* Payment Breakdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-                {/* Pending Payments */}
-                {revenue.pendingAmount > 0 && (
-                    <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
-                        <h4 className="text-xs sm:text-sm font-medium text-white/80 mb-2">Pending</h4>
-                        <p className="text-xl sm:text-2xl font-bold text-yellow-400">
-                            {formatCurrency(revenue.pendingAmount)}
-                        </p>
-                        <p className="text-xs text-white/70 mt-1">Processing</p>
-                    </div>
-                )}
-
                 {/* Refunded Amount */}
                 {revenue.refundedAmount > 0 && (
                     <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
