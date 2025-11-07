@@ -127,9 +127,48 @@ export async function GET(req: Request) {
             LIMIT 15
         `;
 
+        // Revenue stats - ONLY completed payments (exclude pending/failed)
+        const revenueStats = await sql`
+            SELECT
+                COUNT(*) as total_transactions,
+                SUM(amount_total) as total_gross_revenue,
+                SUM(platform_fee) as total_platform_fees,
+                SUM(organizer_amount) as total_organizer_earnings,
+                SUM(quantity) as total_tickets_sold,
+                COUNT(DISTINCT event_id) as paid_events_count
+            FROM event_payments
+            WHERE created_at >= ${startDate.toISOString()}
+            AND payment_status IN ('succeeded', 'partially_refunded')
+        `;
+
+        // Top revenue-generating events (use subquery to avoid Cartesian product)
+        const topRevenueEvents = await sql`
+            SELECT
+                e.id,
+                e.title,
+                e.organiser,
+                COUNT(ep.*) as tickets_sold,
+                SUM(ep.amount_total) as gross_revenue,
+                SUM(ep.platform_fee) as platform_fees,
+                (
+                    SELECT COUNT(*)
+                    FROM event_page_views epv
+                    WHERE epv.event_id = e.id
+                    AND epv.viewed_at >= ${startDate.toISOString()}
+                ) as view_count
+            FROM events e
+            INNER JOIN event_payments ep ON e.id = ep.event_id
+                AND ep.created_at >= ${startDate.toISOString()}
+                AND ep.payment_status IN ('succeeded', 'partially_refunded')
+            GROUP BY e.id, e.title, e.organiser
+            ORDER BY gross_revenue DESC
+            LIMIT 10
+        `;
+
         // Conversion metrics
         const stats = overallStats.rows[0];
         const regStats = registrationStats.rows[0];
+        const revStats = revenueStats.rows[0];
         const totalViews = parseInt(stats.total_page_views);
         const totalRegistrations = parseInt(regStats.total_registrations);
         const conversionRate = totalViews > 0 ? ((totalRegistrations / totalViews) * 100).toFixed(2) : '0.00';
@@ -149,12 +188,29 @@ export async function GET(req: Request) {
                     internal_registrations: parseInt(regStats.internal_registrations),
                     conversion_rate: parseFloat(conversionRate)
                 },
+                revenue_overview: {
+                    total_gross_revenue: parseInt(revStats.total_gross_revenue || '0'),
+                    total_platform_fees: parseInt(revStats.total_platform_fees || '0'),
+                    total_organizer_earnings: parseInt(revStats.total_organizer_earnings || '0'),
+                    total_tickets_sold: parseInt(revStats.total_tickets_sold || '0'),
+                    paid_events_count: parseInt(revStats.paid_events_count || '0'),
+                    successful_transactions: parseInt(revStats.total_transactions || '0')
+                },
                 top_events: topEvents.rows.map(row => ({
                     id: row.id,
                     title: row.title,
                     organiser: row.organiser,
                     view_count: parseInt(row.view_count),
                     unique_visitors: parseInt(row.unique_visitors)
+                })),
+                top_revenue_events: topRevenueEvents.rows.map(row => ({
+                    id: row.id,
+                    title: row.title,
+                    organiser: row.organiser,
+                    tickets_sold: parseInt(row.tickets_sold || '0'),
+                    gross_revenue: parseInt(row.gross_revenue || '0'),
+                    platform_fees: parseInt(row.platform_fees || '0'),
+                    view_count: parseInt(row.view_count || '0')
                 })),
                 top_referrers: topReferrers.rows.map(row => ({
                     domain: row.referrer_domain,

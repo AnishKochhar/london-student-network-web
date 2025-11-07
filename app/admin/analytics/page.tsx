@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import {
     Eye, Users, TrendingUp,
-    Globe, Smartphone, ArrowLeft, Calendar, Monitor
+    Globe, Smartphone, ArrowLeft, Calendar, Monitor,
+    DollarSign, Receipt, CreditCard, ExternalLink
 } from "lucide-react";
 import {
     LineChart, Line, PieChart, Pie, Cell,
@@ -25,12 +26,29 @@ interface AdminAnalyticsData {
         internal_registrations: number;
         conversion_rate: number;
     };
+    revenue_overview: {
+        total_gross_revenue: number;
+        total_platform_fees: number;
+        total_organizer_earnings: number;
+        total_tickets_sold: number;
+        paid_events_count: number;
+        successful_transactions: number;
+    };
     top_events: Array<{
         id: string;
         title: string;
         organiser: string;
         view_count: number;
         unique_visitors: number;
+    }>;
+    top_revenue_events: Array<{
+        id: string;
+        title: string;
+        organiser: string;
+        tickets_sold: number;
+        gross_revenue: number;
+        platform_fees: number;
+        view_count: number;
     }>;
     top_referrers: Array<{
         domain: string;
@@ -107,7 +125,10 @@ export default function AdminAnalyticsPage() {
         );
     }
 
-    const { overview, top_events, top_referrers, daily_activity, device_breakdown, utm_campaigns } = data;
+    const { overview, revenue_overview, top_events, top_revenue_events, top_referrers, daily_activity, device_breakdown, utm_campaigns } = data;
+
+    // Helper to format currency
+    const formatCurrency = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
     // Prepare chart data
     const timelineChartData = daily_activity.map(item => ({
@@ -205,6 +226,112 @@ export default function AdminAnalyticsPage() {
                         <p className="text-xs text-white/60 mt-2">Views to registrations</p>
                     </div>
                 </div>
+
+                {/* Revenue Overview Section */}
+                {revenue_overview && revenue_overview.total_tickets_sold > 0 && (
+                    <>
+                        <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-lg rounded-xl shadow-xl border border-white/20 p-6">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-white">Revenue Analytics</h2>
+                                    <p className="text-sm text-white/70 mt-1">Platform-wide ticket sales and fees</p>
+                                </div>
+                                <a
+                                    href="https://dashboard.stripe.com/dashboard"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors shadow-lg"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                    Open Stripe Dashboard
+                                </a>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-white/80">Platform Fees Collected</p>
+                                        <DollarSign className="w-5 h-5 text-green-400" />
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">
+                                        {formatCurrency(revenue_overview.total_platform_fees)}
+                                    </p>
+                                    <p className="text-xs text-white/60 mt-2">Your earnings</p>
+                                </div>
+
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-white/80">Total Gross Revenue</p>
+                                        <CreditCard className="w-5 h-5 text-blue-400" />
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">
+                                        {formatCurrency(revenue_overview.total_gross_revenue)}
+                                    </p>
+                                    <p className="text-xs text-white/60 mt-2">All ticket sales</p>
+                                </div>
+
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-white/80">Tickets Sold</p>
+                                        <Receipt className="w-5 h-5 text-orange-400" />
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">
+                                        {revenue_overview.total_tickets_sold.toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-white/60 mt-2">
+                                        {revenue_overview.successful_transactions} transactions
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Top Revenue Events Table */}
+                        {top_revenue_events && top_revenue_events.length > 0 && (
+                            <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-xl border border-white/20 p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4">Top Revenue-Generating Events</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-white/10">
+                                                <th className="text-left py-3 px-4 text-white/80 font-medium text-sm">Event</th>
+                                                <th className="text-left py-3 px-4 text-white/80 font-medium text-sm">Organiser</th>
+                                                <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Tickets</th>
+                                                <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Revenue</th>
+                                                <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Your Fees</th>
+                                                <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Views</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {top_revenue_events.map((event, index) => (
+                                                <tr key={event.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                                    <td className="py-3 px-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-white/50 text-sm">#{index + 1}</span>
+                                                            <span className="text-white text-sm">{event.title}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-4 text-white/70 text-sm">{event.organiser}</td>
+                                                    <td className="py-3 px-4 text-white font-semibold text-right text-sm">
+                                                        {event.tickets_sold}
+                                                    </td>
+                                                    <td className="py-3 px-4 text-white font-semibold text-right text-sm">
+                                                        {formatCurrency(event.gross_revenue)}
+                                                    </td>
+                                                    <td className="py-3 px-4 text-green-400 font-semibold text-right text-sm">
+                                                        {formatCurrency(event.platform_fees)}
+                                                    </td>
+                                                    <td className="py-3 px-4 text-white/70 text-right text-sm">
+                                                        {event.view_count.toLocaleString()}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
 
                 {/* Activity Timeline */}
                 {daily_activity.length > 0 && (
