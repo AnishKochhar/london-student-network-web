@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import FilteredEventsList from "../events-page/filtered-events-list";
 import { Event } from "@/app/lib/types";
 import { UserEventsListProps } from "@/app/lib/types";
@@ -46,6 +46,14 @@ export default function UserEventsList({
         offset: 0,
         hasMore: false
     });
+
+    // Track if we've already fetched to prevent infinite loops
+    const hasFetchedRef = useRef(false);
+
+    // Reset fetch flag when user_id changes
+    useEffect(() => {
+        hasFetchedRef.current = false;
+    }, [user_id]);
 
     const fetchUserEvents = useCallback(async (isLoadMore: boolean = false, currentEventCount: number = 0) => {
         try {
@@ -104,9 +112,11 @@ export default function UserEventsList({
                 offset: 0,
                 hasMore: false
             });
-        } else {
-            // No initial data, fetch from API
+            hasFetchedRef.current = true;
+        } else if (!hasFetchedRef.current) {
+            // No initial data and haven't fetched yet - fetch from API
             fetchUserEvents();
+            hasFetchedRef.current = true;
         }
 
         // Restore scroll position if returning from manage page
@@ -122,7 +132,7 @@ export default function UserEventsList({
                 sessionStorage.removeItem('accountPageScrollPosition');
             }, 100);
         }
-    }, [initialEvents, fetchUserEvents]);
+    }, [initialEvents.length, fetchUserEvents]);
 
     // Only refetch data when returning from edit page or after a significant time away
     useEffect(() => {
