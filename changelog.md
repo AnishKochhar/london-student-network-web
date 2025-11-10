@@ -4,6 +4,75 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [4.5.0] - 2025-11-10
+### Added
+
+* **Job listing on `/jobs` page**: Replaced the placeholder page with the real job listing interface.
+* **Profiles section**: Users can now manage their public profile, skills, and experiences. Includes full CRUD support through API routes.
+
+#### API routes for profiles:
+
+- `/api/profiles`
+
+  * **GET**: Fetch the authenticated user's profile.
+
+    * **Params**: None
+    * **Returns**: `{ success: boolean; profile: Profile | null }`
+  * **POST**: Create or update the authenticated user's profile.
+
+    * **Params**: `Profile`
+    * **Returns**: `{ success: boolean; profile: Profile }`
+
+- `/api/profiles/skills`
+
+  * **GET**: Fetch all skills of the authenticated user's profile.
+
+    * **Params**: None
+    * **Returns**: `{ success: boolean; skills: ProfileSkill[] }`
+  * **POST**: Add a new skill to the authenticated user's profile.
+
+    * **Params**: `{ skill_name: string }`
+    * **Returns**: `{ success: boolean; skill: ProfileSkill }`
+  * **DELETE**: Delete a skill from the authenticated user's profile.
+
+    * **Params**: `{ skill_id: number }`
+    * **Returns**: `{ success: boolean }`
+
+- `/api/profiles/experiences`
+
+  * **GET**: Fetch all experiences of the authenticated user's profile.
+
+    * **Params**: None
+    * **Returns**: `{ success: boolean; experiences: ProfileExperience[] }`
+  * **POST**: Add a new experience to the authenticated user's profile.
+
+    * **Params**: `userId and ProfileExperience`
+    * **Returns**: `{ success: boolean; experience: ProfileExperience }`
+  * **DELETE**: Delete an experience from the authenticated user's profile.
+
+    * **Params**: `{ experience_id: number }`
+    * **Returns**: `{ success: boolean }`
+
+#### Job API routes:
+
+* `/api/jobs/get`
+
+  * **GET**: Returns all jobs within the current pagination range.
+
+    * **Params**: None
+    * **Returns**: `Job[]`
+* `/api/jobs/get/[id]`
+
+  * **GET**: Returns a single job by its ID.
+
+    * **Params**: `id: number`
+    * **Returns**: `Job | null`
+
+### Removed
+
+* Placeholder `/jobs` page.
+
+
 # [4.4.0] - 2025-09-05
 
 ### Added
