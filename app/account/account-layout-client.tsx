@@ -70,6 +70,7 @@ export default function AccountLayout({ children, userName, userEmail }: Props) 
 	// Navigation sections
 	const sections = [
 		{ id: "personal", label: "Personal information", icon: "👤" },
+		{ id: "profiles", label: "Profile", icon: "📝" },
 		{ id: "events", label: "Your events", icon: "📅" },
 		{ id: "registrations", label: "Your registrations", icon: "🎫" },
 		{ id: "referrals", label: "Your referrals", icon: "🤝" },

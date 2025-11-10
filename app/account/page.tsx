@@ -13,6 +13,7 @@ import UserReferrals from '../components/account/user-referrals';
 import UserForumPosts from '../components/account/user-forum-posts';
 import AccountSettingsSection from './account-settings-section';
 import AccountLayoutClient from './account-layout-client';
+import ProfileSection from './profile-section';
 
 // Force dynamic rendering (no caching for user-specific pages)
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,7 @@ export default async function AccountPage() {
 
   // 2. Fetch all data in parallel on the server
   const accountData = await getAccountData(session.user.id);
+  console.log(accountData.user)
 
   return (
     <AccountLayoutClient userName={session.user.name || ''} userEmail={session.user.email || ''}>
@@ -40,6 +42,12 @@ export default async function AccountPage() {
         accountFields={accountData.accountFields}
         predefinedTags={accountData.predefinedTags}
       />
+
+      <section id="profiles" className="scroll-mt-8">
+        <ProfileSection
+          user={accountData.user}
+        />
+      </section>
 
       {/* Your Events Section */}
       <section id="events" className="scroll-mt-8">
