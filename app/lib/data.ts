@@ -530,17 +530,17 @@ export async function insertOrganiserInformation(formData: SocietyRegisterFormDa
 
 export async function insertGuestIntoUsers(formData: GuestRegisterFormData) { 
 	try {
-		const hashedPassword = await bcrypt.hash(formData.password, 10);
 		// const name = formData.name.split(' ').map(capitalize).join(' ')
-		const name = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`
+		const name = formData.name
 
-		
+		const hashedPassword = await bcrypt.hash("guest", 10); // we set a default password guest for guests
 		const result = await sql`
-			INSERT INTO users (name, email, password, role)
-			VALUES (${name}, ${formData.email}, ${hashedPassword}, ${'guest'})
+			INSERT INTO users (name, email, role, password)
+			VALUES (${name}, ${formData.email}, ${'guest'}, ${hashedPassword})
 			ON CONFLICT (email) DO NOTHING
 			RETURNING id
 		`;
+		console.log(result)
 
 		console.log(`Created a guest with id: ${result.rows[0].id}`)
 
@@ -552,20 +552,19 @@ export async function insertGuestIntoUsers(formData: GuestRegisterFormData) {
 }
 
 export async function insertGuestInformation(formData: GuestRegisterFormData, userId: string) {
+	const university = selectUniversity(formData.university, formData.otherUniversity) // if 'other' selected, uses text input entry
 	try {
-		const name = `${capitalize(formData.firstname)} ${capitalize(formData.surname)}`
-		const university = selectUniversity(formData.university, formData.otherUniversity) // if 'other' selected, uses text input entry
-
 		await sql`
-			INSERT INTO guests (id, name, email, university)
-			VALUES (${userId}, ${name}, ${formData.email}, ${university})
-		`;
-		return { success: true }
+			INSERT INTO user_information (user_id, university_attended)
+        	VALUES (${userId}, ${university})
+		`
+		return { success: true };
 	} catch (error) {
-		console.log('Error inserting guest information', error)
-		return { success: false, error }
+		console.error('Error creating user_information:', error);
+		return { success: false, error };
 	}
 }
+
 
 export async function getAllCompanyInformation() {
 	try {

@@ -125,14 +125,9 @@ export interface FormData {
 
 export interface GuestRegisterFormData {
 	email: string,
-	password: string;
-  confirmPassword: string;
-  firstname: string;
-	surname: string;
+	name: string,
 	university: string;
 	otherUniversity: string;
-	hasAgreedToTerms: boolean;
-	isNewsletterSubscribed: boolean;
 }
 
 export interface UserRegisterFormData {

@@ -11,6 +11,7 @@ import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import EventInfoPageSkeleton from "@/app/components/skeletons/event-info-page";
 import EventEmailSendingModal from "@/app/components/events-page/email-sending-modal";
+import GuestRegisterModal from "./guest-register-modal";
 
 export default function EventInfo() {
 	const { id } = useParams() as { id: string };
@@ -22,6 +23,7 @@ export default function EventInfo() {
 	const loggedIn = session.status === 'authenticated';
 	const isOrganiser = useRef<boolean>(false);
 	const [viewEmailSending, setViewEmailSending] = useState<boolean>(false)
+	const [viewGuestRegister, setViewGuestRegister] = useState<boolean>(false);
 
 	// dont know why the event type does not include organiser_uid, defaulting to this instead
 	async function checkIsOrganiser(id: string, user_id: string) {
@@ -105,7 +107,10 @@ export default function EventInfo() {
 
 	const registerForEvent = async () => {
 		if (!loggedIn) {
-			toast.error('Please log in to register for events')
+			// toast.error('Please log in to register for events')
+			// should trigger a panel to register the guest, as said we need Name - Email - Uni - Number (Optional)
+			// console.log("err")
+			setViewGuestRegister(true)
 			return
 		}
 		const toastId = toast.loading('Registering for event...')
@@ -221,9 +226,9 @@ export default function EventInfo() {
 						<div className="w-full flex flex-row justify-center">
 							<button className="flex items-center px-4 text-sm font-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 hover:cursor-pointer h-12 text-gray-700 uppercase tracking-wider hover:text-black transition-transform duration-300 ease-in-out border-2 border-gray-600 rounded-sm mt-2"
 								onClick={registerForEvent}>
-								{!loggedIn && <LockClosedIcon width={20} height={20} className='pr-2' />}
+								{/* {!loggedIn && <LockClosedIcon width={20} height={20} className='pr-2' />} */}
 								Press here to register to this event
-								{loggedIn && <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />}
+								{/* {loggedIn && <ArrowRightIcon className="ml-2 h-5 w-5 text-black" />} */}
 							</button>
 
 						</div>
@@ -249,6 +254,7 @@ export default function EventInfo() {
 				</div>
 			</div>
 			{viewEmailSending && <EventEmailSendingModal onClose={() => setViewEmailSending(false)} event={event}/>}
+			{viewGuestRegister && <GuestRegisterModal onClose={() => {setViewGuestRegister(false)}} event={event}/>}
 		</div>
 	);
 }
