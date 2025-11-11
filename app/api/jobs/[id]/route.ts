@@ -3,9 +3,9 @@ import { getJobById } from '@/app/lib/data';
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {
-    const jobId = parseInt(params.id, 10);
-    if (isNaN(jobId)) {
-      return NextResponse.json({ success: false, message: 'Invalid job ID' }, { status: 400 });
+    const jobId = params.id
+    if (!jobId) {
+      return NextResponse.json({ success: false, message: 'job ID Required' }, { status: 400 });
     }
 
     const job = await getJobById(jobId);

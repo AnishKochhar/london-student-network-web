@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState, useMemo } from "react";
+import { PlusIcon, TrashIcon, PencilIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
-import { Profile, ProfileSkill, ProfileExperience } from "@/app/lib/types"
+import { Profile, ProfileSkill, ProfileExperience } from "@/app/lib/types";
 
 interface User {
   id: string;
@@ -29,6 +29,16 @@ export default function ProfileSection({ user }: Props) {
     end_date: "",
     description: "",
   });
+  const [editMode, setEditMode] = useState(false);
+  const [editProfileData, setEditProfileData] = useState<Omit<Profile, "id">>({
+    bio: "",
+    headline: "",
+    profile_picture_url: "",
+    location: "",
+    portfolio_url: "",
+    linkedin_url: "",
+    github_url: "",
+  } as Profile);
 
   // --- Load profile, skills, and experiences ---
   useEffect(() => {
@@ -42,7 +52,18 @@ export default function ProfileSection({ user }: Props) {
           fetch("/api/profiles/experiences").then((r) => r.json()),
         ]);
 
-        if (pRes.success) setProfile(pRes.profile);
+        if (pRes.success) {
+          setProfile(pRes.profile);
+          setEditProfileData({
+            bio: pRes.profile.bio || "",
+            headline: pRes.profile.headline || "",
+            profile_picture_url: pRes.profile.profile_picture_url || "",
+            location: pRes.profile.location || "",
+            portfolio_url: pRes.profile.portfolio_url || "",
+            linkedin_url: pRes.profile.linkedin_url || "",
+            github_url: pRes.profile.github_url || "",
+          } as Profile);
+        }
         if (sRes.success) setSkills(sRes.skills);
         if (eRes.success) {
           const sortedExperiences = eRes.experiences.sort(
@@ -62,30 +83,54 @@ export default function ProfileSection({ user }: Props) {
     loadData();
   }, [user.role]);
 
-  if (user.role !== "user") {
-    return (
-      <section className="scroll-mt-8">
-        <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">
-          Profile
-        </h2>
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <p className="text-gray-300">
-            You are <span className="font-semibold">{user.role}</span>. Profile section is not available.
-          </p>
-        </div>
-      </section>
-    );
-  }
+  // --- Completeness calculation ---
+  const completeness = useMemo(() => {
+    if (!profile) return 0;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-10 text-gray-400">
-        Loading profile...
-      </div>
-    );
-  }
+    let total = 0;
+    let filled = 0;
+
+    // Basic Info
+    total += 4;
+    if (profile.bio) filled++;
+    if (profile.headline) filled++;
+    if (profile.profile_picture_url) filled++;
+    if (profile.location) filled++;
+
+    // Links
+    total += 3;
+    if (profile.portfolio_url) filled++;
+    if (profile.linkedin_url) filled++;
+    if (profile.github_url) filled++;
+
+    // Skills and Experiences
+    total += 2;
+    if (skills.length > 0) filled++;
+    if (experiences.length > 0) filled++;
+
+    return Math.round((filled / total) * 100);
+  }, [profile, skills, experiences]);
 
   // --- Handlers ---
+  const saveProfile = async () => {
+    const toastId = toast.loading("Saving profile...");
+    try {
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editProfileData),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProfile(data.profile);
+        toast.success("Profile updated!", { id: toastId });
+        setEditMode(false);
+      } else throw new Error(data.message);
+    } catch {
+      toast.error("Failed to update profile", { id: toastId });
+    }
+  };
+
   const addSkill = async () => {
     if (!newSkill.trim()) return;
     const toastId = toast.loading("Adding skill...");
@@ -166,38 +211,134 @@ export default function ProfileSection({ user }: Props) {
     }
   };
 
-  // --- JSX ---
+  if (user.role !== "user") {
+    return (
+      <section className="scroll-mt-8">
+        <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Profile</h2>
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <p className="text-gray-300">
+            You are <span className="font-semibold">{user.role}</span>. Profile section is not available.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-10 text-gray-400">
+        Loading profile...
+      </div>
+    );
+  }
+
   return (
     <section id="profile" className="scroll-mt-8">
-      {/* --- Basic Info --- */}
-      <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 md:mb-8">Your Profile</h2>
-      <p className="text-gray-300 mb-4 md:mb-8">Manage your public profile and experience details</p>
+      {/* --- Completeness Tracker --- */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-gray-300 text-sm">Profile completeness</span>
+          <span className="text-sm font-medium text-blue-400">{completeness}%</span>
+        </div>
+        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+          <div
+            className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+            style={{ width: `${completeness}%` }}
+          ></div>
+        </div>
+      </div>
 
-      <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          {profile?.profile_picture_url ? (
-            <img
-              src={profile.profile_picture_url}
-              alt="Profile"
-              className="w-16 h-16 rounded-full border border-white/20 object-cover"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-xl">
-              {user.name?.[0]?.toUpperCase() || "?"}
+      {/* --- Basic Info --- */}
+      <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-6 relative">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl md:text-3xl font-semibold text-white">Your Profile</h2>
+          <button
+            className="flex items-center gap-1 text-blue-400 hover:text-blue-300"
+            onClick={() => setEditMode(!editMode)}
+          >
+            {editMode ? <XMarkIcon className="w-5 h-5" /> : <PencilIcon className="w-5 h-5" />}
+            <span className="text-sm">{editMode ? "Cancel" : "Edit"}</span>
+          </button>
+        </div>
+
+        {!editMode ? (
+          <>
+            <div className="flex items-center gap-4 mb-4">
+              {profile?.profile_picture_url ? (
+                <img
+                  src={profile.profile_picture_url}
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full border border-white/20 object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-xl">
+                  {user.name?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
+              <div>
+                <h3 className="text-xl font-semibold text-white">{user.name}</h3>
+                <p className="text-gray-400 text-sm">{profile?.headline || "No headline yet"}</p>
+              </div>
             </div>
-          )}
-          <div>
-            <h3 className="text-xl font-semibold text-white">{user.name}</h3>
-            <p className="text-gray-400 text-sm">{profile?.headline || "No headline yet"}</p>
+            <p className="text-gray-300 mb-3">{profile?.bio || "No bio yet"}</p>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+              {profile?.location && <span>📍 {profile.location}</span>}
+              {profile?.portfolio_url && <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">🌐 Website</a>}
+              {profile?.linkedin_url && <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">💼 LinkedIn</a>}
+              {profile?.github_url && <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">💻 GitHub</a>}
+            </div>
+          </>
+        ) : (
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="Headline"
+              value={editProfileData.headline}
+              onChange={(e) => setEditProfileData({ ...editProfileData, headline: e.target.value })}
+              className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
+            <textarea
+              placeholder="Bio"
+              value={editProfileData.bio}
+              onChange={(e) => setEditProfileData({ ...editProfileData, bio: e.target.value })}
+              className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
+            <input
+              type="text"
+              placeholder="Location"
+              value={editProfileData.location}
+              onChange={(e) => setEditProfileData({ ...editProfileData, location: e.target.value })}
+              className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
+            <input
+              type="url"
+              placeholder="Portfolio URL"
+              value={editProfileData.portfolio_url}
+              onChange={(e) => setEditProfileData({ ...editProfileData, portfolio_url: e.target.value })}
+              className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
+            <input
+              type="url"
+              placeholder="LinkedIn URL"
+              value={editProfileData.linkedin_url}
+              onChange={(e) => setEditProfileData({ ...editProfileData, linkedin_url: e.target.value })}
+              className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
+            <input
+              type="url"
+              placeholder="GitHub URL"
+              value={editProfileData.github_url}
+              onChange={(e) => setEditProfileData({ ...editProfileData, github_url: e.target.value })}
+              className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
+            <button
+              onClick={saveProfile}
+              className="bg-blue-500/20 border border-blue-400 text-blue-300 px-4 py-2 rounded-lg hover:bg-blue-500/30 transition-colors"
+            >
+              Save Changes
+            </button>
           </div>
-        </div>
-        <p className="text-gray-300 mb-3">{profile?.bio || "No bio yet"}</p>
-        <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-          {profile?.location && <span>📍 {profile.location}</span>}
-          {profile?.portfolio_url && <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">🌐 Website</a>}
-          {profile?.linkedin_url && <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">💼 LinkedIn</a>}
-          {profile?.github_url && <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-400">💻 GitHub</a>}
-        </div>
+        )}
       </div>
 
       {/* --- Skills --- */}
@@ -260,14 +401,44 @@ export default function ProfileSection({ user }: Props) {
 
         {/* Add Experience Form */}
         <div className="mt-6 space-y-2">
-          <input type="text" placeholder="Job Title" value={newExperience.title} onChange={(e) => setNewExperience({ ...newExperience, title: e.target.value })} className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20" />
-          <input type="text" placeholder="Company" value={newExperience.company} onChange={(e) => setNewExperience({ ...newExperience, company: e.target.value })} className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20" />
+          <input
+            type="text"
+            placeholder="Job Title"
+            value={newExperience.title}
+            onChange={(e) => setNewExperience({ ...newExperience, title: e.target.value })}
+            className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+          />
+          <input
+            type="text"
+            placeholder="Company"
+            value={newExperience.company}
+            onChange={(e) => setNewExperience({ ...newExperience, company: e.target.value })}
+            className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+          />
           <div className="flex gap-2">
-            <input type="date" value={newExperience.start_date} onChange={(e) => setNewExperience({ ...newExperience, start_date: e.target.value })} className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20" />
-            <input type="date" value={newExperience.end_date} onChange={(e) => setNewExperience({ ...newExperience, end_date: e.target.value })} className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20" />
+            <input
+              type="date"
+              value={newExperience.start_date}
+              onChange={(e) => setNewExperience({ ...newExperience, start_date: e.target.value })}
+              className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
+            <input
+              type="date"
+              value={newExperience.end_date}
+              onChange={(e) => setNewExperience({ ...newExperience, end_date: e.target.value })}
+              className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+            />
           </div>
-          <textarea placeholder="Description" value={newExperience.description} onChange={(e) => setNewExperience({ ...newExperience, description: e.target.value })} className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20" />
-          <button className="w-full bg-blue-500/20 border border-blue-400 text-blue-300 px-4 py-2 rounded-lg hover:bg-blue-500/30 transition-colors flex justify-center items-center gap-2" onClick={addExperience}>
+          <textarea
+            placeholder="Description"
+            value={newExperience.description}
+            onChange={(e) => setNewExperience({ ...newExperience, description: e.target.value })}
+            className="w-full bg-white/10 rounded-lg px-3 py-2 text-sm text-white border border-white/20"
+          />
+          <button
+            className="w-full bg-blue-500/20 border border-blue-400 text-blue-300 px-4 py-2 rounded-lg hover:bg-blue-500/30 transition-colors flex justify-center items-center gap-2"
+            onClick={addExperience}
+          >
             <PlusIcon className="w-4 h-4" /> Add Experience
           </button>
         </div>

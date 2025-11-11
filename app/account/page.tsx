@@ -28,7 +28,6 @@ export default async function AccountPage() {
 
   // 2. Fetch all data in parallel on the server
   const accountData = await getAccountData(session.user.id);
-  console.log(accountData.user)
 
   return (
     <AccountLayoutClient userName={session.user.name || ''} userEmail={session.user.email || ''}>

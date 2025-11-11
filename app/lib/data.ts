@@ -1080,6 +1080,34 @@ export async function getAllCompanyInformation() {
     }
 }
 
+export async function getRelatedCompanyInformation(userId: string) {
+    try {
+        const data = await sql`
+			SELECT
+					c.id,
+					u.name AS company_name, 
+					COALESCE(c.contact_email, u.email) AS contact_email,
+					c.description,
+					c.motivation,
+					c.contact_name,
+					c.website,
+					COALESCE(c.logo_url, u.logo_url) AS logo_url
+			FROM 
+					users AS u 
+			JOIN 
+					company_information AS c ON u.id = c.user_id
+			WHERE 
+					u.role = 'company'
+            AND c.user_id = ${userId}
+			AND u.name != 'TEST COMPANY';
+		`;
+        return data.rows[0] as CompanyInformation
+    } catch (error) {
+        console.log("Database error:", error);
+        throw new Error(`Error fetching company information for user ${userId}`);
+    }
+}
+
 export async function insertCompany(formData: CompanyRegisterFormData) {
     try {
         const hashedPassword = await bcrypt.hash(formData.password, 10);
@@ -1615,12 +1643,15 @@ export async function deregisterFromEvent(event_id: string, user_id: string) {
 }
 
 // jobs
-// Get all jobs
-export async function getAllJobs(pageSize: number, pageNum: number): Promise<Job[]> {
+export async function getAllJobs(
+  pageSize: number,
+  pageNum: number
+): Promise<{ jobs: Job[]; total: number }> {
   const offset = (pageNum - 1) * pageSize;
 
-  console.log('Pagination debug:', { pageSize, pageNum, offset }); // helpful for debugging
+  console.log('Pagination debug:', { pageSize, pageNum, offset });
 
+  // Fetch paginated jobs
   const result = await sql`
     SELECT 
       j.*,
@@ -1633,10 +1664,25 @@ export async function getAllJobs(pageSize: number, pageNum: number): Promise<Job
     ORDER BY j.created_at DESC
     LIMIT ${pageSize} OFFSET ${offset};
   `;
-  return result.rows.map((it) => it as Job)
+
+  // Fetch total job count (without pagination)
+  const totalResult = await sql`
+    SELECT COUNT(*) AS total
+    FROM jobs j
+    JOIN company_information ci ON j.company_id = ci.id
+    WHERE j.available = TRUE;
+  `;
+
+  const total = Number(totalResult.rows[0].total);
+
+  return {
+    jobs: result.rows.map((it) => it as Job),
+    total,
+  };
 }
 
-export async function getJobById(id: number): Promise<Job | null> {
+
+export async function getJobById(id: string): Promise<Job | null> {
   const result = await sql`
     SELECT 
       j.*,
@@ -1648,6 +1694,53 @@ export async function getJobById(id: number): Promise<Job | null> {
     WHERE j.id = ${id};
     `
   return result.rows[0] as Job || null;
+}
+
+export async function postJob(job: Job): Promise<void> {
+  if (!job.company_id) {
+    throw new Error('Missing company_id for job upsert');
+  }
+
+  await sql`
+    INSERT INTO jobs (
+      id,
+      company_id,
+      position,
+      location,
+      available,
+      job_type,
+      link,
+      description,
+      deadline
+    )
+    VALUES (
+      ${job.id || crypto.randomUUID()},
+      ${job.company_id},
+      ${job.position},
+      ${job.location},
+      ${job.available ?? true},
+      ${job.job_type},
+      ${job.link},
+      ${job.description},
+      ${job.deadline}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      company_id = EXCLUDED.company_id,
+      position = EXCLUDED.position,
+      location = EXCLUDED.location,
+      available = EXCLUDED.available,
+      job_type = EXCLUDED.job_type,
+      link = EXCLUDED.link,
+      description = EXCLUDED.description,
+      deadline = EXCLUDED.deadline
+  `;
+}
+
+/**
+ * Delete a job by ID
+ */
+export async function deleteJob(id: string): Promise<void> {
+  await sql`DELETE FROM jobs WHERE id = ${id};`;
 }
 
 

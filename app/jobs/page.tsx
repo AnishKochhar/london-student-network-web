@@ -3,44 +3,60 @@
 import { useEffect, useState } from 'react';
 import { Job } from '../lib/types';
 import { Button } from '../components/button';
-import { ArrowRightIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 import JobDetailsModal from './job-details-modal';
+import AddJobModal from './add-job-modal';
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [jobsPerPage, setJobsPerPage] = useState(6);
+  const [jobsPerPage, setJobsPerPage] = useState(5);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showAddJob, setShowAddJob] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [currentJobs, setCurrentJobs] = useState<Job[]>([]);
+  const [totalPages, setTotalPage] = useState<number>(0);
+
+  async function fetchJobs() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/jobs?pageSize=${jobsPerPage}&pageNum=${currentPage}`);
+      const data = await res.json();
+      console.log(data)
+      if (data.success) {
+        setTotalPage(Math.ceil(data.total / jobsPerPage));
+        setJobs(data.jobs);
+        setCurrentJobs(data.jobs); // no slicing — API already paginates
+      }
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchJobs() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/jobs/get?pageSize=${jobsPerPage}&pageNum=${currentPage}`);
-        const data = await res.json();
-        if (data.success) setJobs(data.jobs);
-      } catch (err) {
-        console.error('Error fetching jobs:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchJobs();
   }, [jobsPerPage, currentPage]);
-
-  const totalPages = Math.ceil(jobs.length / jobsPerPage);
-  const currentJobs = jobs.slice(
-    (currentPage - 1) * jobsPerPage,
-    currentPage * jobsPerPage
-  );
 
   return (
     <div className="h-full w-full bg-gray-50 py-12 px-4 text-gray-900">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-semibold mb-8 text-center">
-          Current Opportunities
-        </h1>
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+          <h1 className="text-3xl font-semibold text-center sm:text-left">
+            Current Opportunities
+          </h1>
+
+          {(
+            <Button
+              onClick={() => setShowAddJob(true)}
+              className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
+              variant={'filled'}            >
+              <PlusIcon className="h-4 w-4" />
+              Post a Job
+            </Button>
+          )}
+        </div>
 
         {/* Table or loader */}
         {loading ? (
@@ -77,7 +93,7 @@ export default function JobsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                        //   e.stopPropagation();
+                          // e.stopPropagation();
                           setSelectedJob(job);
                         }}
                       >
@@ -94,7 +110,6 @@ export default function JobsPage() {
         {/* Pagination */}
         {!loading && jobs.length > 0 && (
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 w-full">
-            {/* Jobs per page selector */}
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <label htmlFor="jobsPerPage" className="font-medium">
                 Jobs per page:
@@ -116,7 +131,6 @@ export default function JobsPage() {
               </select>
             </div>
 
-            {/* Page navigation */}
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -142,14 +156,23 @@ export default function JobsPage() {
             </div>
           </div>
         )}
-
       </div>
 
-      {/* Job details modal */}
+      {/* Modals */}
       {selectedJob && (
         <JobDetailsModal
           jobId={selectedJob.id}
           onClose={() => setSelectedJob(null)}
+        />
+      )}
+
+      {showAddJob && (
+        <AddJobModal
+          onClose={() => setShowAddJob(false)}
+          onSuccess={() => {
+            setShowAddJob(false);
+            fetchJobs(); // Refresh jobs list after posting
+          }}
         />
       )}
     </div>

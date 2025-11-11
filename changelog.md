@@ -8,7 +8,8 @@ This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 ### Added
 
 * **Job listing on `/jobs` page**: Replaced the placeholder page with the real job listing interface.
-* **Profiles section**: Users can now manage their public profile, skills, and experiences. Includes full CRUD support through API routes.
+* **Profiles section**: Users can now manage their public profile, skills, and experiences. Includes full CRUD support through API routes. And there is a progress tracker on top of this
+* **Post a Job**: the API checks if the user is a company representative, if not, the api errors
 
 #### API routes for profiles:
 
@@ -55,13 +56,14 @@ This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 #### Job API routes:
 
-* `/api/jobs/get`
+* `/api/jobs`
 
   * **GET**: Returns all jobs within the current pagination range.
 
     * **Params**: None
     * **Returns**: `Job[]`
-* `/api/jobs/get/[id]`
+  * **POST**: add a new job
+* `/api/jobs/[id]`
 
   * **GET**: Returns a single job by its ID.
 

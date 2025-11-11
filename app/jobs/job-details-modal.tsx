@@ -17,7 +17,7 @@ export default function JobDetailsModal({ jobId, onClose }: JobDetailsModalProps
   useEffect(() => {
     async function fetchJob() {
       try {
-        const res = await fetch(`/api/jobs/get/${jobId}`);
+        const res = await fetch(`/api/jobs/${jobId}`);
         const data = await res.json();
         if (data.success) setJob(data.job);
       } catch (err) {
