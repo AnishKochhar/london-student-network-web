@@ -403,13 +403,15 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                 </div>
 
                 {/* Registration Choice Modal */}
-                <RegistrationChoiceModal
-                    isOpen={showRegistrationChoice}
-                    onClose={() => setShowRegistrationChoice(false)}
-                    onGuestRegister={handleGuestRegister}
-                    eventTitle={event.title}
-                    eventId={base16ToBase62(event.id)}
-                />
+                {!isPreview && (
+                    <RegistrationChoiceModal
+                        isOpen={showRegistrationChoice}
+                        onClose={() => setShowRegistrationChoice(false)}
+                        onGuestRegister={handleGuestRegister}
+                        eventTitle={event.title}
+                        eventId={base16ToBase62(event.id)}
+                    />
+                )}
 
                 {/* Guest Registration Modal */}
                 <ModernRegistrationModal

@@ -5,7 +5,18 @@ const BASE62_CHARS =
 // so we clip only the 20 numbers of the 32-digit uuid-v4, it should not have any conflict until 100000 activities(or maybe I am wrong)
 
 export function base16ToBase62(hex: string): string {
+    // Handle empty/undefined/null values (e.g., during preview)
+    if (!hex || hex.trim() === "") {
+        return "preview";
+    }
+
     const last20Hex = hex.replace(/-/g, "").slice(-20); // Get the last 20 hex digits
+
+    // Validate hex string has content after processing
+    if (!last20Hex || last20Hex.length === 0) {
+        return "preview";
+    }
+
     let bigInt = BigInt(`0x${last20Hex}`);
 
     let base62 = "";
@@ -15,7 +26,7 @@ export function base16ToBase62(hex: string): string {
         bigInt = bigInt / BigInt(62);
     }
 
-    return base62;
+    return base62 || "0";
 }
 
 export function base62ToBase16(base62: string): string {
