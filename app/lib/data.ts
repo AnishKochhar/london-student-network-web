@@ -8,6 +8,11 @@ import {
     OrganiserAccountEditFormData,
     CompanyRegisterFormData,
     CompanyInformation,
+    Job,
+    Profile,
+    normalizeProfile,
+    ProfileSkill,
+    ProfileExperience,
 } from "./types";
 import {
     convertSQLEventToEvent,
@@ -1077,6 +1082,34 @@ export async function getAllCompanyInformation() {
     }
 }
 
+export async function getRelatedCompanyInformation(userId: string) {
+    try {
+        const data = await sql`
+			SELECT
+					c.id,
+					u.name AS company_name, 
+					COALESCE(c.contact_email, u.email) AS contact_email,
+					c.description,
+					c.motivation,
+					c.contact_name,
+					c.website,
+					COALESCE(c.logo_url, u.logo_url) AS logo_url
+			FROM 
+					users AS u 
+			JOIN 
+					company_information AS c ON u.id = c.user_id
+			WHERE 
+					u.role = 'company'
+            AND c.user_id = ${userId}
+			AND u.name != 'TEST COMPANY';
+		`;
+        return data.rows[0] as CompanyInformation
+    } catch (error) {
+        console.log("Database error:", error);
+        throw new Error(`Error fetching company information for user ${userId}`);
+    }
+}
+
 export async function insertCompany(formData: CompanyRegisterFormData) {
     try {
         const hashedPassword = await bcrypt.hash(formData.password, 10);
@@ -1610,3 +1643,258 @@ export async function deregisterFromEvent(event_id: string, user_id: string) {
         return { success: false, error: "Failed to deregister from event" };
     }
 }
+
+// jobs
+export async function getAllJobs(
+  pageSize: number,
+  pageNum: number
+): Promise<{ jobs: Job[]; total: number }> {
+  const offset = (pageNum - 1) * pageSize;
+
+  console.log('Pagination debug:', { pageSize, pageNum, offset });
+
+  // Fetch paginated jobs
+  const result = await sql`
+    SELECT 
+      j.*,
+      ci.description AS company_name,
+      ci.logo_url AS company_logo_url,
+      ci.contact_email
+    FROM jobs j
+    JOIN company_information ci ON j.company_id = ci.id
+    WHERE j.available = TRUE
+    ORDER BY j.created_at DESC
+    LIMIT ${pageSize} OFFSET ${offset};
+  `;
+
+  // Fetch total job count (without pagination)
+  const totalResult = await sql`
+    SELECT COUNT(*) AS total
+    FROM jobs j
+    JOIN company_information ci ON j.company_id = ci.id
+    WHERE j.available = TRUE;
+  `;
+
+  const total = Number(totalResult.rows[0].total);
+
+  return {
+    jobs: result.rows.map((it) => it as Job),
+    total,
+  };
+}
+
+
+export async function getJobById(id: string): Promise<Job | null> {
+  const result = await sql`
+    SELECT 
+      j.*,
+      ci.description AS company_name,
+      ci.logo_url AS company_logo_url,
+      ci.contact_email
+    FROM jobs j
+    JOIN company_information ci ON j.company_id = ci.id
+    WHERE j.id = ${id};
+    `
+  return result.rows[0] as Job || null;
+}
+
+export async function postJob(job: Job): Promise<void> {
+  if (!job.company_id) {
+    throw new Error('Missing company_id for job upsert');
+  }
+
+  await sql`
+    INSERT INTO jobs (
+      id,
+      company_id,
+      position,
+      location,
+      available,
+      job_type,
+      link,
+      description,
+      deadline
+    )
+    VALUES (
+      ${job.id || crypto.randomUUID()},
+      ${job.company_id},
+      ${job.position},
+      ${job.location},
+      ${job.available ?? true},
+      ${job.job_type},
+      ${job.link},
+      ${job.description},
+      ${job.deadline}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      company_id = EXCLUDED.company_id,
+      position = EXCLUDED.position,
+      location = EXCLUDED.location,
+      available = EXCLUDED.available,
+      job_type = EXCLUDED.job_type,
+      link = EXCLUDED.link,
+      description = EXCLUDED.description,
+      deadline = EXCLUDED.deadline
+  `;
+}
+
+/**
+ * Delete a job by ID
+ */
+export async function deleteJob(id: string): Promise<void> {
+  await sql`DELETE FROM jobs WHERE id = ${id};`;
+}
+
+
+// ------------------ GET PROFILE ------------------
+export async function getProfileByUserId(userId: string): Promise<Profile | null> {
+  const profileResult = await sql`SELECT * FROM profiles WHERE user_id = ${userId};`
+  const profile = profileResult.rows[0] as Profile | undefined
+  if (!profile) return null
+
+  return normalizeProfile({
+    ...profile,
+    skills: [],
+    experiences: []
+  })
+}
+
+// ------------------ INSERT EMPTY PROFILE ------------------
+export async function insertProfile(userId: string): Promise<Profile> {
+  const result = await sql`
+    INSERT INTO profiles (user_id)
+    VALUES (${userId})
+    RETURNING *;
+  `
+  const newProfile = result.rows[0] as Profile
+
+  // Always return normalized profile with empty skills and experiences
+  return normalizeProfile({
+    ...newProfile,
+    skills: [],
+    experiences: []
+  })
+}
+
+// ------------------ UPDATE PROFILE ------------------
+export async function updateProfile(userId: string, updates: Partial<Omit<Profile, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'skills' | 'experiences'>>): Promise<Profile | null> {
+  const result = await sql`
+    UPDATE profiles SET
+      headline = COALESCE(${updates.headline}, headline),
+      bio = COALESCE(${updates.bio}, bio),
+      location = COALESCE(${updates.location}, location),
+      phone = COALESCE(${updates.phone}, phone),
+      linkedin_url = COALESCE(${updates.linkedin_url}, linkedin_url),
+      github_url = COALESCE(${updates.github_url}, github_url),
+      portfolio_url = COALESCE(${updates.portfolio_url}, portfolio_url),
+      resume_url = COALESCE(${updates.resume_url}, resume_url),
+      profile_picture_url = COALESCE(${updates.profile_picture_url}, profile_picture_url),
+      banner_image_url = COALESCE(${updates.banner_image_url}, banner_image_url),
+      updated_at = now()
+    WHERE user_id = ${userId}
+    RETURNING *;
+  `
+  const profile = result.rows[0] as Profile | undefined
+  if (!profile) return null
+
+  return normalizeProfile({
+    ...profile,
+    skills: [],
+    experiences: []
+  })
+}
+
+// ------------------ GET SKILLS ------------------
+export async function getSkillsByUserId(userId: string): Promise<ProfileSkill[]> {
+  const result = await sql`
+    SELECT ps.* 
+    FROM profile_skills ps
+    JOIN profiles p ON ps.profile_id = p.id
+    WHERE p.user_id = ${userId};
+  `
+  return result.rows as ProfileSkill[]
+}
+
+// ------------------ ADD SKILL ------------------
+export async function insertSkill(userId: string, skillName: string): Promise<ProfileSkill | null> {
+  const profileResult = await sql`SELECT id FROM profiles WHERE user_id = ${userId};`
+  const profile = profileResult.rows[0]
+  if (!profile) return null
+
+  const result = await sql`
+    INSERT INTO profile_skills (profile_id, skill_name)
+    VALUES (${profile.id}, ${skillName})
+    RETURNING *;
+  `
+  return result.rows[0] ? (result.rows[0] as ProfileSkill) : null
+}
+
+// ------------------ DELETE SKILL ------------------
+export async function deleteSkill(userId: string, skillId: number): Promise<boolean> {
+  const result = await sql`
+    DELETE FROM profile_skills
+    WHERE id = ${skillId} AND profile_id IN (
+      SELECT id FROM profiles WHERE user_id = ${userId}
+    );
+  `
+  return result.rowCount > 0
+}
+
+// ------------------ GET EXPERIENCES ------------------
+export async function getExperiencesByUserId(userId: string): Promise<ProfileExperience[]> {
+  const result = await sql`
+    SELECT pe.* 
+    FROM profile_experience pe
+    JOIN profiles p ON pe.profile_id = p.id
+    WHERE p.user_id = ${userId};
+  `
+  return result.rows as ProfileExperience[]
+}
+
+// ------------------ ADD EXPERIENCE ------------------
+export async function insertExperience(userId: string, experience: Omit<ProfileExperience, 'id' | 'profile_id'>): Promise<ProfileExperience | null> {
+  const profileResult = await sql`SELECT id FROM profiles WHERE user_id = ${userId};`
+  const profile = profileResult.rows[0]
+  if (!profile) return null
+
+  const result = await sql`
+    INSERT INTO profile_experience (
+      profile_id, title, company, start_date, end_date, description
+    )
+    VALUES (
+      ${profile.id}, ${experience.title}, ${experience.company}, ${experience.start_date}, ${experience.end_date}, ${experience.description}
+    )
+    RETURNING *;
+  `
+  return result.rows[0] ? (result.rows[0] as ProfileExperience) : null
+}
+
+// ------------------ UPDATE EXPERIENCE ------------------
+export async function updateExperience(userId: string, experienceId: number, updates: Partial<Omit<ProfileExperience, 'id' | 'profile_id'>>): Promise<ProfileExperience | null> {
+  const result = await sql`
+    UPDATE profile_experience
+    SET
+      title = COALESCE(${updates.title}, title),
+      company = COALESCE(${updates.company}, company),
+      start_date = COALESCE(${updates.start_date}, start_date),
+      end_date = COALESCE(${updates.end_date}, end_date),
+      description = COALESCE(${updates.description}, description)
+    WHERE id = ${experienceId} AND profile_id IN (
+      SELECT id FROM profiles WHERE user_id = ${userId}
+    )
+    RETURNING *;
+  `
+  return result.rows[0] ? (result.rows[0] as ProfileExperience) : null
+}
+
+// ------------------ DELETE EXPERIENCE ------------------
+export async function deleteExperience(userId: string, experienceId: number): Promise<boolean> {
+  const result = await sql`
+    DELETE FROM profile_experience
+    WHERE id = ${experienceId} AND profile_id IN (
+      SELECT id FROM profiles WHERE user_id = ${userId}
+    );
+  `
+  return result.rowCount > 0
+}
+
