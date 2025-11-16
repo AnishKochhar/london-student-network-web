@@ -1,10 +1,10 @@
 import { fetchHighlightedEvent } from "@/app/lib/data";
 import HottestEventView from "./hottest-event-view";
 
-const HIGHLIGHTED_EVENT_ID = "3af0dc9f-bdd4-4e7e-9695-d5e334ec5886";
+const HIGHLIGHTED_EVENT_ID = "69c0c03f-ad49-49b0-9b09-51b02297bd1c";
 
 // Custom appealing description for the hottest event
-const HOTTEST_EVENT_DESCRIPTION = "KCL Neurotech presents their most anticipated academic talk of the year! Join Mr Jonathan Shapey, a clinical reader in neurosurgery and honorary consultant neurosurgeon, as he explores how cutting-edge neurotechnology is revolutionizing surgical outcomes. Slots are limited—register now for this groundbreaking session!";
+const HOTTEST_EVENT_DESCRIPTION = "Join us for The Giving Gala, an unforgettable black-tie evening of fundraising and connection hosted by Women in Politics Society and STAR KCL. Featuring the launch of The Clandestine magazine's first edition, keynote speakers, and networking with students, professionals, and leaders across the UK. All profits support refugee women rebuilding their lives in partnership with Refugee Women Connect. Don't miss one of London's most anticipated university charity events of the year!";
 
 export default async function HottestEventSection() {
 	// Homepage shows public events only - no session filtering needed
