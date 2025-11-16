@@ -104,10 +104,24 @@ export async function POST(req: Request) {
             isRegistered = registrationCheck.rows.length > 0;
         }
 
+        // Fetch FAQs for this event
+        const faqsResult = await sql`
+            SELECT
+                id,
+                event_uuid,
+                question,
+                answer,
+                order_index
+            FROM event_faqs
+            WHERE event_uuid = ${event.id}
+            ORDER BY order_index ASC
+        `;
+
         return NextResponse.json({
             ...event,
             tickets: ticketsResult.rows,
             isRegistered,
+            faqs: faqsResult.rows,
         });
     } catch (error) {
         console.error("Error fetching event:", error);

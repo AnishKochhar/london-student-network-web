@@ -176,6 +176,38 @@ export async function POST(req: Request) {
 			}
 		}
 
+		// Insert FAQs for the event
+		const faqs: Array<{ id: string; question: string; answer: string }> = body.faqs || [];
+		if (response.success && response.event && faqs.length > 0) {
+			console.log('=== Inserting FAQs for event:', response.event.id);
+			try {
+				for (let index = 0; index < faqs.length; index++) {
+					const faq = faqs[index];
+					// Skip empty FAQs
+					if (faq.question.trim() && faq.answer.trim()) {
+						await sql`
+							INSERT INTO event_faqs (
+								event_uuid,
+								question,
+								answer,
+								order_index
+							) VALUES (
+								${response.event.id},
+								${faq.question.trim()},
+								${faq.answer.trim()},
+								${index}
+							)
+						`;
+					}
+				}
+				console.log('✅ FAQs inserted successfully');
+			} catch (faqError) {
+				console.error('❌ Failed to insert FAQs:', faqError);
+				// Don't rollback the entire event, just log the error
+				// FAQs are optional, so we can continue even if they fail
+			}
+		}
+
 		// Send confirmation email to organizer
 		if (response.success && response.event) {
 			console.log('=== Attempting to send confirmation email ===');

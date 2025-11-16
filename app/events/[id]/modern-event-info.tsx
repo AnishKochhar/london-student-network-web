@@ -21,6 +21,7 @@ import ShareEventModal from "@/app/components/events-page/share-event-modal";
 import EventRegistrationButton from "@/app/components/events-page/event-registration-button";
 import ReportEventModal from "@/app/components/events-page/report-event-modal";
 import PaymentStatusHandler from "@/app/components/events-page/payment-status-handler";
+import { EventFAQDisplay } from "@/app/components/events-page/event-faq-display";
 
 export default function ModernEventInfo() {
     const { id } = useParams() as { id: string };
@@ -316,9 +317,16 @@ export default function ModernEventInfo() {
                             </div>
                         </div>
 
+                        {/* FAQs Section */}
+                        {event.faqs && event.faqs.length > 0 && (
+                            <div className="pt-6">
+                                <EventFAQDisplay faqs={event.faqs} />
+                            </div>
+                        )}
+
                         {/* External Students Info */}
                         {event.for_externals && (
-                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-6">
                                 <h3 className="text-lg font-semibold text-blue-900 mb-2">
                                     For External Students
                                 </h3>

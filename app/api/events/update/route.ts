@@ -319,6 +319,43 @@ export async function POST(req: Request) {
             }
         }
 
+        // Update FAQs
+        const faqs: Array<{ id: string; question: string; answer: string }> = body.faqs || [];
+        try {
+            console.log('=== Updating FAQs for event:', id);
+
+            // Delete all existing FAQs for this event
+            await sql`DELETE FROM event_faqs WHERE event_uuid = ${id}`;
+
+            // Insert new FAQs
+            if (faqs.length > 0) {
+                for (let index = 0; index < faqs.length; index++) {
+                    const faq = faqs[index];
+                    // Skip empty FAQs
+                    if (faq.question.trim() && faq.answer.trim()) {
+                        await sql`
+                            INSERT INTO event_faqs (
+                                event_uuid,
+                                question,
+                                answer,
+                                order_index
+                            ) VALUES (
+                                ${id},
+                                ${faq.question.trim()},
+                                ${faq.answer.trim()},
+                                ${index}
+                            )
+                        `;
+                    }
+                }
+            }
+            console.log('✅ FAQs updated successfully');
+        } catch (faqError) {
+            console.error('❌ Failed to update FAQs:', faqError);
+            // Don't fail the entire request if FAQs fail to update
+            // FAQs are optional content
+        }
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("Error updating event:", error);

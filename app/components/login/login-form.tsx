@@ -53,8 +53,8 @@ export default function LoginForm() {
             toast.success("Name updated successfully! Please login again.");
         }
 
-        // Check for redirect parameter
-        const redirect = searchParams.get("redirect");
+        // Check for redirect parameter (support both 'redirect' and 'callbackUrl')
+        const redirect = searchParams.get("redirect") || searchParams.get("callbackUrl");
         if (redirect) {
             sessionStorage.setItem("redirectAfterLogin", redirect);
         }

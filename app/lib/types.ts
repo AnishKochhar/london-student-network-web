@@ -1,3 +1,11 @@
+export interface EventFAQ {
+    id: string;
+    event_uuid: string;
+    question: string;
+    answer: string;
+    order_index: number;
+}
+
 export interface Event {
     id: string;
     title: string;
@@ -37,6 +45,8 @@ export interface Event {
     tickets?: unknown[]; // Tickets for this event (from get-information API)
     isRegistered?: boolean; // Whether the current user is registered (from get-information API)
     has_paid_tickets?: boolean; // Whether this event has paid tickets
+    // FAQs
+    faqs?: EventFAQ[]; // Frequently asked questions for this event
 }
 
 export interface EditEventProps {
@@ -225,6 +235,12 @@ export interface EventFormData {
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
+    // FAQs
+    faqs: Array<{
+        id: string; // Temporary client-side ID (UUID for new, DB ID for existing)
+        question: string;
+        answer: string;
+    }>;
 }
 
 export interface SQLEventData {

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import toast from "react-hot-toast";
-import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon, Maximize2, Minimize2 } from "@heroicons/react/24/outline";
+import { FileText, Calendar, MapPin, Image as ImageIcon, Tag, HelpCircle, Settings, Ticket, Lock } from "lucide-react";
 import { upload } from "@vercel/blob/client";
 import { EventFormData, Event } from "@/app/lib/types";
 import { placeholderImages, createModernEventObject, validateModernEvent, EVENT_TAG_TYPES } from "@/app/lib/utils";
@@ -17,6 +18,8 @@ import { formatInTimeZone } from "date-fns-tz";
 import EventAccessControls from "./EventAccessControls";
 import TicketManager, { TicketType } from "./ticket-manager-improved";
 import { useStripeAccount } from "@/app/hooks/useStripeAccount";
+import { FAQManager } from "./faq-manager";
+import { ToggleableFormSection } from "../ui/toggleable-form-section";
 
 interface ModernCreateEventProps {
     organiser_id: string;
@@ -680,7 +683,12 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         registration_level: event.registration_level || 'public',
         allowed_universities: event.allowed_universities || [],
         registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
-        external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
+        external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined,
+        faqs: event.faqs?.map(faq => ({
+            id: faq.id,
+            question: faq.question,
+            answer: faq.answer
+        })) || []
     };
 };
 
@@ -701,6 +709,37 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
         tickets_available: null,
     }]);
     const [ticketsLoaded, setTicketsLoaded] = useState(false);
+
+    // Collapsible sections state
+    const [expandedSections, setExpandedSections] = useState<Set<string>>(
+        new Set(['basic-info', 'date-time', 'location', 'image'])
+    );
+    const [allExpanded, setAllExpanded] = useState(false);
+
+    const toggleSection = (sectionId: string) => {
+        setExpandedSections(prev => {
+            const next = new Set(prev);
+            if (next.has(sectionId)) {
+                next.delete(sectionId);
+            } else {
+                next.add(sectionId);
+            }
+            return next;
+        });
+    };
+
+    const expandAll = () => {
+        setExpandedSections(new Set([
+            'basic-info', 'date-time', 'location', 'image',
+            'tags', 'faqs', 'additional', 'tickets', 'access'
+        ]));
+        setAllExpanded(true);
+    };
+
+    const collapseAll = () => {
+        setExpandedSections(new Set());
+        setAllExpanded(false);
+    };
 
     // Check Stripe account status
     const { isReady } = useStripeAccount();
@@ -806,7 +845,8 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             send_signup_notifications: true,
             visibility_level: 'public',
             registration_level: 'public',
-            allowed_universities: []
+            allowed_universities: [],
+            faqs: []
         }
     });
 
@@ -1049,6 +1089,18 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                         <div className="flex items-center gap-2 sm:gap-3">
                             <motion.button
                                 type="button"
+                                onClick={allExpanded ? collapseAll : expandAll}
+                                className="flex items-center gap-2 px-3 py-2 text-white/90 hover:text-white border border-white/30 hover:border-white/50 rounded-lg font-medium transition-colors backdrop-blur text-xs sm:text-sm"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                title={allExpanded ? "Collapse All Sections" : "Expand All Sections"}
+                            >
+                                <ChevronDownIcon className="w-4 h-4" />
+                                <span className="hidden md:inline">Toggle Sections</span>
+                            </motion.button>
+
+                            <motion.button
+                                type="button"
                                 onClick={onPreview}
                                 disabled={!isValid}
                                 className="flex items-center gap-2 px-3 sm:px-4 py-2 text-white/90 hover:text-white disabled:text-white/50 disabled:cursor-not-allowed border border-white/30 hover:border-white/50 disabled:border-white/20 rounded-lg font-medium transition-colors backdrop-blur text-sm sm:text-base"
@@ -1086,48 +1138,54 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
             {/* Main Content */}
             <div className="w-full px-4 sm:px-6 lg:px-8 pb-12 relative z-20 overflow-visible">
-                <div className="max-w-6xl mx-auto overflow-visible">
-                    <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-12 sm:space-y-16 overflow-visible">
+                <div className="max-w-5xl mx-auto overflow-visible">
+                    <form id="event-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 overflow-visible">
                         {/* Basic Information */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Basic Information</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Tell us about your event</p>
-                            </div>
-
-                            <div className="lg:col-span-9 space-y-6">
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="basic-info"
+                                title="Basic Information"
+                                icon={<FileText className="w-4 h-4" />}
+                                subtitle="Tell us about your event"
+                                isExpanded={expandedSections.has('basic-info')}
+                                onToggle={() => toggleSection('basic-info')}
+                                hasErrors={!!(errors.title || errors.description || errors.organiser || errors.capacity)}
+                                errorCount={[errors.title, errors.description, errors.organiser, errors.capacity].filter(Boolean).length}
+                                isComplete={!!(watchedValues.title && watchedValues.description && watchedValues.organiser)}
+                            >
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-white mb-3">
+                                    <label className="block text-sm font-medium text-white mb-2">
                                         Event Title <span className="text-red-300">*</span>
                                     </label>
                                     <input
                                         {...register("title", { required: "Event title is required" })}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
+                                        className="w-full px-3 py-2 text-sm bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
                                         placeholder="Enter your event title..."
                                     />
                                     {errors.title && (
-                                        <p className="mt-2 text-sm text-red-300">{errors.title.message}</p>
+                                        <p className="mt-1.5 text-xs text-red-300">{errors.title.message}</p>
                                     )}
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-white mb-3">
+                                    <label className="block text-sm font-medium text-white mb-2">
                                         Description <span className="text-red-300">*</span>
                                     </label>
                                     <MarkdownEditor
                                         value={watchedValues.description || ""}
                                         onChange={(value) => setValue("description", value)}
                                         placeholder="Describe your event in detail..."
-                                        height={300}
+                                        height={250}
                                     />
                                     {errors.description && (
-                                        <p className="mt-2 text-sm text-red-300">{errors.description.message}</p>
+                                        <p className="mt-1.5 text-xs text-red-300">{errors.description.message}</p>
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-white mb-3">
+                                        <label className="block text-sm font-medium text-white mb-2">
                                             Organiser <span className="text-red-300">*</span>
                                         </label>
                                         <CustomDropdown
@@ -1138,12 +1196,12 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                             disabled={editMode}
                                         />
                                         {errors.organiser && (
-                                            <p className="mt-2 text-sm text-red-300">{errors.organiser.message}</p>
+                                            <p className="mt-1.5 text-xs text-red-300">{errors.organiser.message}</p>
                                         )}
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-white mb-3">
+                                        <label className="block text-sm font-medium text-white mb-2">
                                             Capacity (optional)
                                         </label>
                                         <input
@@ -1153,26 +1211,33 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                             })}
                                             type="number"
                                             min="1"
-                                            className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
+                                            className="w-full px-3 py-2 text-sm bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
                                             placeholder="No ticketing limit imposed"
                                         />
                                         {errors.capacity && (
-                                            <p className="mt-2 text-sm text-red-300">{errors.capacity.message}</p>
+                                            <p className="mt-1.5 text-xs text-red-300">{errors.capacity.message}</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
+                            </ToggleableFormSection>
                         </AnimatedSection>
 
                         {/* Date & Time */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Date & Time</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">When is your event happening?</p>
-                            </div>
-
-                            <div className="lg:col-span-9 space-y-6 relative z-[200]">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="date-time"
+                                title="Date & Time"
+                                icon={<Calendar className="w-4 h-4" />}
+                                subtitle="When is your event happening?"
+                                isExpanded={expandedSections.has('date-time')}
+                                onToggle={() => toggleSection('date-time')}
+                                hasErrors={!!(errors.start_datetime || errors.end_datetime || errors.start_time || errors.end_time)}
+                                errorCount={[errors.start_datetime, errors.end_datetime, errors.start_time, errors.end_time].filter(Boolean).length}
+                                isComplete={!!(watchedValues.start_datetime && watchedValues.end_datetime && watchedValues.start_time && watchedValues.end_time)}
+                            >
+                            <div className="space-y-4 relative z-[200]">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <ModernCalendarPicker
                                         value={watchedValues.start_datetime || ""}
                                         onChange={(value) => setValue("start_datetime", value)}
@@ -1191,7 +1256,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <ModernTimePicker
                                         value={watchedValues.start_time || "10:00"}
                                         onChange={(value) => setValue("start_time", value)}
@@ -1225,23 +1290,30 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     </motion.div>
                                 )}
                             </div>
+                            </ToggleableFormSection>
                         </AnimatedSection>
 
                         {/* Location */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Location</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Where will your event take place?</p>
-                            </div>
-
-                            <div className="lg:col-span-9 space-y-6">
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="location"
+                                title="Location"
+                                icon={<MapPin className="w-4 h-4" />}
+                                subtitle="Where will your event take place?"
+                                isExpanded={expandedSections.has('location')}
+                                onToggle={() => toggleSection('location')}
+                                hasErrors={!!(errors.location_building || errors.location_area || errors.location_address)}
+                                errorCount={[errors.location_building, errors.location_area, errors.location_address].filter(Boolean).length}
+                                isComplete={!!(watchedValues.location_building && watchedValues.location_area && watchedValues.location_address)}
+                            >
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-white mb-3">
+                                    <label className="block text-sm font-medium text-white mb-2">
                                         Building/Venue <span className="text-red-300">*</span>
                                     </label>
                                     <input
                                         {...register("location_building", { required: "Building is required" })}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
+                                        className="w-full px-3 py-2 text-sm bg-white/10 border border-white/30 rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur"
                                         placeholder="e.g. Sir Alexander Fleming Building, Room G40"
                                     />
                                     {errors.location_building && (
@@ -1467,6 +1539,25 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 </div>
                             </div>
                         </AnimatedSection>
+
+                        {/* FAQs */}
+                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
+                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">FAQs</h2>
+                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Help attendees with common questions</p>
+                            </div>
+
+                            <div className="lg:col-span-9">
+                                <FAQManager
+                                    faqs={watchedValues.faqs || []}
+                                    register={register}
+                                    setValue={setValue}
+                                    watch={watch}
+                                    errors={errors as { faqs?: { question?: { message?: string }; answer?: { message?: string } }[] }}
+                                />
+                            </div>
+                        </AnimatedSection>
+
                         {/* Additional Details */}
                         <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
                             <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">

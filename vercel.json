@@ -7,6 +7,10 @@
     {
       "path": "/api/workers/process-email-reminders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/generate-linkedin-post",
+      "schedule": "0 10 * * 1,4"
     }
   ]
 }

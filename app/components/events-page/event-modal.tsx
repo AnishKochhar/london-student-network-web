@@ -19,6 +19,7 @@ import RegistrationChoiceModal from "./registration-choice-modal";
 import ModernRegistrationModal from "./modern-registration-modal";
 import ReportEventModal from "./report-event-modal";
 import TicketSelectionModal from "./ticket-selection-modal";
+import { EventFAQDisplay } from "./event-faq-display";
 
 export default function EventModal({ event, onClose, isPreview = false, isRegistered: initialIsRegistered = false, onRegistrationChange }: EventModalPropsWithPreview) {
     const modalRef = useRef<HTMLDivElement>(null);
@@ -297,6 +298,13 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                     <MarkdownRenderer content={event.description} variant="light" />
                                 </div>
                             </div>
+
+                            {/* FAQs Section */}
+                            {fullEventData.faqs && fullEventData.faqs.length > 0 && (
+                                <div className="pt-4">
+                                    <EventFAQDisplay faqs={fullEventData.faqs} />
+                                </div>
+                            )}
 
                             {/* External Students Info */}
                             {event.for_externals && (
