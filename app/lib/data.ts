@@ -1683,6 +1683,7 @@ export async function getAllJobs(
 
 
 export async function getJobById(id: string): Promise<Job | null> {
+console.log(id)
   const result = await sql`
     SELECT 
       j.*,
@@ -1691,7 +1692,7 @@ export async function getJobById(id: string): Promise<Job | null> {
       ci.contact_email
     FROM jobs j
     JOIN company_information ci ON j.company_id = ci.id
-    WHERE j.id = ${id};
+    WHERE j.id = ${id}::uuid;
     `
   return result.rows[0] as Job || null;
 }
