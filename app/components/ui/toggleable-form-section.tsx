@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, CheckCircle2, AlertCircle } from "lucide-react";
+import { ChevronDown, CheckCircle2 } from "lucide-react";
 
 interface ToggleableFormSectionProps {
     id: string;
@@ -16,10 +16,11 @@ interface ToggleableFormSectionProps {
     errorCount?: number;
     isComplete?: boolean;
     className?: string;
+    stepNumber?: number;
 }
 
 export function ToggleableFormSection({
-    id,
+    id: _id,
     title,
     icon,
     subtitle,
@@ -30,56 +31,82 @@ export function ToggleableFormSection({
     errorCount = 0,
     isComplete = false,
     className = "",
+    stepNumber,
 }: ToggleableFormSectionProps) {
     return (
-        <div className={`${className}`}>
-            {/* Toggleable Header */}
+        <div id={`section-${_id}`} className={`${className}`}>
+            {/* Toggleable Header - h3 style, no border */}
             <button
                 type="button"
                 onClick={onToggle}
-                className={`w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all duration-200 ${
+                className={`w-full flex items-center gap-4 py-4 group transition-all duration-200 ${
                     hasErrors
-                        ? "bg-red-500/10 border-2 border-red-400/50 hover:bg-red-500/15"
+                        ? "opacity-100"
                         : isExpanded
-                          ? "bg-white/15 border-2 border-white/40"
-                          : "bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-white/30"
+                          ? "opacity-100"
+                          : "opacity-80 hover:opacity-100"
                 }`}
             >
-                <div className="flex items-center gap-3 flex-1">
+                {/* Step Number - small and subtle */}
+                {stepNumber && (
+                    <span
+                        className={`flex-shrink-0 text-xs font-medium transition-colors ${
+                            hasErrors
+                                ? "text-red-300"
+                                : isComplete
+                                  ? "text-green-400"
+                                  : "text-white/50"
+                        }`}
+                    >
+                        {stepNumber}.
+                    </span>
+                )}
+
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                     {/* Icon */}
                     <div
-                        className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        className={`flex-shrink-0 transition-colors ${
                             hasErrors
-                                ? "bg-red-500/20 text-red-300"
+                                ? "text-red-300"
                                 : isComplete
-                                  ? "bg-green-500/20 text-green-300"
-                                  : "bg-white/10 text-white"
+                                  ? "text-green-300"
+                                  : "text-white"
                         }`}
                     >
                         {icon}
                     </div>
 
                     {/* Title & Subtitle */}
-                    <div className="flex-1 text-left">
-                        <div className="flex items-center gap-2">
+                    <div className="flex-1 text-left min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <h3
-                                className={`text-base font-semibold ${
+                                className={`text-xl font-bold transition-colors ${
                                     hasErrors ? "text-red-200" : "text-white"
                                 }`}
                             >
                                 {title}
                             </h3>
                             {hasErrors && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 font-medium">
+                                <motion.span
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-300 font-medium"
+                                >
                                     {errorCount} {errorCount === 1 ? "error" : "errors"}
-                                </span>
+                                </motion.span>
                             )}
                             {isComplete && !hasErrors && (
-                                <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                                >
+                                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                </motion.div>
                             )}
                         </div>
-                        {subtitle && !isExpanded && (
-                            <p className="text-xs text-blue-200/70 mt-0.5">{subtitle}</p>
+                        {subtitle && (
+                            <p className="text-sm text-blue-200/80 mt-1">{subtitle}</p>
                         )}
                     </div>
 
@@ -90,8 +117,8 @@ export function ToggleableFormSection({
                         className="flex-shrink-0"
                     >
                         <ChevronDown
-                            className={`w-5 h-5 ${
-                                hasErrors ? "text-red-300" : "text-white/70"
+                            className={`w-6 h-6 transition-colors ${
+                                hasErrors ? "text-red-300" : "text-white/60 group-hover:text-white"
                             }`}
                         />
                     </motion.div>
@@ -116,9 +143,9 @@ export function ToggleableFormSection({
                             },
                             opacity: { duration: 0.2 },
                         }}
-                        className="overflow-hidden"
+                        className="overflow-visible"
                     >
-                        <div className="pt-4 pb-2">{children}</div>
+                        <div className="pt-6 pb-4 pl-12 overflow-visible">{children}</div>
                     </motion.div>
                 )}
             </AnimatePresence>
