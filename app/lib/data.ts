@@ -1075,6 +1075,34 @@ export async function getAllCompanyInformation() {
     }
 }
 
+export async function getRelatedCompanyInformation(userId: string) {
+    try {
+        const data = await sql`
+			SELECT
+					c.id,
+					u.name AS company_name, 
+					COALESCE(c.contact_email, u.email) AS contact_email,
+					c.description,
+					c.motivation,
+					c.contact_name,
+					c.website,
+					COALESCE(c.logo_url, u.logo_url) AS logo_url
+			FROM 
+					users AS u 
+			JOIN 
+					company_information AS c ON u.id = c.user_id
+			WHERE 
+					u.role = 'company'
+            AND c.user_id = ${userId}
+			AND u.name != 'TEST COMPANY';
+		`;
+        return data.rows[0] as CompanyInformation
+    } catch (error) {
+        console.log("Database error:", error);
+        throw new Error(`Error fetching company information for user ${userId}`);
+    }
+}
+
 export async function insertCompany(formData: CompanyRegisterFormData) {
     try {
         const hashedPassword = await bcrypt.hash(formData.password, 10);

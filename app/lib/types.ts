@@ -567,6 +567,76 @@ export interface CommentUpdateData {
     editedTimeAgo?: string;
 }
 
+
+// job type
+export interface Job {
+  id: number;
+  company_id: string; // UUID
+  position: string;
+  location: string;
+  available: boolean;
+  job_type: string
+  created_at: string;
+  link: string;
+  description: string;
+  deadline?: string;
+  company_name?: string;
+  company_logo_url?: string;
+  contact_email?: string;
+}
+
+// profiles
+// ------------------ PROFILE TYPES ------------------
+
+export interface ProfileSkill {
+  id: number
+  profile_id: string
+  skill_name: string
+}
+
+export interface ProfileExperience {
+  id: number
+  profile_id: string
+  title: string
+  company: string
+  start_date: string // ISO format date string
+  end_date?: string | null
+  description?: string | null
+}
+
+export interface Profile {
+  id: string
+  user_id: string
+  headline?: string | null
+  bio?: string | null
+  location?: string | null
+  phone?: string | null
+
+  linkedin_url?: string | null
+  github_url?: string | null
+  portfolio_url?: string | null
+  resume_url?: string | null
+
+  profile_picture_url?: string | null
+  banner_image_url?: string | null
+
+  created_at: string
+  updated_at: string
+
+  // Relations
+  skills: ProfileSkill[]
+  experiences: ProfileExperience[]
+}
+
+// for ensuring skills and experiences are always in the profile
+export function normalizeProfile(raw: Profile): Profile {
+  return {
+    ...raw,
+    skills: raw.skills ?? [],
+    experiences: raw.experiences ?? [],
+  }
+}
+
 export const DefaultEvent: Event = {
     id: "",
     title: "Sample Event",
