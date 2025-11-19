@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 import { fetchAllUpcomingEvents } from '@/app/lib/data';
-import { OpenAIClient } from '@/app/lib/llm/openai-client';
+import { LLMClientWithFallback } from '@/app/lib/llm/client-with-fallback';
 import { LinkedInClient } from '@/app/lib/linkedin/client';
 import { shouldAutoApprove } from '@/app/lib/linkedin/auto-approval';
 
@@ -63,8 +63,8 @@ export async function GET(request: Request) {
     }
 
     // Step 2: Use LLM to filter and select best 1-2 events
-    const openai = new OpenAIClient();
-    const selectedEventScores = await openai.filterEvents(eligibleEvents);
+    const llm = new LLMClientWithFallback();
+    const selectedEventScores = await llm.filterEvents(eligibleEvents);
 
     if (selectedEventScores.length === 0) {
       console.log('[CRON LinkedIn] No events selected by LLM filter');
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
     console.log(`[CRON LinkedIn] Selected ${selectedEvents.length} events:`, selectedEvents.map((e) => e.title));
 
     // Step 3: Generate LinkedIn post content
-    const postContent = await openai.generatePost(selectedEvents);
+    const postContent = await llm.generatePost(selectedEvents);
 
     console.log(`[CRON LinkedIn] Generated post (${postContent.length} chars)`);
 

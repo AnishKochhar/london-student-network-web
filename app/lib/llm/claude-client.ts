@@ -2,19 +2,19 @@ import type { Event } from '@/app/lib/types';
 import type { EventFilterScore, LLMFilterResponse } from '@/app/lib/types/linkedin';
 import { BaseLLMClient } from './base-client';
 
-const OPENAI_API_BASE = 'https://api.openai.com/v1';
+const ANTHROPIC_API_BASE = 'https://api.anthropic.com/v1';
 
-export class OpenAIClient extends BaseLLMClient {
+export class ClaudeClient extends BaseLLMClient {
   private apiKey: string;
   private model: string;
 
   constructor(apiKey?: string, model?: string) {
     super();
-    this.apiKey = apiKey || process.env.OPENAI_API_KEY || '';
-    this.model = model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    this.apiKey = apiKey || process.env.ANTHROPIC_API_KEY || '';
+    this.model = model || process.env.ANTHROPIC_MODEL || 'claude-3-haiku-20240307';
 
     if (!this.apiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('Anthropic API key not configured');
     }
   }
 
@@ -46,35 +46,45 @@ Event ${i + 1}:
 Select 1-2 events and provide scores with reasoning.`;
 
     try {
-      const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+      const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'x-api-key': this.apiKey,
+          'anthropic-version': '2023-06-01',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: this.model,
+          max_tokens: 1024,
+          system: systemPrompt,
           messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
+            {
+              role: 'user',
+              content: userPrompt
+            }
           ],
-          response_format: { type: 'json_object' },
           temperature: 0.7,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
-      const content = result.choices[0].message.content;
-      const parsed = JSON.parse(content) as LLMFilterResponse;
+      const content = result.content[0].text;
 
+      // Claude doesn't have strict JSON mode, so extract JSON from response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Could not extract JSON from Claude response');
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]) as LLMFilterResponse;
       return parsed.selected_events || [];
     } catch (error) {
-      console.error('[OpenAI] Event filtering failed:', error);
+      console.error('[Claude] Event filtering failed:', error);
       throw error;
     }
   }
@@ -112,40 +122,44 @@ Event ${i + 1}:
 Write an engaging LinkedIn post that highlights what makes ${events.length > 1 ? 'these events' : 'this event'} special.`;
 
     try {
-      const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
+      const response = await fetch(`${ANTHROPIC_API_BASE}/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
+          'x-api-key': this.apiKey,
+          'anthropic-version': '2023-06-01',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: this.model,
+          max_tokens: 1024,
+          system: systemPrompt,
           messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
+            {
+              role: 'user',
+              content: userPrompt
+            }
           ],
           temperature: 0.8,
-          max_tokens: 800,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
-      const postContent = result.choices[0].message.content.trim();
+      const postContent = result.content[0].text.trim();
 
       // Validate length
       if (postContent.length > 3000) {
-        console.warn('[OpenAI] Generated post too long, truncating...');
+        console.warn('[Claude] Generated post too long, truncating...');
         return postContent.substring(0, 2997) + '...';
       }
 
       return postContent;
     } catch (error) {
-      console.error('[OpenAI] Post generation failed:', error);
+      console.error('[Claude] Post generation failed:', error);
       throw error;
     }
   }

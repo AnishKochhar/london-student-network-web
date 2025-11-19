@@ -2,19 +2,19 @@ import type { Event } from '@/app/lib/types';
 import type { EventFilterScore, LLMFilterResponse } from '@/app/lib/types/linkedin';
 import { BaseLLMClient } from './base-client';
 
-const OPENAI_API_BASE = 'https://api.openai.com/v1';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
-export class OpenAIClient extends BaseLLMClient {
+export class GeminiClient extends BaseLLMClient {
   private apiKey: string;
   private model: string;
 
   constructor(apiKey?: string, model?: string) {
     super();
-    this.apiKey = apiKey || process.env.OPENAI_API_KEY || '';
-    this.model = model || process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    this.apiKey = apiKey || process.env.GEMINI_API_KEY || '';
+    this.model = model || process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
 
     if (!this.apiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('Gemini API key not configured');
     }
   }
 
@@ -46,35 +46,42 @@ Event ${i + 1}:
 Select 1-2 events and provide scores with reasoning.`;
 
     try {
-      const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.7,
-        }),
-      });
+      const response = await fetch(
+        `${GEMINI_API_BASE}/models/${this.model}:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  { text: systemPrompt + '\n\n' + userPrompt }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.7,
+              responseMimeType: 'application/json',
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
-      const content = result.choices[0].message.content;
+      const content = result.candidates[0].content.parts[0].text;
       const parsed = JSON.parse(content) as LLMFilterResponse;
 
       return parsed.selected_events || [];
     } catch (error) {
-      console.error('[OpenAI] Event filtering failed:', error);
+      console.error('[Gemini] Event filtering failed:', error);
       throw error;
     }
   }
@@ -112,40 +119,47 @@ Event ${i + 1}:
 Write an engaging LinkedIn post that highlights what makes ${events.length > 1 ? 'these events' : 'this event'} special.`;
 
     try {
-      const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: this.model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          temperature: 0.8,
-          max_tokens: 800,
-        }),
-      });
+      const response = await fetch(
+        `${GEMINI_API_BASE}/models/${this.model}:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [
+                  { text: systemPrompt + '\n\n' + userPrompt }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.8,
+              maxOutputTokens: 800,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
-      const postContent = result.choices[0].message.content.trim();
+      const postContent = result.candidates[0].content.parts[0].text.trim();
 
       // Validate length
       if (postContent.length > 3000) {
-        console.warn('[OpenAI] Generated post too long, truncating...');
+        console.warn('[Gemini] Generated post too long, truncating...');
         return postContent.substring(0, 2997) + '...';
       }
 
       return postContent;
     } catch (error) {
-      console.error('[OpenAI] Post generation failed:', error);
+      console.error('[Gemini] Post generation failed:', error);
       throw error;
     }
   }

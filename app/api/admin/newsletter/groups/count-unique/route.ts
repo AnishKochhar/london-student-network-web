@@ -21,11 +21,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Get all the groups to build the filter queries
-        const groupsResult = await sql`
-            SELECT id, filter_type, filter_criteria, allow_one_time_send
+        const placeholders = group_ids.map((_, i) => `$${i + 1}`).join(',');
+        const groupsResult = await sql.query(
+            `SELECT id, filter_type, filter_criteria, allow_one_time_send
             FROM newsletter_groups
-            WHERE id = ANY(${group_ids}::uuid[])
-        `;
+            WHERE id IN (${placeholders})`,
+            group_ids
+        );
 
         const groups = groupsResult.rows as NewsletterGroup[];
 
@@ -50,9 +52,6 @@ export async function POST(request: NextRequest) {
                 conditions.push('COALESCE(ui.newsletter_subscribe, false) = true');
             } else if (group.filter_type === 'all_users') {
                 // No additional filter needed
-            } else if (group.filter_type === 'verified_students') {
-                conditions.push("u.account_type = 'student'");
-                conditions.push('u.emailverified = true');
             } else if (group.filter_type === 'custom' && group.filter_criteria) {
                 const criteria = group.filter_criteria as GroupFilterCriteria;
                 if (criteria.verified_university) {
