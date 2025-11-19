@@ -104,6 +104,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		sign_up_link: sqlEvent.sign_up_link,
 		capacity: sqlEvent.capacity && !isNaN(Number(sqlEvent.capacity)) && Number(sqlEvent.capacity) > 0 ? Number(sqlEvent.capacity) : undefined,
 		for_externals: sqlEvent.for_externals,
+		external_forward_email: sqlEvent.external_forward_email,
 		// New datetime fields
 		start_datetime: start_datetime,
 		end_datetime: end_datetime,
