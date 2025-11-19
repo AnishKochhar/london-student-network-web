@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getExperiencesByUserId, insertExperience, deleteExperience } from "@/app/lib/data";
+import { getExperiencesByUserId, insertExperience, deleteExperience } from "@/app/lib/profiles";
 
 export async function GET() {
   const session = await auth();

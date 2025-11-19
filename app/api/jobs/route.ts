@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { deleteJob, getAllJobs, getRelatedCompanyInformation } from '@/app/lib/data';
-import { postJob } from "@/app/lib/data";
+import { deleteJob, getAllJobs } from '@/app/lib/jobs';
+import { getRelatedCompanyInformation } from '@/app/lib/data';
+import { postJob } from "@/app/lib/jobs";
 import { CompanyInformation, Job } from "@/app/lib/types";
 import { requireAuth } from '@/app/lib/auth';
 
@@ -9,8 +10,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
     const pageNum = parseInt(searchParams.get('pageNum') || '1', 10);
+    const search = searchParams.get('search') || undefined;
+    const company = searchParams.get('company') || undefined;
+    const jobType = searchParams.get('jobType') || undefined;
+    const location = searchParams.get('location') || undefined;
 
-    const {jobs, total} = await getAllJobs(pageSize, pageNum);
+    const {jobs, total} = await getAllJobs(pageSize, pageNum, search, company, jobType, location);
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getProfileByUserId, insertProfile, updateProfile } from "@/app/lib/data";
+import { getProfileByUserId, insertProfile, updateProfile } from "@/app/lib/profiles";
 
 export async function GET() {
   const session = await auth();

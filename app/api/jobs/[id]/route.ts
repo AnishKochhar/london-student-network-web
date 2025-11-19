@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getJobById } from '@/app/lib/data';
+import { getJobById } from '@/app/lib/jobs';
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
   try {

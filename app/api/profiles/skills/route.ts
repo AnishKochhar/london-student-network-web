@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getSkillsByUserId, insertSkill, deleteSkill } from "@/app/lib/data";
+import { getSkillsByUserId, insertSkill, deleteSkill } from "@/app/lib/profiles";
 
 export async function GET() {
   const session = await auth();
