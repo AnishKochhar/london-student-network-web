@@ -6,6 +6,7 @@ import {
     Plus,
     Trash2,
     GripVertical,
+    HelpCircle,
 } from "lucide-react";
 import { UseFormRegister, UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { EventFormData } from "@/app/lib/types";
