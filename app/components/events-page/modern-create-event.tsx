@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import toast from "react-hot-toast";
-import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon, Maximize2, Minimize2 } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { FileText, Calendar, MapPin, Image as ImageIcon, Tag, HelpCircle, Settings, Ticket, Lock } from "lucide-react";
 import { upload } from "@vercel/blob/client";
 import { EventFormData, Event } from "@/app/lib/types";
@@ -20,6 +20,7 @@ import TicketManager, { TicketType } from "./ticket-manager-improved";
 import { useStripeAccount } from "@/app/hooks/useStripeAccount";
 import { FAQManager } from "./faq-manager";
 import { ToggleableFormSection } from "../ui/toggleable-form-section";
+import { FormProgressIndicator } from "../ui/form-progress-indicator";
 
 interface ModernCreateEventProps {
     organiser_id: string;
@@ -644,13 +645,19 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
             capacity: event.capacity,
             sign_up_link: event.sign_up_link,
             for_externals: event.for_externals,
+            external_forward_email: event.external_forward_email,
             is_multi_day: false,
             send_signup_notifications: event.send_signup_notifications ?? true,
             visibility_level: event.visibility_level || 'public',
             registration_level: event.registration_level || 'public',
             allowed_universities: event.allowed_universities || [],
             registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
-            external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
+            external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined,
+            faqs: event.faqs?.map(faq => ({
+                id: faq.id,
+                question: faq.question,
+                answer: faq.answer
+            })) || []
         };
     }
 
@@ -678,6 +685,7 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         capacity: event.capacity,
         sign_up_link: event.sign_up_link,
         for_externals: event.for_externals,
+        external_forward_email: event.external_forward_email,
         send_signup_notifications: event.send_signup_notifications ?? true,
         visibility_level: event.visibility_level || 'public',
         registration_level: event.registration_level || 'public',
@@ -1070,8 +1078,23 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const organiserOptions = organiserList.map(org => ({ value: org, label: org }));
     const imageOptions = placeholderImages.map((img) => ({ value: img.src, label: img.name }));
 
+    const progressSections = [
+        { id: 'basic-info', label: 'Basic Information', isExpanded: expandedSections.has('basic-info') },
+        { id: 'date-time', label: 'Date & Time', isExpanded: expandedSections.has('date-time') },
+        { id: 'location', label: 'Location', isExpanded: expandedSections.has('location') },
+        { id: 'tickets', label: 'Tickets & Pricing', isExpanded: expandedSections.has('tickets') },
+        { id: 'tags', label: 'Tags', isExpanded: expandedSections.has('tags') },
+        { id: 'image', label: 'Event Image', isExpanded: expandedSections.has('image') },
+        { id: 'faqs', label: 'FAQs', isExpanded: expandedSections.has('faqs'), isOptional: true },
+        { id: 'additional', label: 'Additional Details', isExpanded: expandedSections.has('additional'), isOptional: true },
+        { id: 'access', label: 'Access Control', isExpanded: expandedSections.has('access'), isOptional: true },
+    ];
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#083157] to-[#064580] overflow-visible">
+            {/* Form Progress Indicator */}
+            <FormProgressIndicator sections={progressSections} mandatoryEndIndex={5} />
+
             {/* Fixed Header with blue theme */}
             <div className="sticky top-20 md:top-24 z-40 bg-gradient-to-r from-blue-600/20 to-blue-700/70 backdrop-blur-sm border-b border-blue-500/20 shadow-lg">
                 <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -1090,13 +1113,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                             <motion.button
                                 type="button"
                                 onClick={allExpanded ? collapseAll : expandAll}
-                                className="flex items-center gap-2 px-3 py-2 text-white/90 hover:text-white border border-white/30 hover:border-white/50 rounded-lg font-medium transition-colors backdrop-blur text-xs sm:text-sm"
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                title={allExpanded ? "Collapse All Sections" : "Expand All Sections"}
+                                className="text-white/80 hover:text-white text-xs sm:text-sm font-medium transition-colors underline decoration-white/30 hover:decoration-white underline-offset-4"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                             >
-                                <ChevronDownIcon className="w-4 h-4" />
-                                <span className="hidden md:inline">Toggle Sections</span>
+                                {allExpanded ? "Collapse All" : "Expand All"}
                             </motion.button>
 
                             <motion.button
@@ -1144,6 +1165,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                         <AnimatedSection>
                             <ToggleableFormSection
                                 id="basic-info"
+                                stepNumber={1}
                                 title="Basic Information"
                                 icon={<FileText className="w-4 h-4" />}
                                 subtitle="Tell us about your event"
@@ -1227,6 +1249,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                         <AnimatedSection>
                             <ToggleableFormSection
                                 id="date-time"
+                                stepNumber={2}
                                 title="Date & Time"
                                 icon={<Calendar className="w-4 h-4" />}
                                 subtitle="When is your event happening?"
@@ -1297,6 +1320,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                         <AnimatedSection>
                             <ToggleableFormSection
                                 id="location"
+                                stepNumber={3}
                                 title="Location"
                                 icon={<MapPin className="w-4 h-4" />}
                                 subtitle="Where will your event take place?"
@@ -1351,18 +1375,45 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     </div>
                                 </div>
                             </div>
+                            </ToggleableFormSection>
+                        </AnimatedSection>
+
+                        {/* Tickets & Pricing */}
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="tickets"
+                                stepNumber={4}
+                                title="Tickets & Pricing"
+                                icon={<Ticket className="w-4 h-4" />}
+                                subtitle="Set up ticket types and pricing for your event"
+                                isExpanded={expandedSections.has('tickets')}
+                                onToggle={() => toggleSection('tickets')}
+                            >
+                            <div className="overflow-visible">
+                                <TicketManager
+                                    tickets={tickets}
+                                    onChange={setTickets}
+                                    hasStripeAccount={isReady}
+                                />
+                            </div>
+                            </ToggleableFormSection>
                         </AnimatedSection>
 
                         {/* Tags */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">
-                                    Tags <span className="text-red-300">*</span>
-                                </h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Help people find your event</p>
-                            </div>
-
-                            <div className="lg:col-span-9 space-y-4">
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="tags"
+                                stepNumber={5}
+                                title="Tags"
+                                icon={<Tag className="w-4 h-4" />}
+                                subtitle="Help people find your event"
+                                isExpanded={expandedSections.has('tags')}
+                                onToggle={() => toggleSection('tags')}
+                                hasErrors={!!errors.tags}
+                                errorCount={errors.tags ? 1 : 0}
+                                isComplete={selectedTags > 0}
+                            >
+                            <div className="space-y-4">
                                 {/* Hidden field for tags validation */}
                                 <input
                                     {...register("tags", {
@@ -1424,16 +1475,21 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     <p className="mt-2 text-sm text-red-300">{errors.tags.message}</p>
                                 )}
                             </div>
+                            </ToggleableFormSection>
                         </AnimatedSection>
 
                         {/* Event Image */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Event Image</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Choose an image to represent your event</p>
-                            </div>
-
-                            <div className="lg:col-span-9">
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="image"
+                                stepNumber={6}
+                                title="Event Image"
+                                icon={<ImageIcon className="w-4 h-4" />}
+                                subtitle="Choose an image to represent your event"
+                                isExpanded={expandedSections.has('image')}
+                                onToggle={() => toggleSection('image')}
+                            >
+                            <div>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                                     <div className="space-y-6">
                                         <div>
@@ -1538,34 +1594,42 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     )}
                                 </div>
                             </div>
+                            </ToggleableFormSection>
                         </AnimatedSection>
 
                         {/* FAQs */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">FAQs</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Help attendees with common questions</p>
-                            </div>
-
-                            <div className="lg:col-span-9">
-                                <FAQManager
-                                    faqs={watchedValues.faqs || []}
-                                    register={register}
-                                    setValue={setValue}
-                                    watch={watch}
-                                    errors={errors as { faqs?: { question?: { message?: string }; answer?: { message?: string } }[] }}
-                                />
-                            </div>
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="faqs"
+                                stepNumber={7}
+                                title="FAQs"
+                                icon={<HelpCircle className="w-4 h-4" />}
+                                subtitle="Help attendees with common questions"
+                                isExpanded={expandedSections.has('faqs')}
+                                onToggle={() => toggleSection('faqs')}
+                            >
+                            <FAQManager
+                                faqs={watchedValues.faqs || []}
+                                register={register}
+                                setValue={setValue}
+                                watch={watch}
+                                errors={errors as { faqs?: { question?: { message?: string }; answer?: { message?: string } }[] }}
+                            />
+                            </ToggleableFormSection>
                         </AnimatedSection>
 
                         {/* Additional Details */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Additional Details</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Optional information to help attendees</p>
-                            </div>
-
-                            <div className="lg:col-span-9 space-y-6">
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="additional"
+                                stepNumber={8}
+                                title="Additional Details"
+                                icon={<Settings className="w-4 h-4" />}
+                                subtitle="Optional information to help attendees"
+                                isExpanded={expandedSections.has('additional')}
+                                onToggle={() => toggleSection('additional')}
+                            >
+                            <div className="space-y-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-sm font-medium text-white mb-3 w-full">
@@ -1726,32 +1790,21 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     </div>
                                 </div>
                             </div>
-                        </AnimatedSection>
-
-                        {/* Tickets & Pricing */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Tickets & Pricing</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Set up ticket types and pricing for your event</p>
-                            </div>
-
-                            <div className="lg:col-span-9 overflow-visible">
-                                <TicketManager
-                                    tickets={tickets}
-                                    onChange={setTickets}
-                                    hasStripeAccount={isReady}
-                                />
-                            </div>
+                            </ToggleableFormSection>
                         </AnimatedSection>
 
                         {/* Access Controls */}
-                        <AnimatedSection className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-                            <div className="lg:col-span-3 text-left lg:text-right px-1 lg:px-0">
-                                <h2 className="text-xl sm:text-2xl font-semibold text-white mb-2">Access Control</h2>
-                                <p className="text-blue-200 text-sm mb-4 lg:mb-0">Control who can see and register for your event</p>
-                            </div>
-
-                            <div className="lg:col-span-9 overflow-visible">
+                        <AnimatedSection>
+                            <ToggleableFormSection
+                                id="access"
+                                stepNumber={9}
+                                title="Access Control"
+                                icon={<Lock className="w-4 h-4" />}
+                                subtitle="Control who can see and register for your event"
+                                isExpanded={expandedSections.has('access')}
+                                onToggle={() => toggleSection('access')}
+                            >
+                            <div className="overflow-visible">
                                 <EventAccessControls
                                     visibilityLevel={watchedValues.visibility_level || 'public'}
                                     registrationLevel={watchedValues.registration_level || 'public'}
@@ -1761,6 +1814,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     onAllowedUniversitiesChange={(universities) => setValue("allowed_universities", universities, { shouldValidate: true })}
                                 />
                             </div>
+                            </ToggleableFormSection>
                         </AnimatedSection>
                     </form>
                 </div>
