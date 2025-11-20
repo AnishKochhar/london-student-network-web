@@ -9,6 +9,7 @@ import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon } from
 import { upload } from "@vercel/blob/client";
 import { EventFormData, Event } from "@/app/lib/types";
 import { placeholderImages, createModernEventObject, validateModernEvent, EVENT_TAG_TYPES } from "@/app/lib/utils";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import { DefaultEvent } from "@/app/lib/types";
 import EventModal from "./event-modal";
 import Image from "next/image";
@@ -984,7 +985,8 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                 // Redirect to the event page (or manage page if just created)
                 if (result.event?.id) {
                     const eventId = result.event.id;
-                    router.push(editMode ? `/events/${eventId}` : `/events/${eventId}/manage`);
+                    const shortId = base16ToBase62(eventId);
+                    router.push(editMode ? `/events/${shortId}` : `/events/${shortId}/manage`);
                 } else {
                     router.push("/events");
                 }
