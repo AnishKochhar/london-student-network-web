@@ -6,6 +6,7 @@ import { scheduleOrganizerSummaryEmail } from '@/app/lib/functions/events/schedu
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes - handles large events with many registrations
 
 export async function GET(request: Request) {
     try {
