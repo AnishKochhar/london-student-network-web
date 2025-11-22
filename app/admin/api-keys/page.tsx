@@ -45,7 +45,7 @@ export default function ApiKeysPage() {
 
     useEffect(() => {
         if (status === "unauthenticated") {
-            router.push("/login");
+            router.push("/login?callbackUrl=/admin/api-keys");
         } else if (session?.user?.role !== "admin") {
             router.push("/");
         } else {
