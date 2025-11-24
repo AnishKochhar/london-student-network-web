@@ -9,7 +9,7 @@ import Link from "next/link";
 export default async function AdminContactPage() {
     const session = await auth();
     if (!session) {
-        redirect("/login");
+        redirect("/login?callbackUrl=/admin/contact-form");
     }
 
     if (session.user?.role !== "admin") {

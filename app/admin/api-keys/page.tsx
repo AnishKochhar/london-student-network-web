@@ -44,11 +44,16 @@ export default function ApiKeysPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     useEffect(() => {
+        if (status === "loading") {
+            // Wait for session to load
+            return;
+        }
+
         if (status === "unauthenticated") {
             router.push("/login?callbackUrl=/admin/api-keys");
-        } else if (session?.user?.role !== "admin") {
+        } else if (status === "authenticated" && session?.user?.role !== "admin") {
             router.push("/");
-        } else {
+        } else if (status === "authenticated" && session?.user?.role === "admin") {
             fetchKeys();
         }
     }, [status, session, router]);
