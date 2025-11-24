@@ -3,14 +3,13 @@
 import { useState, useEffect } from "react";
 import {
     Eye, Users, TrendingUp,
-    Globe, Smartphone, ArrowLeft, Calendar, Monitor,
+    Globe, Smartphone, Calendar, Monitor,
     DollarSign, Receipt, CreditCard, ExternalLink
 } from "lucide-react";
 import {
     LineChart, Line, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
-import Link from "next/link";
 import toast from "react-hot-toast";
 
 interface AdminAnalyticsData {
@@ -156,17 +155,9 @@ export default function AdminAnalyticsPage() {
             <div className="bg-white/5 backdrop-blur-lg border-b border-white/10 sticky top-0 z-10">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <Link
-                                href="/admin"
-                                className="text-white/70 hover:text-white transition-colors"
-                            >
-                                <ArrowLeft className="w-5 h-5" />
-                            </Link>
-                            <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-white">Platform Analytics</h1>
-                                <p className="text-sm text-white/60 mt-1">Monitor event engagement across the network</p>
-                            </div>
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-white">Platform Analytics</h1>
+                            <p className="text-sm text-white/60 mt-1">Monitor event engagement across the network</p>
                         </div>
                         <select
                             value={days}

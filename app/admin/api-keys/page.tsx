@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
+import AdminPageHeader from "@/app/components/admin/admin-page-header";
+import CreateApiKeyModal from "./components/create-api-key-modal";
 import {
     KeyIcon,
     PlusIcon,
@@ -38,25 +39,13 @@ interface ApiKey {
 
 export default function ApiKeysPage() {
     const router = useRouter();
-    const { data: session, status } = useSession();
     const [keys, setKeys] = useState<ApiKey[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     useEffect(() => {
-        if (status === "loading") {
-            // Wait for session to load
-            return;
-        }
-
-        if (status === "unauthenticated") {
-            router.push("/login?callbackUrl=/admin/api-keys");
-        } else if (status === "authenticated" && session?.user?.role !== "admin") {
-            router.push("/");
-        } else if (status === "authenticated" && session?.user?.role === "admin") {
-            fetchKeys();
-        }
-    }, [status, session, router]);
+        fetchKeys();
+    }, []);
 
     const fetchKeys = async () => {
         try {
@@ -152,15 +141,20 @@ export default function ApiKeysPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-                <div className="max-w-7xl mx-auto">
-                    <div className="animate-pulse">
-                        <div className="h-8 bg-slate-200 rounded w-1/4 mb-6"></div>
-                        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
-                            <div className="h-4 bg-slate-200 rounded w-full mb-4"></div>
-                            <div className="h-4 bg-slate-200 rounded w-full mb-4"></div>
-                            <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                        </div>
+            <div className="min-h-screen">
+                <AdminPageHeader
+                    title="API Keys"
+                    description="Manage API keys for integrations like n8n, Zapier, and custom applications"
+                    breadcrumbs={[
+                        { label: "Dashboard", href: "/admin" },
+                        { label: "API Keys" },
+                    ]}
+                />
+                <div className="p-6 sm:p-8">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-4 bg-slate-200 rounded w-full"></div>
+                        <div className="h-4 bg-slate-200 rounded w-full"></div>
+                        <div className="h-4 bg-slate-200 rounded w-3/4"></div>
                     </div>
                 </div>
             </div>
@@ -168,29 +162,27 @@ export default function ApiKeysPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                                <KeyIcon className="w-8 h-8 text-blue-600" />
-                                API Keys
-                            </h1>
-                            <p className="mt-2 text-slate-600">
-                                Manage API keys for integrations like n8n, Zapier, and custom applications
-                            </p>
-                        </div>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                        >
-                            <PlusIcon className="w-5 h-5" />
-                            Create New Key
-                        </button>
-                    </div>
-                </div>
+        <div className="min-h-screen">
+            <AdminPageHeader
+                title="API Keys"
+                description="Manage API keys for integrations like n8n, Zapier, and custom applications"
+                breadcrumbs={[
+                    { label: "Dashboard", href: "/admin" },
+                    { label: "API Keys" },
+                ]}
+                actions={
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    >
+                        <PlusIcon className="w-5 h-5" />
+                        Create New Key
+                    </button>
+                }
+            />
+
+            <div className="p-6 sm:p-8">
+                {/* Stats Cards */}
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -338,6 +330,3 @@ export default function ApiKeysPage() {
         </div>
     );
 }
-
-// Import the create modal component (we'll create this next)
-import CreateApiKeyModal from "./components/create-api-key-modal";
