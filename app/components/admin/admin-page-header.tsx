@@ -20,22 +20,22 @@ export default function AdminPageHeader({
     actions,
 }: AdminPageHeaderProps) {
     return (
-        <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-            <div className="px-6 py-4 sm:px-8">
+        <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+            <div className="px-6 py-5 sm:px-8">
                 {/* Breadcrumbs */}
                 {breadcrumbs && breadcrumbs.length > 0 && (
-                    <nav className="flex items-center gap-2 text-sm mb-3">
+                    <nav className="flex items-center gap-2 text-sm mb-4">
                         {breadcrumbs.map((crumb, index) => (
                             <div key={index} className="flex items-center gap-2">
                                 {crumb.href ? (
                                     <Link
                                         href={crumb.href}
-                                        className="text-slate-600 hover:text-slate-900 transition-colors"
+                                        className="text-slate-500 hover:text-blue-600 transition-colors font-medium"
                                     >
                                         {crumb.label}
                                     </Link>
                                 ) : (
-                                    <span className="text-slate-400">{crumb.label}</span>
+                                    <span className="text-slate-900 font-medium">{crumb.label}</span>
                                 )}
                                 {index < breadcrumbs.length - 1 && (
                                     <ChevronRightIcon className="w-4 h-4 text-slate-400" />
@@ -48,11 +48,11 @@ export default function AdminPageHeader({
                 {/* Title and Actions */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                             {title}
                         </h1>
                         {description && (
-                            <p className="text-sm text-slate-600 mt-1">{description}</p>
+                            <p className="text-sm text-slate-600 mt-1.5 max-w-2xl">{description}</p>
                         )}
                     </div>
                     {actions && <div className="flex items-center gap-3">{actions}</div>}

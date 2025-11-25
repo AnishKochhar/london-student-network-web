@@ -1,8 +1,7 @@
-"use server";
-
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AdminSidebar from "../components/admin/admin-sidebar";
+import "../globals.css";
 
 export default async function AdminLayout({
     children,
@@ -21,7 +20,7 @@ export default async function AdminLayout({
     }
 
     return (
-        <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="flex h-screen bg-slate-50 overflow-hidden">
             {/* Sidebar */}
             <AdminSidebar user={session.user} />
 

@@ -91,55 +91,63 @@ export default async function AdminDashboardPage() {
                 description="Welcome to the LSN Admin Dashboard"
             />
 
-            <div className="p-6 sm:p-8 space-y-8">
+            <div className="p-6 sm:p-8 space-y-8 bg-slate-50">
                 {/* Quick Stats Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-slate-600">Total Events</p>
-                            <CalendarDaysIcon className="w-5 h-5 text-blue-600" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-blue-100 uppercase tracking-wider">Total Events</p>
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                <CalendarDaysIcon className="w-5 h-5" />
+                            </div>
                         </div>
-                        <p className="text-3xl font-bold text-slate-900">{stats.events.total}</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                            {stats.events.active} upcoming
+                        <p className="text-4xl font-bold mb-1">{stats.events.total}</p>
+                        <p className="text-sm text-blue-100">
+                            {stats.events.active} upcoming events
                         </p>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-slate-600">Total Users</p>
-                            <UsersIcon className="w-5 h-5 text-green-600" />
+                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-emerald-100 uppercase tracking-wider">Total Users</p>
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                <UsersIcon className="w-5 h-5" />
+                            </div>
                         </div>
-                        <p className="text-3xl font-bold text-slate-900">
+                        <p className="text-4xl font-bold mb-1">
                             {stats.users.total.toLocaleString()}
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-sm text-emerald-100">
                             +{stats.users.new_this_week} this week
                         </p>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-slate-600">Registrations</p>
-                            <TicketIcon className="w-5 h-5 text-purple-600" />
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-purple-100 uppercase tracking-wider">Registrations</p>
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                <TicketIcon className="w-5 h-5" />
+                            </div>
                         </div>
-                        <p className="text-3xl font-bold text-slate-900">
+                        <p className="text-4xl font-bold mb-1">
                             {stats.registrations.total.toLocaleString()}
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-sm text-purple-100">
                             +{stats.registrations.this_week} this week
                         </p>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-slate-600">Revenue</p>
-                            <CurrencyPoundIcon className="w-5 h-5 text-orange-600" />
+                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-amber-100 uppercase tracking-wider">Revenue</p>
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                <CurrencyPoundIcon className="w-5 h-5" />
+                            </div>
                         </div>
-                        <p className="text-3xl font-bold text-slate-900">
+                        <p className="text-4xl font-bold mb-1">
                             £{(stats.revenue.total / 100).toFixed(0)}
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-sm text-amber-100">
                             £{(stats.revenue.this_month / 100).toFixed(0)} this month
                         </p>
                     </div>
@@ -147,9 +155,9 @@ export default async function AdminDashboardPage() {
 
                 {/* Quick Actions Section */}
                 <div>
-                    <div className="flex items-center gap-2 mb-6">
-                        <SparklesIcon className="w-6 h-6 text-blue-600" />
-                        <h2 className="text-xl font-bold text-slate-900">Quick Actions</h2>
+                    <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-slate-900 mb-1">Quick Actions</h2>
+                        <p className="text-sm text-slate-600">Navigate to different admin sections</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -216,12 +224,16 @@ export default async function AdminDashboardPage() {
                 </div>
 
                 {/* Recent Activity Section (Future Enhancement) */}
-                <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+                    <h2 className="text-xl font-bold text-slate-900 mb-6">
                         Recent Activity
                     </h2>
-                    <div className="text-center py-8 text-slate-500">
-                        <p className="text-sm">Activity feed coming soon...</p>
+                    <div className="text-center py-12">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <SparklesIcon className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <p className="text-sm text-slate-500 font-medium">Activity feed coming soon</p>
+                        <p className="text-xs text-slate-400 mt-1">Track platform events and user actions in real-time</p>
                     </div>
                 </div>
             </div>
