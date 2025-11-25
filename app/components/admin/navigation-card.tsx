@@ -1,11 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import {
+    CalendarDaysIcon,
+    ChartBarIcon,
+    KeyIcon,
+    EnvelopeIcon,
+    Cog6ToothIcon,
+    TicketIcon,
+} from "@heroicons/react/24/outline";
 
 interface NavigationCardProps {
     title: string;
     description: string;
-    icon: React.ComponentType<{ className?: string }>;
+    iconName: "calendar" | "chart" | "key" | "envelope" | "settings" | "ticket";
     href: string;
     stats?: {
         label: string;
@@ -15,15 +23,25 @@ interface NavigationCardProps {
     comingSoon?: boolean;
 }
 
+const iconMap = {
+    calendar: CalendarDaysIcon,
+    chart: ChartBarIcon,
+    key: KeyIcon,
+    envelope: EnvelopeIcon,
+    settings: Cog6ToothIcon,
+    ticket: TicketIcon,
+};
+
 export default function NavigationCard({
     title,
     description,
-    icon: Icon,
+    iconName,
     href,
     stats,
     badge,
     comingSoon = false,
 }: NavigationCardProps) {
+    const Icon = iconMap[iconName];
     const CardContent = (
         <div
             className={`

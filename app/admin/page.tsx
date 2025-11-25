@@ -5,14 +5,10 @@ import AdminPageHeader from "../components/admin/admin-page-header";
 import NavigationCard from "../components/admin/navigation-card";
 import {
     CalendarDaysIcon,
-    ChartBarIcon,
-    KeyIcon,
-    EnvelopeIcon,
-    Cog6ToothIcon,
-    TicketIcon,
     UsersIcon,
     CurrencyPoundIcon,
     SparklesIcon,
+    TicketIcon,
 } from "@heroicons/react/24/outline";
 
 async function getDashboardStats() {
@@ -39,7 +35,7 @@ async function getDashboardStats() {
         const registrationsResult = await sql`
             SELECT
                 COUNT(*)::integer as total,
-                COUNT(*) FILTER (WHERE registered_at > NOW() - INTERVAL '7 days')::integer as this_week
+                COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days')::integer as this_week
             FROM event_registrations
         `;
 
@@ -51,14 +47,20 @@ async function getDashboardStats() {
             FROM api_keys
         `;
 
-        // Get revenue data (if tickets exist)
-        const revenueResult = await sql`
-            SELECT
-                COALESCE(SUM(amount_total), 0)::integer as total,
-                COALESCE(SUM(amount_total) FILTER (WHERE created_at > NOW() - INTERVAL '30 days'), 0)::integer as this_month
-            FROM transactions
-            WHERE status = 'completed'
-        `;
+        // Get revenue data (if transactions table exists)
+        let revenueResult;
+        try {
+            revenueResult = await sql`
+                SELECT
+                    COALESCE(SUM(amount_total), 0)::integer as total,
+                    COALESCE(SUM(amount_total) FILTER (WHERE created_at > NOW() - INTERVAL '30 days'), 0)::integer as this_month
+                FROM transactions
+                WHERE status = 'completed'
+            `;
+        } catch (error) {
+            // Transactions table might not exist yet
+            revenueResult = { rows: [{ total: 0, this_month: 0 }] };
+        }
 
         return {
             events: eventsResult.rows[0],
@@ -154,7 +156,7 @@ export default async function AdminDashboardPage() {
                         <NavigationCard
                             title="Events"
                             description="Manage all platform events"
-                            icon={CalendarDaysIcon}
+                            iconName="calendar"
                             href="/admin/events"
                             stats={{
                                 label: "Active Events",
@@ -165,7 +167,7 @@ export default async function AdminDashboardPage() {
                         <NavigationCard
                             title="Analytics"
                             description="View platform statistics"
-                            icon={ChartBarIcon}
+                            iconName="chart"
                             href="/admin/analytics"
                             stats={{
                                 label: "Total Registrations",
@@ -176,7 +178,7 @@ export default async function AdminDashboardPage() {
                         <NavigationCard
                             title="API Keys"
                             description="Manage integration keys"
-                            icon={KeyIcon}
+                            iconName="key"
                             href="/admin/api-keys"
                             stats={{
                                 label: "Active Keys",
@@ -187,14 +189,14 @@ export default async function AdminDashboardPage() {
                         <NavigationCard
                             title="Contact Forms"
                             description="Review submissions"
-                            icon={EnvelopeIcon}
+                            iconName="envelope"
                             href="/admin/contact-forms"
                         />
 
                         <NavigationCard
                             title="Tickets & Sales"
                             description="Revenue and transactions"
-                            icon={TicketIcon}
+                            iconName="ticket"
                             href="/admin/tickets"
                             stats={{
                                 label: "Total Revenue",
@@ -206,7 +208,7 @@ export default async function AdminDashboardPage() {
                         <NavigationCard
                             title="Settings"
                             description="Platform configuration"
-                            icon={Cog6ToothIcon}
+                            iconName="settings"
                             href="/admin/settings"
                             comingSoon
                         />
