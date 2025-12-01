@@ -57,11 +57,11 @@ export default function NavigationCard({
     const CardContent = (
         <div
             className={`
-                relative bg-white rounded-2xl border border-slate-200 p-6
+                relative bg-white/5 backdrop-blur-sm rounded-2xl border border-blue-800/30 p-6
                 transition-all duration-300 h-full
                 ${comingSoon
                     ? "opacity-60 cursor-not-allowed"
-                    : "hover:shadow-xl hover:border-blue-300 hover:-translate-y-1 cursor-pointer"
+                    : "hover:shadow-xl hover:border-blue-500/50 hover:bg-white/10 hover:-translate-y-1 cursor-pointer"
                 }
                 group
             `}
@@ -75,7 +75,7 @@ export default function NavigationCard({
 
             {/* Coming Soon Badge */}
             {comingSoon && (
-                <div className="absolute top-4 right-4 bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full border border-amber-200">
+                <div className="absolute top-4 right-4 bg-amber-500/20 text-amber-300 text-xs font-semibold px-3 py-1 rounded-full border border-amber-400/30">
                     Soon
                 </div>
             )}
@@ -92,21 +92,21 @@ export default function NavigationCard({
 
                 {/* Content */}
                 <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                    <h3 className="text-lg font-bold text-white mb-2">
                         {title}
                     </h3>
-                    <p className="text-sm text-slate-600 leading-relaxed">
+                    <p className="text-sm text-blue-200 leading-relaxed">
                         {description}
                     </p>
                 </div>
 
                 {/* Stats */}
                 {stats && (
-                    <div className="mt-6 pt-4 border-t border-slate-100">
-                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                    <div className="mt-6 pt-4 border-t border-blue-700/30">
+                        <p className="text-xs font-medium text-blue-300 uppercase tracking-wider mb-1">
                             {stats.label}
                         </p>
-                        <p className="text-2xl font-bold text-slate-900">
+                        <p className="text-2xl font-bold text-white">
                             {stats.value}
                         </p>
                     </div>
@@ -114,7 +114,7 @@ export default function NavigationCard({
 
                 {/* Action indicator */}
                 {!comingSoon && (
-                    <div className="flex items-center gap-2 mt-4 text-sm font-semibold text-blue-600 group-hover:gap-3 transition-all">
+                    <div className="flex items-center gap-2 mt-4 text-sm font-semibold text-blue-300 group-hover:text-white group-hover:gap-3 transition-all">
                         <span>View details</span>
                         <ArrowRightIcon className="w-4 h-4" />
                     </div>

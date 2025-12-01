@@ -20,7 +20,7 @@ export default async function AdminLayout({
     }
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <div className="flex h-screen bg-gradient-to-br from-[#0a0a0a] via-[#083157] to-[#064580] overflow-hidden">
             {/* Sidebar */}
             <AdminSidebar user={session.user} />
 

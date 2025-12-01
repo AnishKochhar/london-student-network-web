@@ -75,22 +75,22 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
             <aside
                 className={`
                     fixed lg:static inset-y-0 left-0 z-40
-                    w-72 bg-white border-r border-slate-200
+                    w-72 bg-gradient-to-b from-[#0a0a0a] via-[#083157] to-[#064580] border-r border-blue-900/50
                     transform transition-transform duration-300 ease-in-out
                     flex flex-col shadow-xl lg:shadow-none
                     ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
                 `}
             >
                 {/* Logo/Brand */}
-                <div className="flex items-center gap-3 h-16 px-6 border-b border-slate-200 bg-gradient-to-r from-blue-600 to-indigo-600">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <div className="flex items-center gap-3 h-16 px-6 border-b border-blue-800/30">
+                    <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-sm flex items-center justify-center">
                         <span className="text-white font-bold text-sm">LSN</span>
                     </div>
                     <div>
                         <h1 className="text-base font-bold text-white">
                             Admin Portal
                         </h1>
-                        <p className="text-xs text-blue-100">Management Dashboard</p>
+                        <p className="text-xs text-blue-200">Management Dashboard</p>
                     </div>
                 </div>
 
@@ -109,17 +109,17 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
                                     flex items-center gap-3 px-4 py-3 rounded-xl
                                     transition-all duration-200 group relative
                                     ${active
-                                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-sm"
-                                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                        ? "bg-white/10 text-white shadow-lg"
+                                        : "text-blue-200 hover:bg-white/5 hover:text-white"
                                     }
                                 `}
                             >
                                 <Icon className={`w-5 h-5 flex-shrink-0 transition-colors ${
-                                    active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+                                    active ? "text-white" : "text-blue-300 group-hover:text-white"
                                 }`} />
                                 <span className="font-medium text-sm">{item.name}</span>
                                 {active && (
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full" />
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-white rounded-r-full" />
                                 )}
                                 {item.badge !== undefined && (
                                     <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
@@ -132,23 +132,23 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
                 </nav>
 
                 {/* User Section */}
-                <div className="border-t border-slate-200 p-4 bg-slate-50">
+                <div className="border-t border-blue-800/30 p-4 bg-black/20">
                     <div className="flex items-center gap-3 mb-3 px-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-semibold text-sm shadow-md">
                             {user.name?.charAt(0).toUpperCase() || "A"}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">
+                            <p className="text-sm font-semibold text-white truncate">
                                 {user.name || "Admin User"}
                             </p>
-                            <p className="text-xs text-slate-500 truncate">
+                            <p className="text-xs text-blue-200 truncate">
                                 {user.email || "admin@lsn.com"}
                             </p>
                         </div>
                     </div>
                     <Link
                         href="/logout"
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:text-slate-900 hover:bg-white rounded-lg transition-colors border border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm text-blue-100 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-blue-700/50 hover:border-blue-600"
                     >
                         <ArrowRightOnRectangleIcon className="w-4 h-4" />
                         <span className="font-medium">Sign Out</span>
