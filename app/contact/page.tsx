@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     ChevronDownIcon,
     UserIcon,
@@ -51,6 +51,23 @@ export default function ContactPage() {
     } = useForm<ContactFormData>();
 
     const [status, setStatus] = useState<string | null>(null);
+    const [formToken, setFormToken] = useState<string | null>(null);
+
+    // Fetch form token on mount (for bot protection)
+    useEffect(() => {
+        const fetchToken = async () => {
+            try {
+                const response = await fetch("/api/form-token");
+                if (response.ok) {
+                    const data = await response.json();
+                    setFormToken(data.token);
+                }
+            } catch (error) {
+                console.error("Failed to fetch form token:", error);
+            }
+        };
+        fetchToken();
+    }, []);
 
     const onSubmit = async (data: ContactFormData) => {
         setStatus("Sending...");
@@ -64,6 +81,7 @@ export default function ContactPage() {
                 inquiryPurpose: data.inquiryPurpose,
                 description: data.description,
                 organisation: data.organisation || "",
+                formToken: formToken, // Include token for bot protection
             };
 
             const response = await fetch("/api/send-email", {
@@ -77,8 +95,15 @@ export default function ContactPage() {
             if (response.ok) {
                 setStatus("Form submitted successfully!");
                 reset();
+                // Refresh token for potential next submission
+                const tokenResponse = await fetch("/api/form-token");
+                if (tokenResponse.ok) {
+                    const tokenData = await tokenResponse.json();
+                    setFormToken(tokenData.token);
+                }
             } else {
-                setStatus("Failed to submit the form.");
+                const errorData = await response.json().catch(() => ({}));
+                setStatus(errorData.message || "Failed to submit the form.");
             }
         } catch (error) {
             console.error("Error submitting the form:", error);
