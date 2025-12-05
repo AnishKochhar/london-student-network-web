@@ -71,17 +71,17 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
                         <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 shrink-0" />
                     </div>
                     <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.organizerEarnings)}</p>
-                    <p className="text-xs text-white/70 mt-1">After platform fee</p>
+                    <p className="text-xs text-white/70 mt-1">After transaction fees</p>
                 </div>
 
-                {/* Platform Fee */}
+                {/* Transaction Fees */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs sm:text-sm font-medium text-white/80">Platform Fee</p>
+                        <p className="text-xs sm:text-sm font-medium text-white/80">Transaction Fees</p>
                         <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 shrink-0" />
                     </div>
                     <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.platformFee)}</p>
-                    <p className="text-xs text-white/70 mt-1">LSN service fee</p>
+                    <p className="text-xs text-white/70 mt-1">Mostly card processing (Stripe)</p>
                 </div>
 
                 {/* Total Transactions */}

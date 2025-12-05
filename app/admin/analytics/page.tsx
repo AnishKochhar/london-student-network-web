@@ -10,7 +10,12 @@ import {
     LineChart, Line, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
+
 import toast from "react-hot-toast";
+
+// Stripe's EU/international rate for fee estimation
+const STRIPE_PERCENTAGE_RATE = 0.025; // 2.5%
+const STRIPE_FIXED_FEE_PENCE = 20; // 20p per transaction
 
 interface AdminAnalyticsData {
     overview: {
@@ -238,18 +243,7 @@ export default function AdminAnalyticsPage() {
                                 </a>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <p className="text-sm font-medium text-white/80">Platform Fees Collected</p>
-                                        <DollarSign className="w-5 h-5 text-green-400" />
-                                    </div>
-                                    <p className="text-3xl font-bold text-white">
-                                        {formatCurrency(revenue_overview.total_platform_fees)}
-                                    </p>
-                                    <p className="text-xs text-white/60 mt-2">Your earnings</p>
-                                </div>
-
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
                                     <div className="flex items-center justify-between mb-2">
                                         <p className="text-sm font-medium text-white/80">Total Gross Revenue</p>
@@ -263,6 +257,48 @@ export default function AdminAnalyticsPage() {
 
                                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
                                     <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-white/80">Transaction Fees (Gross)</p>
+                                        <DollarSign className="w-5 h-5 text-yellow-400" />
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">
+                                        {formatCurrency(revenue_overview.total_platform_fees)}
+                                    </p>
+                                    <p className="text-xs text-white/60 mt-2">Before Stripe&apos;s cut</p>
+                                </div>
+
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-white/80">Est. Stripe Fees</p>
+                                        <CreditCard className="w-5 h-5 text-red-400" />
+                                    </div>
+                                    <p className="text-3xl font-bold text-red-400">
+                                        -{formatCurrency(
+                                            Math.round(revenue_overview.total_gross_revenue * STRIPE_PERCENTAGE_RATE) +
+                                            (revenue_overview.successful_transactions * STRIPE_FIXED_FEE_PENCE)
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-white/60 mt-2">~2.5% + 20p per txn</p>
+                                </div>
+
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-green-500/30">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-white/80">LSN Net Earnings</p>
+                                        <TrendingUp className="w-5 h-5 text-green-400" />
+                                    </div>
+                                    <p className="text-3xl font-bold text-green-400">
+                                        {formatCurrency(
+                                            revenue_overview.total_platform_fees -
+                                            (Math.round(revenue_overview.total_gross_revenue * STRIPE_PERCENTAGE_RATE) +
+                                            (revenue_overview.successful_transactions * STRIPE_FIXED_FEE_PENCE))
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-white/60 mt-2">Actual platform revenue</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
+                                    <div className="flex items-center justify-between mb-2">
                                         <p className="text-sm font-medium text-white/80">Tickets Sold</p>
                                         <Receipt className="w-5 h-5 text-orange-400" />
                                     </div>
@@ -271,6 +307,19 @@ export default function AdminAnalyticsPage() {
                                     </p>
                                     <p className="text-xs text-white/60 mt-2">
                                         {revenue_overview.successful_transactions} transactions
+                                    </p>
+                                </div>
+
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-5 border border-white/10">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-sm font-medium text-white/80">Organiser Payouts</p>
+                                        <Users className="w-5 h-5 text-purple-400" />
+                                    </div>
+                                    <p className="text-3xl font-bold text-white">
+                                        {formatCurrency(revenue_overview.total_organizer_earnings)}
+                                    </p>
+                                    <p className="text-xs text-white/60 mt-2">
+                                        {revenue_overview.paid_events_count} paid events
                                     </p>
                                 </div>
                             </div>
@@ -288,7 +337,7 @@ export default function AdminAnalyticsPage() {
                                                 <th className="text-left py-3 px-4 text-white/80 font-medium text-sm">Organiser</th>
                                                 <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Tickets</th>
                                                 <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Revenue</th>
-                                                <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Your Fees</th>
+                                                <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Gross Fees</th>
                                                 <th className="text-right py-3 px-4 text-white/80 font-medium text-sm">Views</th>
                                             </tr>
                                         </thead>
