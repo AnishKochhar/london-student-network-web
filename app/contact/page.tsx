@@ -15,25 +15,6 @@ import Script from "next/script";
 // Turnstile site key - must be set in environment variables
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
-// Extend window for Turnstile
-declare global {
-    interface Window {
-        turnstile?: {
-            render: (container: string | HTMLElement, options: TurnstileOptions) => string;
-            reset: (widgetId: string) => void;
-            remove: (widgetId: string) => void;
-        };
-    }
-}
-
-interface TurnstileOptions {
-    sitekey: string;
-    callback: (token: string) => void;
-    "error-callback"?: () => void;
-    "expired-callback"?: () => void;
-    theme?: "light" | "dark" | "auto";
-}
-
 interface ContactFormData {
     inquiryPurpose: string;
     description: string;
@@ -154,7 +135,7 @@ export default function ContactPage() {
                 turnstileToken: turnstileToken, // Primary bot protection
             };
 
-            const response = await fetch("/api/send-email", {
+            const response = await fetch("/api/contact", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

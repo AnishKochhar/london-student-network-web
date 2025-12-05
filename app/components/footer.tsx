@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import Script from "next/script";
 import instagramIcon from "@/public/icons/instagram.svg";
 import linkedinIcon from "@/public/icons/linkedin.svg";
 import mailIcon from "@/public/icons/mail.svg";
@@ -12,38 +13,93 @@ import { Input } from "@/app/components/input";
 import { Send } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 
+// Turnstile site key
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
 export default function Footer() {
     const [email, setEmail] = useState("");
+    const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+    const turnstileWidgetId = useRef<string | null>(null);
+    const turnstileContainerRef = useRef<HTMLDivElement>(null);
     const ref = useRef(null);
     const isInView = useInView(ref, { once: false, amount: 0.1 });
 
+    const handleTurnstileCallback = useCallback((token: string) => {
+        setTurnstileToken(token);
+    }, []);
+
+    const renderTurnstile = useCallback(() => {
+        if (!TURNSTILE_SITE_KEY) return;
+        if (window.turnstile && turnstileContainerRef.current && !turnstileWidgetId.current) {
+            turnstileWidgetId.current = window.turnstile.render(turnstileContainerRef.current, {
+                sitekey: TURNSTILE_SITE_KEY,
+                callback: handleTurnstileCallback,
+                "error-callback": () => setTurnstileToken(null),
+                "expired-callback": () => setTurnstileToken(null),
+                theme: "dark",
+                size: "compact",
+            });
+        }
+    }, [handleTurnstileCallback]);
+
+    useEffect(() => {
+        if (turnstileLoaded) {
+            renderTurnstile();
+        }
+    }, [turnstileLoaded, renderTurnstile]);
+
+    const resetTurnstile = useCallback(() => {
+        if (window.turnstile && turnstileWidgetId.current) {
+            window.turnstile.reset(turnstileWidgetId.current);
+            setTurnstileToken(null);
+        }
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setStatus("loading");
 
         try {
-            const data = {
-                name: "Newsletter Subscription",
-                email: email,
-                message: `Newsletter subscription request for email: ${email}`,
-            };
-
-            const response = await fetch("/api/send-email", {
+            const response = await fetch("/api/newsletter", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify({
+                    email: email,
+                    turnstileToken: turnstileToken,
+                }),
             });
 
             if (response.ok) {
                 setEmail("");
+                setStatus("success");
+                resetTurnstile();
+                // Reset status after 3 seconds
+                setTimeout(() => setStatus("idle"), 3000);
+            } else {
+                setStatus("error");
+                resetTurnstile();
+                setTimeout(() => setStatus("idle"), 3000);
             }
         } catch (error) {
             console.error("Error submitting the form:", error);
+            setStatus("error");
+            resetTurnstile();
+            setTimeout(() => setStatus("idle"), 3000);
         }
     };
 
     return (
+        <>
+        <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            async
+            defer
+            onLoad={() => setTurnstileLoaded(true)}
+        />
         <footer className="relative border-t border-gray-300 border-opacity-25 bg-[#041A2E] text-white transition-colors duration-300 z-10">
             <motion.div
                 ref={ref}
@@ -65,23 +121,34 @@ export default function Footer() {
                             Join our newsletter for the latest updates and
                             exclusive offers.
                         </p>
-                        <form onSubmit={handleSubmit} className="relative">
-                            <Input
-                                type="email"
-                                placeholder="Enter your email"
-                                className="pr-12 bg-white/10 border-white/20 text-white placeholder:text-white/70"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                            />
-                            <Button
-                                type="submit"
-                                size="sm"
-                                variant="filled"
-                                className="absolute right-1 top-1 px-2 rounded-md hover:bg-blue-700 transition-all flex items-center"
-                            >
-                                <Send className="h-3 w-3" />
-                            </Button>
+                        <form onSubmit={handleSubmit} className="space-y-3">
+                            <div className="relative">
+                                <Input
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    className="pr-12 bg-white/10 border-white/20 text-white placeholder:text-white/70"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    disabled={status === "loading"}
+                                />
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    variant="filled"
+                                    className="absolute right-1 top-1 px-2 rounded-md hover:bg-blue-700 transition-all flex items-center"
+                                    disabled={status === "loading"}
+                                >
+                                    <Send className="h-3 w-3" />
+                                </Button>
+                            </div>
+                            <div ref={turnstileContainerRef} className="cf-turnstile" />
+                            {status === "success" && (
+                                <p className="text-green-400 text-sm">Subscribed successfully!</p>
+                            )}
+                            {status === "error" && (
+                                <p className="text-red-400 text-sm">Failed to subscribe. Try again.</p>
+                            )}
                         </form>
                         <div className="absolute -right-4 top-0 h-24 w-24 rounded-full bg-primary/10 blur-2xl" />
                     </div>
@@ -233,5 +300,6 @@ export default function Footer() {
                 </div>
             </motion.div>
         </footer>
+        </>
     );
 }

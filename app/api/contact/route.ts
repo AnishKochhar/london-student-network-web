@@ -3,11 +3,58 @@ import { NextResponse, NextRequest } from "next/server";
 import sendSendGridEmail from "@/app/lib/config/private/sendgrid";
 import ContactFormEmail from "@/app/components/templates/contact-form-email";
 import ContactFormEmailFallback from "@/app/components/templates/contact-form-email-fallback";
+import { verifyFormToken, checkRateLimit, getClientIP, verifyTurnstile } from "@/app/lib/spam-protection";
 
 export async function POST(request: NextRequest) {
     try {
+        const clientIP = getClientIP(request);
+
+        // Check rate limiting first (5 per hour for contact form)
+        const rateLimit = checkRateLimit(clientIP);
+        if (!rateLimit.allowed) {
+            console.log(`[CONTACT-SPAM] Rate limit exceeded for IP: ${clientIP}`);
+            return NextResponse.json(
+                { message: rateLimit.reason || "Too many requests. Please try again later." },
+                { status: 429 },
+            );
+        }
+
         const body = await request.json();
-        const { name, email, message, inquiryPurpose, description, organisation } = body;
+        const { name, email, message, inquiryPurpose, description, organisation, formToken, turnstileToken } = body;
+
+        // Verify Turnstile (primary protection)
+        const turnstileResult = await verifyTurnstile(turnstileToken, clientIP);
+
+        if (!turnstileResult.success) {
+            if (!turnstileResult.fallbackAllowed) {
+                // Turnstile explicitly rejected (likely a bot)
+                console.log(`[CONTACT-SPAM] Turnstile rejected from IP: ${clientIP} - Reason: ${turnstileResult.reason}`);
+                return NextResponse.json(
+                    { message: "Verification failed. Please try again." },
+                    { status: 400 },
+                );
+            }
+
+            // Fallback mode: use time-based validation
+            console.log(`[CONTACT-SPAM] Turnstile fallback for IP: ${clientIP} - Reason: ${turnstileResult.reason}`);
+
+            if (!formToken) {
+                console.log(`[CONTACT-SPAM] Missing form token from IP: ${clientIP}`);
+                return NextResponse.json(
+                    { message: "Invalid form submission. Please refresh the page and try again." },
+                    { status: 400 },
+                );
+            }
+
+            const tokenCheck = verifyFormToken(formToken);
+            if (!tokenCheck.valid) {
+                console.log(`[CONTACT-SPAM] Invalid token from IP: ${clientIP} - Reason: ${tokenCheck.reason}`);
+                return NextResponse.json(
+                    { message: "Form submission rejected. Please wait a moment and try again." },
+                    { status: 400 },
+                );
+            }
+        }
 
         if (!name || !email || !message) {
             return NextResponse.json(
@@ -25,7 +72,7 @@ ${organisation ? `Organisation: ${organisation}` : ""}
 Message: ${message}
         `.trim();
 
-        // First, save to database
+        // Save to database
         const result = await insertContactForm({
             id: "0",
             name,
@@ -34,7 +81,7 @@ Message: ${message}
         });
 
         if (result.success) {
-            // Then send email notification to LSN team
+            // Send email notification to LSN team
             try {
                 const htmlContent = ContactFormEmail({
                     name,
@@ -59,7 +106,7 @@ Message: ${message}
                     subject: `New Contact Form Submission from ${name}`,
                     html: htmlContent,
                     text: textContent,
-                    replyTo: email, // Set reply-to as the sender's email
+                    replyTo: email,
                 };
 
                 await sendSendGridEmail(emailMsg);
@@ -70,7 +117,6 @@ Message: ${message}
                 );
             } catch (emailError) {
                 console.error("Error sending email notification:", emailError);
-                // Still return success as the form was saved to database
                 return NextResponse.json(
                     { message: "Form submitted successfully (email notification may have failed)" },
                     { status: 200 },
@@ -83,7 +129,7 @@ Message: ${message}
             );
         }
     } catch (error) {
-        console.error("Error handling form submission:", error);
+        console.error("Error handling contact form submission:", error);
         return NextResponse.json(
             { error: "Error processing form" },
             { status: 500 },
