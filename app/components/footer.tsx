@@ -102,10 +102,8 @@ export default function Footer() {
         pendingEmail.current = email;
 
         if (window.turnstile && turnstileWidgetId.current && TURNSTILE_SITE_KEY) {
-            window.turnstile.execute(turnstileContainerRef.current!, {
-                sitekey: TURNSTILE_SITE_KEY,
-                callback: handleTurnstileCallback,
-            });
+            // Execute uses the callback from render(), not a new one
+            window.turnstile.execute(turnstileWidgetId.current);
         } else {
             // Fallback if Turnstile not available
             await submitNewsletter(email, null);

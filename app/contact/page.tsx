@@ -178,11 +178,9 @@ export default function ContactPage() {
         pendingFormData.current = data;
 
         // Trigger Turnstile verification
-        if (window.turnstile && turnstileWidgetId.current) {
-            window.turnstile.execute(turnstileContainerRef.current!, {
-                sitekey: TURNSTILE_SITE_KEY!,
-                callback: handleTurnstileCallback,
-            });
+        if (window.turnstile && turnstileWidgetId.current && TURNSTILE_SITE_KEY) {
+            // Execute uses the callback from render(), not a new one
+            window.turnstile.execute(turnstileWidgetId.current);
         } else {
             // Turnstile not available, submit with fallback protection
             setStatus("Sending...");
