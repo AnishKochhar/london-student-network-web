@@ -66,7 +66,7 @@ export default function ContactPage() {
         setTurnstileToken(token);
     }, []);
 
-    // Render Turnstile widget when script loads
+    // Render Turnstile widget in invisible mode
     const renderTurnstile = useCallback(() => {
         if (!TURNSTILE_SITE_KEY || typeof TURNSTILE_SITE_KEY !== 'string') {
             console.log("Turnstile site key not configured - using fallback protection");
@@ -83,7 +83,8 @@ export default function ContactPage() {
                 "expired-callback": () => {
                     setTurnstileToken(null);
                 },
-                theme: "dark",
+                execution: "execute", // Don't auto-execute, wait for manual trigger
+                appearance: "execute", // Invisible until executed
             });
         }
     }, [handleTurnstileCallback]);
@@ -119,27 +120,27 @@ export default function ContactPage() {
         }
     }, []);
 
-    const onSubmit = async (data: ContactFormData) => {
-        setStatus("Sending...");
+    // Store form data temporarily while waiting for Turnstile
+    const pendingFormData = useRef<ContactFormData | null>(null);
+
+    // Actually submit the form after Turnstile verification
+    const submitForm = useCallback(async (data: ContactFormData, token: string | null) => {
         try {
-            // Format data to match ContactFormInput interface
             const formattedData = {
-                id: crypto.randomUUID(), // Generate unique ID
+                id: crypto.randomUUID(),
                 name: data.name,
                 email: data.email,
-                message: data.message, // Keep message separate
+                message: data.message,
                 inquiryPurpose: data.inquiryPurpose,
                 description: data.description,
                 organisation: data.organisation || "",
-                formToken: formToken, // Include token for bot protection (fallback)
-                turnstileToken: turnstileToken, // Primary bot protection
+                formToken: formToken,
+                turnstileToken: token,
             };
 
             const response = await fetch("/api/contact", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formattedData),
             });
 
@@ -147,7 +148,6 @@ export default function ContactPage() {
                 setStatus("Form submitted successfully!");
                 reset();
                 resetTurnstile();
-                // Refresh token for potential next submission
                 const tokenResponse = await fetch("/api/form-token");
                 if (tokenResponse.ok) {
                     const tokenData = await tokenResponse.json();
@@ -156,12 +156,37 @@ export default function ContactPage() {
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 setStatus(errorData.message || "Failed to submit the form.");
-                resetTurnstile(); // Reset on error too so user can retry
+                resetTurnstile();
             }
         } catch (error) {
             console.error("Error submitting the form:", error);
             setStatus("An error occurred. Please try again.");
             resetTurnstile();
+        }
+        pendingFormData.current = null;
+    }, [formToken, reset, resetTurnstile]);
+
+    // Handle Turnstile callback - submit form when we get the token
+    useEffect(() => {
+        if (turnstileToken && pendingFormData.current) {
+            submitForm(pendingFormData.current, turnstileToken);
+        }
+    }, [turnstileToken, submitForm]);
+
+    const onSubmit = async (data: ContactFormData) => {
+        setStatus("Verifying...");
+        pendingFormData.current = data;
+
+        // Trigger Turnstile verification
+        if (window.turnstile && turnstileWidgetId.current) {
+            window.turnstile.execute(turnstileContainerRef.current!, {
+                sitekey: TURNSTILE_SITE_KEY!,
+                callback: handleTurnstileCallback,
+            });
+        } else {
+            // Turnstile not available, submit with fallback protection
+            setStatus("Sending...");
+            await submitForm(data, null);
         }
     };
 

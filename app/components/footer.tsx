@@ -38,8 +38,8 @@ export default function Footer() {
                 callback: handleTurnstileCallback,
                 "error-callback": () => setTurnstileToken(null),
                 "expired-callback": () => setTurnstileToken(null),
-                theme: "dark",
-                size: "compact",
+                execution: "execute",
+                appearance: "execute",
             });
         }
     }, [handleTurnstileCallback]);
@@ -57,19 +57,16 @@ export default function Footer() {
         }
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setStatus("loading");
+    const pendingEmail = useRef<string | null>(null);
 
+    const submitNewsletter = useCallback(async (emailToSubmit: string, token: string | null) => {
         try {
             const response = await fetch("/api/newsletter", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    email: email,
-                    turnstileToken: turnstileToken,
+                    email: emailToSubmit,
+                    turnstileToken: token,
                 }),
             });
 
@@ -77,7 +74,6 @@ export default function Footer() {
                 setEmail("");
                 setStatus("success");
                 resetTurnstile();
-                // Reset status after 3 seconds
                 setTimeout(() => setStatus("idle"), 3000);
             } else {
                 setStatus("error");
@@ -89,6 +85,30 @@ export default function Footer() {
             setStatus("error");
             resetTurnstile();
             setTimeout(() => setStatus("idle"), 3000);
+        }
+        pendingEmail.current = null;
+    }, [resetTurnstile]);
+
+    // Submit when we get Turnstile token
+    useEffect(() => {
+        if (turnstileToken && pendingEmail.current) {
+            submitNewsletter(pendingEmail.current, turnstileToken);
+        }
+    }, [turnstileToken, submitNewsletter]);
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setStatus("loading");
+        pendingEmail.current = email;
+
+        if (window.turnstile && turnstileWidgetId.current && TURNSTILE_SITE_KEY) {
+            window.turnstile.execute(turnstileContainerRef.current!, {
+                sitekey: TURNSTILE_SITE_KEY,
+                callback: handleTurnstileCallback,
+            });
+        } else {
+            // Fallback if Turnstile not available
+            await submitNewsletter(email, null);
         }
     };
 
