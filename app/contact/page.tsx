@@ -12,8 +12,8 @@ import {
 import Link from "next/link";
 import Script from "next/script";
 
-// Turnstile site key - use test key in development, real key in production
-const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"; // Test key that always passes
+// Turnstile site key - must be set in environment variables
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 // Extend window for Turnstile
 declare global {
@@ -87,6 +87,10 @@ export default function ContactPage() {
 
     // Render Turnstile widget when script loads
     const renderTurnstile = useCallback(() => {
+        if (!TURNSTILE_SITE_KEY) {
+            console.log("Turnstile site key not configured - using fallback protection");
+            return;
+        }
         if (window.turnstile && turnstileContainerRef.current && !turnstileWidgetId.current) {
             turnstileWidgetId.current = window.turnstile.render(turnstileContainerRef.current, {
                 sitekey: TURNSTILE_SITE_KEY,
