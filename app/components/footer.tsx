@@ -31,7 +31,7 @@ export default function Footer() {
     }, []);
 
     const renderTurnstile = useCallback(() => {
-        if (!TURNSTILE_SITE_KEY) return;
+        if (!TURNSTILE_SITE_KEY || typeof TURNSTILE_SITE_KEY !== 'string') return;
         if (window.turnstile && turnstileContainerRef.current && !turnstileWidgetId.current) {
             turnstileWidgetId.current = window.turnstile.render(turnstileContainerRef.current, {
                 sitekey: TURNSTILE_SITE_KEY,

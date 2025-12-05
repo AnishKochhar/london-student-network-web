@@ -68,7 +68,7 @@ export default function ContactPage() {
 
     // Render Turnstile widget when script loads
     const renderTurnstile = useCallback(() => {
-        if (!TURNSTILE_SITE_KEY) {
+        if (!TURNSTILE_SITE_KEY || typeof TURNSTILE_SITE_KEY !== 'string') {
             console.log("Turnstile site key not configured - using fallback protection");
             return;
         }
