@@ -143,3 +143,98 @@ export function getClientIP(request: Request): string {
     // Fallback
     return 'unknown';
 }
+
+// ================================
+// Cloudflare Turnstile Integration
+// ================================
+
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+const TURNSTILE_TIMEOUT_MS = 5000; // 5 second timeout
+
+interface TurnstileVerifyResponse {
+    success: boolean;
+    'error-codes'?: string[];
+    challenge_ts?: string;
+    hostname?: string;
+}
+
+interface TurnstileResult {
+    success: boolean;
+    fallbackAllowed: boolean;
+    reason?: string;
+}
+
+/**
+ * Verifies a Turnstile token with Cloudflare
+ * Returns { success, fallbackAllowed, reason }
+ *
+ * - success: true if Turnstile verified the user
+ * - fallbackAllowed: true if we should allow fallback to other protections
+ *   (e.g., Cloudflare is down, timeout, or Turnstile not configured)
+ */
+export async function verifyTurnstile(token: string | null, clientIP: string): Promise<TurnstileResult> {
+    // If Turnstile is not configured, allow fallback
+    if (!TURNSTILE_SECRET_KEY) {
+        console.log('[TURNSTILE] Secret key not configured, allowing fallback');
+        return { success: false, fallbackAllowed: true, reason: 'Turnstile not configured' };
+    }
+
+    // If no token provided, allow fallback (widget might not have loaded)
+    if (!token) {
+        console.log('[TURNSTILE] No token provided, allowing fallback');
+        return { success: false, fallbackAllowed: true, reason: 'No Turnstile token' };
+    }
+
+    try {
+        // Create abort controller for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), TURNSTILE_TIMEOUT_MS);
+
+        const response = await fetch(TURNSTILE_VERIFY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                secret: TURNSTILE_SECRET_KEY,
+                response: token,
+                remoteip: clientIP,
+            }),
+            signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            console.log(`[TURNSTILE] HTTP error: ${response.status}, allowing fallback`);
+            return { success: false, fallbackAllowed: true, reason: `HTTP ${response.status}` };
+        }
+
+        const data: TurnstileVerifyResponse = await response.json();
+
+        if (data.success) {
+            return { success: true, fallbackAllowed: false };
+        } else {
+            // Turnstile explicitly rejected - this is likely a bot
+            const errorCodes = data['error-codes']?.join(', ') || 'unknown';
+            console.log(`[TURNSTILE] Verification failed: ${errorCodes}`);
+
+            // Check if it's a configuration/network error vs actual rejection
+            const networkErrors = ['timeout-or-duplicate', 'internal-error'];
+            const isNetworkError = data['error-codes']?.some(code => networkErrors.includes(code));
+
+            if (isNetworkError) {
+                return { success: false, fallbackAllowed: true, reason: errorCodes };
+            }
+
+            // Actual rejection (bad-request, invalid-input-response, etc.)
+            return { success: false, fallbackAllowed: false, reason: errorCodes };
+        }
+    } catch (error) {
+        // Network error, timeout, or Cloudflare is down - allow fallback
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.log(`[TURNSTILE] Error during verification: ${errorMessage}, allowing fallback`);
+        return { success: false, fallbackAllowed: true, reason: errorMessage };
+    }
+}

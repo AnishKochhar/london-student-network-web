@@ -3,7 +3,7 @@ import { NextResponse, NextRequest } from "next/server";
 import sendSendGridEmail from "@/app/lib/config/private/sendgrid";
 import ContactFormEmail from "@/app/components/templates/contact-form-email";
 import ContactFormEmailFallback from "@/app/components/templates/contact-form-email-fallback";
-import { verifyFormToken, checkRateLimit, getClientIP } from "@/app/lib/spam-protection";
+import { verifyFormToken, checkRateLimit, getClientIP, verifyTurnstile } from "@/app/lib/spam-protection";
 
 export async function POST(request: NextRequest) {
     try {
@@ -20,24 +20,42 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { name, email, message, inquiryPurpose, description, organisation, formToken } = body;
+        const { name, email, message, inquiryPurpose, description, organisation, formToken, turnstileToken } = body;
 
-        // Verify form token (time-based validation)
-        if (!formToken) {
-            console.log(`[SPAM] Missing form token from IP: ${clientIP}`);
-            return NextResponse.json(
-                { message: "Invalid form submission. Please refresh the page and try again." },
-                { status: 400 },
-            );
-        }
+        // Verify Turnstile (primary protection)
+        const turnstileResult = await verifyTurnstile(turnstileToken, clientIP);
 
-        const tokenCheck = verifyFormToken(formToken);
-        if (!tokenCheck.valid) {
-            console.log(`[SPAM] Invalid token from IP: ${clientIP} - Reason: ${tokenCheck.reason}`);
-            return NextResponse.json(
-                { message: "Form submission rejected. Please wait a moment and try again." },
-                { status: 400 },
-            );
+        if (!turnstileResult.success) {
+            // Turnstile failed - check if we should allow fallback
+            if (!turnstileResult.fallbackAllowed) {
+                // Turnstile explicitly rejected (likely a bot)
+                console.log(`[SPAM] Turnstile rejected submission from IP: ${clientIP} - Reason: ${turnstileResult.reason}`);
+                return NextResponse.json(
+                    { message: "Verification failed. Please try again." },
+                    { status: 400 },
+                );
+            }
+
+            // Fallback mode: Turnstile unavailable, use time-based validation
+            console.log(`[SPAM] Turnstile fallback for IP: ${clientIP} - Reason: ${turnstileResult.reason}`);
+
+            // Verify form token (time-based validation) as fallback
+            if (!formToken) {
+                console.log(`[SPAM] Missing form token from IP: ${clientIP}`);
+                return NextResponse.json(
+                    { message: "Invalid form submission. Please refresh the page and try again." },
+                    { status: 400 },
+                );
+            }
+
+            const tokenCheck = verifyFormToken(formToken);
+            if (!tokenCheck.valid) {
+                console.log(`[SPAM] Invalid token from IP: ${clientIP} - Reason: ${tokenCheck.reason}`);
+                return NextResponse.json(
+                    { message: "Form submission rejected. Please wait a moment and try again." },
+                    { status: 400 },
+                );
+            }
         }
 
         if (!name || !email || !message) {

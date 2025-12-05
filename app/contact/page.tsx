@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
     ChevronDownIcon,
     UserIcon,
@@ -10,6 +10,29 @@ import {
     ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import Script from "next/script";
+
+// Turnstile site key - use test key in development, real key in production
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"; // Test key that always passes
+
+// Extend window for Turnstile
+declare global {
+    interface Window {
+        turnstile?: {
+            render: (container: string | HTMLElement, options: TurnstileOptions) => string;
+            reset: (widgetId: string) => void;
+            remove: (widgetId: string) => void;
+        };
+    }
+}
+
+interface TurnstileOptions {
+    sitekey: string;
+    callback: (token: string) => void;
+    "error-callback"?: () => void;
+    "expired-callback"?: () => void;
+    theme?: "light" | "dark" | "auto";
+}
 
 interface ContactFormData {
     inquiryPurpose: string;
@@ -52,8 +75,35 @@ export default function ContactPage() {
 
     const [status, setStatus] = useState<string | null>(null);
     const [formToken, setFormToken] = useState<string | null>(null);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+    const turnstileWidgetId = useRef<string | null>(null);
+    const turnstileContainerRef = useRef<HTMLDivElement>(null);
 
-    // Fetch form token on mount (for bot protection)
+    // Callback when Turnstile verifies successfully
+    const handleTurnstileCallback = useCallback((token: string) => {
+        setTurnstileToken(token);
+    }, []);
+
+    // Render Turnstile widget when script loads
+    const renderTurnstile = useCallback(() => {
+        if (window.turnstile && turnstileContainerRef.current && !turnstileWidgetId.current) {
+            turnstileWidgetId.current = window.turnstile.render(turnstileContainerRef.current, {
+                sitekey: TURNSTILE_SITE_KEY,
+                callback: handleTurnstileCallback,
+                "error-callback": () => {
+                    console.log("Turnstile error - will use fallback protection");
+                    setTurnstileToken(null);
+                },
+                "expired-callback": () => {
+                    setTurnstileToken(null);
+                },
+                theme: "dark",
+            });
+        }
+    }, [handleTurnstileCallback]);
+
+    // Fetch form token on mount (for bot protection fallback)
     useEffect(() => {
         const fetchToken = async () => {
             try {
@@ -69,6 +119,21 @@ export default function ContactPage() {
         fetchToken();
     }, []);
 
+    // Render Turnstile when loaded
+    useEffect(() => {
+        if (turnstileLoaded) {
+            renderTurnstile();
+        }
+    }, [turnstileLoaded, renderTurnstile]);
+
+    // Reset Turnstile after form submission
+    const resetTurnstile = useCallback(() => {
+        if (window.turnstile && turnstileWidgetId.current) {
+            window.turnstile.reset(turnstileWidgetId.current);
+            setTurnstileToken(null);
+        }
+    }, []);
+
     const onSubmit = async (data: ContactFormData) => {
         setStatus("Sending...");
         try {
@@ -81,7 +146,8 @@ export default function ContactPage() {
                 inquiryPurpose: data.inquiryPurpose,
                 description: data.description,
                 organisation: data.organisation || "",
-                formToken: formToken, // Include token for bot protection
+                formToken: formToken, // Include token for bot protection (fallback)
+                turnstileToken: turnstileToken, // Primary bot protection
             };
 
             const response = await fetch("/api/send-email", {
@@ -95,6 +161,7 @@ export default function ContactPage() {
             if (response.ok) {
                 setStatus("Form submitted successfully!");
                 reset();
+                resetTurnstile();
                 // Refresh token for potential next submission
                 const tokenResponse = await fetch("/api/form-token");
                 if (tokenResponse.ok) {
@@ -104,14 +171,24 @@ export default function ContactPage() {
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 setStatus(errorData.message || "Failed to submit the form.");
+                resetTurnstile(); // Reset on error too so user can retry
             }
         } catch (error) {
             console.error("Error submitting the form:", error);
             setStatus("An error occurred. Please try again.");
+            resetTurnstile();
         }
     };
 
     return (
+        <>
+        {/* Cloudflare Turnstile Script */}
+        <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            async
+            defer
+            onLoad={() => setTurnstileLoaded(true)}
+        />
         <main className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
             <div className="py-16 sm:py-24">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -356,6 +433,14 @@ export default function ContactPage() {
                             )}
                         </div>
 
+                        {/* Turnstile Widget */}
+                        <div className="flex justify-center">
+                            <div
+                                ref={turnstileContainerRef}
+                                className="cf-turnstile"
+                            />
+                        </div>
+
                         {/* Submit Button */}
                         <div className="flex justify-end">
                             <button
@@ -400,5 +485,6 @@ export default function ContactPage() {
                 </div>
             </div>
         </main>
+        </>
     );
 }
