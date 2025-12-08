@@ -27,6 +27,8 @@ interface RegistrationData {
 interface RevenueData {
     totalRevenue: number;
     platformFee: number;
+    stripeFee: number;
+    lsnFee: number;
     organizerEarnings: number;
     totalTransactions: number;
     refundedAmount: number;

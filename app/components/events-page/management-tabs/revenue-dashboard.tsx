@@ -53,7 +53,7 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
     return (
         <div className="space-y-4 sm:space-y-6">
             {/* Revenue Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
                 {/* Total Revenue */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
@@ -74,14 +74,24 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
                     <p className="text-xs text-white/70 mt-1">After transaction fees</p>
                 </div>
 
-                {/* Transaction Fees */}
+                {/* Stripe Fees */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs sm:text-sm font-medium text-white/80">Transaction Fees</p>
+                        <p className="text-xs sm:text-sm font-medium text-white/80">Stripe Fees</p>
                         <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 shrink-0" />
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.platformFee)}</p>
-                    <p className="text-xs text-white/70 mt-1">Mostly card processing (Stripe)</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.stripeFee)}</p>
+                    <p className="text-xs text-white/70 mt-1">1.5% + 20p per transaction</p>
+                </div>
+
+                {/* LSN Fees */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs sm:text-sm font-medium text-white/80">LSN Fees</p>
+                        <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 shrink-0" />
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.lsnFee)}</p>
+                    <p className="text-xs text-white/70 mt-1">2.5% per transaction</p>
                 </div>
 
                 {/* Total Transactions */}
