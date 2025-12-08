@@ -70,7 +70,11 @@ const nextConfig = {
 	// Experimental features for better performance
 	experimental: {
 		gzipSize: true,
-	}
+	},
+
+	// Explicitly use webpack (Turbopack is default in Next.js 16+)
+	// Adding empty turbopack config to silence the warning while keeping webpack
+	turbopack: {},
 };
 
 export default nextConfig;

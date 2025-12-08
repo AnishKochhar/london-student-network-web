@@ -8,7 +8,7 @@ import { sql } from '@vercel/postgres';
  */
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth();
@@ -19,7 +19,7 @@ export async function GET(
             );
         }
 
-        const { id } = params;
+        const { id } = await params;
 
         const result = await sql`
             SELECT
@@ -93,7 +93,7 @@ export async function GET(
  */
 export async function PATCH(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth();
@@ -104,7 +104,7 @@ export async function PATCH(
             );
         }
 
-        const { id } = params;
+        const { id } = await params;
         const body = await request.json();
         const { description, rateLimit, isActive } = body;
 
@@ -178,7 +178,7 @@ export async function PATCH(
  */
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await auth();
@@ -189,7 +189,7 @@ export async function DELETE(
             );
         }
 
-        const { id } = params;
+        const { id } = await params;
         const url = new URL(request.url);
         const permanent = url.searchParams.get('permanent') === 'true';
         const reason = url.searchParams.get('reason') || 'Revoked by admin';

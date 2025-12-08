@@ -3,10 +3,10 @@ import { sql } from "@vercel/postgres";
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id: event_id } = params;
+        const { id: event_id } = await params;
 
         // Get date range from query params (default: last 30 days)
         const url = new URL(req.url);

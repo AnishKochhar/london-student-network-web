@@ -5,7 +5,7 @@ import { formatContent } from "@/app/lib/forum-utils";
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
 ) {
     try {
         const session = await auth();
@@ -19,7 +19,7 @@ export async function PATCH(
         }
 
         const userId = session.user.id;
-        const commentId = params.id;
+        const { id: commentId } = await params;
         const { content } = await request.json();
 
         // Validate input
@@ -76,9 +76,10 @@ export async function PATCH(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
 ) {
     try {
+        const { id: commentId } = await params;
         const session = await auth();
 
         // Check if user is authenticated
@@ -90,7 +91,6 @@ export async function DELETE(
         }
 
         const userId = session.user.id;
-        const commentId = params.id;
 
         // Check if the comment exists and belongs to the user
         const commentResult = await sql`
