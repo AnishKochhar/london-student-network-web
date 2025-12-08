@@ -100,9 +100,9 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
                         <p className="text-xs sm:text-sm font-medium text-white/80">Transactions</p>
                         <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 shrink-0" />
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-white">{revenue.totalTransactions}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{revenue.successfulPayments}</p>
                     <p className="text-xs text-white/70 mt-1">
-                        {revenue.successfulPayments} successful
+                        Successful payments
                     </p>
                 </div>
             </div>
