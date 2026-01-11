@@ -1,15 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { EventCardProps } from "@/app/lib/types";
 import { formatEventDateTime } from "@/app/lib/utils";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import { getEventImage } from "@/app/lib/default-images";
 import EventCardTags from "./event-tags";
 import EventModal from "./event-modal";
+import SafeImage from "@/app/components/ui/safe-image";
 import { EyeSlashIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
+import { useImageColors } from "@/app/hooks/useImageColors";
 
 // Simple image loading skeleton
 function ImageSkeleton() {
@@ -23,6 +25,15 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
         "waiting",
     );
     const [imageLoaded, setImageLoaded] = useState(false);
+
+    // Get the image URL with smart fallback based on event type
+    const imageUrl = getEventImage(event.image_url, event.event_type);
+
+    // Extract colors for contained images - gradientMesh gives the richest depth
+    const { gradientMesh, gradient, gradientRadial } = useImageColors(
+        imageUrl,
+        event.image_contain === true
+    );
 
     const openViewModal = () => setModalChoice("view");
     const closeModal = () => setModalChoice("waiting");
@@ -54,19 +65,29 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                     <EyeSlashIcon className="h-4 w-4 text-red-600" />
                 </div>
             )}
-            <div className="relative overflow-hidden rounded-md mb-1 min-h-[160px] bg-gray-100">
+            <div
+                className="relative overflow-hidden rounded-md mb-1 min-h-[160px] transition-all duration-500"
+                style={{
+                    background: event.image_contain
+                        ? (gradientMesh || gradient || "rgb(243 244 246)")
+                        : "rgb(243 244 246)"
+                }}
+            >
                 {!imageLoaded && <ImageSkeleton />}
-                <Image
-                    src={event.image_url}
+                <SafeImage
+                    src={imageUrl}
                     alt={event.title}
+                    fallbackType="event"
                     width={400}
                     height={160}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
                     quality={60}
                     onLoad={() => setImageLoaded(true)}
-                    className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} border border-gray-200 transition-transform duration-500 group-hover:scale-110 ${!imageLoaded ? 'opacity-0 absolute' : 'opacity-100'}`}
+                    className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} ${event.image_contain ? "" : "border border-gray-200"} transition-transform duration-500 group-hover:scale-110 ${!imageLoaded ? 'opacity-0 absolute' : 'opacity-100'}`}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                {!event.image_contain && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                )}
             </div>
             <div className="flex flex-col justify-between flex-grow">
                 <div>
