@@ -21,6 +21,7 @@ import ShareEventModal from "@/app/components/events-page/share-event-modal";
 import EventRegistrationButton from "@/app/components/events-page/event-registration-button";
 import ReportEventModal from "@/app/components/events-page/report-event-modal";
 import PaymentStatusHandler from "@/app/components/events-page/payment-status-handler";
+import EventImageWithGradient from "@/app/components/events-page/event-image-with-gradient";
 
 export default function ModernEventInfo() {
     const { id } = useParams() as { id: string };
@@ -245,15 +246,12 @@ export default function ModernEventInfo() {
                     <div className="lg:col-span-2 space-y-4">
                         {/* Event Image */}
                         {event.image_url && (
-                            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100">
-                                <Image
-                                    src={event.image_url}
-                                    alt={event.title}
-                                    fill
-                                    className={event.image_contain ? "object-contain" : "object-cover"}
-                                    priority
-                                />
-                            </div>
+                            <EventImageWithGradient
+                                src={event.image_url}
+                                alt={event.title}
+                                imageContain={event.image_contain}
+                                priority
+                            />
                         )}
 
                         {/* Event Tags */}

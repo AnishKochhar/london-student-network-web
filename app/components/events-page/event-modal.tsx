@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { X, Calendar, MapPin, Users, Mail, Flag, ExternalLink } from "lucide-react";
 import { EventModalProps, Event as EventType } from "@/app/lib/types";
 import { motion } from "framer-motion";
+import EventImageWithGradient from "./event-image-with-gradient";
 
 interface EventModalPropsWithPreview extends EventModalProps {
     isPreview?: boolean;
@@ -228,15 +229,12 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                         <div className="lg:col-span-2 space-y-4">
                             {/* Event Image */}
                             {event.image_url && (
-                                <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100">
-                                    <Image
-                                        src={event.image_url}
-                                        alt={event.title}
-                                        fill
-                                        className={event.image_contain ? "object-contain" : "object-cover"}
-                                        priority
-                                    />
-                                </div>
+                                <EventImageWithGradient
+                                    src={event.image_url}
+                                    alt={event.title}
+                                    imageContain={event.image_contain}
+                                    priority
+                                />
                             )}
 
                             {/* Event Tags */}
