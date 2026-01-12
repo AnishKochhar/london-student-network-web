@@ -27,6 +27,9 @@ interface EventRegistrationButtonProps {
     onRegistrationModalChange?: (isOpen: boolean) => void;
 }
 
+// Modal state type for mutual exclusivity
+type ActiveModal = 'none' | 'registration' | 'tickets' | 'university' | 'calendar' | 'confirmation';
+
 export default function EventRegistrationButton({
     event,
     isRegistered = false,
@@ -39,11 +42,7 @@ export default function EventRegistrationButton({
     onRegistrationModalChange
 }: EventRegistrationButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
-    const [showConfirmation, setShowConfirmation] = useState(false);
-    const [showRegistrationConfirmation, setShowRegistrationConfirmation] = useState(false);
-    const [showTicketSelection, setShowTicketSelection] = useState(false);
-    const [showUniversityPrompt, setShowUniversityPrompt] = useState(false);
-    const [showCalendarModal, setShowCalendarModal] = useState(false);
+    const [activeModal, setActiveModal] = useState<ActiveModal>('none');
     const [universityPromptData, setUniversityPromptData] = useState<{
         userEmail: string;
         universityName?: string;
@@ -53,6 +52,24 @@ export default function EventRegistrationButton({
     const [isFetchingTickets, setIsFetchingTickets] = useState(false);
     const { data: session} = useSession();
     const router = useRouter();
+
+    // Derived modal states for backwards compatibility and cleaner JSX
+    const showConfirmation = activeModal === 'confirmation';
+    const showRegistrationConfirmation = activeModal === 'registration';
+    const showTicketSelection = activeModal === 'tickets';
+    const showUniversityPrompt = activeModal === 'university';
+    const showCalendarModal = activeModal === 'calendar';
+
+    // Safe modal setters that ensure mutual exclusivity
+    const openModal = (modal: ActiveModal) => {
+        setActiveModal(modal);
+    };
+
+    const closeAllModals = () => {
+        setActiveModal('none');
+        setFullEventData(null);
+        setIsFetchingTickets(false);
+    };
 
     // Check if we have COMPLETE ticket data (including release schedules)
     const hasCompleteTicketData = event.tickets &&
@@ -90,7 +107,7 @@ export default function EventRegistrationButton({
                         userEmail: session?.user?.email || '',
                         universityName: data.isUniversityEmail ? data.universityName : undefined
                     });
-                    setShowUniversityPrompt(true);
+                    openModal('university');
                 }, 1500);
             }
         } catch (error) {
@@ -143,8 +160,8 @@ export default function EventRegistrationButton({
             // If tickets don't have complete data, we need to fetch while modal is open
             if (!hasCompleteTicketData && onFetchFullEventData) {
                 console.log('[EventRegistrationButton] Tickets exist but missing release data, will fetch while modal is open...');
-                setShowTicketSelection(true);
                 setIsFetchingTickets(true);
+                openModal('tickets'); // Open modal with loading state
 
                 // Fetch complete data in the background
                 const fetchedEvent = await onFetchFullEventData();
@@ -160,7 +177,7 @@ export default function EventRegistrationButton({
                 }
             } else {
                 // Has complete data already, just show modal
-                setShowTicketSelection(true);
+                openModal('tickets');
             }
         } else {
             // No tickets in current data, check if we need to fetch
@@ -173,20 +190,20 @@ export default function EventRegistrationButton({
                 if (fetchedEvent && fetchedEvent.tickets && fetchedEvent.tickets.length > 0) {
                     // Found tickets after fetch, show ticket modal
                     setFullEventData(fetchedEvent);
-                    setShowTicketSelection(true);
+                    openModal('tickets');
                 } else {
                     // Still no tickets, show simple registration
-                    setShowRegistrationConfirmation(true);
+                    openModal('registration');
                 }
             } else {
                 // No way to fetch, show simple registration
-                setShowRegistrationConfirmation(true);
+                openModal('registration');
             }
         }
     };
 
     const handleRegister = async (tickets: number = 1) => {
-        setShowRegistrationConfirmation(false);
+        closeAllModals();
 
         setIsLoading(true);
         const toastId = toast.loading("Registering for event...");
@@ -328,13 +345,13 @@ export default function EventRegistrationButton({
             if (result.success) {
                 toast.success("Successfully left the event", { id: toastId });
                 onRegistrationChange?.();
-                setShowConfirmation(false);
+                closeAllModals();
             } else {
                 const errorMessage = result.error || "Failed to leave event";
                 if (errorMessage.includes("not registered")) {
                     toast.success("You weren't registered for this event", { id: toastId });
                     onRegistrationChange?.(); // Refresh status
-                    setShowConfirmation(false);
+                    closeAllModals();
                 } else if (errorMessage.includes("Event not found")) {
                     toast.error("This event no longer exists", { id: toastId });
                 } else {
@@ -415,7 +432,7 @@ export default function EventRegistrationButton({
 
                                     {/* Calendar Button */}
                                     <button
-                                        onClick={() => setShowCalendarModal(true)}
+                                        onClick={() => openModal('calendar')}
                                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
                                     >
                                         <Calendar className="w-4 h-4" />
@@ -425,7 +442,7 @@ export default function EventRegistrationButton({
                                     {/* Cancel Link */}
                                     <div className="text-center pt-2">
                                         <button
-                                            onClick={() => setShowConfirmation(true)}
+                                            onClick={() => openModal('confirmation')}
                                             disabled={isPreview || isLoading}
                                             className="text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
                                         >
@@ -460,7 +477,7 @@ export default function EventRegistrationButton({
                                 className="flex gap-2"
                             >
                                 <button
-                                    onClick={() => setShowConfirmation(false)}
+                                    onClick={() => openModal('none')}
                                     disabled={isLoading}
                                     className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 transition-colors duration-150 text-sm font-medium text-gray-700"
                                 >
@@ -482,13 +499,13 @@ export default function EventRegistrationButton({
                     )}
                     <UniversityVerificationPrompt
                         isOpen={showUniversityPrompt && universityPromptData !== null}
-                        onClose={() => setShowUniversityPrompt(false)}
+                        onClose={closeAllModals}
                         userEmail={universityPromptData?.userEmail || ''}
                         universityName={universityPromptData?.universityName}
                     />
                     <CalendarModal
                         isOpen={showCalendarModal}
-                        onClose={() => setShowCalendarModal(false)}
+                        onClose={closeAllModals}
                         event={event}
                         userEmail={session?.user?.email}
                     />
@@ -513,7 +530,7 @@ export default function EventRegistrationButton({
                 </div>
                 <ModernRegistrationModal
                     isOpen={showRegistrationConfirmation}
-                    onClose={() => setShowRegistrationConfirmation(false)}
+                    onClose={closeAllModals}
                     onConfirm={handleRegister}
                     event={event}
                     isRegistering={isLoading}
@@ -524,11 +541,7 @@ export default function EventRegistrationButton({
                 {showTicketSelection && (
                     <TicketSelectionModal
                         event={fullEventData ?? event}
-                        onClose={() => {
-                            setShowTicketSelection(false);
-                            setFullEventData(null);
-                            setIsFetchingTickets(false);
-                        }}
+                        onClose={closeAllModals}
                         onFreeRegistration={handleRegister}
                         userName={session?.user?.name}
                         userEmail={session?.user?.email}
@@ -537,7 +550,7 @@ export default function EventRegistrationButton({
                 )}
                 <UniversityVerificationPrompt
                     isOpen={showUniversityPrompt && universityPromptData !== null}
-                    onClose={() => setShowUniversityPrompt(false)}
+                    onClose={closeAllModals}
                     userEmail={universityPromptData?.userEmail || ''}
                     universityName={universityPromptData?.universityName}
                 />
@@ -585,7 +598,7 @@ export default function EventRegistrationButton({
 
                                     {/* Calendar Button */}
                                     <button
-                                        onClick={() => setShowCalendarModal(true)}
+                                        onClick={() => openModal('calendar')}
                                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
                                     >
                                         <Calendar className="w-4 h-4" />
@@ -595,7 +608,7 @@ export default function EventRegistrationButton({
                                     {/* Cancel Link */}
                                     <div className="text-center pt-1">
                                         <button
-                                            onClick={() => setShowConfirmation(true)}
+                                            onClick={() => openModal('confirmation')}
                                             disabled={isPreview || isLoading}
                                             className="text-xs text-gray-500 hover:text-red-600 transition-colors duration-200"
                                         >
@@ -632,7 +645,7 @@ export default function EventRegistrationButton({
                                 className="flex gap-2"
                             >
                                 <button
-                                    onClick={() => setShowConfirmation(false)}
+                                    onClick={() => openModal('none')}
                                     disabled={isLoading}
                                     className="flex-1 px-3 py-1.5 text-sm bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors duration-150 font-medium text-black"
                                 >
@@ -655,13 +668,13 @@ export default function EventRegistrationButton({
                 </AnimatePresence>
                 <UniversityVerificationPrompt
                     isOpen={showUniversityPrompt && universityPromptData !== null}
-                    onClose={() => setShowUniversityPrompt(false)}
+                    onClose={closeAllModals}
                     userEmail={universityPromptData?.userEmail || ''}
                     universityName={universityPromptData?.universityName}
                 />
                 <CalendarModal
                     isOpen={showCalendarModal}
-                    onClose={() => setShowCalendarModal(false)}
+                    onClose={closeAllModals}
                     event={event}
                     userEmail={session?.user?.email}
                 />
@@ -686,7 +699,7 @@ export default function EventRegistrationButton({
             {/* Free event registration modal */}
             <ModernRegistrationModal
                 isOpen={showRegistrationConfirmation}
-                onClose={() => setShowRegistrationConfirmation(false)}
+                onClose={closeAllModals}
                 onConfirm={handleRegister}
                 event={event}
                 isRegistering={isLoading}
@@ -698,11 +711,7 @@ export default function EventRegistrationButton({
             {showTicketSelection && (
                 <TicketSelectionModal
                     event={fullEventData ?? event}
-                    onClose={() => {
-                        setShowTicketSelection(false);
-                        setFullEventData(null);
-                        setIsFetchingTickets(false);
-                    }}
+                    onClose={closeAllModals}
                     onFreeRegistration={handleRegister}
                     userName={session?.user?.name}
                     userEmail={session?.user?.email}
@@ -712,7 +721,7 @@ export default function EventRegistrationButton({
 
             <UniversityVerificationPrompt
                 isOpen={showUniversityPrompt && universityPromptData !== null}
-                onClose={() => setShowUniversityPrompt(false)}
+                onClose={closeAllModals}
                 userEmail={universityPromptData?.userEmail || ''}
                 universityName={universityPromptData?.universityName}
             />

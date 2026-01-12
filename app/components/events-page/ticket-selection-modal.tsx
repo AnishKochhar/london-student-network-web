@@ -1,10 +1,10 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Minus, Calendar, MapPin } from 'lucide-react';
+import { X, Plus, Minus, Calendar, MapPin, Heart } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useState, useMemo } from 'react';
-import { Event } from '@/app/lib/types';
+import { Event, DEFAULT_DONATION_PRESETS } from '@/app/lib/types';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import RegistrationStepper from '@/app/components/ui/registration-stepper';
@@ -52,6 +52,12 @@ export default function TicketSelectionModal({
         name: '',
         email: ''
     });
+    // Donation state
+    const [donationAmount, setDonationAmount] = useState<number>(0); // In pence
+    const [customDonationInput, setCustomDonationInput] = useState<string>('');
+    // Society donation settings (fetched from API)
+    const [donationEnabled, setDonationEnabled] = useState(false);
+    const [donationSettingsLoading, setDonationSettingsLoading] = useState(true);
 
     // Use tickets from event data (already loaded) - memoized to prevent re-renders
     const tickets: Ticket[] = useMemo(() => (event.tickets as Ticket[]) || [], [event.tickets]);
@@ -81,6 +87,28 @@ export default function TicketSelectionModal({
             }
         }
     }, [tickets]);
+
+    // Fetch society donation settings
+    useEffect(() => {
+        const fetchDonationSettings = async () => {
+            if (!event.organiser_uid) {
+                setDonationSettingsLoading(false);
+                return;
+            }
+            try {
+                const response = await fetch(`/api/society/donation-settings?organiser_uid=${event.organiser_uid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setDonationEnabled(data.allow_donations ?? false);
+                }
+            } catch (error) {
+                console.error('Failed to fetch donation settings:', error);
+            } finally {
+                setDonationSettingsLoading(false);
+            }
+        };
+        fetchDonationSettings();
+    }, [event.organiser_uid]);
 
     useEffect(() => {
         if (event) {
@@ -188,11 +216,13 @@ export default function TicketSelectionModal({
                     quantity,
                     guest_name: guestInfo.name.trim(),
                     guest_email: guestInfo.email.toLowerCase(),
+                    donation_amount: donationAmount, // In pence
                 }
                 : {
                     event_id: event.id,
                     ticket_uuid: selectedTicket,
                     quantity,
+                    donation_amount: donationAmount, // In pence
                 };
 
             const response = await fetch(endpoint, {
@@ -242,8 +272,36 @@ export default function TicketSelectionModal({
 
     const selectedTicketData = tickets.find(t => t.ticket_uuid === selectedTicket);
     const selectedTicketPrice = selectedTicketData ? parseFloat(selectedTicketData.ticket_price || '0') : 0;
-    const totalPrice = selectedTicketPrice * quantity;
+    const ticketSubtotal = selectedTicketPrice * quantity;
+    const donationInPounds = donationAmount / 100;
+    const totalPrice = ticketSubtotal + donationInPounds;
     const isFreeTicket = selectedTicketPrice === 0;
+
+    // Show donation option only for paid tickets when donation is enabled
+    const showDonationOption = donationEnabled && !isFreeTicket;
+
+    // Handle donation preset selection
+    const handleDonationPreset = (amount: number) => {
+        if (donationAmount === amount) {
+            // Clicking same amount deselects it
+            setDonationAmount(0);
+            setCustomDonationInput('');
+        } else {
+            setDonationAmount(amount);
+            setCustomDonationInput('');
+        }
+    };
+
+    // Handle custom donation input
+    const handleCustomDonation = (value: string) => {
+        setCustomDonationInput(value);
+        const parsed = parseFloat(value);
+        if (!isNaN(parsed) && parsed >= 0) {
+            setDonationAmount(Math.round(parsed * 100)); // Convert to pence
+        } else if (value === '') {
+            setDonationAmount(0);
+        }
+    };
 
     const modalContent = (
         <AnimatePresence>
@@ -707,16 +765,79 @@ export default function TicketSelectionModal({
                                                 </p>
                                             </div>
                                             <div className="text-right flex-shrink-0">
-                                                <p className={cn(
-                                                    "text-xl md:text-2xl font-bold",
-                                                    isFreeTicket ? 'text-green-600' : 'text-gray-900'
-                                                )}>
-                                                    {isFreeTicket ? 'Free' : `£${totalPrice.toFixed(2)}`}
+                                                <p className="text-base text-gray-700">
+                                                    £{ticketSubtotal.toFixed(2)}
                                                 </p>
                                             </div>
                                         </div>
 
+                                        {/* Donation Section */}
+                                        {showDonationOption && (
+                                            <div className="pt-4 border-t border-gray-200">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <Heart className="w-4 h-4 text-pink-500" />
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        Support {event.organiser}
+                                                    </p>
+                                                    <span className="text-xs text-gray-500">(optional)</span>
+                                                </div>
+                                                <p className="text-xs text-gray-600 mb-3">
+                                                    Add a donation to help the society continue hosting amazing events
+                                                </p>
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    {DEFAULT_DONATION_PRESETS.map((preset) => (
+                                                        <button
+                                                            key={preset}
+                                                            type="button"
+                                                            onClick={() => handleDonationPreset(preset)}
+                                                            className={cn(
+                                                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                                                                donationAmount === preset && customDonationInput === ''
+                                                                    ? "bg-pink-100 text-pink-700 border-2 border-pink-300"
+                                                                    : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
+                                                            )}
+                                                        >
+                                                            £{(preset / 100).toFixed(0)}
+                                                        </button>
+                                                    ))}
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">£</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            placeholder="Other"
+                                                            value={customDonationInput}
+                                                            onChange={(e) => handleCustomDonation(e.target.value)}
+                                                            className={cn(
+                                                                "w-20 pl-6 pr-2 py-1.5 text-sm rounded-lg border transition-all",
+                                                                customDonationInput !== ''
+                                                                    ? "border-pink-300 bg-pink-50 focus:ring-pink-500"
+                                                                    : "border-gray-200 focus:ring-blue-500"
+                                                            )}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                {donationAmount > 0 && (
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-gray-600">Donation</span>
+                                                        <span className="font-medium text-pink-600">+£{donationInPounds.toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Total */}
                                         <div className="pt-4 border-t border-gray-200">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-base font-semibold text-gray-900">Total</span>
+                                                <span className={cn(
+                                                    "text-xl md:text-2xl font-bold",
+                                                    isFreeTicket ? 'text-green-600' : 'text-gray-900'
+                                                )}>
+                                                    {isFreeTicket ? 'Free' : `£${totalPrice.toFixed(2)}`}
+                                                </span>
+                                            </div>
                                             <div className="space-y-2 text-sm">
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Name</span>
@@ -734,6 +855,11 @@ export default function TicketSelectionModal({
                                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                             <p className="text-sm text-blue-900">
                                                 💳 You&apos;ll be redirected to Stripe to complete your payment securely.
+                                                {donationAmount > 0 && (
+                                                    <span className="block mt-1 text-xs text-blue-700">
+                                                        100% of your donation goes directly to {event.organiser}.
+                                                    </span>
+                                                )}
                                             </p>
                                         </div>
                                     )}

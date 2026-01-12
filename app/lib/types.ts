@@ -579,3 +579,27 @@ export const DefaultEvent: Event = {
     capacity: 150,
     sign_up_link: "https://google.co.uk",
 };
+
+// Donation types
+export interface DonationConfig {
+    enabled: boolean;
+    presetAmounts: number[]; // In pence (e.g., [100, 300, 500] for £1, £3, £5)
+}
+
+export interface DonationSelection {
+    amount: number; // In pence
+    isCustom: boolean;
+}
+
+export const DEFAULT_DONATION_PRESETS = [100, 300, 500]; // £1, £3, £5 in pence
+
+export interface SocietyDonationSettings {
+    allow_donations: boolean;
+}
+
+export interface CheckoutWithDonation {
+    ticketPrice: number; // In pence
+    quantity: number;
+    donationAmount: number; // In pence (0 if no donation)
+    totalAmount: number; // ticketPrice * quantity + donationAmount
+}

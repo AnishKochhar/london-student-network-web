@@ -649,13 +649,59 @@ export async function fetchAccountLogo(id: string) {
         const data = await sql`
 		SELECT logo_url
 		FROM society_information
-		WHERE user_id = ${id} 
+		WHERE user_id = ${id}
 		LIMIT 1
 		`;
         return data.rows[0];
     } catch (error) {
         console.error("Database error:", error);
         throw new Error("Failed to fetch account logo from users table");
+    }
+}
+
+/**
+ * Fetch donation settings for a society by their user_id (organiser_uid)
+ * Returns whether the society accepts donations
+ */
+export async function fetchSocietyDonationSettings(organiserUid: string): Promise<{ allow_donations: boolean }> {
+    try {
+        const data = await sql`
+            SELECT allow_donations
+            FROM society_information
+            WHERE user_id = ${organiserUid}
+            LIMIT 1
+        `;
+
+        if (data.rows.length === 0) {
+            return { allow_donations: false };
+        }
+
+        return {
+            allow_donations: data.rows[0].allow_donations ?? false
+        };
+    } catch (error) {
+        console.error("Database error fetching donation settings:", error);
+        return { allow_donations: false };
+    }
+}
+
+/**
+ * Update donation settings for a society
+ */
+export async function updateSocietyDonationSettings(
+    userId: string,
+    allowDonations: boolean
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await sql`
+            UPDATE society_information
+            SET allow_donations = ${allowDonations}
+            WHERE user_id = ${userId}
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Database error updating donation settings:", error);
+        return { success: false, error: "Failed to update donation settings" };
     }
 }
 
