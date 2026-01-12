@@ -13,6 +13,7 @@ import {
     Bars3Icon,
     XMarkIcon,
     ArrowRightOnRectangleIcon,
+    MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 
 interface AdminSidebarProps {
@@ -36,6 +37,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     const navigation: NavItem[] = [
         { name: "Dashboard", href: "/admin", icon: HomeIcon },
         { name: "Events", href: "/admin/events", icon: CalendarDaysIcon },
+        { name: "Campaigns", href: "/admin/campaigns", icon: MegaphoneIcon },
         { name: "Analytics", href: "/admin/analytics", icon: ChartBarIcon },
         { name: "API Keys", href: "/admin/api-keys", icon: KeyIcon },
         { name: "Contact Forms", href: "/admin/contact-forms", icon: EnvelopeIcon },
