@@ -21,14 +21,13 @@ export default function DonationSuccessPage() {
 
     const [loading, setLoading] = useState(true);
     const [donation, setDonation] = useState<DonationDetails | null>(null);
-    const [_error, setError] = useState<string | null>(null);
 
     const stringSlug = slug instanceof Array ? slug[0] : slug;
 
     useEffect(() => {
         const verifyDonation = async () => {
             if (!sessionId) {
-                setError('No session ID provided');
+                // No session ID - will be redirected by the second useEffect
                 setLoading(false);
                 return;
             }
