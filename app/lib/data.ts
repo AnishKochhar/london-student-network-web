@@ -201,6 +201,129 @@ export async function fetchAllUpcomingEvents(
     }
 }
 
+export interface PaginatedEventsResult {
+    events: ReturnType<typeof convertSQLEventToEvent>[];
+    total: number;
+    hasMore: boolean;
+}
+
+/**
+ * Fetch paginated upcoming events for the events page
+ * This is used for the initial SSR load with pagination
+ */
+export async function fetchPaginatedUpcomingEvents(
+    userSession?: { id?: string; verified_university?: string; role?: string } | null,
+    limit: number = 30,
+    offset: number = 0
+): Promise<PaginatedEventsResult> {
+    try {
+        // Build visibility conditions based on user session
+        let visibilityCondition = '';
+        const params: (string | number)[] = [];
+
+        if (userSession?.role === 'organiser' || userSession?.role === 'company') {
+            visibilityCondition = `AND (e.visibility_level != 'private' OR e.visibility_level IS NULL)`;
+        } else if (!userSession) {
+            visibilityCondition = `AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)`;
+        } else if (userSession.verified_university) {
+            visibilityCondition = `AND (
+                e.visibility_level = 'public'
+                OR e.visibility_level = 'students_only'
+                OR e.visibility_level = 'verified_students'
+                OR e.visibility_level IS NULL
+                OR (
+                    e.visibility_level = 'university_exclusive'
+                    AND $1 = ANY(e.allowed_universities)
+                )
+            )`;
+            params.push(userSession.verified_university);
+        } else {
+            visibilityCondition = `AND (
+                e.visibility_level = 'public'
+                OR e.visibility_level = 'students_only'
+                OR e.visibility_level IS NULL
+            )`;
+        }
+
+        // Get total count
+        const countQuery = `
+            SELECT COUNT(*)::integer as total
+            FROM events e
+            WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            AND (e.is_hidden IS NULL OR e.is_hidden = false)
+            ${visibilityCondition}
+        `;
+        const countResult = await sql.query(countQuery, params);
+        const total = countResult.rows[0].total;
+
+        // Get paginated events
+        const limitParamIndex = params.length + 1;
+        const offsetParamIndex = params.length + 2;
+        const eventsQuery = `
+            SELECT e.*, s.slug as organiser_slug, s.university_affiliation as organiser_university
+            FROM events e
+            LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+            WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            AND (e.is_hidden IS NULL OR e.is_hidden = false)
+            ${visibilityCondition}
+            ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                EXTRACT(hour FROM e.start_time::time)::int,
+                EXTRACT(minute FROM e.start_time::time)::int, 0)) ASC
+            LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
+        `;
+
+        const eventsResult = await sql.query(eventsQuery, [...params, limit, offset]);
+        const events = eventsResult.rows.map((row: SQLEvent) => convertSQLEventToEvent(row));
+
+        // Fetch tickets for all events
+        if (events.length > 0) {
+            const eventIds = events.map(e => e.id);
+            // Use sql.query with parameterized array for type safety
+            const ticketsResult = await sql.query(`
+                SELECT
+                    t.event_uuid,
+                    t.ticket_uuid,
+                    t.ticket_name,
+                    t.ticket_price,
+                    CASE
+                        WHEN t.tickets_available IS NOT NULL THEN
+                            GREATEST(0, t.tickets_available - COALESCE(
+                                (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                                0
+                            ))
+                        ELSE NULL
+                    END as tickets_available
+                FROM tickets t
+                WHERE t.event_uuid = ANY($1::uuid[])
+                ORDER BY t.event_uuid, t.ticket_price::numeric ASC
+            `, [eventIds]);
+
+            const ticketsByEvent = ticketsResult.rows.reduce((acc, ticket) => {
+                if (!acc[ticket.event_uuid]) {
+                    acc[ticket.event_uuid] = [];
+                }
+                acc[ticket.event_uuid].push(ticket);
+                return acc;
+            }, {} as Record<string, typeof ticketsResult.rows>);
+
+            events.forEach(event => {
+                event.tickets = ticketsByEvent[event.id] || [];
+            });
+        }
+
+        return {
+            events,
+            total,
+            hasMore: offset + events.length < total,
+        };
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error("Failed to fetch paginated events");
+    }
+}
+
 export async function fetchUpcomingEvents(
     userSession?: { id?: string; verified_university?: string; role?: string } | null
 ) {
@@ -842,7 +965,7 @@ export async function getOrganiserName(id: string) {
 export async function getOrganiserBySlug(slug: string) {
     try {
         const data = await sql`
-			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url, society.slug
+			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url, society.slug, society.allow_donations
 			FROM users AS u
 			JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'

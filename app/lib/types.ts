@@ -5,6 +5,7 @@ export interface Event {
     organiser: string;
     organiser_uid?: string; // Added for logo fetching
     organiser_slug?: string; // Added for society page links
+    organiser_university?: string; // University code for filtering (e.g., 'imperial', 'ucl')
     time: string; // Legacy field
     date: string; // Legacy field
     location_building: string;
@@ -86,6 +87,7 @@ export interface SQLEvent {
     organiser: string;
     organiser_uid: string;
     organiser_slug?: string; // From JOIN with society_information
+    organiser_university?: string; // From JOIN with society_information (university_affiliation)
     // New datetime fields (primary)
     start_datetime?: string;   // PostgreSQL TIMESTAMPTZ
     end_datetime?: string;     // PostgreSQL TIMESTAMPTZ
@@ -602,4 +604,42 @@ export interface CheckoutWithDonation {
     quantity: number;
     donationAmount: number; // In pence (0 if no donation)
     totalAmount: number; // ticketPrice * quantity + donationAmount
+}
+
+// Standalone Society Donation types
+export interface SocietyDonation {
+    id: string;
+    society_uid: string;
+    user_id?: string;
+    donor_name?: string;
+    donor_email: string;
+    stripe_checkout_session_id?: string;
+    stripe_payment_intent_id?: string;
+    amount: number; // In pence
+    fee_covered: number; // Stripe fee covered by donor (in pence)
+    currency: string;
+    payment_status: 'pending' | 'succeeded' | 'failed' | 'cancelled';
+    message?: string;
+    created_at: string;
+    completed_at?: string;
+}
+
+export interface CreateSocietyDonationRequest {
+    society_uid: string;
+    amount: number; // In pence
+    donor_name?: string;
+    donor_email: string;
+    message?: string;
+    cover_fee?: boolean; // Whether donor wants to cover Stripe processing fee
+}
+
+// Donation presets for standalone donations (higher than event donations)
+export const STANDALONE_DONATION_PRESETS = [500, 1000, 2000]; // £5, £10, £20 in pence
+
+// Stripe fee calculation (approximate: 1.5% + 20p for UK cards)
+export const STRIPE_FEE_PERCENTAGE = 1.5;
+export const STRIPE_FEE_FIXED_PENCE = 20;
+
+export function calculateStripeFee(amountInPence: number): number {
+    return Math.round((amountInPence * STRIPE_FEE_PERCENTAGE / 100) + STRIPE_FEE_FIXED_PENCE);
 }
