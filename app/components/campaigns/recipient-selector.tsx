@@ -6,20 +6,19 @@ import {
     MagnifyingGlassIcon,
     FolderIcon,
     EnvelopeIcon,
-    ChevronRightIcon,
     XMarkIcon,
     PlusIcon,
     UserGroupIcon,
     ChevronDownIcon,
     ChevronUpIcon,
-    ArrowPathIcon,
-    ExclamationCircleIcon,
+    UsersIcon,
     CheckIcon,
+    SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { EmailCategory } from "@/app/lib/campaigns/types";
 
 // Types
-interface Recipient {
+export interface Recipient {
     id: string;
     email: string;
     name: string | null;
@@ -29,20 +28,7 @@ interface Recipient {
     categoryName?: string;
 }
 
-interface CategorySearchResult {
-    type: "category";
-    id: string;
-    name: string;
-    slug: string;
-    parentId: string | null;
-    parentName: string | null;
-    contactCount: number;
-    color: string;
-    path: string[];
-}
-
-interface ContactSearchResult {
-    type: "contact";
+interface ContactResult {
     id: string;
     email: string;
     name: string | null;
@@ -51,13 +37,17 @@ interface ContactSearchResult {
     categoryName: string | null;
 }
 
-type SearchResult = CategorySearchResult | ContactSearchResult;
-
 interface RecipientSelectorProps {
     recipients: Recipient[];
     onRecipientsChange: (recipients: Recipient[]) => void;
     categories: EmailCategory[];
 }
+
+// Dropdown item types for keyboard navigation
+type DropdownItem =
+    | { type: "category"; data: EmailCategory }
+    | { type: "contact"; data: ContactResult }
+    | { type: "manual"; email: string };
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,181 +58,215 @@ export default function RecipientSelector({
     categories,
 }: RecipientSelectorProps) {
     // Search state
-    const [searchQuery, setSearchQuery] = useState("");
-    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-    const [isSearching, setIsSearching] = useState(false);
+    const [query, setQuery] = useState("");
+    const [allContacts, setAllContacts] = useState<ContactResult[]>([]);
+    const [isLoadingContacts, setIsLoadingContacts] = useState(true);
     const [showDropdown, setShowDropdown] = useState(false);
-    const [manualEmail, setManualEmail] = useState("");
-    const [emailError, setEmailError] = useState<string | null>(null);
+    const [isAddingCategory, setIsAddingCategory] = useState<string | null>(null);
 
-    // Breadcrumb navigation state
-    const [currentCategoryId, setCurrentCategoryId] = useState<string | null>(null);
-    const [breadcrumbPath, setBreadcrumbPath] = useState<{ id: string | null; name: string }[]>([
-        { id: null, name: "All Categories" },
-    ]);
+    // Keyboard navigation state
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
     // Recipient list state
     const [isListExpanded, setIsListExpanded] = useState(true);
-    const [isLoadingContacts, setIsLoadingContacts] = useState(false);
 
     // Refs
-    const searchInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const listContainerRef = useRef<HTMLDivElement>(null);
+    const itemRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
 
-    // Get children of current category
-    const currentChildren = useMemo(() => {
-        if (!currentCategoryId) {
-            return categories.filter((c) => !c.parentId);
+    // Check if query is a valid email
+    const isValidEmail = useMemo(() => EMAIL_REGEX.test(query.trim()), [query]);
+
+    // Check if email is already added
+    const isEmailAdded = useCallback(
+        (email: string) => recipients.some((r) => r.email.toLowerCase() === email.toLowerCase()),
+        [recipients]
+    );
+
+    // Default/suggested categories (top by contact count)
+    const suggestedCategories = useMemo(() => {
+        return [...categories]
+            .sort((a, b) => (b.contactCount || 0) - (a.contactCount || 0))
+            .slice(0, 4);
+    }, [categories]);
+
+    // Default/suggested contacts (first few)
+    const suggestedContacts = useMemo(() => {
+        return allContacts.slice(0, 4);
+    }, [allContacts]);
+
+    // Client-side filtered categories
+    const filteredCategories = useMemo(() => {
+        if (!query.trim()) return suggestedCategories;
+        const lowerQuery = query.toLowerCase().trim();
+        return categories
+            .filter(
+                (cat) =>
+                    cat.name.toLowerCase().includes(lowerQuery) ||
+                    cat.slug?.toLowerCase().includes(lowerQuery)
+            )
+            .slice(0, 5);
+    }, [categories, query, suggestedCategories]);
+
+    // Client-side filtered contacts
+    const filteredContacts = useMemo(() => {
+        if (!query.trim()) return suggestedContacts;
+        const lowerQuery = query.toLowerCase().trim();
+        return allContacts
+            .filter(
+                (c) =>
+                    c.email.toLowerCase().includes(lowerQuery) ||
+                    c.name?.toLowerCase().includes(lowerQuery) ||
+                    c.organization?.toLowerCase().includes(lowerQuery)
+            )
+            .slice(0, 8);
+    }, [allContacts, query, suggestedContacts]);
+
+    // Show manual email option
+    const showManualOption = useMemo(() => {
+        if (!isValidEmail) return false;
+        const trimmedQuery = query.trim().toLowerCase();
+        if (isEmailAdded(trimmedQuery)) return false;
+        // Don't show if it matches an existing contact exactly
+        if (filteredContacts.some((c) => c.email.toLowerCase() === trimmedQuery)) return false;
+        return true;
+    }, [isValidEmail, query, isEmailAdded, filteredContacts]);
+
+    // Build flat list of all dropdown items for keyboard navigation
+    const dropdownItems = useMemo((): DropdownItem[] => {
+        const items: DropdownItem[] = [];
+
+        // Add categories
+        filteredCategories.forEach((cat) => {
+            items.push({ type: "category", data: cat });
+        });
+
+        // Add contacts (only non-added ones are selectable, but we include all for indexing)
+        filteredContacts.forEach((contact) => {
+            items.push({ type: "contact", data: contact });
+        });
+
+        // Add manual email option
+        if (showManualOption) {
+            items.push({ type: "manual", email: query.trim() });
         }
-        return categories.filter((c) => c.parentId === currentCategoryId);
-    }, [categories, currentCategoryId]);
 
-    // Get current category
-    const currentCategory = useMemo(() => {
-        if (!currentCategoryId) return null;
-        return categories.find((c) => c.id === currentCategoryId) || null;
-    }, [categories, currentCategoryId]);
+        return items;
+    }, [filteredCategories, filteredContacts, showManualOption, query]);
 
-    // Debounced search
+    // Fetch all contacts on mount for client-side filtering
     useEffect(() => {
-        if (searchQuery.length < 2) {
-            setSearchResults([]);
-            setShowDropdown(false);
-            return;
-        }
-
-        const timer = setTimeout(async () => {
-            setIsSearching(true);
+        const fetchContacts = async () => {
             try {
-                const res = await fetch(`/api/admin/campaigns/search?q=${encodeURIComponent(searchQuery)}&limit=8`);
+                const res = await fetch("/api/admin/campaigns/contacts?limit=1000");
                 if (res.ok) {
                     const data = await res.json();
-                    setSearchResults(data.results || []);
-                    setShowDropdown(true);
+                    setAllContacts(data.items || []);
                 }
             } catch (err) {
-                console.error("Search error:", err);
+                console.error("Error fetching contacts:", err);
             } finally {
-                setIsSearching(false);
+                setIsLoadingContacts(false);
             }
-        }, 300);
+        };
+        fetchContacts();
+    }, []);
 
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+    // Reset highlighted index when dropdown items change
+    useEffect(() => {
+        setHighlightedIndex(-1);
+    }, [dropdownItems.length, query]);
+
+    // Scroll highlighted item into view
+    useEffect(() => {
+        if (highlightedIndex >= 0) {
+            const element = itemRefs.current.get(highlightedIndex);
+            element?.scrollIntoView({ block: "nearest" });
+        }
+    }, [highlightedIndex]);
 
     // Click outside to close dropdown
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
                 setShowDropdown(false);
+                setHighlightedIndex(-1);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // Navigate to category (breadcrumb)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const navigateToCategory = useCallback((categoryId: string | null, _categoryName: string) => {
-        if (categoryId === null) {
-            // Going to root
-            setBreadcrumbPath([{ id: null, name: "All Categories" }]);
-            setCurrentCategoryId(null);
-        } else {
-            // Build path to this category
-            const buildPath = (id: string): { id: string | null; name: string }[] => {
-                const cat = categories.find((c) => c.id === id);
-                if (!cat) return [];
-                if (cat.parentId) {
-                    return [...buildPath(cat.parentId), { id: cat.id, name: cat.name }];
-                }
-                return [{ id: cat.id, name: cat.name }];
-            };
-            setBreadcrumbPath([{ id: null, name: "All Categories" }, ...buildPath(categoryId)]);
-            setCurrentCategoryId(categoryId);
-        }
-        setShowDropdown(false);
-        setSearchQuery("");
-    }, [categories]);
-
     // Add all contacts from a category
-    const addCategoryContacts = useCallback(async (categoryId: string, categoryName: string) => {
-        setIsLoadingContacts(true);
-        try {
-            // Fetch all contacts from this category (including descendants)
-            const res = await fetch(`/api/admin/campaigns/contacts?categoryId=${categoryId}&limit=1000&includeDescendants=true`);
-            if (res.ok) {
-                const data = await res.json();
-                const contacts = data.items || [];
+    const addCategoryContacts = useCallback(
+        async (category: EmailCategory) => {
+            setIsAddingCategory(category.id);
+            try {
+                const res = await fetch(
+                    `/api/admin/campaigns/contacts?categoryId=${category.id}&limit=1000&includeDescendants=true`
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    const contacts = data.items || [];
 
-                const newRecipients: Recipient[] = contacts.map((c: {
-                    id: string;
-                    email: string;
-                    name: string | null;
-                    organization: string | null;
-                    categoryId: string;
-                    categoryName?: string;
-                }) => ({
-                    id: c.id,
-                    email: c.email,
-                    name: c.name,
-                    organization: c.organization,
-                    source: "category" as const,
-                    categoryId: c.categoryId,
-                    categoryName: c.categoryName || categoryName,
-                }));
+                    const newRecipients: Recipient[] = contacts.map(
+                        (c: ContactResult & { categoryId: string }) => ({
+                            id: c.id,
+                            email: c.email,
+                            name: c.name,
+                            organization: c.organization,
+                            source: "category" as const,
+                            categoryId: c.categoryId,
+                            categoryName: category.name,
+                        })
+                    );
 
-                // Merge with existing, avoiding duplicates
-                const existingEmails = new Set(recipients.map((r) => r.email.toLowerCase()));
-                const uniqueNew = newRecipients.filter((r) => !existingEmails.has(r.email.toLowerCase()));
+                    // Merge avoiding duplicates
+                    const existingEmails = new Set(recipients.map((r) => r.email.toLowerCase()));
+                    const uniqueNew = newRecipients.filter(
+                        (r) => !existingEmails.has(r.email.toLowerCase())
+                    );
 
-                onRecipientsChange([...recipients, ...uniqueNew]);
+                    onRecipientsChange([...recipients, ...uniqueNew]);
+                    setQuery("");
+                    setShowDropdown(false);
+                }
+            } catch (err) {
+                console.error("Error fetching category contacts:", err);
+            } finally {
+                setIsAddingCategory(null);
             }
-        } catch (err) {
-            console.error("Error fetching contacts:", err);
-        } finally {
-            setIsLoadingContacts(false);
-        }
-    }, [recipients, onRecipientsChange]);
+        },
+        [recipients, onRecipientsChange]
+    );
 
-    // Add single contact from search
-    const addContact = useCallback((contact: ContactSearchResult) => {
-        const existingEmails = new Set(recipients.map((r) => r.email.toLowerCase()));
-        if (existingEmails.has(contact.email.toLowerCase())) {
-            return; // Already added
-        }
+    // Add single contact
+    const addContact = useCallback(
+        (contact: ContactResult) => {
+            if (isEmailAdded(contact.email)) return;
 
-        const newRecipient: Recipient = {
-            id: contact.id,
-            email: contact.email,
-            name: contact.name,
-            organization: contact.organization,
-            source: "search",
-            categoryId: contact.categoryId || undefined,
-            categoryName: contact.categoryName || undefined,
-        };
+            const newRecipient: Recipient = {
+                id: contact.id,
+                email: contact.email,
+                name: contact.name,
+                organization: contact.organization,
+                source: "search",
+                categoryId: contact.categoryId || undefined,
+                categoryName: contact.categoryName || undefined,
+            };
 
-        onRecipientsChange([...recipients, newRecipient]);
-        setSearchQuery("");
-        setShowDropdown(false);
-    }, [recipients, onRecipientsChange]);
+            onRecipientsChange([...recipients, newRecipient]);
+            setQuery("");
+            setShowDropdown(false);
+        },
+        [recipients, onRecipientsChange, isEmailAdded]
+    );
 
     // Add manual email
     const addManualEmail = useCallback(() => {
-        const email = manualEmail.trim();
-        if (!email) return;
-
-        if (!EMAIL_REGEX.test(email)) {
-            setEmailError("Invalid email format");
-            return;
-        }
-
-        const existingEmails = new Set(recipients.map((r) => r.email.toLowerCase()));
-        if (existingEmails.has(email.toLowerCase())) {
-            setEmailError("Email already added");
-            return;
-        }
+        const email = query.trim();
+        if (!email || !isValidEmail || isEmailAdded(email)) return;
 
         const newRecipient: Recipient = {
             id: `manual-${Date.now()}`,
@@ -253,274 +277,389 @@ export default function RecipientSelector({
         };
 
         onRecipientsChange([...recipients, newRecipient]);
-        setManualEmail("");
-        setEmailError(null);
-    }, [manualEmail, recipients, onRecipientsChange]);
+        setQuery("");
+        setShowDropdown(false);
+    }, [query, isValidEmail, isEmailAdded, recipients, onRecipientsChange]);
 
     // Remove recipient
-    const removeRecipient = useCallback((email: string) => {
-        onRecipientsChange(recipients.filter((r) => r.email !== email));
-    }, [recipients, onRecipientsChange]);
+    const removeRecipient = useCallback(
+        (email: string) => {
+            onRecipientsChange(recipients.filter((r) => r.email !== email));
+        },
+        [recipients, onRecipientsChange]
+    );
 
-    // Clear all recipients
+    // Clear all
     const clearAllRecipients = useCallback(() => {
         onRecipientsChange([]);
     }, [onRecipientsChange]);
 
-    // Handle search result click
-    const handleSearchResultClick = (result: SearchResult) => {
-        if (result.type === "category") {
-            navigateToCategory(result.id, result.name);
-        } else {
-            addContact(result);
+    // Select highlighted item
+    const selectHighlightedItem = useCallback(() => {
+        if (highlightedIndex < 0 || highlightedIndex >= dropdownItems.length) return false;
+
+        const item = dropdownItems[highlightedIndex];
+        if (item.type === "category") {
+            addCategoryContacts(item.data);
+            return true;
+        } else if (item.type === "contact") {
+            if (!isEmailAdded(item.data.email)) {
+                addContact(item.data);
+                return true;
+            }
+        } else if (item.type === "manual") {
+            addManualEmail();
+            return true;
+        }
+        return false;
+    }, [highlightedIndex, dropdownItems, addCategoryContacts, addContact, addManualEmail, isEmailAdded]);
+
+    // Handle key press
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!showDropdown) {
+            // Open dropdown on arrow down when closed
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setShowDropdown(true);
+                setHighlightedIndex(0);
+            }
+            return;
+        }
+
+        switch (e.key) {
+            case "ArrowDown":
+                e.preventDefault();
+                setHighlightedIndex((prev) => {
+                    const next = prev + 1;
+                    return next >= dropdownItems.length ? 0 : next;
+                });
+                break;
+
+            case "ArrowUp":
+                e.preventDefault();
+                setHighlightedIndex((prev) => {
+                    const next = prev - 1;
+                    return next < 0 ? dropdownItems.length - 1 : next;
+                });
+                break;
+
+            case "Enter":
+                e.preventDefault();
+                if (highlightedIndex >= 0) {
+                    selectHighlightedItem();
+                } else if (showManualOption) {
+                    addManualEmail();
+                }
+                break;
+
+            case "Tab":
+                if (highlightedIndex >= 0) {
+                    e.preventDefault();
+                    selectHighlightedItem();
+                }
+                break;
+
+            case "Escape":
+                e.preventDefault();
+                setShowDropdown(false);
+                setHighlightedIndex(-1);
+                break;
         }
     };
 
-    // Check if email is already added
-    const isEmailAdded = (email: string) => {
-        return recipients.some((r) => r.email.toLowerCase() === email.toLowerCase());
+    // Handle input focus
+    const handleFocus = () => {
+        setShowDropdown(true);
+        if (dropdownItems.length > 0 && highlightedIndex < 0) {
+            setHighlightedIndex(0);
+        }
     };
 
+    const hasResults = filteredCategories.length > 0 || filteredContacts.length > 0;
+    const isDefaultView = !query.trim();
+
     return (
-        <div className="space-y-5">
+        <div className="space-y-4">
             {/* Search Input */}
             <div className="relative" ref={dropdownRef}>
                 <div className="relative">
                     <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
                     <input
-                        ref={searchInputRef}
+                        ref={inputRef}
                         type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => searchQuery.length >= 2 && setShowDropdown(true)}
-                        placeholder="Search categories or contacts..."
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onFocus={handleFocus}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Search groups, contacts, or enter an email..."
                         className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-indigo-500/50 focus:bg-white/[0.07] transition-all"
                     />
-                    {isSearching && (
-                        <ArrowPathIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 animate-spin" />
+                    {isLoadingContacts && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                            <div className="w-4 h-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+                        </div>
                     )}
                 </div>
 
-                {/* Search Dropdown */}
+                {/* Unified Dropdown */}
                 <AnimatePresence>
-                    {showDropdown && searchResults.length > 0 && (
+                    {showDropdown && (hasResults || showManualOption || isDefaultView) && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="absolute top-full left-0 right-0 mt-2 bg-[#0d0d12] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
+                            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full left-0 right-0 mt-2 bg-[#121218] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
                         >
                             <div className="max-h-80 overflow-y-auto">
-                                {searchResults.map((result, index) => (
-                                    <button
-                                        key={`${result.type}-${result.id}`}
-                                        onClick={() => handleSearchResultClick(result)}
-                                        disabled={result.type === "contact" && isEmailAdded(result.email)}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                                            result.type === "contact" && isEmailAdded(result.email)
-                                                ? "opacity-50 cursor-not-allowed bg-white/5"
-                                                : "hover:bg-white/5"
-                                        } ${index !== 0 ? "border-t border-white/5" : ""}`}
-                                    >
-                                        {result.type === "category" ? (
-                                            <>
-                                                <div className="p-2 bg-indigo-500/20 rounded-lg flex-shrink-0">
-                                                    <FolderIcon className="w-4 h-4 text-indigo-400" />
+                                {(() => {
+                                    let itemIndex = 0;
+                                    return (
+                                        <>
+                                            {/* Groups Section */}
+                                            {filteredCategories.length > 0 && (
+                                                <div>
+                                                    <div className="px-4 py-2 bg-white/[0.03] border-b border-white/5">
+                                                        <p className="text-[10px] uppercase tracking-wider text-white/40 font-medium flex items-center gap-1.5">
+                                                            {isDefaultView ? (
+                                                                <SparklesIcon className="w-3 h-3" />
+                                                            ) : (
+                                                                <FolderIcon className="w-3 h-3" />
+                                                            )}
+                                                            {isDefaultView ? "Suggested Groups" : "Groups"}
+                                                        </p>
+                                                    </div>
+                                                    {filteredCategories.map((cat) => {
+                                                        const currentIndex = itemIndex++;
+                                                        const isHighlighted = currentIndex === highlightedIndex;
+                                                        return (
+                                                            <button
+                                                                key={cat.id}
+                                                                ref={(el) => {
+                                                                    if (el) itemRefs.current.set(currentIndex, el);
+                                                                }}
+                                                                onClick={() => addCategoryContacts(cat)}
+                                                                onMouseEnter={() => setHighlightedIndex(currentIndex)}
+                                                                disabled={isAddingCategory === cat.id}
+                                                                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors disabled:opacity-60 group ${
+                                                                    isHighlighted ? "bg-white/10" : "hover:bg-white/5"
+                                                                }`}
+                                                            >
+                                                                {/* Group icon with color */}
+                                                                <div
+                                                                    className="p-2.5 rounded-lg flex-shrink-0"
+                                                                    style={{ backgroundColor: `${cat.color || "#6366f1"}15` }}
+                                                                >
+                                                                    <FolderIcon
+                                                                        className="w-4 h-4"
+                                                                        style={{ color: cat.color || "#6366f1" }}
+                                                                    />
+                                                                </div>
+
+                                                                {/* Name & description */}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-medium text-white truncate">
+                                                                        {cat.name}
+                                                                    </p>
+                                                                    {cat.description && (
+                                                                        <p className="text-xs text-white/40 truncate">
+                                                                            {cat.description}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Contact count badge */}
+                                                                <div className="flex items-center gap-2 flex-shrink-0">
+                                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/20 border border-indigo-500/30 rounded-full">
+                                                                        <UsersIcon className="w-3.5 h-3.5 text-indigo-400" />
+                                                                        <span className="text-xs font-semibold text-indigo-300">
+                                                                            {cat.contactCount || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                    {isAddingCategory === cat.id ? (
+                                                                        <div className="w-5 h-5 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                                                                    ) : (
+                                                                        <PlusIcon className={`w-5 h-5 transition-colors ${isHighlighted ? "text-white/50" : "text-white/20 group-hover:text-white/50"}`} />
+                                                                    )}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-white truncate">
-                                                        {result.name}
-                                                    </p>
-                                                    <p className="text-xs text-white/50">
-                                                        {result.path.join(" › ")} • {result.contactCount} contacts
+                                            )}
+
+                                            {/* Contacts Section */}
+                                            {filteredContacts.length > 0 && (
+                                                <div>
+                                                    <div className="px-4 py-2 bg-white/[0.03] border-b border-white/5">
+                                                        <p className="text-[10px] uppercase tracking-wider text-white/40 font-medium flex items-center gap-1.5">
+                                                            {isDefaultView ? (
+                                                                <SparklesIcon className="w-3 h-3" />
+                                                            ) : (
+                                                                <EnvelopeIcon className="w-3 h-3" />
+                                                            )}
+                                                            {isDefaultView ? "Suggested Contacts" : "Contacts"}
+                                                        </p>
+                                                    </div>
+                                                    {filteredContacts.map((contact) => {
+                                                        const currentIndex = itemIndex++;
+                                                        const isHighlighted = currentIndex === highlightedIndex;
+                                                        const added = isEmailAdded(contact.email);
+                                                        return (
+                                                            <button
+                                                                key={contact.id}
+                                                                ref={(el) => {
+                                                                    if (el) itemRefs.current.set(currentIndex, el);
+                                                                }}
+                                                                onClick={() => !added && addContact(contact)}
+                                                                onMouseEnter={() => setHighlightedIndex(currentIndex)}
+                                                                disabled={added}
+                                                                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors group ${
+                                                                    added
+                                                                        ? "opacity-50 cursor-not-allowed bg-white/[0.02]"
+                                                                        : isHighlighted
+                                                                        ? "bg-white/10"
+                                                                        : "hover:bg-white/5"
+                                                                }`}
+                                                            >
+                                                                {/* Contact icon */}
+                                                                <div className="p-2.5 bg-emerald-500/15 rounded-lg flex-shrink-0">
+                                                                    <EnvelopeIcon className="w-4 h-4 text-emerald-400" />
+                                                                </div>
+
+                                                                {/* Name & email */}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-sm font-medium text-white truncate">
+                                                                        {contact.name || contact.email}
+                                                                    </p>
+                                                                    <p className="text-xs text-white/40 truncate">
+                                                                        {contact.name
+                                                                            ? contact.email
+                                                                            : contact.organization || "No organization"}
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Status indicator */}
+                                                                {added ? (
+                                                                    <div className="flex items-center gap-1.5 text-emerald-400">
+                                                                        <CheckIcon className="w-4 h-4" />
+                                                                        <span className="text-xs">Added</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <PlusIcon className={`w-5 h-5 transition-colors flex-shrink-0 ${isHighlighted ? "text-white/50" : "text-white/20 group-hover:text-white/50"}`} />
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Manual Email Option */}
+                                            {showManualOption && (() => {
+                                                const currentIndex = itemIndex++;
+                                                const isHighlighted = currentIndex === highlightedIndex;
+                                                return (
+                                                    <div>
+                                                        {(filteredCategories.length > 0 || filteredContacts.length > 0) && (
+                                                            <div className="px-4 py-2 bg-white/[0.03] border-b border-white/5">
+                                                                <p className="text-[10px] uppercase tracking-wider text-white/40 font-medium flex items-center gap-1.5">
+                                                                    <PlusIcon className="w-3 h-3" />
+                                                                    Add New
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            ref={(el) => {
+                                                                if (el) itemRefs.current.set(currentIndex, el);
+                                                            }}
+                                                            onClick={addManualEmail}
+                                                            onMouseEnter={() => setHighlightedIndex(currentIndex)}
+                                                            className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors group ${
+                                                                isHighlighted ? "bg-white/10" : "hover:bg-white/5"
+                                                            }`}
+                                                        >
+                                                            <div className="p-2.5 bg-amber-500/15 rounded-lg flex-shrink-0">
+                                                                <EnvelopeIcon className="w-4 h-4 text-amber-400" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-medium text-white truncate">
+                                                                    {query.trim()}
+                                                                </p>
+                                                                <p className="text-xs text-white/40">
+                                                                    Add as manual recipient
+                                                                </p>
+                                                            </div>
+                                                            <span className={`text-xs font-medium px-2 py-1 rounded flex-shrink-0 ${isHighlighted ? "text-amber-300 bg-amber-500/20" : "text-amber-400/80 bg-amber-500/10"}`}>
+                                                                Enter ↵
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            {/* No Results */}
+                                            {query.length >= 2 && !hasResults && !showManualOption && (
+                                                <div className="px-4 py-6 text-center">
+                                                    <p className="text-sm text-white/40">No results found</p>
+                                                    <p className="text-xs text-white/30 mt-1">
+                                                        Try a different search or enter a valid email
                                                     </p>
                                                 </div>
-                                                <ChevronRightIcon className="w-4 h-4 text-white/30" />
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="p-2 bg-emerald-500/20 rounded-lg flex-shrink-0">
-                                                    <EnvelopeIcon className="w-4 h-4 text-emerald-400" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-white truncate">
-                                                        {result.name || result.email}
+                                            )}
+
+                                            {/* Keyboard hint */}
+                                            {dropdownItems.length > 0 && (
+                                                <div className="px-4 py-2 bg-white/[0.02] border-t border-white/5">
+                                                    <p className="text-[10px] text-white/30 flex items-center gap-3">
+                                                        <span className="flex items-center gap-1">
+                                                            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[9px]">↑</kbd>
+                                                            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[9px]">↓</kbd>
+                                                            navigate
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[9px]">↵</kbd>
+                                                            select
+                                                        </span>
+                                                        <span className="flex items-center gap-1">
+                                                            <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[9px]">esc</kbd>
+                                                            close
+                                                        </span>
                                                     </p>
-                                                    <p className="text-xs text-white/50 truncate">
-                                                        {result.name ? result.email : result.organization || "No organization"}
-                                                        {result.categoryName && ` • ${result.categoryName}`}
-                                                    </p>
                                                 </div>
-                                                {isEmailAdded(result.email) ? (
-                                                    <CheckIcon className="w-4 h-4 text-green-400" />
-                                                ) : (
-                                                    <PlusIcon className="w-4 h-4 text-white/30" />
-                                                )}
-                                            </>
-                                        )}
-                                    </button>
-                                ))}
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
 
-            {/* Breadcrumb Navigation */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                {/* Breadcrumb */}
-                <div className="flex items-center gap-1 text-sm mb-4 overflow-x-auto pb-2">
-                    {breadcrumbPath.map((item, index) => (
-                        <div key={item.id || "root"} className="flex items-center gap-1 flex-shrink-0">
-                            {index > 0 && <ChevronRightIcon className="w-4 h-4 text-white/30" />}
-                            <button
-                                onClick={() => navigateToCategory(item.id, item.name)}
-                                className={`px-2 py-1 rounded-md transition-colors ${
-                                    index === breadcrumbPath.length - 1
-                                        ? "bg-indigo-500/20 text-indigo-300 font-medium"
-                                        : "text-white/60 hover:text-white hover:bg-white/10"
-                                }`}
-                            >
-                                {item.name}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Category List or Add Button */}
-                {currentChildren.length > 0 ? (
-                    <div className="space-y-1.5">
-                        {currentChildren.map((cat) => {
-                            const childCount = categories.filter((c) => c.parentId === cat.id).length;
-                            return (
-                                <div
-                                    key={cat.id}
-                                    className="flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-lg group hover:bg-white/[0.07] hover:border-white/10 transition-all"
-                                >
-                                    <div
-                                        className="p-2 rounded-lg"
-                                        style={{ backgroundColor: `${cat.color}20` }}
-                                    >
-                                        <FolderIcon
-                                            className="w-4 h-4"
-                                            style={{ color: cat.color }}
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => navigateToCategory(cat.id, cat.name)}
-                                        className="flex-1 text-left min-w-0"
-                                    >
-                                        <p className="text-sm font-medium text-white truncate">
-                                            {cat.name}
-                                        </p>
-                                        <p className="text-xs text-white/50">
-                                            {cat.contactCount || 0} contacts
-                                            {childCount > 0 && ` • ${childCount} subcategories`}
-                                        </p>
-                                    </button>
-                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {childCount > 0 && (
-                                            <button
-                                                onClick={() => navigateToCategory(cat.id, cat.name)}
-                                                className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-                                                title="Browse subcategories"
-                                            >
-                                                <ChevronRightIcon className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => addCategoryContacts(cat.id, cat.name)}
-                                            disabled={isLoadingContacts}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-500/30 transition-colors disabled:opacity-50"
-                                        >
-                                            <PlusIcon className="w-3.5 h-3.5" />
-                                            Add All
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : currentCategory ? (
-                    <div className="text-center py-6">
-                        <p className="text-white/50 text-sm mb-3">No subcategories in {currentCategory.name}</p>
-                        <button
-                            onClick={() => addCategoryContacts(currentCategory.id, currentCategory.name)}
-                            disabled={isLoadingContacts}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50"
-                        >
-                            {isLoadingContacts ? (
-                                <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <PlusIcon className="w-4 h-4" />
-                            )}
-                            Add All {currentCategory.contactCount || 0} Contacts
-                        </button>
-                    </div>
-                ) : (
-                    <p className="text-center text-white/40 py-4">No categories found</p>
-                )}
-            </div>
-
-            {/* Manual Email Input */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <p className="text-sm font-medium text-white/70 mb-3">Add individual email</p>
-                <div className="flex gap-2">
-                    <div className="relative flex-1">
-                        <input
-                            type="email"
-                            value={manualEmail}
-                            onChange={(e) => {
-                                setManualEmail(e.target.value);
-                                setEmailError(null);
-                            }}
-                            onKeyDown={(e) => e.key === "Enter" && addManualEmail()}
-                            placeholder="email@example.com"
-                            className={`w-full px-4 py-2.5 bg-white/5 border rounded-lg text-white placeholder-white/40 focus:outline-none transition-colors ${
-                                emailError
-                                    ? "border-red-500/50 focus:border-red-500"
-                                    : "border-white/10 focus:border-indigo-500/50"
-                            }`}
-                        />
-                        {emailError && (
-                            <p className="absolute -bottom-5 left-0 text-xs text-red-400 flex items-center gap-1">
-                                <ExclamationCircleIcon className="w-3 h-3" />
-                                {emailError}
-                            </p>
-                        )}
-                    </div>
-                    <button
-                        onClick={addManualEmail}
-                        disabled={!manualEmail.trim()}
-                        className="px-4 py-2.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg font-medium hover:bg-indigo-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <PlusIcon className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-
             {/* Recipients List */}
-            <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-                {/* Header */}
-                <button
-                    onClick={() => setIsListExpanded(!isListExpanded)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-500/20 rounded-lg">
-                            <UserGroupIcon className="w-5 h-5 text-emerald-400" />
+            {recipients.length > 0 && (
+                <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                    {/* Header */}
+                    <button
+                        onClick={() => setIsListExpanded(!isListExpanded)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-white/[0.03] transition-colors"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                <UserGroupIcon className="w-5 h-5 text-emerald-400" />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-sm font-medium text-white">
+                                    {recipients.length} {recipients.length === 1 ? "recipient" : "recipients"}
+                                </p>
+                                <p className="text-xs text-white/40">
+                                    {recipients.filter((r) => r.source === "category").length} from groups · {" "}
+                                    {recipients.filter((r) => r.source === "search").length} from search · {" "}
+                                    {recipients.filter((r) => r.source === "manual").length} manual
+                                </p>
+                            </div>
                         </div>
-                        <div className="text-left">
-                            <p className="text-sm font-medium text-white">
-                                Selected Recipients
-                            </p>
-                            <p className="text-xs text-white/50">
-                                {recipients.length} {recipients.length === 1 ? "contact" : "contacts"} selected
-                            </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {recipients.length > 0 && (
+                        <div className="flex items-center gap-2">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -528,113 +667,93 @@ export default function RecipientSelector({
                                 }}
                                 className="px-3 py-1.5 text-xs text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
                             >
-                                Clear All
+                                Clear
                             </button>
-                        )}
-                        {isListExpanded ? (
-                            <ChevronUpIcon className="w-5 h-5 text-white/40" />
-                        ) : (
-                            <ChevronDownIcon className="w-5 h-5 text-white/40" />
-                        )}
-                    </div>
-                </button>
+                            {isListExpanded ? (
+                                <ChevronUpIcon className="w-5 h-5 text-white/40" />
+                            ) : (
+                                <ChevronDownIcon className="w-5 h-5 text-white/40" />
+                            )}
+                        </div>
+                    </button>
 
-                {/* Recipient List */}
-                <AnimatePresence>
-                    {isListExpanded && recipients.length > 0 && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="border-t border-white/10"
-                        >
-                            <div
-                                ref={listContainerRef}
-                                className="max-h-64 overflow-y-auto"
+                    {/* Recipient List */}
+                    <AnimatePresence>
+                        {isListExpanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="border-t border-white/10"
                             >
-                                {recipients.map((recipient, index) => (
-                                    <div
-                                        key={recipient.email}
-                                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 group transition-colors"
-                                        style={{
-                                            borderTop: index > 0 ? "1px solid rgba(255,255,255,0.05)" : undefined,
-                                        }}
-                                    >
-                                        <div className={`p-1.5 rounded-lg ${
-                                            recipient.source === "manual"
-                                                ? "bg-amber-500/20"
-                                                : recipient.source === "search"
-                                                ? "bg-blue-500/20"
-                                                : "bg-emerald-500/20"
-                                        }`}>
-                                            <EnvelopeIcon className={`w-3.5 h-3.5 ${
-                                                recipient.source === "manual"
-                                                    ? "text-amber-400"
-                                                    : recipient.source === "search"
-                                                    ? "text-blue-400"
-                                                    : "text-emerald-400"
-                                            }`} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-white truncate">
-                                                {recipient.name || recipient.email}
-                                            </p>
-                                            {recipient.name && (
-                                                <p className="text-xs text-white/40 truncate">
-                                                    {recipient.email}
-                                                </p>
-                                            )}
-                                        </div>
-                                        {recipient.organization && (
-                                            <span className="text-xs text-white/40 truncate max-w-[120px] hidden sm:block">
-                                                {recipient.organization}
-                                            </span>
-                                        )}
-                                        {recipient.categoryName && (
-                                            <span className="text-xs px-2 py-0.5 bg-white/5 text-white/50 rounded hidden md:block">
-                                                {recipient.categoryName}
-                                            </span>
-                                        )}
-                                        <button
-                                            onClick={() => removeRecipient(recipient.email)}
-                                            className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
+                                <div className="max-h-56 overflow-y-auto">
+                                    {recipients.map((recipient, index) => (
+                                        <div
+                                            key={recipient.email}
+                                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] group transition-colors"
+                                            style={{
+                                                borderTop:
+                                                    index > 0 ? "1px solid rgba(255,255,255,0.05)" : undefined,
+                                            }}
                                         >
-                                            <XMarkIcon className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                                            <div
+                                                className={`p-1.5 rounded-md ${
+                                                    recipient.source === "manual"
+                                                        ? "bg-amber-500/15"
+                                                        : recipient.source === "search"
+                                                        ? "bg-blue-500/15"
+                                                        : "bg-emerald-500/15"
+                                                }`}
+                                            >
+                                                <EnvelopeIcon
+                                                    className={`w-3.5 h-3.5 ${
+                                                        recipient.source === "manual"
+                                                            ? "text-amber-400"
+                                                            : recipient.source === "search"
+                                                            ? "text-blue-400"
+                                                            : "text-emerald-400"
+                                                    }`}
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm text-white truncate">
+                                                    {recipient.name || recipient.email}
+                                                </p>
+                                                {recipient.name && (
+                                                    <p className="text-xs text-white/40 truncate">
+                                                        {recipient.email}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {recipient.categoryName && (
+                                                <span className="text-[10px] px-2 py-0.5 bg-white/5 text-white/40 rounded hidden md:block">
+                                                    {recipient.categoryName}
+                                                </span>
+                                            )}
+                                            <button
+                                                onClick={() => removeRecipient(recipient.email)}
+                                                className="p-1.5 rounded-md text-white/20 hover:text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <XMarkIcon className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
 
-                {/* Empty State */}
-                {isListExpanded && recipients.length === 0 && (
-                    <div className="px-4 py-8 text-center border-t border-white/10">
-                        <EnvelopeIcon className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                        <p className="text-sm text-white/40">No recipients selected</p>
-                        <p className="text-xs text-white/30 mt-1">
-                            Search for contacts or browse categories above
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* Summary */}
-            {recipients.length > 0 && (
-                <div className="flex items-center gap-4 p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl">
-                    <UserGroupIcon className="w-8 h-8 text-indigo-400 flex-shrink-0" />
-                    <div>
-                        <p className="text-lg font-semibold text-white">
-                            {recipients.length} {recipients.length === 1 ? "recipient" : "recipients"}
-                        </p>
-                        <p className="text-sm text-white/60">
-                            {recipients.filter((r) => r.source === "category").length} from categories,{" "}
-                            {recipients.filter((r) => r.source === "search").length} from search,{" "}
-                            {recipients.filter((r) => r.source === "manual").length} manual
-                        </p>
-                    </div>
+            {/* Empty State */}
+            {recipients.length === 0 && (
+                <div className="text-center py-8 px-4 bg-white/[0.02] border border-dashed border-white/10 rounded-xl">
+                    <UserGroupIcon className="w-10 h-10 text-white/20 mx-auto mb-3" />
+                    <p className="text-sm text-white/40">No recipients selected</p>
+                    <p className="text-xs text-white/30 mt-1">
+                        Search for groups or contacts, or enter an email address
+                    </p>
                 </div>
             )}
         </div>
