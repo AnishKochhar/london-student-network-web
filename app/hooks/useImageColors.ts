@@ -68,14 +68,6 @@ function hslToRgb(h: number, s: number, l: number): RGB {
     ];
 }
 
-// Adjust color in HSL space - more intuitive control
-function adjustColor(rgb: RGB, satAdjust: number, lightAdjust: number): RGB {
-    const [h, s, l] = rgbToHsl(...rgb);
-    const newS = Math.min(100, Math.max(0, s + satAdjust));
-    const newL = Math.min(100, Math.max(0, l + lightAdjust));
-    return hslToRgb(h, newS, newL);
-}
-
 // Create a vibrant but not overwhelming background color
 function createBackgroundColor(rgb: RGB): RGB {
     const [h, s, l] = rgbToHsl(...rgb);
