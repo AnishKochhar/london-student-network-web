@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowUpTrayIcon,
-    DocumentTextIcon,
     CheckIcon,
     XMarkIcon,
     ExclamationTriangleIcon,
@@ -12,15 +11,34 @@ import {
     ArrowLeftIcon,
     TableCellsIcon,
     ClipboardDocumentIcon,
+    FolderIcon,
+    FolderOpenIcon,
+    ChevronRightIcon,
+    PlusIcon,
+    HomeIcon,
+    InboxIcon,
 } from "@heroicons/react/24/outline";
 import * as XLSX from "xlsx";
 import { ImportContact, ImportResult } from "@/app/lib/campaigns/types";
+
+// Category node type (matches category-tree.tsx)
+interface CategoryNode {
+    id: string;
+    name: string;
+    slug: string;
+    parentId: string | null;
+    color: string;
+    icon: string;
+    contactCount: number;
+    children: CategoryNode[];
+}
 
 interface ImportWizardProps {
     isOpen: boolean;
     onClose: () => void;
     onImport: (contacts: ImportContact[], categoryId: string | null) => Promise<ImportResult>;
-    categories: { id: string; name: string; path?: string }[];
+    categories: CategoryNode[];
+    onAddCategory?: (parentId: string | null, name: string) => Promise<CategoryNode | null>;
 }
 
 type Step = "upload" | "map" | "category" | "review";
@@ -45,11 +63,21 @@ interface ImportError {
 
 type UploadTab = "file" | "paste";
 
+// Helper to get total contacts including children
+function getTotalContacts(category: CategoryNode): number {
+    const childrenTotal = category.children.reduce(
+        (sum, child) => sum + getTotalContacts(child),
+        0
+    );
+    return category.contactCount + childrenTotal;
+}
+
 export default function ImportWizard({
     isOpen,
     onClose,
     onImport,
     categories,
+    onAddCategory,
 }: ImportWizardProps) {
     const [step, setStep] = useState<Step>("upload");
     const [parsedData, setParsedData] = useState<ParsedData | null>(null);
@@ -67,8 +95,66 @@ export default function ImportWizard({
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Category navigation state
+    const [categoryPath, setCategoryPath] = useState<CategoryNode[]>([]);
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+
     const steps: Step[] = ["upload", "map", "category", "review"];
     const currentStepIndex = steps.indexOf(step);
+
+    // Get current level categories based on navigation path
+    const currentCategories = useMemo(() => {
+        if (categoryPath.length === 0) {
+            return categories;
+        }
+        const currentParent = categoryPath[categoryPath.length - 1];
+        return currentParent.children;
+    }, [categories, categoryPath]);
+
+    // Get selected category object
+    const selectedCategory = useMemo(() => {
+        if (!selectedCategoryId) return null;
+        const findCategory = (cats: CategoryNode[]): CategoryNode | null => {
+            for (const cat of cats) {
+                if (cat.id === selectedCategoryId) return cat;
+                const found = findCategory(cat.children);
+                if (found) return found;
+            }
+            return null;
+        };
+        return findCategory(categories);
+    }, [selectedCategoryId, categories]);
+
+    // Navigate into a category
+    const navigateInto = (category: CategoryNode) => {
+        if (category.children.length > 0) {
+            setCategoryPath([...categoryPath, category]);
+        }
+    };
+
+    // Navigate back via breadcrumb
+    const navigateTo = (index: number) => {
+        if (index < 0) {
+            setCategoryPath([]);
+        } else {
+            setCategoryPath(categoryPath.slice(0, index + 1));
+        }
+    };
+
+    // Handle add new category
+    const handleAddCategory = async () => {
+        if (!newCategoryName.trim() || !onAddCategory) return;
+        const parentId = categoryPath.length > 0
+            ? categoryPath[categoryPath.length - 1].id
+            : null;
+        const newCat = await onAddCategory(parentId, newCategoryName.trim());
+        if (newCat) {
+            setSelectedCategoryId(newCat.id);
+        }
+        setNewCategoryName("");
+        setIsAddingCategory(false);
+    };
 
     const reset = () => {
         setStep("upload");
@@ -80,6 +166,9 @@ export default function ImportWizard({
         setUploadTab("file");
         setParseErrors([]);
         setIsDragging(false);
+        setCategoryPath([]);
+        setIsAddingCategory(false);
+        setNewCategoryName("");
     };
 
     const handleClose = () => {
@@ -592,33 +681,265 @@ export default function ImportWizard({
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
+                                className="space-y-4"
                             >
-                                <div className="space-y-2">
+                                {/* Selected category indicator */}
+                                {selectedCategoryId && selectedCategory && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="flex items-center gap-3 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl"
+                                    >
+                                        <div
+                                            className="p-2 rounded-lg"
+                                            style={{ backgroundColor: `${selectedCategory.color || "#6366f1"}20` }}
+                                        >
+                                            <FolderIcon
+                                                className="w-4 h-4"
+                                                style={{ color: selectedCategory.color || "#6366f1" }}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-white truncate">
+                                                {selectedCategory.name}
+                                            </p>
+                                            <p className="text-xs text-indigo-300">
+                                                {getTotalContacts(selectedCategory)} existing contacts
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSelectedCategoryId(null)}
+                                            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                                        >
+                                            <XMarkIcon className="w-4 h-4" />
+                                        </button>
+                                    </motion.div>
+                                )}
+
+                                {/* Breadcrumb navigation */}
+                                <div className="flex items-center gap-1 text-sm overflow-x-auto pb-1">
                                     <button
-                                        onClick={() => setSelectedCategoryId(null)}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all text-left ${
-                                            selectedCategoryId === null
-                                                ? "bg-indigo-500/20 border-indigo-500/50 text-white"
-                                                : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                                        onClick={() => navigateTo(-1)}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0 ${
+                                            categoryPath.length === 0
+                                                ? "bg-white/10 text-white"
+                                                : "text-white/50 hover:text-white hover:bg-white/5"
                                         }`}
                                     >
-                                        <DocumentTextIcon className="w-5 h-5" />
-                                        <span>No category (add to all contacts)</span>
+                                        <HomeIcon className="w-3.5 h-3.5" />
+                                        <span>Root</span>
                                     </button>
-                                    {categories.map((cat) => (
-                                        <button
-                                            key={cat.id}
-                                            onClick={() => setSelectedCategoryId(cat.id)}
-                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all text-left ${
-                                                selectedCategoryId === cat.id
-                                                    ? "bg-indigo-500/20 border-indigo-500/50 text-white"
-                                                    : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                                    {categoryPath.map((cat, index) => (
+                                        <div key={cat.id} className="flex items-center gap-1 flex-shrink-0">
+                                            <ChevronRightIcon className="w-3.5 h-3.5 text-white/30" />
+                                            <button
+                                                onClick={() => navigateTo(index)}
+                                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors ${
+                                                    index === categoryPath.length - 1
+                                                        ? "bg-white/10 text-white"
+                                                        : "text-white/50 hover:text-white hover:bg-white/5"
+                                                }`}
+                                            >
+                                                <div
+                                                    className="w-2 h-2 rounded-full"
+                                                    style={{ backgroundColor: cat.color || "#6366f1" }}
+                                                />
+                                                <span className="truncate max-w-[120px]">{cat.name}</span>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Category list */}
+                                <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                                    {/* No category option - only show at root */}
+                                    {categoryPath.length === 0 && (
+                                        <motion.button
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            onClick={() => setSelectedCategoryId(null)}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left group ${
+                                                selectedCategoryId === null
+                                                    ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-indigo-500/40 text-white"
+                                                    : "bg-white/[0.03] border-white/10 text-white/70 hover:bg-white/[0.06] hover:border-white/20"
                                             }`}
                                         >
-                                            <DocumentTextIcon className="w-5 h-5" />
-                                            <span>{cat.path || cat.name}</span>
-                                        </button>
-                                    ))}
+                                            <div className={`p-2.5 rounded-lg transition-colors ${
+                                                selectedCategoryId === null
+                                                    ? "bg-indigo-500/30"
+                                                    : "bg-white/10 group-hover:bg-white/15"
+                                            }`}>
+                                                <InboxIcon className={`w-4 h-4 ${
+                                                    selectedCategoryId === null
+                                                        ? "text-indigo-300"
+                                                        : "text-white/50"
+                                                }`} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium">No category</p>
+                                                <p className="text-xs text-white/40">Add to all contacts without categorization</p>
+                                            </div>
+                                            {selectedCategoryId === null && (
+                                                <motion.div
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    className="p-1 bg-indigo-500 rounded-full"
+                                                >
+                                                    <CheckIcon className="w-3 h-3 text-white" />
+                                                </motion.div>
+                                            )}
+                                        </motion.button>
+                                    )}
+
+                                    {/* Category items */}
+                                    {currentCategories.map((cat, index) => {
+                                        const isSelected = selectedCategoryId === cat.id;
+                                        const hasChildren = cat.children.length > 0;
+                                        const totalContacts = getTotalContacts(cat);
+
+                                        return (
+                                            <motion.div
+                                                key={cat.id}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: index * 0.03 }}
+                                                className={`flex items-center gap-2 rounded-xl border transition-all ${
+                                                    isSelected
+                                                        ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-indigo-500/40"
+                                                        : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20"
+                                                }`}
+                                            >
+                                                {/* Select button (main area) */}
+                                                <button
+                                                    onClick={() => setSelectedCategoryId(cat.id)}
+                                                    className="flex-1 flex items-center gap-3 px-4 py-3 text-left group"
+                                                >
+                                                    <div
+                                                        className="p-2.5 rounded-lg transition-colors"
+                                                        style={{
+                                                            backgroundColor: isSelected
+                                                                ? `${cat.color || "#6366f1"}40`
+                                                                : `${cat.color || "#6366f1"}15`,
+                                                        }}
+                                                    >
+                                                        {isSelected ? (
+                                                            <FolderOpenIcon
+                                                                className="w-4 h-4"
+                                                                style={{ color: cat.color || "#6366f1" }}
+                                                            />
+                                                        ) : (
+                                                            <FolderIcon
+                                                                className="w-4 h-4"
+                                                                style={{ color: cat.color || "#6366f1" }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-sm font-medium truncate ${
+                                                            isSelected ? "text-white" : "text-white/80"
+                                                        }`}>
+                                                            {cat.name}
+                                                        </p>
+                                                        <p className="text-xs text-white/40">
+                                                            {totalContacts} contact{totalContacts !== 1 ? "s" : ""}
+                                                            {hasChildren && ` · ${cat.children.length} subcategories`}
+                                                        </p>
+                                                    </div>
+                                                    {isSelected && (
+                                                        <motion.div
+                                                            initial={{ scale: 0 }}
+                                                            animate={{ scale: 1 }}
+                                                            className="p-1 bg-indigo-500 rounded-full"
+                                                        >
+                                                            <CheckIcon className="w-3 h-3 text-white" />
+                                                        </motion.div>
+                                                    )}
+                                                </button>
+
+                                                {/* Navigate into button (if has children) */}
+                                                {hasChildren && (
+                                                    <button
+                                                        onClick={() => navigateInto(cat)}
+                                                        className="p-3 pr-4 text-white/30 hover:text-white hover:bg-white/10 rounded-r-xl transition-colors border-l border-white/10"
+                                                        title={`View ${cat.children.length} subcategories`}
+                                                    >
+                                                        <ChevronRightIcon className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </motion.div>
+                                        );
+                                    })}
+
+                                    {/* Empty state */}
+                                    {currentCategories.length === 0 && categoryPath.length > 0 && (
+                                        <div className="text-center py-8">
+                                            <FolderIcon className="w-10 h-10 text-white/20 mx-auto mb-3" />
+                                            <p className="text-sm text-white/40">No subcategories</p>
+                                            <p className="text-xs text-white/30 mt-1">
+                                                This category has no children
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Add new category */}
+                                    {onAddCategory && (
+                                        <AnimatePresence mode="wait">
+                                            {isAddingCategory ? (
+                                                <motion.div
+                                                    key="add-form"
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: "auto" }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="flex items-center gap-2 mt-2"
+                                                >
+                                                    <input
+                                                        type="text"
+                                                        value={newCategoryName}
+                                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") handleAddCategory();
+                                                            if (e.key === "Escape") {
+                                                                setIsAddingCategory(false);
+                                                                setNewCategoryName("");
+                                                            }
+                                                        }}
+                                                        placeholder="Category name..."
+                                                        autoFocus
+                                                        className="flex-1 px-3 py-2.5 bg-white/5 border border-white/20 rounded-lg text-sm text-white placeholder-white/40 focus:outline-none focus:border-indigo-500/50"
+                                                    />
+                                                    <button
+                                                        onClick={handleAddCategory}
+                                                        disabled={!newCategoryName.trim()}
+                                                        className="px-4 py-2.5 bg-indigo-500 text-white text-sm font-medium rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsAddingCategory(false);
+                                                            setNewCategoryName("");
+                                                        }}
+                                                        className="p-2.5 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                                                    >
+                                                        <XMarkIcon className="w-4 h-4" />
+                                                    </button>
+                                                </motion.div>
+                                            ) : (
+                                                <motion.button
+                                                    key="add-button"
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    onClick={() => setIsAddingCategory(true)}
+                                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 mt-2 text-white/40 hover:text-white border border-dashed border-white/20 hover:border-white/40 rounded-xl transition-all hover:bg-white/[0.03]"
+                                                >
+                                                    <PlusIcon className="w-4 h-4" />
+                                                    <span className="text-sm">
+                                                        Add new {categoryPath.length > 0 ? "subcategory" : "category"}
+                                                    </span>
+                                                </motion.button>
+                                            )}
+                                        </AnimatePresence>
+                                    )}
                                 </div>
                             </motion.div>
                         )}
@@ -645,10 +966,7 @@ export default function ImportWizard({
                                         <div>
                                             <p className="text-sm text-white/50">Category</p>
                                             <p className="text-lg font-medium text-white">
-                                                {selectedCategoryId
-                                                    ? categories.find((c) => c.id === selectedCategoryId)
-                                                          ?.name
-                                                    : "None"}
+                                                {selectedCategory?.name || "None"}
                                             </p>
                                         </div>
                                     </div>

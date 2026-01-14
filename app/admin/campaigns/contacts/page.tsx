@@ -17,6 +17,8 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
     Bars3Icon,
+    ExclamationTriangleIcon,
+    XMarkIcon,
 } from "@heroicons/react/24/outline";
 import CategoryTree, { CategoryNode, EmptyCategoryTree } from "@/app/components/campaigns/category-tree";
 import SlideInPanel, {
@@ -88,6 +90,14 @@ export default function ContactsPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [showMobileCategoryPicker, setShowMobileCategoryPicker] = useState(false);
+
+    // Category management states
+    const [editingCategory, setEditingCategory] = useState<CategoryNode | null>(null);
+    const [deletingCategory, setDeletingCategory] = useState<CategoryNode | null>(null);
+    const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+    const [addingSubcategoryTo, setAddingSubcategoryTo] = useState<string | null>(null);
+    const [newCategoryName, setNewCategoryName] = useState("");
+    const [isSavingCategory, setIsSavingCategory] = useState(false);
 
     // Available tags and sources for filtering
     const [availableTags, setAvailableTags] = useState<string[]>([]);
@@ -348,6 +358,85 @@ export default function ContactsPage() {
         }
     };
 
+    // Category management handlers
+    const handleRenameCategory = async () => {
+        if (!editingCategory || !newCategoryName.trim()) return;
+
+        setIsSavingCategory(true);
+        try {
+            const res = await fetch("/api/admin/campaigns/categories", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: editingCategory.id,
+                    name: newCategoryName.trim(),
+                }),
+            });
+
+            if (res.ok) {
+                setEditingCategory(null);
+                setNewCategoryName("");
+                fetchCategories();
+            }
+        } catch (error) {
+            console.error("Error renaming category:", error);
+        } finally {
+            setIsSavingCategory(false);
+        }
+    };
+
+    const handleDeleteCategory = async () => {
+        if (!deletingCategory) return;
+
+        setIsSavingCategory(true);
+        try {
+            const res = await fetch(`/api/admin/campaigns/categories?id=${deletingCategory.id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                // If we deleted the currently selected category, clear selection
+                if (selectedCategoryId === deletingCategory.id) {
+                    setSelectedCategoryId(null);
+                }
+                setDeletingCategory(null);
+                fetchCategories();
+                fetchContacts(1);
+            }
+        } catch (error) {
+            console.error("Error deleting category:", error);
+        } finally {
+            setIsSavingCategory(false);
+        }
+    };
+
+    const handleAddSubcategory = async () => {
+        if (!newCategoryName.trim()) return;
+
+        setIsSavingCategory(true);
+        try {
+            const res = await fetch("/api/admin/campaigns/categories", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: newCategoryName.trim(),
+                    parentId: addingSubcategoryTo,
+                }),
+            });
+
+            if (res.ok) {
+                setShowAddCategoryModal(false);
+                setAddingSubcategoryTo(null);
+                setNewCategoryName("");
+                fetchCategories();
+            }
+        } catch (error) {
+            console.error("Error adding subcategory:", error);
+        } finally {
+            setIsSavingCategory(false);
+        }
+    };
+
     // Extract unique tags and sources from contacts for filtering
     useEffect(() => {
         const tags = new Set<string>();
@@ -503,14 +592,33 @@ export default function ContactsPage() {
                                         categories={categories}
                                         selectedId={selectedCategoryId}
                                         onSelect={handleCategorySelect}
-                                        onAddCategory={(parentId) => console.log("Add category under:", parentId)}
+                                        onAddCategory={(parentId) => {
+                                            setAddingSubcategoryTo(parentId);
+                                            setNewCategoryName("");
+                                            setShowAddCategoryModal(true);
+                                        }}
+                                        onEditCategory={(category) => {
+                                            if (!category.id.startsWith("placeholder-")) {
+                                                setEditingCategory(category);
+                                                setNewCategoryName(category.name);
+                                            }
+                                        }}
+                                        onDeleteCategory={(category) => {
+                                            if (!category.id.startsWith("placeholder-")) {
+                                                setDeletingCategory(category);
+                                            }
+                                        }}
                                     />
                                 ) : isLoading ? (
                                     <div className="flex items-center justify-center py-8">
                                         <ArrowPathIcon className="w-5 h-5 text-white/30 animate-spin" />
                                     </div>
                                 ) : (
-                                    <EmptyCategoryTree onAddCategory={() => console.log("Add root category")} />
+                                    <EmptyCategoryTree onAddCategory={() => {
+                                        setAddingSubcategoryTo(null);
+                                        setNewCategoryName("");
+                                        setShowAddCategoryModal(true);
+                                    }} />
                                 )}
                             </motion.div>
                         )}
@@ -984,7 +1092,26 @@ export default function ContactsPage() {
                 isOpen={showImportModal}
                 onClose={() => setShowImportModal(false)}
                 onImport={handleImportContacts}
-                categories={flatCategories()}
+                categories={categories.filter(c => !c.id.startsWith("placeholder-"))}
+                onAddCategory={async (parentId, name) => {
+                    try {
+                        const res = await fetch("/api/admin/campaigns/categories", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ name, parentId }),
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            // Refresh categories
+                            await fetchCategories();
+                            return data.category;
+                        }
+                        return null;
+                    } catch (error) {
+                        console.error("Error adding category:", error);
+                        return null;
+                    }
+                }}
             />
 
             {/* Add Contact Modal */}
@@ -1155,6 +1282,260 @@ export default function ContactsPage() {
 
                                 {/* Safe area padding for iOS */}
                                 <div className="h-6 bg-[#0d0d12]" />
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Rename Category Modal */}
+            <AnimatePresence>
+                {editingCategory && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => {
+                                setEditingCategory(null);
+                                setNewCategoryName("");
+                            }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        >
+                            <div
+                                className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between p-5 border-b border-white/10">
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className="p-2 rounded-lg"
+                                            style={{ backgroundColor: `${editingCategory.color || "#6366f1"}20` }}
+                                        >
+                                            <FolderIcon
+                                                className="w-5 h-5"
+                                                style={{ color: editingCategory.color || "#6366f1" }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-semibold text-white">Rename Category</h2>
+                                            <p className="text-sm text-white/50">Change the category name</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setEditingCategory(null);
+                                            setNewCategoryName("");
+                                        }}
+                                        className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                                    >
+                                        <XMarkIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="p-5">
+                                    <label className="block text-sm font-medium text-white/70 mb-2">
+                                        Category Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && newCategoryName.trim()) {
+                                                handleRenameCategory();
+                                            }
+                                        }}
+                                        placeholder="Enter category name"
+                                        autoFocus
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
+                                    />
+                                </div>
+                                <div className="flex items-center justify-end gap-3 p-5 border-t border-white/10 bg-black/20">
+                                    <button
+                                        onClick={() => {
+                                            setEditingCategory(null);
+                                            setNewCategoryName("");
+                                        }}
+                                        className="px-4 py-2.5 text-white/60 hover:text-white transition-colors text-sm font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleRenameCategory}
+                                        disabled={!newCategoryName.trim() || newCategoryName === editingCategory.name || isSavingCategory}
+                                        className="px-5 py-2.5 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isSavingCategory ? "Saving..." : "Rename"}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Category Confirmation Modal */}
+            <AnimatePresence>
+                {deletingCategory && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setDeletingCategory(null)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        >
+                            <div
+                                className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center gap-4 p-5 border-b border-white/10">
+                                    <div className="p-3 bg-red-500/20 rounded-full">
+                                        <ExclamationTriangleIcon className="w-6 h-6 text-red-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-white">Delete Category</h2>
+                                        <p className="text-sm text-white/50">This action cannot be undone</p>
+                                    </div>
+                                </div>
+                                <div className="p-5">
+                                    <p className="text-white/70">
+                                        Are you sure you want to delete{" "}
+                                        <span className="font-semibold text-white">{deletingCategory.name}</span>?
+                                    </p>
+                                    {deletingCategory.contactCount > 0 && (
+                                        <p className="mt-3 text-sm text-yellow-400/80 bg-yellow-500/10 px-3 py-2 rounded-lg">
+                                            This category contains {deletingCategory.contactCount} contact{deletingCategory.contactCount !== 1 ? "s" : ""}.
+                                            These contacts will be moved to uncategorized.
+                                        </p>
+                                    )}
+                                    {deletingCategory.children.length > 0 && (
+                                        <p className="mt-3 text-sm text-orange-400/80 bg-orange-500/10 px-3 py-2 rounded-lg">
+                                            This category has {deletingCategory.children.length} subcategory{deletingCategory.children.length !== 1 ? "ies" : ""}.
+                                            They will also be deleted.
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-end gap-3 p-5 border-t border-white/10 bg-black/20">
+                                    <button
+                                        onClick={() => setDeletingCategory(null)}
+                                        className="px-4 py-2.5 text-white/60 hover:text-white transition-colors text-sm font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteCategory}
+                                        disabled={isSavingCategory}
+                                        className="px-5 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isSavingCategory ? "Deleting..." : "Delete Category"}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Add Category/Subcategory Modal */}
+            <AnimatePresence>
+                {showAddCategoryModal && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => {
+                                setShowAddCategoryModal(false);
+                                setAddingSubcategoryTo(null);
+                                setNewCategoryName("");
+                            }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                        >
+                            <div
+                                className="w-full max-w-md bg-[#0d0d12] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="flex items-center justify-between p-5 border-b border-white/10">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-indigo-500/20 rounded-lg">
+                                            <PlusIcon className="w-5 h-5 text-indigo-400" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-semibold text-white">
+                                                {addingSubcategoryTo ? "Add Subcategory" : "Add Category"}
+                                            </h2>
+                                            <p className="text-sm text-white/50">
+                                                {addingSubcategoryTo ? "Create a new subcategory" : "Create a new root category"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowAddCategoryModal(false);
+                                            setAddingSubcategoryTo(null);
+                                            setNewCategoryName("");
+                                        }}
+                                        className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                                    >
+                                        <XMarkIcon className="w-5 h-5" />
+                                    </button>
+                                </div>
+                                <div className="p-5">
+                                    <label className="block text-sm font-medium text-white/70 mb-2">
+                                        Category Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && newCategoryName.trim()) {
+                                                handleAddSubcategory();
+                                            }
+                                        }}
+                                        placeholder="Enter category name"
+                                        autoFocus
+                                        className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50"
+                                    />
+                                </div>
+                                <div className="flex items-center justify-end gap-3 p-5 border-t border-white/10 bg-black/20">
+                                    <button
+                                        onClick={() => {
+                                            setShowAddCategoryModal(false);
+                                            setAddingSubcategoryTo(null);
+                                            setNewCategoryName("");
+                                        }}
+                                        className="px-4 py-2.5 text-white/60 hover:text-white transition-colors text-sm font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleAddSubcategory}
+                                        disabled={!newCategoryName.trim() || isSavingCategory}
+                                        className="px-5 py-2.5 bg-indigo-500 text-white rounded-lg text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isSavingCategory ? "Creating..." : "Create Category"}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </>

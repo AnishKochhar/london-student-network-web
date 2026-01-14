@@ -43,17 +43,8 @@ export default function SlideInPanel({
         return () => document.removeEventListener("keydown", handleEscape);
     }, [handleEscape]);
 
-    // Prevent body scroll when open
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "";
-        }
-        return () => {
-            document.body.style.overflow = "";
-        };
-    }, [isOpen]);
+    // Note: We don't block body scroll since this panel is used within
+    // flex containers that manage their own scrolling
 
     return (
         <AnimatePresence>

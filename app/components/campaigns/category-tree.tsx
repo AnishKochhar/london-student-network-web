@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     FolderIcon,
@@ -8,6 +8,9 @@ import {
     ChevronRightIcon,
     PlusIcon,
     TagIcon,
+    EllipsisHorizontalIcon,
+    PencilIcon,
+    TrashIcon,
 } from "@heroicons/react/24/outline";
 
 export interface CategoryNode {
@@ -26,6 +29,8 @@ interface CategoryTreeProps {
     selectedId: string | null;
     onSelect: (category: CategoryNode | null) => void;
     onAddCategory?: (parentId: string | null) => void;
+    onEditCategory?: (category: CategoryNode) => void;
+    onDeleteCategory?: (category: CategoryNode) => void;
     showCounts?: boolean;
     collapsible?: boolean;
 }
@@ -49,6 +54,8 @@ export default function CategoryTree({
     selectedId,
     onSelect,
     onAddCategory,
+    onEditCategory,
+    onDeleteCategory,
     showCounts = true,
     collapsible = true,
 }: CategoryTreeProps) {
@@ -89,6 +96,8 @@ export default function CategoryTree({
                     selectedId={selectedId}
                     onSelect={onSelect}
                     onAddCategory={onAddCategory}
+                    onEditCategory={onEditCategory}
+                    onDeleteCategory={onDeleteCategory}
                     showCounts={showCounts}
                     collapsible={collapsible}
                     depth={0}
@@ -114,6 +123,8 @@ interface CategoryItemProps {
     selectedId: string | null;
     onSelect: (category: CategoryNode | null) => void;
     onAddCategory?: (parentId: string | null) => void;
+    onEditCategory?: (category: CategoryNode) => void;
+    onDeleteCategory?: (category: CategoryNode) => void;
     showCounts: boolean;
     collapsible: boolean;
     depth: number;
@@ -124,17 +135,34 @@ function CategoryItem({
     selectedId,
     onSelect,
     onAddCategory,
+    onEditCategory,
+    onDeleteCategory,
     showCounts,
     collapsible,
     depth,
 }: CategoryItemProps) {
     const [isExpanded, setIsExpanded] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
     const hasChildren = category.children.length > 0;
     const isSelected = selectedId === category.id;
     const isParentSelected = category.children.some(
         (child) => child.id === selectedId || isChildSelected(child, selectedId)
     );
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+        if (showMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showMenu]);
 
     // Calculate total including children
     const totalContacts = useMemo(() => getTotalContacts(category), [category]);
@@ -149,6 +177,8 @@ function CategoryItem({
     const handleSelect = () => {
         onSelect(category);
     };
+
+    const hasManagementOptions = onEditCategory || onDeleteCategory || onAddCategory;
 
     return (
         <div>
@@ -235,22 +265,80 @@ function CategoryItem({
                     </span>
                 )}
 
-                {/* Add child button */}
-                {onAddCategory && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onAddCategory(category.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-white/10 transition-all flex-shrink-0"
-                    >
-                        <PlusIcon className="w-3.5 h-3.5 text-white/40" />
-                    </button>
+                {/* Three-dot menu button */}
+                {hasManagementOptions && (
+                    <div className="relative" ref={menuRef}>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMenu(!showMenu);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-white/10 transition-all flex-shrink-0"
+                        >
+                            <EllipsisHorizontalIcon className="w-4 h-4 text-white/40" />
+                        </button>
+
+                        {/* Dropdown menu */}
+                        <AnimatePresence>
+                            {showMenu && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-0 top-full mt-1 z-[200] w-40 bg-[#1a1a22] border border-white/10 rounded-lg shadow-xl overflow-hidden"
+                                >
+                                    {onEditCategory && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setShowMenu(false);
+                                                onEditCategory(category);
+                                            }}
+                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                                        >
+                                            <PencilIcon className="w-4 h-4" />
+                                            Rename
+                                        </button>
+                                    )}
+                                    {onAddCategory && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setShowMenu(false);
+                                                onAddCategory(category.id);
+                                            }}
+                                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                                        >
+                                            <PlusIcon className="w-4 h-4" />
+                                            Add Subcategory
+                                        </button>
+                                    )}
+                                    {onDeleteCategory && (
+                                        <>
+                                            <div className="border-t border-white/10" />
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setShowMenu(false);
+                                                    onDeleteCategory(category);
+                                                }}
+                                                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                                            >
+                                                <TrashIcon className="w-4 h-4" />
+                                                Delete
+                                            </button>
+                                        </>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 )}
 
                 {/* Full name tooltip on hover */}
                 <AnimatePresence>
-                    {isHovered && (
+                    {isHovered && !showMenu && (
                         <motion.div
                             initial={{ opacity: 0, y: 4, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -283,6 +371,8 @@ function CategoryItem({
                                 selectedId={selectedId}
                                 onSelect={onSelect}
                                 onAddCategory={onAddCategory}
+                                onEditCategory={onEditCategory}
+                                onDeleteCategory={onDeleteCategory}
                                 showCounts={showCounts}
                                 collapsible={collapsible}
                                 depth={depth + 1}
