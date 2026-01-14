@@ -1,11 +1,12 @@
-import { fetchAllUpcomingEvents } from "../lib/data";
+import { fetchPaginatedUpcomingEvents } from "../lib/data";
 import FilteredEventsPage from "../components/events-page/filtered-events-page";
 import CreateEventButton from "../components/events-page/create-event-button";
 import AnimatedTitle from "../components/events-page/animated-title";
 import { auth } from "@/auth";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 
-export const revalidate = 60; // Once per minute
+export const revalidate = 300; // Every 5 minutes - balances freshness with performance
 
 export const metadata: Metadata = {
     title: "Student Events in London",
@@ -50,7 +51,8 @@ export default async function EventPage() {
           }
         : null;
 
-    const allEvents = await fetchAllUpcomingEvents(userSession);
+    // Fetch initial paginated events (30 items for first load)
+    const { events: initialEvents, total } = await fetchPaginatedUpcomingEvents(userSession, 30, 0);
 
     return (
         <main className="relative flex flex-col min-h-screen mx-auto p-8 pt-16 bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157] ">
@@ -58,7 +60,13 @@ export default async function EventPage() {
 
             <CreateEventButton />
 
-            <FilteredEventsPage allEvents={allEvents} editEvent={false} />
+            <Suspense fallback={<div className="text-white text-center py-8">Loading events...</div>}>
+                <FilteredEventsPage
+                    allEvents={initialEvents}
+                    initialTotal={total}
+                    editEvent={false}
+                />
+            </Suspense>
         </main>
     );
 }

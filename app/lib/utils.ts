@@ -93,6 +93,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		organiser: sqlEvent.organiser,
 		organiser_uid: sqlEvent.organiser_uid,
 		organiser_slug: sqlEvent.organiser_slug,
+		organiser_university: sqlEvent.organiser_university,
 		time: time,
 		date: date,
 		location_building: sqlEvent.location_building,

@@ -62,16 +62,22 @@ export default function FilteredEventsList({
                         <p className="text-white/40">Try selecting different tags to see more events</p>
                     </motion.div>
                 ) : (
-                    sortedMonthYearKeys.map((monthYearKey, index) => {
+                    sortedMonthYearKeys.map((monthYearKey, sectionIndex) => {
                         const [month, year] = monthYearKey.split("/");
+                        // Calculate the global start index for this section
+                        // by summing up events in all previous sections
+                        const startIndex = sortedMonthYearKeys
+                            .slice(0, sectionIndex)
+                            .reduce((sum, key) => sum + monthYearGroupings[key].length, 0);
+
                         return (
                             <motion.div
                                 key={monthYearKey}
-                                initial={{ opacity: 0, y: 30 }}
+                                initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{
-                                    duration: 0.5,
-                                    delay: index * 0.1,
+                                    duration: 0.3,
+                                    delay: Math.min(sectionIndex * 0.08, 0.3), // Cap delay at 0.3s
                                     ease: "easeOut"
                                 }}
                             >
@@ -81,6 +87,7 @@ export default function FilteredEventsList({
                                     events={monthYearGroupings[monthYearKey]}
                                     editEvent={editEvent}
                                     reverseOrder={reverseOrder}
+                                    startIndex={startIndex}
                                 />
                             </motion.div>
                         );

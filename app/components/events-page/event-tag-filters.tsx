@@ -6,14 +6,55 @@ import { useState } from "react";
 interface TagButtonsProps {
     activeTags: number[];
     toggleTag: (tag: number) => void;
+    onSelectAll?: () => void;
+    showSelectAll?: boolean;
 }
 
-export default function TagButtons({ activeTags, toggleTag }: TagButtonsProps) {
+export default function TagButtons({
+    activeTags,
+    toggleTag,
+    onSelectAll,
+    showSelectAll = false,
+}: TagButtonsProps) {
     const [hoveredTag, setHoveredTag] = useState<number | null>(null);
+
+    const allTagValues = Object.keys(EVENT_TAG_TYPES).map(tag => parseInt(tag, 10));
+    const allSelected = allTagValues.every(tag => activeTags.includes(tag));
 
     return (
         <div className="mb-6">
             <div className="flex flex-wrap gap-2 mb-3">
+                {showSelectAll && onSelectAll && (
+                    <motion.button
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                            delay: 0,
+                            type: "spring",
+                            stiffness: 300,
+                            damping: 20
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`
+                            flex items-center gap-2 px-3 py-1.5 rounded-full
+                            transition-all duration-300 mr-2
+                            ${allSelected
+                                ? 'bg-blue-500/30 border border-blue-400/50 shadow-md'
+                                : 'bg-black/30 border border-white/20 hover:bg-white/10'
+                            }
+                        `}
+                        onClick={onSelectAll}
+                    >
+                        <span
+                            className={`text-sm font-medium transition-all duration-300 ${
+                                allSelected ? "text-blue-200" : "text-gray-400"
+                            }`}
+                        >
+                            {allSelected ? "Clear All" : "Select All"}
+                        </span>
+                    </motion.button>
+                )}
                 {Object.keys(EVENT_TAG_TYPES).map((tag, index) => {
                     const tagNumber = parseInt(tag, 10);
                     const isActive = activeTags.includes(tagNumber);

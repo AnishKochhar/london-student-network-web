@@ -57,7 +57,7 @@ export default function TicketSelectionModal({
     const [customDonationInput, setCustomDonationInput] = useState<string>('');
     // Society donation settings (fetched from API)
     const [donationEnabled, setDonationEnabled] = useState(false);
-    const [donationSettingsLoading, setDonationSettingsLoading] = useState(true);
+    const [, setDonationSettingsLoading] = useState(true);
 
     // Use tickets from event data (already loaded) - memoized to prevent re-renders
     const tickets: Ticket[] = useMemo(() => (event.tickets as Ticket[]) || [], [event.tickets]);

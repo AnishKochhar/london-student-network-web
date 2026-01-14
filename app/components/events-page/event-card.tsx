@@ -12,6 +12,7 @@ import SafeImage from "@/app/components/ui/safe-image";
 import { EyeSlashIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { useImageColors } from "@/app/hooks/useImageColors";
+import { useInView } from "@/app/hooks/useInView";
 
 // Simple image loading skeleton
 function ImageSkeleton() {
@@ -20,19 +21,36 @@ function ImageSkeleton() {
     );
 }
 
-export default function EventCard({ event, editEvent }: EventCardProps) {
+// Number of cards to eagerly load (above the fold)
+const EAGER_LOAD_COUNT = 8;
+
+interface ExtendedEventCardProps extends EventCardProps {
+    index?: number; // Position in the list for lazy loading optimization
+}
+
+export default function EventCard({ event, editEvent, index = 0 }: ExtendedEventCardProps) {
     const [modalChoice, setModalChoice] = useState<"edit" | "view" | "manage" | "waiting">(
         "waiting",
     );
     const [imageLoaded, setImageLoaded] = useState(false);
 
+    // Track visibility for deferred operations
+    const [cardRef, isInView] = useInView<HTMLDivElement>({
+        rootMargin: "200px", // Start loading 200px before entering viewport
+        triggerOnce: true,
+    });
+
+    // Determine if this card should load eagerly (above the fold)
+    const shouldEagerLoad = index < EAGER_LOAD_COUNT;
+
     // Get the image URL with smart fallback based on event type
     const imageUrl = getEventImage(event.image_url, event.event_type);
 
-    // Extract colors for contained images - gradientMesh gives the richest depth
-    const { gradientMesh, gradient, gradientRadial } = useImageColors(
+    // Only extract colors when card is visible AND image_contain is true
+    // This defers expensive ColorThief operations until needed
+    const { gradientMesh, gradient } = useImageColors(
         imageUrl,
-        event.image_contain === true
+        event.image_contain === true && (shouldEagerLoad || isInView)
     );
 
     const openViewModal = () => setModalChoice("view");
@@ -81,7 +99,9 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
                     width={400}
                     height={160}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
-                    quality={60}
+                    quality={50}
+                    priority={shouldEagerLoad}
+                    loading={shouldEagerLoad ? "eager" : "lazy"}
                     onLoad={() => setImageLoaded(true)}
                     className={`w-full h-40 ${event.image_contain ? "object-contain" : "object-cover"} ${event.image_contain ? "" : "border border-gray-200"} transition-transform duration-500 group-hover:scale-110 ${!imageLoaded ? 'opacity-0 absolute' : 'opacity-100'}`}
                 />
@@ -111,13 +131,13 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
     );
 
     return (
-        <>
+        <div ref={cardRef}>
             {editEvent && manageHref ? (
                 // For edit mode: use Link with prefetch for instant navigation
                 <Link
                     href={manageHref}
                     prefetch={true}
-                    className="flex flex-col p-4 rounded-lg shadow-lg relative cursor-pointer overflow-hidden bg-white hover:shadow-xl transition-all duration-300 group"
+                    className="flex flex-col h-full p-4 rounded-lg shadow-lg relative cursor-pointer overflow-hidden bg-white hover:shadow-xl transition-all duration-300 group"
                     onClick={handleCardClick}
                 >
                     {cardContent}
@@ -125,7 +145,7 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
             ) : (
                 // For view mode: regular div with modal
                 <div
-                    className="flex flex-col p-4 rounded-lg shadow-lg relative cursor-pointer overflow-hidden bg-white hover:shadow-xl transition-all duration-300 group"
+                    className="flex flex-col h-full p-4 rounded-lg shadow-lg relative cursor-pointer overflow-hidden bg-white hover:shadow-xl transition-all duration-300 group"
                     onClick={handleCardClick}
                 >
                     {cardContent}
@@ -136,6 +156,6 @@ export default function EventCard({ event, editEvent }: EventCardProps) {
             {modalChoice === "view" && (
                 <EventModal event={event} onClose={closeModal} />
             )}
-        </>
+        </div>
     );
 }
