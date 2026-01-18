@@ -502,11 +502,49 @@ export async function fetchTemplateById(id: string): Promise<EmailTemplate | nul
             t.preview_text as "previewText",
             t.created_by as "createdBy",
             t.created_at as "createdAt",
-            t.updated_at as "updatedAt"
+            t.updated_at as "updatedAt",
+            s.id as "signature.id",
+            s.name as "signature.name",
+            s.description as "signature.description",
+            s.html as "signature.html",
+            s.is_default as "signature.isDefault",
+            s.created_at as "signature.createdAt"
         FROM email_templates t
+        LEFT JOIN email_signatures s ON t.signature_id = s.id
         WHERE t.id = ${id}
     `;
-    return rows[0] as EmailTemplate | null;
+
+    if (!rows[0]) return null;
+
+    // Transform flat row into nested structure
+    const row = rows[0];
+    const template: EmailTemplate = {
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        subject: row.subject,
+        bodyHtml: row.bodyHtml,
+        bodyText: row.bodyText,
+        variables: row.variables,
+        signatureId: row.signatureId,
+        category: row.category,
+        isActive: row.isActive,
+        previewText: row.previewText,
+        createdBy: row.createdBy,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        signature: row["signature.id"] ? {
+            id: row["signature.id"],
+            name: row["signature.name"],
+            description: row["signature.description"],
+            html: row["signature.html"],
+            isDefault: row["signature.isDefault"],
+            createdAt: row["signature.createdAt"],
+        } : undefined,
+    };
+
+    return template;
 }
 
 export async function fetchTemplateBySlug(slug: string): Promise<EmailTemplate | null> {
@@ -691,6 +729,21 @@ export async function fetchSignatures(): Promise<EmailSignature[]> {
         ORDER BY is_default DESC, name ASC
     `;
     return rows as EmailSignature[];
+}
+
+export async function fetchSignatureById(id: string): Promise<EmailSignature | null> {
+    const { rows } = await sql`
+        SELECT
+            id,
+            name,
+            description,
+            html,
+            is_default as "isDefault",
+            created_at as "createdAt"
+        FROM email_signatures
+        WHERE id = ${id}
+    `;
+    return rows[0] as EmailSignature | null;
 }
 
 // ============================================

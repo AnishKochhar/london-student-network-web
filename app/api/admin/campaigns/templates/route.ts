@@ -48,10 +48,16 @@ export async function GET(request: NextRequest) {
                     email: "john@example.com",
                 };
                 const processedBody = replaceVariables(template.bodyHtml, previewVariables);
-                const fullHtml = wrapWithLSNBranding(processedBody, { name: "Josh", title: "CEO, LSN" }, {
-                    previewText: template.previewText || undefined,
-                    unsubscribeUrl: "https://londonstudentnetwork.com/unsubscribe?token=preview",
-                });
+
+                // Use template.signature (already fetched via JOIN)
+                const fullHtml = wrapWithLSNBranding(
+                    processedBody,
+                    template.signature ? { name: template.signature.name, html: template.signature.html } : undefined,
+                    {
+                        previewText: template.previewText || undefined,
+                        unsubscribeUrl: "https://londonstudentnetwork.com/unsubscribe?token=preview",
+                    }
+                );
                 return NextResponse.json({
                     template,
                     previewHtml: fullHtml,

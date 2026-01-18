@@ -59,7 +59,7 @@ export default function SendCampaignPage() {
         templateId: "",
         fromName: "Josh from LSN",
         fromEmail: "josh@londonstudentnetwork.com",
-        replyTo: "josh@londonstudentnetwork.com",
+        replyTo: "hello@londonstudentnetwork.com",
         subjectOverride: "",
     });
 

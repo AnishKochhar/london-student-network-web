@@ -175,10 +175,10 @@ export async function POST(request: NextRequest) {
                     const personalizedSubject = replaceVariables(subject, variables);
                     const personalizedBody = replaceVariables(template.bodyHtml, variables);
 
-                    // Wrap with LSN branding
+                    // Wrap with LSN branding (template.signature is undefined if no signature selected)
                     const fullHtml = wrapWithLSNBranding(
                         personalizedBody,
-                        { name: "Josh", title: "CEO, LSN" },
+                        template.signature ? { name: template.signature.name, html: template.signature.html } : undefined,
                         {
                             previewText: template.previewText || undefined,
                             unsubscribeUrl: `https://londonstudentnetwork.com/unsubscribe?email=${encodeURIComponent(contact.email)}`,
