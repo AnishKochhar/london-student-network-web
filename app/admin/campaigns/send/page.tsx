@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     UsersIcon,
     DocumentTextIcon,
@@ -11,9 +11,32 @@ import {
     ArrowLeftIcon,
     ArrowRightIcon,
     ExclamationTriangleIcon,
+    EyeIcon,
 } from "@heroicons/react/24/outline";
 import { EmailTemplate, EmailCategory } from "@/app/lib/campaigns/types";
 import RecipientSelector from "@/app/components/campaigns/recipient-selector";
+
+// Helper to format relative time
+function formatRelativeTime(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const diffWeeks = Math.floor(diffDays / 7);
+    const diffMonths = Math.floor(diffDays / 30);
+
+    if (diffSecs < 60) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffWeeks < 4) return `${diffWeeks}w ago`;
+    if (diffMonths < 12) return `${diffMonths}mo ago`;
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 interface Recipient {
     id: string;
@@ -53,11 +76,15 @@ export default function SendCampaignPage() {
         message: string;
         campaignId?: string;
     } | null>(null);
+    const [hoveredTemplateId, setHoveredTemplateId] = useState<string | null>(null);
+    const [previewTemplateId, setPreviewTemplateId] = useState<string | null>(null);
+    const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+    const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
     const [formData, setFormData] = useState<CampaignFormData>({
         name: "",
         templateId: "",
-        fromName: "Josh from LSN",
+        fromName: "London Student Network",
         fromEmail: "josh@londonstudentnetwork.com",
         replyTo: "hello@londonstudentnetwork.com",
         subjectOverride: "",
@@ -111,6 +138,39 @@ export default function SendCampaignPage() {
     };
 
     const selectedTemplate = templates.find((t) => t.id === formData.templateId);
+
+    // Sort templates by updatedAt descending (most recent first)
+    const sortedTemplates = useMemo(() => {
+        return [...templates].sort((a, b) => {
+            const dateA = new Date(a.updatedAt).getTime();
+            const dateB = new Date(b.updatedAt).getTime();
+            return dateB - dateA;
+        });
+    }, [templates]);
+
+    // Preview template handler
+    const handlePreview = async (templateId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setPreviewTemplateId(templateId);
+        setIsLoadingPreview(true);
+
+        try {
+            const res = await fetch(`/api/admin/campaigns/templates?id=${templateId}&preview=true`);
+            if (res.ok) {
+                const data = await res.json();
+                setPreviewHtml(data.previewHtml);
+            }
+        } catch (err) {
+            console.error("Failed to load preview:", err);
+        } finally {
+            setIsLoadingPreview(false);
+        }
+    };
+
+    const closePreview = () => {
+        setPreviewTemplateId(null);
+        setPreviewHtml(null);
+    };
 
     const canProceed = () => {
         switch (currentStep) {
@@ -193,9 +253,9 @@ export default function SendCampaignPage() {
         setFormData({
             name: "",
             templateId: "",
-            fromName: "Josh from LSN",
+            fromName: "London Student Network",
             fromEmail: "josh@londonstudentnetwork.com",
-            replyTo: "josh@londonstudentnetwork.com",
+            replyTo: "hello@londonstudentnetwork.com",
             subjectOverride: "",
         });
         setRecipients([]);
@@ -352,43 +412,88 @@ export default function SendCampaignPage() {
                             </p>
                         </div>
 
-                        {templates.length === 0 ? (
+                        {sortedTemplates.length === 0 ? (
                             <div className="text-center py-8 text-white/50">
                                 <DocumentTextIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
                                 <p>No templates available. Create one first.</p>
                             </div>
                         ) : (
-                            <div className="grid gap-3">
-                                {templates.map((template) => (
-                                    <button
-                                        key={template.id}
-                                        onClick={() => handleChange("templateId", template.id)}
-                                        className={`w-full p-4 rounded-lg border text-left transition-all ${
-                                            formData.templateId === template.id
-                                                ? "bg-indigo-500/20 border-indigo-500/50"
-                                                : "bg-white/5 border-white/10 hover:border-white/20"
-                                        }`}
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <h3 className="font-medium text-white">
-                                                    {template.name}
-                                                </h3>
-                                                {template.description && (
-                                                    <p className="text-sm text-white/50 mt-1">
-                                                        {template.description}
+                            <div className="space-y-2">
+                                {sortedTemplates.map((template) => {
+                                    const isSelected = formData.templateId === template.id;
+                                    const isHovered = hoveredTemplateId === template.id;
+
+                                    return (
+                                        <button
+                                            key={template.id}
+                                            onClick={() => handleChange("templateId", template.id)}
+                                            onMouseEnter={() => setHoveredTemplateId(template.id)}
+                                            onMouseLeave={() => setHoveredTemplateId(null)}
+                                            className={`w-full px-4 py-3 rounded-xl border text-left transition-all group ${
+                                                isSelected
+                                                    ? "bg-indigo-500/15 border-indigo-500/40 ring-1 ring-indigo-500/20"
+                                                    : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/10"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                {/* Left colored accent bar */}
+                                                <div
+                                                    className={`w-1 h-12 rounded-full flex-shrink-0 transition-colors ${
+                                                        isSelected ? "bg-indigo-500" : "bg-white/10 group-hover:bg-white/20"
+                                                    }`}
+                                                />
+
+                                                {/* Content */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className={`font-medium truncate ${
+                                                            isSelected ? "text-white" : "text-white/90"
+                                                        }`}>
+                                                            {template.name}
+                                                        </h3>
+                                                        {template.category && (
+                                                            <span className="px-2 py-0.5 text-[10px] uppercase tracking-wider bg-white/5 text-white/40 rounded-full flex-shrink-0">
+                                                                {template.category}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className={`text-sm mt-0.5 truncate ${
+                                                        isSelected ? "text-white/60" : "text-white/40"
+                                                    }`}>
+                                                        {template.subject}
                                                     </p>
-                                                )}
-                                                <p className="text-xs text-white/40 mt-2 font-mono">
-                                                    Subject: {template.subject}
-                                                </p>
+                                                </div>
+
+                                                {/* Last edited - fixed column */}
+                                                <span className={`text-xs w-16 text-right flex-shrink-0 ${
+                                                    isSelected ? "text-indigo-300/60" : "text-white/30"
+                                                }`}>
+                                                    {formatRelativeTime(template.updatedAt)}
+                                                </span>
+
+                                                {/* Preview button - fixed column, fades in on hover */}
+                                                <div className="w-8 flex-shrink-0">
+                                                    <button
+                                                        onClick={(e) => handlePreview(template.id, e)}
+                                                        className={`p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-opacity ${
+                                                            isHovered ? "opacity-100" : "opacity-0"
+                                                        }`}
+                                                        title="Preview template"
+                                                    >
+                                                        <EyeIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Checkmark for selected - fixed column */}
+                                                <div className="w-5 flex-shrink-0">
+                                                    {isSelected && (
+                                                        <CheckCircleIcon className="w-5 h-5 text-indigo-400" />
+                                                    )}
+                                                </div>
                                             </div>
-                                            {formData.templateId === template.id && (
-                                                <CheckCircleIcon className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-                                            )}
-                                        </div>
-                                    </button>
-                                ))}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -615,6 +720,68 @@ export default function SendCampaignPage() {
                     </button>
                 )}
             </div>
+
+            {/* Template Preview Modal */}
+            <AnimatePresence>
+                {previewTemplateId && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        onClick={closePreview}
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="bg-[#1a1a22] border border-white/10 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-white">
+                                        Template Preview
+                                    </h3>
+                                    <p className="text-sm text-white/50">
+                                        {templates.find(t => t.id === previewTemplateId)?.name}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={closePreview}
+                                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Preview Content */}
+                            <div className="flex-1 overflow-auto bg-white">
+                                {isLoadingPreview ? (
+                                    <div className="flex items-center justify-center h-64">
+                                        <div className="animate-spin w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full" />
+                                    </div>
+                                ) : previewHtml ? (
+                                    <iframe
+                                        srcDoc={previewHtml}
+                                        className="w-full h-full min-h-[500px]"
+                                        title="Email Preview"
+                                        sandbox="allow-same-origin"
+                                    />
+                                ) : (
+                                    <div className="flex items-center justify-center h-64 text-gray-500">
+                                        Failed to load preview
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
