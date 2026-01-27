@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
+import { waitUntil } from "@vercel/functions";
 import { auth } from "@/auth";
 import { fetchTemplateById } from "@/app/lib/campaigns/queries";
-import {
-    wrapWithLSNBranding,
-    replaceVariables,
-    htmlToPlainText,
-} from "@/app/lib/campaigns/email-templates";
-import sendSendGridEmail from "@/app/lib/config/private/sendgrid";
+import { replaceVariables } from "@/app/lib/campaigns/email-templates";
+import { processCampaign } from "@/app/lib/campaigns/process-campaign";
+
+export const maxDuration = 800; // Fluid Compute max on Pro
 
 const BATCH_SIZE = 20;
-const DELAY_BETWEEN_BATCHES_MS = 1000;
+const DELAY_BETWEEN_BATCHES_MS = 1500;
 
 interface RecipientInput {
     email: string;
@@ -25,9 +24,7 @@ interface SendCampaignRequest {
     fromEmail: string;
     replyTo?: string;
     subjectOverride?: string;
-    // New format: direct recipients array
     recipients?: RecipientInput[];
-    // Legacy format: category-based selection
     categoryId?: string;
 }
 
@@ -38,10 +35,7 @@ interface ContactRow {
     organization: string | null;
 }
 
-// Helper to delay between batches
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// POST /api/admin/campaigns/send - Send a campaign
+// POST /api/admin/campaigns/send - Create campaign and start background processing
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
@@ -59,7 +53,6 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Need either recipients array or categoryId
         if (!body.recipients?.length && !body.categoryId) {
             return NextResponse.json(
                 { error: "Either recipients or categoryId is required" },
@@ -67,7 +60,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Fetch template
+        // Fetch template to validate it exists and get subject
         const template = await fetchTemplateById(body.templateId);
         if (!template) {
             return NextResponse.json(
@@ -78,9 +71,7 @@ export async function POST(request: NextRequest) {
 
         let contacts: ContactRow[] = [];
 
-        // Get contacts from either direct recipients or category
         if (body.recipients && body.recipients.length > 0) {
-            // Direct recipients format - look up contact IDs if they exist
             for (const recipient of body.recipients) {
                 const existingContact = await sql`
                     SELECT id FROM email_contacts WHERE email = ${recipient.email} LIMIT 1
@@ -93,7 +84,6 @@ export async function POST(request: NextRequest) {
                 });
             }
         } else if (body.categoryId) {
-            // Legacy category-based format
             const contactsResult = await sql`
                 WITH RECURSIVE category_tree AS (
                     SELECT id FROM email_categories WHERE id = ${body.categoryId}::uuid
@@ -151,143 +141,52 @@ export async function POST(request: NextRequest) {
         const campaignId = campaignResult.rows[0].id;
         const subject = body.subjectOverride || template.subject;
 
-        // Process in batches
-        let sentCount = 0;
-        let failedCount = 0;
-        const errors: Array<{ email: string; error: string }> = [];
+        // Create email_send records for all recipients
+        for (const contact of contacts) {
+            const variables: Record<string, string> = {
+                name: contact.name || "there",
+                organization: contact.organization || "",
+                email: contact.email,
+            };
+            const personalizedSubject = replaceVariables(subject, variables);
 
-        // Split contacts into batches
-        const batches: ContactRow[][] = [];
-        for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
-            batches.push(contacts.slice(i, i + BATCH_SIZE));
-        }
-
-        for (const batch of batches) {
-            const batchPromises = batch.map(async (contact) => {
-                try {
-                    // Replace variables in template
-                    const variables: Record<string, string> = {
-                        name: contact.name || "there",
-                        organization: contact.organization || "",
-                        email: contact.email,
-                    };
-
-                    const personalizedSubject = replaceVariables(subject, variables);
-                    const personalizedBody = replaceVariables(template.bodyHtml, variables);
-
-                    // Wrap with LSN branding (template.signature is undefined if no signature selected)
-                    const fullHtml = wrapWithLSNBranding(
-                        personalizedBody,
-                        template.signature ? { name: template.signature.name, html: template.signature.html } : undefined,
-                        {
-                            previewText: template.previewText || undefined,
-                            unsubscribeUrl: `https://londonstudentnetwork.com/unsubscribe?email=${encodeURIComponent(contact.email)}`,
-                        }
-                    );
-
-                    const plainText = htmlToPlainText(personalizedBody);
-
-                    // Create email_send record
-                    const sendResult = await sql`
-                        INSERT INTO email_sends (
-                            campaign_id, contact_id, to_email, to_name, to_organization,
-                            subject, status
-                        ) VALUES (
-                            ${campaignId},
-                            ${contact.id},
-                            ${contact.email},
-                            ${contact.name},
-                            ${contact.organization},
-                            ${personalizedSubject},
-                            'pending'
-                        )
-                        RETURNING id
-                    `;
-                    const sendId = sendResult.rows[0].id;
-
-                    // Send email - format from as "Name <email>" string
-                    const fromAddress = body.fromName
-                        ? `${body.fromName} <${body.fromEmail}>`
-                        : body.fromEmail;
-
-                    await sendSendGridEmail({
-                        to: contact.email,
-                        from: fromAddress,
-                        replyTo: body.replyTo || body.fromEmail,
-                        subject: personalizedSubject,
-                        html: fullHtml,
-                        text: plainText,
-                    });
-
-                    // Update send record to sent
-                    await sql`
-                        UPDATE email_sends
-                        SET status = 'sent', sent_at = NOW()
-                        WHERE id = ${sendId}
-                    `;
-
-                    // Update contact's last_emailed_at (if contact exists in DB)
-                    if (contact.id) {
-                        await sql`
-                            UPDATE email_contacts
-                            SET last_emailed_at = NOW(), updated_at = NOW()
-                            WHERE id = ${contact.id}
-                        `;
-                    }
-
-                    return { success: true };
-                } catch (err) {
-                    const errorMsg = err instanceof Error ? err.message : "Unknown error";
-                    errors.push({ email: contact.email, error: errorMsg });
-                    return { success: false, error: errorMsg };
-                }
-            });
-
-            const results = await Promise.allSettled(batchPromises);
-
-            results.forEach((result) => {
-                if (result.status === "fulfilled" && result.value.success) {
-                    sentCount++;
-                } else {
-                    failedCount++;
-                }
-            });
-
-            // Update campaign progress
             await sql`
-                UPDATE email_campaigns
-                SET sent_count = ${sentCount}
-                WHERE id = ${campaignId}
+                INSERT INTO email_sends (
+                    campaign_id, contact_id, to_email, to_name, to_organization,
+                    subject, status
+                ) VALUES (
+                    ${campaignId}::uuid,
+                    ${contact.id}::uuid,
+                    ${contact.email},
+                    ${contact.name},
+                    ${contact.organization},
+                    ${personalizedSubject},
+                    'pending'
+                )
             `;
-
-            // Delay between batches (unless last batch)
-            if (batches.indexOf(batch) < batches.length - 1) {
-                await delay(DELAY_BETWEEN_BATCHES_MS);
-            }
         }
 
-        // Mark campaign as completed
-        await sql`
-            UPDATE email_campaigns
-            SET
-                status = 'sent',
-                sent_count = ${sentCount},
-                completed_at = NOW()
-            WHERE id = ${campaignId}
-        `;
+        // Start processing immediately in the background.
+        // waitUntil continues after the response is sent, up to maxDuration (800s).
+        // The cron job acts as a safety net if this invocation is interrupted.
+        waitUntil(
+            processCampaign(campaignId).catch((err) => {
+                console.error(`[CAMPAIGN] Background processing failed for ${campaignId}:`, err);
+            })
+        );
 
+        // Return immediately - processing continues in background
         return NextResponse.json({
             success: true,
             campaignId,
-            message: `Successfully sent ${sentCount} of ${contacts.length} emails`,
-            recipientCount: sentCount,
-            failedCount,
-            errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+            message: `Campaign started for ${contacts.length} recipients`,
+            recipientCount: contacts.length,
+            queued: true,
         });
     } catch (error) {
-        console.error("Error sending campaign:", error);
+        console.error("Error creating campaign:", error);
         return NextResponse.json(
-            { error: error instanceof Error ? error.message : "Failed to send campaign" },
+            { error: error instanceof Error ? error.message : "Failed to create campaign" },
             { status: 500 }
         );
     }

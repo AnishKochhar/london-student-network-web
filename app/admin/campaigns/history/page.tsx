@@ -15,7 +15,20 @@ import {
     ArrowPathIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    SignalIcon,
 } from "@heroicons/react/24/outline";
+import CampaignProgress from "@/app/components/campaigns/campaign-progress";
+
+interface ActiveCampaign {
+    id: string;
+    name: string;
+    status: string;
+    totalRecipients: number;
+    sentCount: number;
+    startedAt: string | null;
+    progress: number;
+    statusBreakdown: Record<string, number>;
+}
 
 interface HistoryItem {
     id: string;
@@ -72,6 +85,26 @@ export default function HistoryPage() {
     const [statusFilter, setStatusFilter] = useState("");
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
+    const [activeCampaigns, setActiveCampaigns] = useState<ActiveCampaign[]>([]);
+
+    const fetchActiveCampaigns = useCallback(async () => {
+        try {
+            const response = await fetch("/api/admin/campaigns/active");
+            if (response.ok) {
+                const result = await response.json();
+                setActiveCampaigns(result.campaigns || []);
+            }
+        } catch (err) {
+            console.error("Failed to fetch active campaigns:", err);
+        }
+    }, []);
+
+    // Poll for active campaigns
+    useEffect(() => {
+        fetchActiveCampaigns();
+        const interval = setInterval(fetchActiveCampaigns, 10000);
+        return () => clearInterval(interval);
+    }, [fetchActiveCampaigns]);
 
     const fetchHistory = useCallback(async () => {
         try {
@@ -201,6 +234,33 @@ export default function HistoryPage() {
                             ))}
                         </div>
                     </motion.div>
+                )}
+
+                {/* Active Campaigns */}
+                {activeCampaigns.length > 0 && (
+                    <div className="mb-8">
+                        <div className="flex items-center gap-2 mb-4">
+                            <SignalIcon className="w-4 h-4 text-blue-400" />
+                            <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wide">
+                                Active Campaigns
+                            </h2>
+                            <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-full text-xs font-medium">
+                                {activeCampaigns.length}
+                            </span>
+                        </div>
+                        <div className="space-y-4">
+                            {activeCampaigns.map((campaign) => (
+                                <CampaignProgress
+                                    key={campaign.id}
+                                    campaignId={campaign.id}
+                                    onComplete={() => {
+                                        fetchActiveCampaigns();
+                                        fetchHistory();
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {/* Timeline */}

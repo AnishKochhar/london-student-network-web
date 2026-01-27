@@ -7,6 +7,10 @@
     {
       "path": "/api/workers/process-email-reminders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/workers/process-campaigns",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
