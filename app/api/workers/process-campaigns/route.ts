@@ -3,7 +3,7 @@ import { processAllStalledCampaigns } from "@/app/lib/campaigns/process-campaign
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 800; // Fluid Compute max on Pro
+export const maxDuration = 300; // Vercel Pro max
 
 // ============================================
 // Campaign Safety-Net Cron

@@ -6,7 +6,7 @@ import { fetchTemplateById } from "@/app/lib/campaigns/queries";
 import { replaceVariables } from "@/app/lib/campaigns/email-templates";
 import { processCampaign } from "@/app/lib/campaigns/process-campaign";
 
-export const maxDuration = 800; // Fluid Compute max on Pro
+export const maxDuration = 300; // Vercel Pro max
 
 const BATCH_SIZE = 20;
 const DELAY_BETWEEN_BATCHES_MS = 1500;
