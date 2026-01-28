@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
                 SELECT id, to_email, to_name, to_organization, subject, status, sent_at, error_message
                 FROM email_sends
                 WHERE campaign_id = ${campaignId}::uuid AND status = ${statusFilter}
-                ORDER BY updated_at DESC
+                ORDER BY created_at DESC
                 LIMIT 200
             `;
             sends = rows.map(formatSendRow);
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
                 SELECT id, to_email, to_name, to_organization, subject, status, sent_at, error_message
                 FROM email_sends
                 WHERE campaign_id = ${campaignId}::uuid
-                ORDER BY updated_at DESC
+                ORDER BY created_at DESC
                 LIMIT 200
             `;
             sends = rows.map(formatSendRow);

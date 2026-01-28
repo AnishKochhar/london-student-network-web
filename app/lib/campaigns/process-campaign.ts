@@ -57,9 +57,9 @@ interface CampaignRow {
  * Designed to run within a single serverless invocation (up to 800s on Vercel Pro).
  *
  * Flow:
- *   1. Claim a batch of 'pending' emails by updating status to 'sending'
+ *   1. Claim a batch of 'pending' emails by updating status to 'queued'
  *   2. Send each email via SendGrid
- *   3. Update status to 'sent' or 'failed'
+ *   3. Update status to 'sent' or 'dropped'
  *   4. Repeat until no more pending emails or time runs out
  *   5. Mark campaign as 'sent' when everything is done
  */
@@ -100,10 +100,10 @@ export async function processCampaign(
 
     // Process batches until done or limit reached
     while (batchCount < maxBatches) {
-        // Claim a batch: atomically move 'pending' -> 'sending'
+        // Claim a batch: atomically move 'pending' -> 'queued'
         const { rows: batch } = await sql`
             UPDATE email_sends
-            SET status = 'sending', updated_at = NOW()
+            SET status = 'queued'
             WHERE id IN (
                 SELECT id FROM email_sends
                 WHERE campaign_id = ${campaignId}::uuid AND status = 'pending'
