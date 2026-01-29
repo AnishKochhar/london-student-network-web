@@ -1779,3 +1779,172 @@ export async function deregisterFromEvent(event_id: string, user_id: string) {
         return { success: false, error: "Failed to deregister from event" };
     }
 }
+
+// MARK: Featured Events
+
+/**
+ * Fetch the currently active featured event for the homepage.
+ * Returns the event with optional custom description if one is set.
+ */
+export async function fetchActiveFeaturedEvent(): Promise<{ event: ReturnType<typeof convertSQLEventToEvent>; customDescription: string | null } | null> {
+    try {
+        const result = await sql`
+            SELECT
+                fe.id as featured_id,
+                fe.custom_description,
+                fe.featured_start,
+                fe.featured_end,
+                e.*
+            FROM featured_events fe
+            JOIN events e ON fe.event_id = e.id
+            WHERE fe.is_active = TRUE
+              AND fe.featured_start <= NOW()
+              AND (fe.featured_end IS NULL OR fe.featured_end > NOW())
+              AND (e.is_deleted IS NULL OR e.is_deleted = false)
+              AND (e.is_hidden IS NULL OR e.is_hidden = false)
+              AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
+              AND COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            ORDER BY fe.featured_start DESC
+            LIMIT 1
+        `;
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        const row = result.rows[0];
+        const event = convertSQLEventToEvent(row as SQLEvent);
+
+        return {
+            event,
+            customDescription: row.custom_description || null
+        };
+    } catch (error) {
+        console.error("Error fetching active featured event:", error);
+        return null;
+    }
+}
+
+/**
+ * Fetch the featured event configuration for admin (includes inactive and scheduled)
+ */
+export async function fetchFeaturedEventConfig() {
+    try {
+        const result = await sql`
+            SELECT
+                fe.id,
+                fe.event_id,
+                fe.custom_description,
+                fe.featured_start,
+                fe.featured_end,
+                fe.is_active,
+                fe.created_by,
+                fe.created_at,
+                fe.updated_at,
+                e.title as event_title,
+                e.organiser as event_organiser,
+                e.start_datetime as event_start_datetime,
+                e.image_url as event_image_url
+            FROM featured_events fe
+            JOIN events e ON fe.event_id = e.id
+            WHERE fe.is_active = TRUE
+            ORDER BY fe.created_at DESC
+            LIMIT 1
+        `;
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        console.error("Error fetching featured event config:", error);
+        return null;
+    }
+}
+
+/**
+ * Set or update the featured event. Deactivates any existing featured event first.
+ */
+export async function setFeaturedEvent(
+    eventId: string,
+    customDescription: string | null,
+    featuredStart: string,
+    featuredEnd: string | null,
+    userId: string
+) {
+    try {
+        // Deactivate all currently active featured events (except the one we're about to set)
+        await sql`
+            UPDATE featured_events
+            SET is_active = FALSE, updated_at = NOW()
+            WHERE is_active = TRUE AND event_id != ${eventId}
+        `;
+
+        // Upsert: Insert or update the featured event in a single atomic operation
+        await sql`
+            INSERT INTO featured_events (event_id, custom_description, featured_start, featured_end, is_active, created_by, updated_at)
+            VALUES (
+                ${eventId},
+                ${customDescription},
+                ${featuredStart}::timestamptz,
+                ${featuredEnd ? featuredEnd : null}::timestamptz,
+                TRUE,
+                ${userId},
+                NOW()
+            )
+            ON CONFLICT (event_id) DO UPDATE SET
+                custom_description = EXCLUDED.custom_description,
+                featured_start = EXCLUDED.featured_start,
+                featured_end = EXCLUDED.featured_end,
+                is_active = TRUE,
+                created_by = EXCLUDED.created_by,
+                updated_at = NOW()
+        `;
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error setting featured event:", error);
+        return { success: false, error };
+    }
+}
+
+/**
+ * Clear the featured event (deactivate without selecting a new one)
+ */
+export async function clearFeaturedEvent() {
+    try {
+        await sql`
+            UPDATE featured_events
+            SET is_active = FALSE, updated_at = NOW()
+            WHERE is_active = TRUE
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Error clearing featured event:", error);
+        return { success: false, error };
+    }
+}
+
+/**
+ * Fetch upcoming public events for the featured event selector dropdown
+ */
+export async function fetchUpcomingPublicEvents() {
+    try {
+        const data = await sql<SQLEvent>`
+            SELECT e.*, s.slug as organiser_slug
+            FROM events e
+            LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+            WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            AND (e.is_hidden IS NULL OR e.is_hidden = false)
+            AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
+            ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) ASC
+            LIMIT 50
+        `;
+        return data.rows.map(convertSQLEventToEvent);
+    } catch (error) {
+        console.error("Error fetching upcoming public events:", error);
+        return [];
+    }
+}

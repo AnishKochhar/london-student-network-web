@@ -12,7 +12,10 @@ import {
     EyeIcon,
     ArrowTrendingUpIcon,
     UserGroupIcon,
+    FireIcon,
+    ArrowRightIcon,
 } from "@heroicons/react/24/outline";
+import { fetchFeaturedEventConfig } from "@/app/lib/data";
 
 async function getDashboardStats() {
     try {
@@ -111,7 +114,10 @@ async function getDashboardStats() {
 }
 
 export default async function AdminDashboardPage() {
-    const stats = await getDashboardStats();
+    const [stats, featuredEventConfig] = await Promise.all([
+        getDashboardStats(),
+        fetchFeaturedEventConfig(),
+    ]);
 
     return (
         <div className="min-h-screen">
@@ -226,6 +232,71 @@ export default async function AdminDashboardPage() {
                             <p className="text-xs text-white/60 mt-2">Views to registrations</p>
                         </div>
                     </div>
+                </div>
+
+                {/* Featured Event Card */}
+                <div className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 backdrop-blur-lg rounded-xl shadow-xl border border-orange-500/20 p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-orange-500/20 rounded-lg">
+                                <FireIcon className="w-6 h-6 text-orange-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Featured Event</h2>
+                                <p className="text-sm text-white/70">
+                                    {featuredEventConfig ? "Currently showcasing on homepage" : "No event featured"}
+                                </p>
+                            </div>
+                        </div>
+                        <a
+                            href="/admin/featured-event"
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-200 rounded-lg text-sm font-medium transition-colors border border-orange-500/30"
+                        >
+                            {featuredEventConfig ? "Manage" : "Select Event"}
+                            <ArrowRightIcon className="w-4 h-4" />
+                        </a>
+                    </div>
+
+                    {featuredEventConfig ? (
+                        <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                            <div className="flex items-center gap-4">
+                                {featuredEventConfig.event_image_url && (
+                                    <img
+                                        src={featuredEventConfig.event_image_url}
+                                        alt=""
+                                        className="w-16 h-16 rounded-lg object-cover"
+                                    />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-white font-medium truncate">
+                                        {featuredEventConfig.event_title}
+                                    </p>
+                                    <p className="text-sm text-white/60 truncate">
+                                        {featuredEventConfig.event_organiser}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30">
+                                            Active
+                                        </span>
+                                        {featuredEventConfig.featured_end && (
+                                            <span className="text-xs text-white/50">
+                                                Until {new Date(featuredEventConfig.featured_end).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white/5 rounded-lg p-6 border border-white/10 text-center">
+                            <p className="text-white/60 text-sm">
+                                No event is currently featured on the homepage.
+                            </p>
+                            <p className="text-white/40 text-xs mt-1">
+                                Select an event to highlight it prominently to visitors.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Quick Actions Section */}

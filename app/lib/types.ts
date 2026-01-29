@@ -643,3 +643,28 @@ export const STRIPE_FEE_FIXED_PENCE = 20;
 export function calculateStripeFee(amountInPence: number): number {
     return Math.round((amountInPence * STRIPE_FEE_PERCENTAGE / 100) + STRIPE_FEE_FIXED_PENCE);
 }
+
+// Featured Events types
+export interface FeaturedEvent {
+    id: string;
+    event_id: string;
+    event?: Event;
+    custom_description: string | null;
+    featured_start: string;
+    featured_end: string | null;
+    is_active: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface FeaturedEventFormData {
+    event_id: string;
+    custom_description?: string;
+    featured_start: string;
+    featured_end: string | null;
+}
+
+export interface FeaturedEventWithEvent extends FeaturedEvent {
+    event: Event;
+}
