@@ -119,8 +119,9 @@ export default function ModernEventInfo() {
             });
 
             const result = await response.json();
-            if (result.success && result.registrations) {
-                setRegistrationCount(result.registrations.length);
+            if (result.success) {
+                // Use totalRegistrations which sums quantities (handles multi-ticket purchases)
+                setRegistrationCount(result.totalRegistrations || 0);
             }
         } catch (error) {
             console.error("Error fetching registration count:", error);

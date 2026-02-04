@@ -37,14 +37,15 @@ export async function GET(req: Request) {
             WHERE clicked_at >= ${startDate.toISOString()}
         `;
 
-        // Total registrations in period
+        // Total registrations in period (sum quantities for multi-ticket purchases)
         const registrationStats = await sql`
             SELECT
-                COUNT(*) as total_registrations,
-                COUNT(CASE WHEN external = true THEN 1 END) as external_registrations,
-                COUNT(CASE WHEN external = false THEN 1 END) as internal_registrations
+                COALESCE(SUM(quantity), 0)::integer as total_registrations,
+                COALESCE(SUM(CASE WHEN external = true THEN quantity ELSE 0 END), 0)::integer as external_registrations,
+                COALESCE(SUM(CASE WHEN external = false THEN quantity ELSE 0 END), 0)::integer as internal_registrations
             FROM event_registrations
             WHERE created_at >= ${startDate.toISOString()}
+            AND (is_cancelled = FALSE OR is_cancelled IS NULL)
         `;
 
         // Most viewed events

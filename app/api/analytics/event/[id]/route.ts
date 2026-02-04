@@ -82,12 +82,13 @@ export async function GET(
             LIMIT 10
         `;
 
-        // Calculate conversion rate (views to registrations)
+        // Calculate conversion rate (views to registrations) - sum quantities for multi-ticket purchases
         const registrations = await sql`
-            SELECT COUNT(*) as total
+            SELECT COALESCE(SUM(quantity), 0)::integer as total
             FROM event_registrations
             WHERE event_id = ${event_id}
             AND created_at >= ${startDate.toISOString()}
+            AND (is_cancelled = FALSE OR is_cancelled IS NULL)
         `;
 
         const stats = overallStats.rows[0];

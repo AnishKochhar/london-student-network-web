@@ -1742,11 +1742,12 @@ export async function getEventRegistrationStats(eventId: string) {
     try {
         const stats = await sql`
             SELECT
-                COUNT(*) as total,
-                COUNT(CASE WHEN external = false THEN 1 END) as internal,
-                COUNT(CASE WHEN external = true THEN 1 END) as external
+                COALESCE(SUM(quantity), 0)::integer as total,
+                COALESCE(SUM(CASE WHEN external = false THEN quantity ELSE 0 END), 0)::integer as internal,
+                COALESCE(SUM(CASE WHEN external = true THEN quantity ELSE 0 END), 0)::integer as external
             FROM event_registrations
             WHERE event_id = ${eventId}
+            AND (is_cancelled = FALSE OR is_cancelled IS NULL)
         `;
 
         return {

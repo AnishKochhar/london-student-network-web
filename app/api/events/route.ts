@@ -125,7 +125,7 @@ export async function GET(request: Request) {
 
         if (includeRegistrations) {
             selectFields += `,
-            (SELECT COUNT(*)::integer FROM event_registrations r WHERE r.event_id = e.id) as registration_count
+            (SELECT COALESCE(SUM(quantity), 0)::integer FROM event_registrations r WHERE r.event_id = e.id AND (r.is_cancelled = FALSE OR r.is_cancelled IS NULL)) as registration_count
             `;
         }
 
