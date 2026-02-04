@@ -80,6 +80,21 @@ export default function FilteredEventsPage({
     // Debounce search to avoid excessive API calls
     const debouncedSearch = useDebounce(localSearchQuery, 300);
 
+    // Apply URL parameters to pagination hook on initial mount
+    // This ensures filters from URL are actually applied, not just shown in UI
+    useEffect(() => {
+        if (initialSource !== "all") {
+            setSource(initialSource);
+        }
+        if (initialActiveTags.length > 0) {
+            setTags(initialActiveTags);
+        }
+        if (initialSearch) {
+            setSearch(initialSearch);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty deps - only run once on mount
+
     // Sync debounced search with pagination hook
     useEffect(() => {
         if (debouncedSearch !== filters.search) {
