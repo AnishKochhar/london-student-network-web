@@ -2,6 +2,7 @@ import { fetchEventById } from "@/app/lib/data";
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
+import { getEventSoldCount } from "@/app/lib/capacity";
 
 export async function POST(req: Request) {
     try {
@@ -46,16 +47,19 @@ export async function POST(req: Request) {
 
         // Fetch tickets for this event with release information
         // Note: Use event.id (full UUID) not the partial id parameter
+        // IMPORTANT: Excludes cancelled registrations (is_cancelled = FALSE OR is_cancelled IS NULL)
         const ticketsResult = await sql`
             SELECT
                 t.ticket_uuid,
                 t.ticket_name,
                 t.ticket_price,
-                -- Calculate ACTUAL remaining tickets by subtracting sold quantity
+                -- Calculate ACTUAL remaining tickets by subtracting sold quantity (excluding cancelled)
                 CASE
                     WHEN t.tickets_available IS NOT NULL THEN
                         GREATEST(0, t.tickets_available - COALESCE(
-                            (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                            (SELECT SUM(quantity) FROM event_registrations
+                             WHERE ticket_uuid = t.ticket_uuid
+                             AND (is_cancelled = FALSE OR is_cancelled IS NULL)),
                             0
                         ))
                     ELSE NULL
@@ -65,22 +69,26 @@ export async function POST(req: Request) {
                 t.release_start_time,
                 t.release_end_time,
                 t.release_order,
-                -- Calculate availability status based on ACTUAL remaining tickets
+                -- Calculate availability status based on ACTUAL remaining tickets (excluding cancelled)
                 CASE
                     WHEN t.tickets_available IS NOT NULL AND
                          t.tickets_available - COALESCE(
-                            (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                            (SELECT SUM(quantity) FROM event_registrations
+                             WHERE ticket_uuid = t.ticket_uuid
+                             AND (is_cancelled = FALSE OR is_cancelled IS NULL)),
                             0
                          ) <= 0 THEN 'sold_out'
                     WHEN t.release_start_time IS NOT NULL AND t.release_start_time > NOW() THEN 'upcoming'
                     WHEN t.release_end_time IS NOT NULL AND t.release_end_time < NOW() THEN 'ended'
                     ELSE 'available'
                 END as availability_status,
-                -- Check if available now based on ACTUAL remaining tickets
+                -- Check if available now based on ACTUAL remaining tickets (excluding cancelled)
                 CASE
                     WHEN t.tickets_available IS NOT NULL AND
                          t.tickets_available - COALESCE(
-                            (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                            (SELECT SUM(quantity) FROM event_registrations
+                             WHERE ticket_uuid = t.ticket_uuid
+                             AND (is_cancelled = FALSE OR is_cancelled IS NULL)),
                             0
                          ) <= 0 THEN false
                     WHEN t.release_start_time IS NOT NULL AND t.release_start_time > NOW() THEN false
@@ -99,15 +107,27 @@ export async function POST(req: Request) {
                 SELECT event_registration_uuid
                 FROM event_registrations
                 WHERE event_id = ${event.id} AND user_id = ${session.user.id}
+                AND (is_cancelled = FALSE OR is_cancelled IS NULL)
                 LIMIT 1
             `;
             isRegistered = registrationCheck.rows.length > 0;
+        }
+
+        // Check event-level capacity (excluding cancelled registrations)
+        let eventSoldOut = false;
+        let eventSoldCount = 0;
+        if (event.capacity) {
+            eventSoldCount = await getEventSoldCount(event.id);
+            eventSoldOut = eventSoldCount >= event.capacity;
         }
 
         return NextResponse.json({
             ...event,
             tickets: ticketsResult.rows,
             isRegistered,
+            eventSoldOut,       // true if event capacity is reached
+            eventCapacity: event.capacity || null,
+            eventSoldCount,     // total active registrations for the event
         });
     } catch (error) {
         console.error("Error fetching event:", error);

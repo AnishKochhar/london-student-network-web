@@ -25,7 +25,11 @@ interface Ticket {
 }
 
 interface TicketSelectionModalProps {
-    event: Event;
+    event: Event & {
+        eventSoldOut?: boolean;
+        eventCapacity?: number | null;
+        eventSoldCount?: number;
+    };
     onClose: () => void;
     onFreeRegistration: (quantity: number) => void;
     userName?: string;
@@ -60,7 +64,20 @@ export default function TicketSelectionModal({
     const [, setDonationSettingsLoading] = useState(true);
 
     // Use tickets from event data (already loaded) - memoized to prevent re-renders
-    const tickets: Ticket[] = useMemo(() => (event.tickets as Ticket[]) || [], [event.tickets]);
+    // If event is sold out at event-level, mark all tickets as sold out
+    const eventSoldOut = (event as { eventSoldOut?: boolean }).eventSoldOut || false;
+    const tickets: Ticket[] = useMemo(() => {
+        const rawTickets = (event.tickets as Ticket[]) || [];
+        if (eventSoldOut) {
+            // Override all tickets to show as sold out when event capacity is reached
+            return rawTickets.map(t => ({
+                ...t,
+                availability_status: 'sold_out' as const,
+                is_available: false,
+            }));
+        }
+        return rawTickets;
+    }, [event.tickets, eventSoldOut]);
     const loading = isLoadingTickets;
 
     const steps = isGuestMode
@@ -455,6 +472,21 @@ export default function TicketSelectionModal({
                                             Choose the ticket type and quantity
                                         </p>
                                     </div>
+
+                                    {/* Event Sold Out Banner */}
+                                    {eventSoldOut && (
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                                <p className="text-sm font-medium text-red-800">
+                                                    This event is at full capacity
+                                                </p>
+                                            </div>
+                                            <p className="text-xs text-red-600 mt-1">
+                                                All tickets are currently sold out. Check back later for cancellations.
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* Ticket Selection with Release Grouping */}
                                     <div className="space-y-4">

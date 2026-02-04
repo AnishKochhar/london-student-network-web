@@ -5,6 +5,7 @@ import { fetchSQLEventById } from "@/app/lib/data";
 import { formatInTimeZone } from "date-fns-tz";
 import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import { checkEventCapacity } from "@/app/lib/capacity";
 
 export async function POST(req: Request) {
     try {
@@ -145,27 +146,19 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check ticket availability with atomic calculation
-        if (ticket.tickets_available !== null) {
-            const availabilityCheck = await sql`
-                SELECT
-                    t.tickets_available as initial_availability,
-                    COALESCE(SUM(er.quantity), 0) as sold_quantity,
-                    t.tickets_available - COALESCE(SUM(er.quantity), 0) as remaining_tickets
-                FROM tickets t
-                LEFT JOIN event_registrations er ON er.ticket_uuid = t.ticket_uuid
-                WHERE t.ticket_uuid = ${ticket_uuid}
-                GROUP BY t.ticket_uuid, t.tickets_available
-            `;
+        // Check BOTH ticket-level AND event-level capacity (excluding cancelled registrations)
+        const capacityCheck = await checkEventCapacity(
+            event_id,
+            ticket_uuid,
+            quantity,
+            event.capacity
+        );
 
-            const remaining = parseInt(availabilityCheck.rows[0]?.remaining_tickets || '0');
-
-            if (remaining < quantity) {
-                return NextResponse.json(
-                    { success: false, error: remaining > 0 ? `Only ${remaining} ticket(s) remaining` : 'This ticket is sold out' },
-                    { status: 400 }
-                );
-            }
+        if (!capacityCheck.canRegister) {
+            return NextResponse.json(
+                { success: false, error: capacityCheck.errorMessage },
+                { status: 400 }
+            );
         }
 
         // Check if guest email is already registered for this event

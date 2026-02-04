@@ -159,17 +159,20 @@ export async function fetchAllUpcomingEvents(
         const eventIds = events.map(e => e.id);
 
         // Fetch ALL tickets for ALL events in ONE query
+        // IMPORTANT: Excludes cancelled registrations (is_cancelled = FALSE OR is_cancelled IS NULL)
         const ticketsResult = await sql`
             SELECT
                 t.event_uuid,
                 t.ticket_uuid,
                 t.ticket_name,
                 t.ticket_price,
-                -- Calculate ACTUAL remaining tickets
+                -- Calculate ACTUAL remaining tickets (excluding cancelled registrations)
                 CASE
                     WHEN t.tickets_available IS NOT NULL THEN
                         GREATEST(0, t.tickets_available - COALESCE(
-                            (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                            (SELECT SUM(quantity) FROM event_registrations
+                             WHERE ticket_uuid = t.ticket_uuid
+                             AND (is_cancelled = FALSE OR is_cancelled IS NULL)),
                             0
                         ))
                     ELSE NULL
@@ -281,6 +284,7 @@ export async function fetchPaginatedUpcomingEvents(
         if (events.length > 0) {
             const eventIds = events.map(e => e.id);
             // Use sql.query with parameterized array for type safety
+            // IMPORTANT: Excludes cancelled registrations (is_cancelled = FALSE OR is_cancelled IS NULL)
             const ticketsResult = await sql.query(`
                 SELECT
                     t.event_uuid,
@@ -290,7 +294,9 @@ export async function fetchPaginatedUpcomingEvents(
                     CASE
                         WHEN t.tickets_available IS NOT NULL THEN
                             GREATEST(0, t.tickets_available - COALESCE(
-                                (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                                (SELECT SUM(quantity) FROM event_registrations
+                                 WHERE ticket_uuid = t.ticket_uuid
+                                 AND (is_cancelled = FALSE OR is_cancelled IS NULL)),
                                 0
                             ))
                         ELSE NULL
