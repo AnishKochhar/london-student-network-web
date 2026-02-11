@@ -192,7 +192,7 @@ export default function ContactPage() {
         <>
         {/* Cloudflare Turnstile Script */}
         <Script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
             async
             defer
             onLoad={() => setTurnstileLoaded(true)}
@@ -443,10 +443,7 @@ export default function ContactPage() {
 
                         {/* Turnstile Widget */}
                         <div className="flex justify-center">
-                            <div
-                                ref={turnstileContainerRef}
-                                className="cf-turnstile"
-                            />
+                            <div ref={turnstileContainerRef} />
                         </div>
 
                         {/* Submit Button */}

@@ -113,7 +113,7 @@ export default function Footer() {
     return (
         <>
         <Script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
             async
             defer
             onLoad={() => setTurnstileLoaded(true)}
@@ -160,7 +160,7 @@ export default function Footer() {
                                     <Send className="h-3 w-3" />
                                 </Button>
                             </div>
-                            <div ref={turnstileContainerRef} className="cf-turnstile" />
+                            <div ref={turnstileContainerRef} />
                             {status === "success" && (
                                 <p className="text-green-400 text-sm">Subscribed successfully!</p>
                             )}
