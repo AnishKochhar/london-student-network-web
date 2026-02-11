@@ -471,8 +471,8 @@ export default function CreateEventPage({
 
                         <div className="self-end relative w-full min-w-[100px] h-[200px] border border-black overflow-hidden">
                             <Image
-                                src={previewImage || selectedImage}
-                                alt={selectedImage}
+                                src={previewImage || selectedImage || "/images/placeholders/lecture-hall-1.jpg"}
+                                alt={selectedImage || "Event image"}
                                 fill
                                 className={`w-[90%] h-64 border-2 border-black/70 ${imageContain ? "object-contain" : "object-cover"}`}
                             />
