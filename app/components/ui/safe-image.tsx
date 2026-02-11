@@ -13,6 +13,7 @@ interface SafeImageProps extends Omit<ImageProps, "onError" | "placeholder" | "b
     fallbackSrc?: string;
     fallbackType?: keyof typeof DEFAULT_IMAGES;
     disableBlur?: boolean;
+    priority?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export default function SafeImage({
     fallbackType = "generic",
     alt,
     disableBlur = false,
+    priority = false,
     ...props
 }: SafeImageProps) {
     const defaultFallback = fallbackSrc || DEFAULT_IMAGES[fallbackType];
@@ -51,14 +53,18 @@ export default function SafeImage({
         }
     }, [hasError, defaultFallback]);
 
+    // Disable blur placeholder when priority is set to avoid invalid imagesrcset errors
+    const useBlur = !disableBlur && !priority;
+
     return (
         <Image
             {...props}
             src={imgSrc}
             alt={alt}
+            priority={priority}
             onError={handleError}
-            placeholder={disableBlur ? "empty" : "blur"}
-            blurDataURL={disableBlur ? undefined : DEFAULT_BLUR_DATA_URL}
+            placeholder={useBlur ? "blur" : "empty"}
+            blurDataURL={useBlur ? DEFAULT_BLUR_DATA_URL : undefined}
         />
     );
 }
