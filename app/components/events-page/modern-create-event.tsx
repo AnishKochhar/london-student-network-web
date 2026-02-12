@@ -860,13 +860,12 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     }, [watchedValues, editMode, AUTOSAVE_KEY]);
 
     useEffect(() => {
-        if (watchedImage) {
-            const file = watchedImage;
+        if (watchedImage && watchedImage instanceof Blob) {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(watchedImage);
         } else if (selectedPlaceholder) {
             setImagePreview(selectedPlaceholder);
         } else {
