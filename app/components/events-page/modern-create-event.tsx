@@ -848,7 +848,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                 try {
                     // Don't save if form is empty
                     if (watchedValues.title || watchedValues.description) {
-                        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(watchedValues));
+                        // Exclude uploaded_image from autosave - File objects don't serialize properly
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { uploaded_image, ...savableValues } = watchedValues;
+                        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(savableValues));
                     }
                 } catch (error) {
                     console.error("Failed to autosave:", error);
