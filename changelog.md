@@ -4,6 +4,27 @@ All the notable additions and fixes.
 
 This changelog follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+# [4.5.0] - 2025-02-24
+
+### Added
+
+- Error boundary for `/events` page to gracefully handle database outages
+- New `app/events/error.tsx` with user-friendly error messages and retry functionality
+
+### Changed
+
+- Optimized `/api/workers/process-email-reminders` to exit early when no jobs are queued (previously waited 50 seconds unconditionally)
+- Reduced cron frequency for `process-email-reminders` from every 15 minutes to every 30 minutes
+- Reduced cron frequency for `process-campaigns` from every 5 minutes to every 30 minutes
+- Worker now uses BullMQ manual job fetching pattern (`worker.getNextJob()`) for serverless compatibility
+- Set `drainDelay: 1` to minimize blocking time when queue is empty
+
+### Fixed
+
+- Excessive Neon database compute usage caused by 50-second sleep in email worker
+- Corrected BullMQ usage: `getNextJob()` is a Worker method, not a Queue method
+- Estimated compute savings: ~40 hours/month reduced to ~2-4 hours/month from cron jobs
+
 # [4.4.0] - 2025-09-05
 
 ### Added
