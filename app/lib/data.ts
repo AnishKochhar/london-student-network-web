@@ -44,13 +44,22 @@ export async function fetchWebsiteStats() {
 
 export async function checkOwnershipOfEvent(userId: string, eventId: string) {
     try {
-        const data = await sql<SQLEvent>`
-		SELECT organiser_uid
-		FROM events
-		WHERE id = ${eventId}
-		`;
+        // Check both primary organiser and co-host status
+        const data = await sql`
+            SELECT
+                CASE
+                    WHEN e.organiser_uid = ${userId} THEN true
+                    WHEN EXISTS (
+                        SELECT 1 FROM event_cohosts
+                        WHERE event_id = e.id AND user_id = ${userId} AND status = 'accepted'
+                    ) THEN true
+                    ELSE false
+                END as has_access
+            FROM events e
+            WHERE e.id = ${eventId}
+        `;
 
-        return data?.rows[0]?.organiser_uid === userId;
+        return data?.rows[0]?.has_access === true;
     } catch (error) {
         console.error("database function error:", error);
         throw new Error("Failed to verify ownership in database function");
@@ -418,7 +427,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
             // Include hidden events, newest first (for account page)
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
                     EXTRACT(hour FROM start_time::time)::int,
@@ -428,14 +438,16 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
             `;
         } else if (includeHidden && !reverseOrder) {
             // Include hidden events, oldest first
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
                     EXTRACT(hour FROM start_time::time)::int,
@@ -445,14 +457,16 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
             `;
         } else if (!includeHidden && reverseOrder) {
             // Exclude hidden events, newest first (for account page if needed)
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
@@ -463,7 +477,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
             `;
@@ -471,7 +486,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
             // Exclude hidden events, newest first (for society pages)
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
@@ -482,7 +498,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
             `;
@@ -599,11 +616,18 @@ export async function fetchBase16ConvertedEventWithUserId(
         // Remove dashes from search string to ensure proper matching
         const searchString = event_id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
-			SELECT * FROM events
-			WHERE organiser_uid = ${user_id} AND REPLACE(id::text, '-', '') LIKE '%' || ${searchString}
+			SELECT * FROM events e
+			WHERE REPLACE(e.id::text, '-', '') LIKE '%' || ${searchString}
+			AND (
+			    e.organiser_uid = ${user_id}
+			    OR EXISTS (
+			        SELECT 1 FROM event_cohosts
+			        WHERE event_id = e.id AND user_id = ${user_id}
+			        AND status = 'accepted'
+			    )
+			)
 			LIMIT 1
 		`;
-        // console.log("Data rows: ", data.rows);
         if (data.rows.length === 0) {
             return { success: false };
         } else {
@@ -951,15 +975,27 @@ export async function getOrganiser(id: string) {
     }
 }
 
-export async function getOrganiserName(id: string) {
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getOrganiserName(idOrSlug: string) {
     try {
-        const data = await sql`
-			SELECT name
-			FROM users
-			WHERE role = 'organiser'
-			AND id=${id}
-			AND name != 'Just A Little Test Society'  -- Exclude the test society
-		`;
+        const isUUID = UUID_REGEX.test(idOrSlug);
+        const data = isUUID
+            ? await sql`
+				SELECT name
+				FROM users
+				WHERE role = 'organiser'
+				AND id = ${idOrSlug}
+				AND name != 'Just A Little Test Society'
+			`
+            : await sql`
+				SELECT u.name
+				FROM users u
+				JOIN society_information si ON si.user_id = u.id
+				WHERE u.role = 'organiser'
+				AND si.slug = ${idOrSlug}
+				AND u.name != 'Just A Little Test Society'
+			`;
 
         return data.rows[0] || null;
     } catch (error) {
@@ -1376,14 +1412,23 @@ export async function checkEmail(email: string) {
     }
 }
 
-export async function getEmailFromId(id: string) {
+export async function getEmailFromId(idOrSlug: string) {
     try {
-        const data = await sql`
-			SELECT email
-			FROM users
-			WHERE role='organiser' and id = ${id} --- we really want to ensure no user email is leaked by accident
-			LIMIT 1
-		`;
+        const isUUID = UUID_REGEX.test(idOrSlug);
+        const data = isUUID
+            ? await sql`
+				SELECT email
+				FROM users
+				WHERE role = 'organiser' AND id = ${idOrSlug}
+				LIMIT 1
+			`
+            : await sql`
+				SELECT u.email
+				FROM users u
+				JOIN society_information si ON si.user_id = u.id
+				WHERE u.role = 'organiser' AND si.slug = ${idOrSlug}
+				LIMIT 1
+			`;
 
         return data.rows[0] || null;
     } catch (error) {
@@ -1405,6 +1450,111 @@ export async function getEventOrganiserEmail(id: string) {
     } catch (error) {
         console.error("Error checking email:", error);
         throw new Error("Failed to retrieve email for event organiser");
+    }
+}
+
+/**
+ * Get the Stripe payment recipient for an event.
+ * Looks up which co-host has receives_payments=TRUE.
+ * Falls back to the primary organiser's organiser_uid.
+ */
+export async function getPaymentRecipient(eventId: string) {
+    try {
+        const result = await sql`
+            SELECT ec.user_id, u.stripe_connect_account_id, u.stripe_charges_enabled, u.stripe_payouts_enabled
+            FROM event_cohosts ec
+            JOIN users u ON ec.user_id = u.id
+            WHERE ec.event_id = ${eventId} AND ec.receives_payments = TRUE
+            LIMIT 1
+        `;
+
+        if (result.rows.length > 0) {
+            return result.rows[0];
+        }
+
+        // Fallback: use the primary organiser from events table
+        const fallback = await sql`
+            SELECT u.id as user_id, u.stripe_connect_account_id, u.stripe_charges_enabled, u.stripe_payouts_enabled
+            FROM events e
+            JOIN users u ON e.organiser_uid = u.id
+            WHERE e.id = ${eventId}
+            LIMIT 1
+        `;
+
+        return fallback.rows[0] || null;
+    } catch (error) {
+        console.error("Error getting payment recipient:", error);
+        return null;
+    }
+}
+
+/**
+ * Get all co-hosts who should receive registration notification emails for an event.
+ * Falls back to the primary organiser if no co-host rows exist.
+ */
+export async function getNotificationRecipients(eventId: string) {
+    try {
+        const result = await sql`
+            SELECT u.email, u.name, ec.role
+            FROM event_cohosts ec
+            JOIN users u ON ec.user_id = u.id
+            WHERE ec.event_id = ${eventId}
+            AND ec.receives_registration_emails = TRUE
+            AND ec.status = 'accepted'
+        `;
+
+        if (result.rows.length > 0) {
+            return result.rows;
+        }
+
+        // Fallback: primary organiser from events table
+        const fallback = await sql`
+            SELECT u.email, u.name, 'primary' as role
+            FROM events e
+            JOIN users u ON e.organiser_uid = u.id
+            WHERE e.id = ${eventId}
+            LIMIT 1
+        `;
+
+        return fallback.rows;
+    } catch (error) {
+        console.error("Error getting notification recipients:", error);
+        return [];
+    }
+}
+
+/**
+ * Get all co-hosts who should receive the 24h summary email for an event.
+ * Falls back to the primary organiser if no co-host rows exist.
+ */
+export async function getSummaryRecipients(eventId: string) {
+    try {
+        const result = await sql`
+            SELECT u.email, u.name, ec.role
+            FROM event_cohosts ec
+            JOIN users u ON ec.user_id = u.id
+            WHERE ec.event_id = ${eventId}
+            AND ec.receives_summary_emails = TRUE
+            AND ec.status = 'accepted'
+        `;
+
+        if (result.rows.length > 0) {
+            return result.rows;
+        }
+
+        // Fallback: primary organiser from events table
+        const fallback = await sql`
+            SELECT u.email, u.name, 'primary' as role
+            FROM events e
+            JOIN users u ON e.organiser_uid = u.id
+            WHERE e.id = ${eventId}
+            LIMIT 1
+        `;
+
+        return fallback.rows;
+    } catch (error) {
+        console.error("Error getting summary recipients:", error);
+        return [];
     }
 }
 

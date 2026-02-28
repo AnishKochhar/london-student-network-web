@@ -210,9 +210,10 @@ export async function fetchPartners(page: number, limit: number) {
 		);
 
 		// Map the response to the desired format
-		const formattedPartners = data.map((partner: Partner) => ({
+		const formattedPartners = data.map((partner: Partner & { slug?: string }) => ({
 			id: partner.id,
 			name: partner.name || "Unknown Name",
+			slug: partner.slug || undefined,
 			keywords: (partner.tags || []).map((tag: number) => {
 				return tagLookup[tag] || "Unknown Tag";
 			}),
@@ -254,9 +255,10 @@ export async function fetchAllPartners(cacheDurationInSeconds?: number) {
 		);
 
 		// Map the response to the desired format
-		const formattedPartners = data.map((partner: Partner) => ({
+		const formattedPartners = data.map((partner: Partner & { slug?: string }) => ({
 			id: partner.id,
 			name: partner.name || "Unknown Name",
+			slug: partner.slug || undefined,
 			keywords: (partner.tags || []).map((tag: number) => {
 				return tagLookup[tag] || "Unknown Tag";
 			}),

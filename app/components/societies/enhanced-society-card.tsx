@@ -130,7 +130,7 @@ export default function EnhancedSocietyCard({ society }: EnhancedSocietyCardProp
 				)}
 
 				<Link
-					href={`/societies/message/${society.id}`}
+					href={`/societies/message/${society.slug || society.id}`}
 					className="group/button relative inline-flex items-center justify-center px-4 py-2 font-medium text-white bg-green-600/50 rounded-lg hover:bg-green-600/80 transition-all duration-300 text-sm"
 					onClick={(e) => e.stopPropagation()}
 				>

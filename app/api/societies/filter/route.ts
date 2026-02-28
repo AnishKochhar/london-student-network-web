@@ -89,6 +89,7 @@ export async function GET(request: NextRequest) {
         si.description,
         si.website,
         si.tags,
+        si.slug,
         si.university_affiliation,
         si.priority
       FROM users u
@@ -108,6 +109,7 @@ export async function GET(request: NextRequest) {
 		const societies = result.rows.map(row => ({
 			id: row.id,
 			name: row.name,
+			slug: row.slug || null,
 			description: row.description || null,
 			website: row.website || null,
 			logo_url: row.logo_url || null,
