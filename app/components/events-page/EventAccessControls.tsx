@@ -106,8 +106,10 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
     onOpenChange?: (isOpen: boolean) => void;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         onOpenChange?.(isOpen);
@@ -122,6 +124,17 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleToggle = () => {
+        if (disabled) return;
+        if (!isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const estimatedHeight = options.length * 64 + 16;
+            setOpenUpward(spaceBelow < estimatedHeight);
+        }
+        setIsOpen(!isOpen);
+    };
 
     const selectedOption = options.find(option => option.value === value);
     const IconComponent = selectedOption?.icon || GlobeAltIcon;
@@ -156,8 +169,9 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
             </div>
 
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => !disabled && setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 disabled={disabled}
                 className={`w-full px-4 py-3 border rounded-lg focus:outline-none flex items-center justify-between backdrop-blur transition-all ${
                     disabled
@@ -177,10 +191,12 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
             <AnimatePresence>
                 {isOpen && !disabled && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: openUpward ? 10 : -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] overflow-hidden"
+                        exit={{ opacity: 0, y: openUpward ? 10 : -10 }}
+                        className={`absolute left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] overflow-hidden ${
+                            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+                        }`}
                     >
                         {options.map((option) => {
                             const OptionIcon = option.icon;
@@ -228,8 +244,10 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
     onOpenChange?: (isOpen: boolean) => void;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         onOpenChange?.(isOpen);
@@ -244,6 +262,16 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleToggle = () => {
+        if (!isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            // max-h-60 = 240px + margin
+            setOpenUpward(spaceBelow < 256);
+        }
+        setIsOpen(!isOpen);
+    };
 
     const toggleUniversity = (code: string) => {
         if (selectedUniversities.includes(code)) {
@@ -287,8 +315,9 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
             </div>
 
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur flex items-center justify-between hover:bg-white/15 transition-all"
             >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -307,10 +336,12 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: openUpward ? 10 : -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] max-h-60 overflow-y-auto"
+                        exit={{ opacity: 0, y: openUpward ? 10 : -10 }}
+                        className={`absolute left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] max-h-60 overflow-y-auto ${
+                            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+                        }`}
                     >
                         {UNIVERSITY_OPTIONS.map((uni) => {
                             const isSelected = selectedUniversities.includes(uni.code);
