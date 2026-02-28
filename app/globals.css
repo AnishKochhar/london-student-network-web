@@ -47,6 +47,13 @@ body {
 	.text-balance {
 		text-wrap: balance;
 	}
+
+	/* Override framer-motion inline transforms after animation completes
+	   to prevent stacking context isolation on animated sections */
+	.animation-done {
+		transform: none !important;
+		will-change: auto !important;
+	}
 }
 
 @layer base {

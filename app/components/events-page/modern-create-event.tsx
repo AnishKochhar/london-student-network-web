@@ -7,7 +7,8 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import toast from "react-hot-toast";
 import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { upload } from "@vercel/blob/client";
-import { EventFormData, Event } from "@/app/lib/types";
+import { EventFormData, Event, CoHostFormSelection } from "@/app/lib/types";
+import CoHostSelector from "./co-host-selector";
 import { placeholderImages, createModernEventObject, validateModernEvent, EVENT_TAG_TYPES } from "@/app/lib/utils";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import { DefaultEvent } from "@/app/lib/types";
@@ -50,6 +51,7 @@ const sectionVariants = {
 const AnimatedSection = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
+    const [animationDone, setAnimationDone] = useState(false);
 
     return (
         <motion.section
@@ -57,7 +59,10 @@ const AnimatedSection = ({ children, className = "" }: { children: React.ReactNo
             variants={sectionVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            className={`${className} overflow-visible`}
+            onAnimationComplete={(definition) => {
+                if (definition === "visible") setAnimationDone(true);
+            }}
+            className={`${className} overflow-visible ${animationDone ? "animation-done" : ""}`}
         >
             {children}
         </motion.section>
@@ -373,7 +378,7 @@ const ModernCalendarPicker = ({ value, onChange, label, required = false, classN
     };
 
     return (
-        <div ref={calendarRef} className={`relative z-[150] ${className}`}>
+        <div ref={calendarRef} className={`relative ${className}`}>
             <label className="block text-sm font-medium text-white mb-3">
                 {label} {required && <span className="text-red-300">*</span>}
             </label>
@@ -694,6 +699,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [eventData, setEventData] = useState(existingEvent || DefaultEvent);
     const [selectedTags, setSelectedTags] = useState<number>(existingEvent?.event_type || 0);
+    const [selectedCoHosts, setSelectedCoHosts] = useState<CoHostFormSelection[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Ticket management state
@@ -953,13 +959,14 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             const isMultiDay = calculateIsMultiDay(data.start_datetime, data.end_datetime);
 
             // Prepare the data for submission
-            const eventData: EventFormData & { tickets: TicketType[] } = {
+            const eventData: EventFormData & { tickets: TicketType[]; cohosts: CoHostFormSelection[] } = {
                 ...data,
                 image_url: imageUrl,
                 organiser_uid: organiser_id,
                 is_multi_day: isMultiDay,
                 tags: selectedTags,
-                tickets: tickets, // Include tickets in submission
+                tickets: tickets,
+                cohosts: selectedCoHosts,
             };
 
             const apiEndpoint = editMode ? "/api/events/update" : "/api/events/create";
@@ -1167,6 +1174,21 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Co-Hosts */}
+                                <div className="mt-4">
+                                    <label className="block text-sm font-medium text-white mb-2">
+                                        Co-Hosts <span className="text-white/50 font-normal">(optional)</span>
+                                    </label>
+                                    <p className="text-sm text-blue-200/70 mb-3">
+                                        Invite other societies to co-host this event. They will receive an invitation to accept.
+                                    </p>
+                                    <CoHostSelector
+                                        selectedCoHosts={selectedCoHosts}
+                                        onCoHostsChange={setSelectedCoHosts}
+                                        excludeUid={organiser_id}
+                                    />
+                                </div>
                             </div>
                         </AnimatedSection>
 
@@ -1177,7 +1199,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">When is your event happening?</p>
                             </div>
 
-                            <div className="lg:col-span-9 space-y-6 relative z-[200]">
+                            <div className="lg:col-span-9 space-y-6 overflow-visible">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <ModernCalendarPicker
                                         value={watchedValues.start_datetime || ""}
