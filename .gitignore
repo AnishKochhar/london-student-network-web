@@ -49,6 +49,11 @@ next-env.d.ts
 # claude
 .claude/
 
+# non-code assets (CRM data, marketing materials, backups)
+*.csv
+*.pdf
+*.backup
+
 sql/
 
 # Generated sitemap files (built automatically)
