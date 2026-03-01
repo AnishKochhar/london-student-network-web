@@ -93,6 +93,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		organiser: sqlEvent.organiser,
 		organiser_uid: sqlEvent.organiser_uid,
 		organiser_slug: sqlEvent.organiser_slug,
+		organiser_university: sqlEvent.organiser_university,
 		time: time,
 		date: date,
 		location_building: sqlEvent.location_building,
@@ -104,6 +105,7 @@ export function convertSQLEventToEvent(sqlEvent: SQLEvent): Event {
 		sign_up_link: sqlEvent.sign_up_link,
 		capacity: sqlEvent.capacity && !isNaN(Number(sqlEvent.capacity)) && Number(sqlEvent.capacity) > 0 ? Number(sqlEvent.capacity) : undefined,
 		for_externals: sqlEvent.for_externals,
+		external_forward_email: sqlEvent.external_forward_email,
 		// New datetime fields
 		start_datetime: start_datetime,
 		end_datetime: end_datetime,
@@ -208,9 +210,10 @@ export async function fetchPartners(page: number, limit: number) {
 		);
 
 		// Map the response to the desired format
-		const formattedPartners = data.map((partner: Partner) => ({
+		const formattedPartners = data.map((partner: Partner & { slug?: string }) => ({
 			id: partner.id,
 			name: partner.name || "Unknown Name",
+			slug: partner.slug || undefined,
 			keywords: (partner.tags || []).map((tag: number) => {
 				return tagLookup[tag] || "Unknown Tag";
 			}),
@@ -252,9 +255,10 @@ export async function fetchAllPartners(cacheDurationInSeconds?: number) {
 		);
 
 		// Map the response to the desired format
-		const formattedPartners = data.map((partner: Partner) => ({
+		const formattedPartners = data.map((partner: Partner & { slug?: string }) => ({
 			id: partner.id,
 			name: partner.name || "Unknown Name",
+			slug: partner.slug || undefined,
 			keywords: (partner.tags || []).map((tag: number) => {
 				return tagLookup[tag] || "Unknown Tag";
 			}),
@@ -703,7 +707,6 @@ export function createSQLEventData(data: EventFormData): SQLEventData {
 		visibility_level: data.visibility_level || 'public',
 		registration_level: data.registration_level || 'public',
 		allowed_universities: data.allowed_universities || [],
-		link_only: data.link_only ?? false,
 		// Registration cutoff fields
 		registration_cutoff_hours: data.registration_cutoff_hours != null && !isNaN(Number(data.registration_cutoff_hours)) && Number(data.registration_cutoff_hours) > 0
 			? Number(data.registration_cutoff_hours)

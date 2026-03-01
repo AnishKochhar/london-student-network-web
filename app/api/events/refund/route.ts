@@ -36,7 +36,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // 1. Verify user is the event organizer
+        // 1. Verify user is the event organizer or a co-host with manage_registrations permission
         const eventResult = await sql`
             SELECT * FROM events WHERE id = ${event_id}::uuid
         `;
@@ -50,11 +50,23 @@ export async function POST(req: Request) {
 
         const event = eventResult.rows[0] as SQLEvent;
 
-        if (event.organiser_uid !== session.user.id) {
-            return NextResponse.json(
-                { success: false, error: "You are not authorized to refund registrations for this event" },
-                { status: 403 }
-            );
+        // Check primary organiser OR co-host with can_manage_registrations
+        const isPrimary = event.organiser_uid === session.user.id;
+        if (!isPrimary) {
+            const coHostCheck = await sql`
+                SELECT 1 FROM event_cohosts
+                WHERE event_id = ${event_id}::uuid
+                AND user_id = ${session.user.id}
+                AND status = 'accepted'
+                AND can_manage_registrations = true
+                LIMIT 1
+            `;
+            if (coHostCheck.rows.length === 0) {
+                return NextResponse.json(
+                    { success: false, error: "You are not authorized to refund registrations for this event" },
+                    { status: 403 }
+                );
+            }
         }
 
         // 2. Get registration and payment details
@@ -66,9 +78,11 @@ export async function POST(req: Request) {
                 ep.amount_total,
                 ep.payment_status,
                 ep.refund_amount as already_refunded,
-                ep.stripe_connect_account_id
+                u.stripe_connect_account_id
             FROM event_registrations er
             LEFT JOIN event_payments ep ON er.payment_id = ep.id
+            LEFT JOIN events e ON er.event_id = e.id
+            LEFT JOIN users u ON e.organiser_uid = u.id
             WHERE er.event_registration_uuid = ${registration_uuid}::uuid
             AND er.event_id = ${event_id}::uuid
         `;
@@ -129,20 +143,15 @@ export async function POST(req: Request) {
 
         // 5. Process refund with Stripe
         try {
-            const refundParams: {
-                payment_intent: string;
-                amount: number;
-                reason: "requested_by_customer";
-                metadata: {
-                    event_id: string;
-                    registration_uuid: string;
-                    refund_reason: string;
-                };
-                stripeAccount?: string;
-            } = {
+            // For destination charges (transfer_data pattern), refund on platform account
+            // reverse_transfer: true pulls back funds from the connected account
+            // refund_application_fee: false retains the platform fee (adjust based on policy)
+            const refundParams = {
                 payment_intent: registration.stripe_payment_intent_id,
                 amount: finalRefundAmount,
-                reason: "requested_by_customer",
+                reason: "requested_by_customer" as const,
+                reverse_transfer: true, // Pull funds back from connected account
+                refund_application_fee: false, // Keep platform fee (change to true if you want to refund it)
                 metadata: {
                     event_id: event_id,
                     registration_uuid: registration_uuid,
@@ -150,11 +159,7 @@ export async function POST(req: Request) {
                 },
             };
 
-            // If this is a Stripe Connect payment, specify the connected account
-            if (registration.stripe_connect_account_id) {
-                refundParams.stripeAccount = registration.stripe_connect_account_id;
-            }
-
+            // No stripeAccount option needed - refunding destination charge on platform account
             const refund = await stripe.refunds.create(refundParams);
 
             // 6. Update payment record

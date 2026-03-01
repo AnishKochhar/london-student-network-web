@@ -5,7 +5,7 @@ import { formatContent } from "@/app/lib/forum-utils";
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
 ) {
     try {
         const session = await auth();
@@ -18,8 +18,8 @@ export async function PATCH(
             );
         }
 
+        const { id: threadId } = await params;
         const userId = session.user.id;
-        const threadId = params.id;
         const { title, content, tags = [] } = await request.json();
 
         // Validate input
@@ -136,9 +136,10 @@ export async function PATCH(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
 ) {
     try {
+        const { id } = await params;
         const session = await auth();
 
         // Check if user is authenticated
@@ -150,7 +151,7 @@ export async function DELETE(
         }
 
         const userId = session.user.id;
-        const threadId = params.id;
+        const threadId = id;
 
         // Check if the thread exists and belongs to the user
         const threadResult = await sql`

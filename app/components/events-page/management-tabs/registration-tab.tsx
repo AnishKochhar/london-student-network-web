@@ -16,12 +16,7 @@ interface TicketType {
 
 export default function RegistrationTab({ event }: RegistrationTabProps) {
 
-	const getVisibilityLabel = (level: string | undefined, isLinkOnly?: boolean) => {
-		// Check for link_only first (Private events)
-		if (isLinkOnly) {
-			return { label: "Private", icon: Lock, color: "text-purple-600", bgColor: "bg-purple-100" };
-		}
-
+	const getVisibilityLabel = (level: string | undefined) => {
 		switch (level) {
 			case "public":
 				return { label: "Public", icon: Globe, color: "text-green-600", bgColor: "bg-green-100" };
@@ -31,12 +26,14 @@ export default function RegistrationTab({ event }: RegistrationTabProps) {
 				return { label: "Verified Students", icon: Shield, color: "text-purple-600", bgColor: "bg-purple-100" };
 			case "university_exclusive":
 				return { label: "University Exclusive", icon: Lock, color: "text-red-600", bgColor: "bg-red-100" };
+			case "private":
+				return { label: "Private", icon: Lock, color: "text-purple-600", bgColor: "bg-purple-100" };
 			default:
 				return { label: "Public", icon: Globe, color: "text-green-600", bgColor: "bg-green-100" };
 		}
 	};
 
-	const visibilityInfo = getVisibilityLabel(event.visibility_level, event.link_only);
+	const visibilityInfo = getVisibilityLabel(event.visibility_level);
 	const registrationInfo = getVisibilityLabel(event.registration_level);
 	const VisibilityIcon = visibilityInfo.icon;
 	const RegistrationIcon = registrationInfo.icon;
@@ -59,11 +56,11 @@ export default function RegistrationTab({ event }: RegistrationTabProps) {
 									{visibilityInfo.label}
 								</p>
 								<p className="text-xs text-black/80 mt-0.5">
-									{event.link_only && "Hidden from listings - accessible via direct link only"}
-									{!event.link_only && event.visibility_level === "public" && "Anyone can view this event"}
-									{!event.link_only && event.visibility_level === "students_only" && "Only logged-in users"}
-									{!event.link_only && event.visibility_level === "verified_students" && "Only verified students"}
-									{!event.link_only && event.visibility_level === "university_exclusive" && "Specific universities only"}
+									{event.visibility_level === "private" && "Hidden from listings - accessible via direct link only"}
+									{event.visibility_level === "public" && "Anyone can view this event"}
+									{event.visibility_level === "students_only" && "Only logged-in users"}
+									{event.visibility_level === "verified_students" && "Only verified students"}
+									{event.visibility_level === "university_exclusive" && "Specific universities only"}
 								</p>
 							</div>
 						</div>

@@ -8,7 +8,7 @@ import { User } from "next-auth";
 import { checkOwnershipOfEvent, fetchEventById } from "@/app/lib/data";
 
 interface EditPageProps {
-    searchParams: { id?: string };
+    searchParams: Promise<{ id?: string }>;
 }
 
 export default async function EditPage({ searchParams }: EditPageProps) {
@@ -18,7 +18,7 @@ export default async function EditPage({ searchParams }: EditPageProps) {
         redirect("/login");
     }
 
-    const eventId = searchParams.id;
+    const { id: eventId } = await searchParams;
     if (!eventId) {
         notFound();
     }
@@ -51,6 +51,11 @@ export default async function EditPage({ searchParams }: EditPageProps) {
     }
 
     const organiserList = await getAuthorisedOrganiserList(user);
+
+    // Ensure the existing event's organiser is in the dropdown options
+    if (existingEvent.organiser && !organiserList.includes(existingEvent.organiser)) {
+        organiserList.unshift(existingEvent.organiser);
+    }
 
     return (
         <ModernCreateEvent

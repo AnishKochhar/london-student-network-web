@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { ExclamationCircleIcon, CheckIcon, XMarkIcon, AtSymbolIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, XMarkIcon, AtSymbolIcon } from "@heroicons/react/24/outline";
 import StripeConnectStatusCompact from "../components/account/stripe-connect-status-compact";
 import OrganiserInfoCard from "../components/account/organiser-info-card";
 import { updateName, resendPrimaryVerificationEmail, resendUniversityVerificationEmail } from './actions';
@@ -236,7 +236,7 @@ export default function PersonalInfoSection({
           <label className="block text-sm font-medium text-gray-400 mb-2">
             Email
           </label>
-          <div className="bg-white/5 rounded-lg px-4 py-3 text-gray-300 font-medium cursor-not-allowed" aria-disabled="true">
+          <div className="bg-white/5 rounded-lg px-4 py-3 text-gray-300 font-medium cursor-not-allowed truncate" aria-disabled="true" title={user?.email}>
             {user?.email || "Not provided"}
           </div>
         </div>
@@ -284,13 +284,13 @@ export default function PersonalInfoSection({
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-300">Primary Email</span>
                     {verificationStatus.emailVerified ? (
-                      <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
-                        <CheckIcon className="h-3 w-3" />
+                      <span className="flex items-center gap-1 text-xs text-green-400">
+                        <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
                         Verified
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
-                        <ExclamationCircleIcon className="h-3 w-3" />
+                      <span className="flex items-center gap-1 text-xs text-amber-400">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                         Not Verified
                       </span>
                     )}
@@ -314,18 +314,18 @@ export default function PersonalInfoSection({
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-300">University Email</span>
                     {verificationStatus.verifiedUniversity ? (
-                      <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
-                        <CheckIcon className="h-3 w-3" />
+                      <span className="flex items-center gap-1 text-xs text-green-400">
+                        <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
                         Verified
                       </span>
                     ) : verificationStatus.universityEmail ? (
-                      <span className="flex items-center gap-1 text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
-                        <ExclamationCircleIcon className="h-3 w-3" />
+                      <span className="flex items-center gap-1 text-xs text-amber-400">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                         Not Verified
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
-                        <XMarkIcon className="h-3 w-3" />
+                      <span className="flex items-center gap-1 text-xs text-gray-400">
+                        <span className="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0" />
                         Not Set
                       </span>
                     )}

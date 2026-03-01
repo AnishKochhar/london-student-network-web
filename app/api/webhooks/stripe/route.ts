@@ -6,9 +6,13 @@ import EventRegistrationEmailPayload from "@/app/components/templates/event-regi
 import EventRegistrationEmailFallbackPayload from "@/app/components/templates/event-registration-email-fallback";
 import EventOrganizerNotificationEmailPayload from "@/app/components/templates/event-organizer-notification-email";
 import EventOrganizerNotificationEmailFallbackPayload from "@/app/components/templates/event-organizer-notification-email-fallback";
+import DonationThankYouEmailPayload from "@/app/components/templates/donation-thank-you-email";
+import DonationThankYouEmailFallbackPayload from "@/app/components/templates/donation-thank-you-email-fallback";
+import DonationNotificationEmailPayload from "@/app/components/templates/donation-notification-email";
+import DonationNotificationEmailFallbackPayload from "@/app/components/templates/donation-notification-email-fallback";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
 import { generateICSFile } from "@/app/lib/ics-generator";
-import { getEventOrganiserEmail } from "@/app/lib/data";
+import { getEventOrganiserEmail, getNotificationRecipients } from "@/app/lib/data";
 import { SQLEvent } from "@/app/lib/types";
 import Stripe from "stripe";
 
@@ -82,6 +86,13 @@ export async function POST(req: Request) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     console.log("Processing checkout.session.completed:", session.id);
 
+    // Check if this is a society donation
+    if (session.metadata?.type === 'society_donation') {
+        await handleSocietyDonationCompleted(session);
+        return;
+    }
+
+    // Otherwise, handle as event registration
     const { event_id, ticket_uuid, user_id, user_email, user_name, quantity, is_external, is_guest } = session.metadata!;
 
     if (!event_id || !ticket_uuid || !user_id) {
@@ -224,43 +235,49 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
                 console.error("Failed to send registration confirmation email:", emailError);
             }
 
-            // Send notification to organizer
+            // Send notification to all co-hosts with registration email notifications enabled
             const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
             if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
                 try {
-                    if (organiserEmailAddress) {
-                        const orgEmailSubject = `🔔 New Registration: ${event.title}`;
-                        const orgEmailHtml = EventOrganizerNotificationEmailPayload(
-                            event,
-                            {
-                                name: user_name!,
-                                email: user_email!,
-                                external: isExternalBool
-                            },
-                            ticketInfo
-                        );
-                        const orgEmailText = EventOrganizerNotificationEmailFallbackPayload(
-                            event,
-                            {
-                                name: user_name!,
-                                email: user_email!,
-                                external: isExternalBool
-                            },
-                            ticketInfo
-                        );
+                    const notificationRecipients = await getNotificationRecipients(event_id);
 
-                        await sendEventRegistrationEmail({
-                            toEmail: organiserEmailAddress,
-                            subject: orgEmailSubject,
-                            html: orgEmailHtml,
-                            text: orgEmailText,
-                            replyTo: user_email!,
-                        });
+                    for (const recipient of notificationRecipients) {
+                        try {
+                            const orgEmailSubject = `🔔 New Registration: ${event.title}`;
+                            const orgEmailHtml = EventOrganizerNotificationEmailPayload(
+                                event,
+                                {
+                                    name: user_name!,
+                                    email: user_email!,
+                                    external: isExternalBool
+                                },
+                                ticketInfo
+                            );
+                            const orgEmailText = EventOrganizerNotificationEmailFallbackPayload(
+                                event,
+                                {
+                                    name: user_name!,
+                                    email: user_email!,
+                                    external: isExternalBool
+                                },
+                                ticketInfo
+                            );
 
-                        console.log("Notification email sent to organizer");
+                            await sendEventRegistrationEmail({
+                                toEmail: recipient.email,
+                                subject: orgEmailSubject,
+                                html: orgEmailHtml,
+                                text: orgEmailText,
+                                replyTo: user_email!,
+                            });
+
+                            console.log(`Notification email sent to ${recipient.email}`);
+                        } catch (recipientError) {
+                            console.error(`Failed to send notification to ${recipient.email}:`, recipientError);
+                        }
                     }
                 } catch (organiserEmailError) {
-                    console.error("Failed to send notification email to organiser:", organiserEmailError);
+                    console.error("Failed to send notification emails to organisers:", organiserEmailError);
                 }
             }
 
@@ -326,6 +343,129 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         console.log("Refund processed successfully");
     } catch (error) {
         console.error("Error in handleChargeRefunded:", error);
+        throw error;
+    }
+}
+
+async function handleSocietyDonationCompleted(session: Stripe.Checkout.Session) {
+    console.log("Processing society donation:", session.id);
+
+    const {
+        society_uid,
+        society_name,
+        donor_name,
+        donor_email,
+        message,
+        donation_amount,
+        fee_covered
+    } = session.metadata!;
+
+    if (!society_uid || !donor_email || !donation_amount) {
+        console.error("Missing required metadata in donation checkout session");
+        return;
+    }
+
+    const donationAmountPence = parseInt(donation_amount);
+    const feeCoveredPence = parseInt(fee_covered || '0');
+
+    try {
+        // Update donation record
+        await sql`
+            UPDATE society_donations
+            SET
+                stripe_payment_intent_id = ${session.payment_intent as string},
+                payment_status = 'succeeded',
+                completed_at = NOW()
+            WHERE stripe_checkout_session_id = ${session.id}
+        `;
+
+        console.log("Donation record updated successfully");
+
+        // Get society organizer email
+        let societyEmail: string | undefined;
+        try {
+            const societyResult = await sql`
+                SELECT email FROM users WHERE id = ${society_uid}
+            `;
+            if (societyResult.rows.length > 0) {
+                societyEmail = societyResult.rows[0].email;
+            }
+        } catch (err) {
+            console.error("Failed to fetch society email:", err);
+        }
+
+        // Convert amounts to pounds for email
+        const amountPounds = (donationAmountPence / 100).toFixed(2);
+        const feeCoveredPounds = feeCoveredPence > 0 ? (feeCoveredPence / 100).toFixed(2) : undefined;
+
+        // Send thank you email to donor
+        try {
+            const donorEmailSubject = `Thank you for your donation to ${society_name}!`;
+            const donorEmailHtml = DonationThankYouEmailPayload({
+                society_name: society_name || 'the society',
+                donor_name: donor_name || undefined,
+                amount_pounds: amountPounds,
+                fee_covered_pounds: feeCoveredPounds,
+                message: message || undefined,
+            });
+            const donorEmailText = DonationThankYouEmailFallbackPayload({
+                society_name: society_name || 'the society',
+                donor_name: donor_name || undefined,
+                amount_pounds: amountPounds,
+                fee_covered_pounds: feeCoveredPounds,
+                message: message || undefined,
+            });
+
+            await sendEventRegistrationEmail({
+                toEmail: donor_email,
+                subject: donorEmailSubject,
+                html: donorEmailHtml,
+                text: donorEmailText,
+                replyTo: societyEmail,
+            });
+
+            console.log("Thank you email sent to donor");
+        } catch (emailError) {
+            console.error("Failed to send donor thank you email:", emailError);
+        }
+
+        // Send notification email to society
+        if (societyEmail) {
+            try {
+                const societyEmailSubject = `New donation received: £${amountPounds}`;
+                const societyEmailHtml = DonationNotificationEmailPayload({
+                    society_name: society_name || 'Your society',
+                    donor_name: donor_name || undefined,
+                    donor_email: donor_email,
+                    amount_pounds: amountPounds,
+                    fee_covered_pounds: feeCoveredPounds,
+                    message: message || undefined,
+                });
+                const societyEmailText = DonationNotificationEmailFallbackPayload({
+                    society_name: society_name || 'Your society',
+                    donor_name: donor_name || undefined,
+                    donor_email: donor_email,
+                    amount_pounds: amountPounds,
+                    fee_covered_pounds: feeCoveredPounds,
+                    message: message || undefined,
+                });
+
+                await sendEventRegistrationEmail({
+                    toEmail: societyEmail,
+                    subject: societyEmailSubject,
+                    html: societyEmailHtml,
+                    text: societyEmailText,
+                    replyTo: donor_email,
+                });
+
+                console.log("Notification email sent to society");
+            } catch (emailError) {
+                console.error("Failed to send society notification email:", emailError);
+            }
+        }
+
+    } catch (error) {
+        console.error("Error in handleSocietyDonationCompleted:", error);
         throw error;
     }
 }

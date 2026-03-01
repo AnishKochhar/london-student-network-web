@@ -12,6 +12,7 @@ import { TAG_CATEGORIES } from "@/app/utils/tag-categories";
 interface Society {
   id: string;
   name: string;
+  slug?: string;
   description: string | null;
   website: string | null;
   logo_url: string | null;

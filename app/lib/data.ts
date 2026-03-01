@@ -44,13 +44,22 @@ export async function fetchWebsiteStats() {
 
 export async function checkOwnershipOfEvent(userId: string, eventId: string) {
     try {
-        const data = await sql<SQLEvent>`
-		SELECT organiser_uid
-		FROM events
-		WHERE id = ${eventId}
-		`;
+        // Check both primary organiser and co-host status
+        const data = await sql`
+            SELECT
+                CASE
+                    WHEN e.organiser_uid = ${userId} THEN true
+                    WHEN EXISTS (
+                        SELECT 1 FROM event_cohosts
+                        WHERE event_id = e.id AND user_id = ${userId} AND status = 'accepted'
+                    ) THEN true
+                    ELSE false
+                END as has_access
+            FROM events e
+            WHERE e.id = ${eventId}
+        `;
 
-        return data?.rows[0]?.organiser_uid === userId;
+        return data?.rows[0]?.has_access === true;
     } catch (error) {
         console.error("database function error:", error);
         throw new Error("Failed to verify ownership in database function");
@@ -83,7 +92,7 @@ export async function fetchAllUpcomingEvents(
                 WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
-                AND (e.link_only IS NULL OR e.link_only = false)
+                AND (e.visibility_level != 'private' OR e.visibility_level IS NULL)
                 ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
                     EXTRACT(hour FROM e.start_time::time)::int,
                     EXTRACT(minute FROM e.start_time::time)::int, 0))
@@ -98,7 +107,7 @@ export async function fetchAllUpcomingEvents(
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
                 AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
-                AND (e.link_only IS NULL OR e.link_only = false)
+                AND (e.visibility_level != 'private' OR e.visibility_level IS NULL)
                 ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
                     EXTRACT(hour FROM e.start_time::time)::int,
                     EXTRACT(minute FROM e.start_time::time)::int, 0))
@@ -112,7 +121,7 @@ export async function fetchAllUpcomingEvents(
                 WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
-                AND (e.link_only IS NULL OR e.link_only = false)
+                AND (e.visibility_level != 'private' OR e.visibility_level IS NULL)
                 AND (
                     e.visibility_level = 'public'
                     OR e.visibility_level = 'students_only'
@@ -136,7 +145,7 @@ export async function fetchAllUpcomingEvents(
                 WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
                 AND (e.is_deleted IS NULL OR e.is_deleted = false)
                 AND (e.is_hidden IS NULL OR e.is_hidden = false)
-                AND (e.link_only IS NULL OR e.link_only = false)
+                AND (e.visibility_level != 'private' OR e.visibility_level IS NULL)
                 AND (
                     e.visibility_level = 'public'
                     OR e.visibility_level = 'students_only'
@@ -159,17 +168,20 @@ export async function fetchAllUpcomingEvents(
         const eventIds = events.map(e => e.id);
 
         // Fetch ALL tickets for ALL events in ONE query
+        // IMPORTANT: Excludes cancelled registrations (is_cancelled = FALSE OR is_cancelled IS NULL)
         const ticketsResult = await sql`
             SELECT
                 t.event_uuid,
                 t.ticket_uuid,
                 t.ticket_name,
                 t.ticket_price,
-                -- Calculate ACTUAL remaining tickets
+                -- Calculate ACTUAL remaining tickets (excluding cancelled registrations)
                 CASE
                     WHEN t.tickets_available IS NOT NULL THEN
                         GREATEST(0, t.tickets_available - COALESCE(
-                            (SELECT SUM(quantity) FROM event_registrations WHERE ticket_uuid = t.ticket_uuid),
+                            (SELECT SUM(quantity) FROM event_registrations
+                             WHERE ticket_uuid = t.ticket_uuid
+                             AND (is_cancelled = FALSE OR is_cancelled IS NULL)),
                             0
                         ))
                     ELSE NULL
@@ -198,6 +210,132 @@ export async function fetchAllUpcomingEvents(
     } catch (error) {
         console.error("Database error:", error);
         throw new Error("Failed to fetch upcoming events");
+    }
+}
+
+export interface PaginatedEventsResult {
+    events: ReturnType<typeof convertSQLEventToEvent>[];
+    total: number;
+    hasMore: boolean;
+}
+
+/**
+ * Fetch paginated upcoming events for the events page
+ * This is used for the initial SSR load with pagination
+ */
+export async function fetchPaginatedUpcomingEvents(
+    userSession?: { id?: string; verified_university?: string; role?: string } | null,
+    limit: number = 30,
+    offset: number = 0
+): Promise<PaginatedEventsResult> {
+    try {
+        // Build visibility conditions based on user session
+        let visibilityCondition = '';
+        const params: (string | number)[] = [];
+
+        if (userSession?.role === 'organiser' || userSession?.role === 'company') {
+            visibilityCondition = `AND (e.visibility_level != 'private' OR e.visibility_level IS NULL)`;
+        } else if (!userSession) {
+            visibilityCondition = `AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)`;
+        } else if (userSession.verified_university) {
+            visibilityCondition = `AND (
+                e.visibility_level = 'public'
+                OR e.visibility_level = 'students_only'
+                OR e.visibility_level = 'verified_students'
+                OR e.visibility_level IS NULL
+                OR (
+                    e.visibility_level = 'university_exclusive'
+                    AND $1 = ANY(e.allowed_universities)
+                )
+            )`;
+            params.push(userSession.verified_university);
+        } else {
+            visibilityCondition = `AND (
+                e.visibility_level = 'public'
+                OR e.visibility_level = 'students_only'
+                OR e.visibility_level IS NULL
+            )`;
+        }
+
+        // Get total count
+        const countQuery = `
+            SELECT COUNT(*)::integer as total
+            FROM events e
+            WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            AND (e.is_hidden IS NULL OR e.is_hidden = false)
+            ${visibilityCondition}
+        `;
+        const countResult = await sql.query(countQuery, params);
+        const total = countResult.rows[0].total;
+
+        // Get paginated events
+        const limitParamIndex = params.length + 1;
+        const offsetParamIndex = params.length + 2;
+        const eventsQuery = `
+            SELECT e.*, s.slug as organiser_slug, s.university_affiliation as organiser_university
+            FROM events e
+            LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+            WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            AND (e.is_hidden IS NULL OR e.is_hidden = false)
+            ${visibilityCondition}
+            ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day,
+                EXTRACT(hour FROM e.start_time::time)::int,
+                EXTRACT(minute FROM e.start_time::time)::int, 0)) ASC
+            LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
+        `;
+
+        const eventsResult = await sql.query(eventsQuery, [...params, limit, offset]);
+        const events = eventsResult.rows.map((row: SQLEvent) => convertSQLEventToEvent(row));
+
+        // Fetch tickets for all events
+        if (events.length > 0) {
+            const eventIds = events.map(e => e.id);
+            // Use sql.query with parameterized array for type safety
+            // IMPORTANT: Excludes cancelled registrations (is_cancelled = FALSE OR is_cancelled IS NULL)
+            const ticketsResult = await sql.query(`
+                SELECT
+                    t.event_uuid,
+                    t.ticket_uuid,
+                    t.ticket_name,
+                    t.ticket_price,
+                    CASE
+                        WHEN t.tickets_available IS NOT NULL THEN
+                            GREATEST(0, t.tickets_available - COALESCE(
+                                (SELECT SUM(quantity) FROM event_registrations
+                                 WHERE ticket_uuid = t.ticket_uuid
+                                 AND (is_cancelled = FALSE OR is_cancelled IS NULL)),
+                                0
+                            ))
+                        ELSE NULL
+                    END as tickets_available
+                FROM tickets t
+                WHERE t.event_uuid = ANY($1::uuid[])
+                ORDER BY t.event_uuid, t.ticket_price::numeric ASC
+            `, [eventIds]);
+
+            const ticketsByEvent = ticketsResult.rows.reduce((acc, ticket) => {
+                if (!acc[ticket.event_uuid]) {
+                    acc[ticket.event_uuid] = [];
+                }
+                acc[ticket.event_uuid].push(ticket);
+                return acc;
+            }, {} as Record<string, typeof ticketsResult.rows>);
+
+            events.forEach(event => {
+                event.tickets = ticketsByEvent[event.id] || [];
+            });
+        }
+
+        return {
+            events,
+            total,
+            hasMore: offset + events.length < total,
+        };
+    } catch (error) {
+        console.error("Database error:", error);
+        throw new Error("Failed to fetch paginated events");
     }
 }
 
@@ -289,7 +427,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
             // Include hidden events, newest first (for account page)
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
                     EXTRACT(hour FROM start_time::time)::int,
@@ -299,14 +438,16 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
             `;
         } else if (includeHidden && !reverseOrder) {
             // Include hidden events, oldest first
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
                     EXTRACT(hour FROM start_time::time)::int,
@@ -316,14 +457,16 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
             `;
         } else if (!includeHidden && reverseOrder) {
             // Exclude hidden events, newest first (for account page if needed)
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
@@ -334,7 +477,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
             `;
@@ -342,7 +486,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
             // Exclude hidden events, newest first (for society pages)
             events = await sql`
                 SELECT * FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
                 ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
@@ -353,7 +498,8 @@ export async function fetchUserEvents(organiser_uid: string, limit: number = 100
 
             countResult = await sql`
                 SELECT COUNT(*) as total FROM events
-                WHERE organiser_uid = ${organiser_uid}
+                WHERE (organiser_uid = ${organiser_uid}
+                    OR EXISTS (SELECT 1 FROM event_cohosts ec WHERE ec.event_id = events.id AND ec.user_id = ${organiser_uid} AND ec.status = 'accepted'))
                 AND (is_deleted IS NULL OR is_deleted = false)
                 AND (is_hidden IS NULL OR is_hidden = false)
             `;
@@ -401,14 +547,16 @@ export async function fetchEventById(id: string) {
 
 export async function fetchHighlightedEvent(eventId: string) {
     try {
+        // Homepage is public - only show public events regardless of login status
         const data = await sql<SQLEvent>`
-			SELECT *
-			FROM events
-			WHERE id = ${eventId}
-			AND (is_deleted IS NULL OR is_deleted = false)
-			AND (is_hidden IS NULL OR is_hidden = false)
-			AND COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW();
-		`;
+            SELECT *
+            FROM events
+            WHERE id = ${eventId}
+            AND (is_deleted IS NULL OR is_deleted = false)
+            AND (is_hidden IS NULL OR is_hidden = false)
+            AND (visibility_level = 'public' OR visibility_level IS NULL)
+            AND COALESCE(end_datetime, make_timestamp(year, month, day, 23, 59, 59)) >= NOW()
+        `;
 
         if (data.rows.length === 0) {
             return null;
@@ -468,11 +616,18 @@ export async function fetchBase16ConvertedEventWithUserId(
         // Remove dashes from search string to ensure proper matching
         const searchString = event_id.replace(/-/g, '');
         const data = await sql<SQLEvent>`
-			SELECT * FROM events
-			WHERE organiser_uid = ${user_id} AND REPLACE(id::text, '-', '') LIKE '%' || ${searchString}
+			SELECT * FROM events e
+			WHERE REPLACE(e.id::text, '-', '') LIKE '%' || ${searchString}
+			AND (
+			    e.organiser_uid = ${user_id}
+			    OR EXISTS (
+			        SELECT 1 FROM event_cohosts
+			        WHERE event_id = e.id AND user_id = ${user_id}
+			        AND status = 'accepted'
+			    )
+			)
 			LIMIT 1
 		`;
-        // console.log("Data rows: ", data.rows);
         if (data.rows.length === 0) {
             return { success: false };
         } else {
@@ -522,7 +677,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 image_url, image_contain, external_forward_email,
                 capacity, sign_up_link, for_externals, event_type,
                 send_signup_notifications, student_union,
-                visibility_level, registration_level, allowed_universities, link_only,
+                visibility_level, registration_level, allowed_universities,
                 registration_cutoff_hours, external_registration_cutoff_hours
             )
             VALUES (
@@ -533,7 +688,7 @@ export async function insertModernEvent(eventData: import('./types').SQLEventDat
                 ${eventData.image_url}, ${eventData.image_contain}, ${eventData.external_forward_email ?? null},
                 ${eventData.capacity ?? null}, ${eventData.sign_up_link ?? null}, ${eventData.for_externals ?? null}, ${eventData.event_type},
                 ${eventData.send_signup_notifications}, ${eventData.student_union},
-                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${allowedUniversities as unknown as string}, ${eventData.link_only ?? false},
+                ${eventData.visibility_level ?? 'public'}, ${eventData.registration_level ?? 'public'}, ${allowedUniversities as unknown as string},
                 ${eventData.registration_cutoff_hours ?? null}, ${eventData.external_registration_cutoff_hours ?? null}
             )
             RETURNING *
@@ -647,13 +802,59 @@ export async function fetchAccountLogo(id: string) {
         const data = await sql`
 		SELECT logo_url
 		FROM society_information
-		WHERE user_id = ${id} 
+		WHERE user_id = ${id}
 		LIMIT 1
 		`;
         return data.rows[0];
     } catch (error) {
         console.error("Database error:", error);
         throw new Error("Failed to fetch account logo from users table");
+    }
+}
+
+/**
+ * Fetch donation settings for a society by their user_id (organiser_uid)
+ * Returns whether the society accepts donations
+ */
+export async function fetchSocietyDonationSettings(organiserUid: string): Promise<{ allow_donations: boolean }> {
+    try {
+        const data = await sql`
+            SELECT allow_donations
+            FROM society_information
+            WHERE user_id = ${organiserUid}
+            LIMIT 1
+        `;
+
+        if (data.rows.length === 0) {
+            return { allow_donations: false };
+        }
+
+        return {
+            allow_donations: data.rows[0].allow_donations ?? false
+        };
+    } catch (error) {
+        console.error("Database error fetching donation settings:", error);
+        return { allow_donations: false };
+    }
+}
+
+/**
+ * Update donation settings for a society
+ */
+export async function updateSocietyDonationSettings(
+    userId: string,
+    allowDonations: boolean
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await sql`
+            UPDATE society_information
+            SET allow_donations = ${allowDonations}
+            WHERE user_id = ${userId}
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Database error updating donation settings:", error);
+        return { success: false, error: "Failed to update donation settings" };
     }
 }
 
@@ -774,15 +975,27 @@ export async function getOrganiser(id: string) {
     }
 }
 
-export async function getOrganiserName(id: string) {
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getOrganiserName(idOrSlug: string) {
     try {
-        const data = await sql`
-			SELECT name
-			FROM users
-			WHERE role = 'organiser'
-			AND id=${id}
-			AND name != 'Just A Little Test Society'  -- Exclude the test society
-		`;
+        const isUUID = UUID_REGEX.test(idOrSlug);
+        const data = isUUID
+            ? await sql`
+				SELECT name
+				FROM users
+				WHERE role = 'organiser'
+				AND id = ${idOrSlug}
+				AND name != 'Just A Little Test Society'
+			`
+            : await sql`
+				SELECT u.name
+				FROM users u
+				JOIN society_information si ON si.user_id = u.id
+				WHERE u.role = 'organiser'
+				AND si.slug = ${idOrSlug}
+				AND u.name != 'Just A Little Test Society'
+			`;
 
         return data.rows[0] || null;
     } catch (error) {
@@ -794,7 +1007,7 @@ export async function getOrganiserName(id: string) {
 export async function getOrganiserBySlug(slug: string) {
     try {
         const data = await sql`
-			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url, society.slug
+			SELECT u.id, u.name, society.description, society.website, society.tags, society.logo_url, society.slug, society.allow_donations
 			FROM users AS u
 			JOIN society_information AS society ON society.user_id = u.id
 			WHERE u.role = 'organiser'
@@ -1199,14 +1412,23 @@ export async function checkEmail(email: string) {
     }
 }
 
-export async function getEmailFromId(id: string) {
+export async function getEmailFromId(idOrSlug: string) {
     try {
-        const data = await sql`
-			SELECT email
-			FROM users
-			WHERE role='organiser' and id = ${id} --- we really want to ensure no user email is leaked by accident
-			LIMIT 1
-		`;
+        const isUUID = UUID_REGEX.test(idOrSlug);
+        const data = isUUID
+            ? await sql`
+				SELECT email
+				FROM users
+				WHERE role = 'organiser' AND id = ${idOrSlug}
+				LIMIT 1
+			`
+            : await sql`
+				SELECT u.email
+				FROM users u
+				JOIN society_information si ON si.user_id = u.id
+				WHERE u.role = 'organiser' AND si.slug = ${idOrSlug}
+				LIMIT 1
+			`;
 
         return data.rows[0] || null;
     } catch (error) {
@@ -1228,6 +1450,111 @@ export async function getEventOrganiserEmail(id: string) {
     } catch (error) {
         console.error("Error checking email:", error);
         throw new Error("Failed to retrieve email for event organiser");
+    }
+}
+
+/**
+ * Get the Stripe payment recipient for an event.
+ * Looks up which co-host has receives_payments=TRUE.
+ * Falls back to the primary organiser's organiser_uid.
+ */
+export async function getPaymentRecipient(eventId: string) {
+    try {
+        const result = await sql`
+            SELECT ec.user_id, u.stripe_connect_account_id, u.stripe_charges_enabled, u.stripe_payouts_enabled
+            FROM event_cohosts ec
+            JOIN users u ON ec.user_id = u.id
+            WHERE ec.event_id = ${eventId} AND ec.receives_payments = TRUE
+            LIMIT 1
+        `;
+
+        if (result.rows.length > 0) {
+            return result.rows[0];
+        }
+
+        // Fallback: use the primary organiser from events table
+        const fallback = await sql`
+            SELECT u.id as user_id, u.stripe_connect_account_id, u.stripe_charges_enabled, u.stripe_payouts_enabled
+            FROM events e
+            JOIN users u ON e.organiser_uid = u.id
+            WHERE e.id = ${eventId}
+            LIMIT 1
+        `;
+
+        return fallback.rows[0] || null;
+    } catch (error) {
+        console.error("Error getting payment recipient:", error);
+        return null;
+    }
+}
+
+/**
+ * Get all co-hosts who should receive registration notification emails for an event.
+ * Falls back to the primary organiser if no co-host rows exist.
+ */
+export async function getNotificationRecipients(eventId: string) {
+    try {
+        const result = await sql`
+            SELECT u.email, u.name, ec.role
+            FROM event_cohosts ec
+            JOIN users u ON ec.user_id = u.id
+            WHERE ec.event_id = ${eventId}
+            AND ec.receives_registration_emails = TRUE
+            AND ec.status = 'accepted'
+        `;
+
+        if (result.rows.length > 0) {
+            return result.rows;
+        }
+
+        // Fallback: primary organiser from events table
+        const fallback = await sql`
+            SELECT u.email, u.name, 'primary' as role
+            FROM events e
+            JOIN users u ON e.organiser_uid = u.id
+            WHERE e.id = ${eventId}
+            LIMIT 1
+        `;
+
+        return fallback.rows;
+    } catch (error) {
+        console.error("Error getting notification recipients:", error);
+        return [];
+    }
+}
+
+/**
+ * Get all co-hosts who should receive the 24h summary email for an event.
+ * Falls back to the primary organiser if no co-host rows exist.
+ */
+export async function getSummaryRecipients(eventId: string) {
+    try {
+        const result = await sql`
+            SELECT u.email, u.name, ec.role
+            FROM event_cohosts ec
+            JOIN users u ON ec.user_id = u.id
+            WHERE ec.event_id = ${eventId}
+            AND ec.receives_summary_emails = TRUE
+            AND ec.status = 'accepted'
+        `;
+
+        if (result.rows.length > 0) {
+            return result.rows;
+        }
+
+        // Fallback: primary organiser from events table
+        const fallback = await sql`
+            SELECT u.email, u.name, 'primary' as role
+            FROM events e
+            JOIN users u ON e.organiser_uid = u.id
+            WHERE e.id = ${eventId}
+            LIMIT 1
+        `;
+
+        return fallback.rows;
+    } catch (error) {
+        console.error("Error getting summary recipients:", error);
+        return [];
     }
 }
 
@@ -1565,11 +1892,12 @@ export async function getEventRegistrationStats(eventId: string) {
     try {
         const stats = await sql`
             SELECT
-                COUNT(*) as total,
-                COUNT(CASE WHEN external = false THEN 1 END) as internal,
-                COUNT(CASE WHEN external = true THEN 1 END) as external
+                COALESCE(SUM(quantity), 0)::integer as total,
+                COALESCE(SUM(CASE WHEN external = false THEN quantity ELSE 0 END), 0)::integer as internal,
+                COALESCE(SUM(CASE WHEN external = true THEN quantity ELSE 0 END), 0)::integer as external
             FROM event_registrations
             WHERE event_id = ${eventId}
+            AND (is_cancelled = FALSE OR is_cancelled IS NULL)
         `;
 
         return {
@@ -1606,5 +1934,174 @@ export async function deregisterFromEvent(event_id: string, user_id: string) {
     } catch (error) {
         console.error("Error deregistering from event:", error);
         return { success: false, error: "Failed to deregister from event" };
+    }
+}
+
+// MARK: Featured Events
+
+/**
+ * Fetch the currently active featured event for the homepage.
+ * Returns the event with optional custom description if one is set.
+ */
+export async function fetchActiveFeaturedEvent(): Promise<{ event: ReturnType<typeof convertSQLEventToEvent>; customDescription: string | null } | null> {
+    try {
+        const result = await sql`
+            SELECT
+                fe.id as featured_id,
+                fe.custom_description,
+                fe.featured_start,
+                fe.featured_end,
+                e.*
+            FROM featured_events fe
+            JOIN events e ON fe.event_id = e.id
+            WHERE fe.is_active = TRUE
+              AND fe.featured_start <= NOW()
+              AND (fe.featured_end IS NULL OR fe.featured_end > NOW())
+              AND (e.is_deleted IS NULL OR e.is_deleted = false)
+              AND (e.is_hidden IS NULL OR e.is_hidden = false)
+              AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
+              AND COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            ORDER BY fe.featured_start DESC
+            LIMIT 1
+        `;
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        const row = result.rows[0];
+        const event = convertSQLEventToEvent(row as SQLEvent);
+
+        return {
+            event,
+            customDescription: row.custom_description || null
+        };
+    } catch (error) {
+        console.error("Error fetching active featured event:", error);
+        return null;
+    }
+}
+
+/**
+ * Fetch the featured event configuration for admin (includes inactive and scheduled)
+ */
+export async function fetchFeaturedEventConfig() {
+    try {
+        const result = await sql`
+            SELECT
+                fe.id,
+                fe.event_id,
+                fe.custom_description,
+                fe.featured_start,
+                fe.featured_end,
+                fe.is_active,
+                fe.created_by,
+                fe.created_at,
+                fe.updated_at,
+                e.title as event_title,
+                e.organiser as event_organiser,
+                e.start_datetime as event_start_datetime,
+                e.image_url as event_image_url
+            FROM featured_events fe
+            JOIN events e ON fe.event_id = e.id
+            WHERE fe.is_active = TRUE
+            ORDER BY fe.created_at DESC
+            LIMIT 1
+        `;
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        return result.rows[0];
+    } catch (error) {
+        console.error("Error fetching featured event config:", error);
+        return null;
+    }
+}
+
+/**
+ * Set or update the featured event. Deactivates any existing featured event first.
+ */
+export async function setFeaturedEvent(
+    eventId: string,
+    customDescription: string | null,
+    featuredStart: string,
+    featuredEnd: string | null,
+    userId: string
+) {
+    try {
+        // Deactivate all currently active featured events (except the one we're about to set)
+        await sql`
+            UPDATE featured_events
+            SET is_active = FALSE, updated_at = NOW()
+            WHERE is_active = TRUE AND event_id != ${eventId}
+        `;
+
+        // Upsert: Insert or update the featured event in a single atomic operation
+        await sql`
+            INSERT INTO featured_events (event_id, custom_description, featured_start, featured_end, is_active, created_by, updated_at)
+            VALUES (
+                ${eventId},
+                ${customDescription},
+                ${featuredStart}::timestamptz,
+                ${featuredEnd ? featuredEnd : null}::timestamptz,
+                TRUE,
+                ${userId},
+                NOW()
+            )
+            ON CONFLICT (event_id) DO UPDATE SET
+                custom_description = EXCLUDED.custom_description,
+                featured_start = EXCLUDED.featured_start,
+                featured_end = EXCLUDED.featured_end,
+                is_active = TRUE,
+                created_by = EXCLUDED.created_by,
+                updated_at = NOW()
+        `;
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error setting featured event:", error);
+        return { success: false, error };
+    }
+}
+
+/**
+ * Clear the featured event (deactivate without selecting a new one)
+ */
+export async function clearFeaturedEvent() {
+    try {
+        await sql`
+            UPDATE featured_events
+            SET is_active = FALSE, updated_at = NOW()
+            WHERE is_active = TRUE
+        `;
+        return { success: true };
+    } catch (error) {
+        console.error("Error clearing featured event:", error);
+        return { success: false, error };
+    }
+}
+
+/**
+ * Fetch upcoming public events for the featured event selector dropdown
+ */
+export async function fetchUpcomingPublicEvents() {
+    try {
+        const data = await sql<SQLEvent>`
+            SELECT e.*, s.slug as organiser_slug
+            FROM events e
+            LEFT JOIN society_information s ON e.organiser_uid = s.user_id
+            WHERE COALESCE(e.end_datetime, make_timestamp(e.year, e.month, e.day, 23, 59, 59)) >= NOW()
+            AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            AND (e.is_hidden IS NULL OR e.is_hidden = false)
+            AND (e.visibility_level = 'public' OR e.visibility_level IS NULL)
+            ORDER BY COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) ASC
+            LIMIT 50
+        `;
+        return data.rows.map(convertSQLEventToEvent);
+    } catch (error) {
+        console.error("Error fetching upcoming public events:", error);
+        return [];
     }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
     ChevronDownIcon,
     UserIcon,
@@ -10,6 +10,10 @@ import {
     ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import Script from "next/script";
+
+// Turnstile site key - must be set in environment variables
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 interface ContactFormData {
     inquiryPurpose: string;
@@ -51,42 +55,148 @@ export default function ContactPage() {
     } = useForm<ContactFormData>();
 
     const [status, setStatus] = useState<string | null>(null);
+    const [formToken, setFormToken] = useState<string | null>(null);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+    const turnstileWidgetId = useRef<string | null>(null);
+    const turnstileContainerRef = useRef<HTMLDivElement>(null);
 
-    const onSubmit = async (data: ContactFormData) => {
-        setStatus("Sending...");
+    // Callback when Turnstile verifies successfully
+    const handleTurnstileCallback = useCallback((token: string) => {
+        setTurnstileToken(token);
+    }, []);
+
+    // Render Turnstile widget in invisible mode
+    const renderTurnstile = useCallback(() => {
+        if (!TURNSTILE_SITE_KEY || typeof TURNSTILE_SITE_KEY !== 'string') {
+            console.log("Turnstile site key not configured - using fallback protection");
+            return;
+        }
+        if (window.turnstile && turnstileContainerRef.current && !turnstileWidgetId.current) {
+            turnstileWidgetId.current = window.turnstile.render(turnstileContainerRef.current, {
+                sitekey: TURNSTILE_SITE_KEY,
+                callback: handleTurnstileCallback,
+                "error-callback": () => {
+                    console.log("Turnstile error - will use fallback protection");
+                    setTurnstileToken(null);
+                },
+                "expired-callback": () => {
+                    setTurnstileToken(null);
+                },
+                execution: "execute", // Don't auto-execute, wait for manual trigger
+                appearance: "execute", // Invisible until executed
+            });
+        }
+    }, [handleTurnstileCallback]);
+
+    // Fetch form token on mount (for bot protection fallback)
+    useEffect(() => {
+        const fetchToken = async () => {
+            try {
+                const response = await fetch("/api/form-token");
+                if (response.ok) {
+                    const data = await response.json();
+                    setFormToken(data.token);
+                }
+            } catch (error) {
+                console.error("Failed to fetch form token:", error);
+            }
+        };
+        fetchToken();
+    }, []);
+
+    // Render Turnstile when loaded
+    useEffect(() => {
+        if (turnstileLoaded) {
+            renderTurnstile();
+        }
+    }, [turnstileLoaded, renderTurnstile]);
+
+    // Reset Turnstile after form submission
+    const resetTurnstile = useCallback(() => {
+        if (window.turnstile && turnstileWidgetId.current) {
+            window.turnstile.reset(turnstileWidgetId.current);
+            setTurnstileToken(null);
+        }
+    }, []);
+
+    // Store form data temporarily while waiting for Turnstile
+    const pendingFormData = useRef<ContactFormData | null>(null);
+
+    // Actually submit the form after Turnstile verification
+    const submitForm = useCallback(async (data: ContactFormData, token: string | null) => {
         try {
-            // Format data to match ContactFormInput interface
             const formattedData = {
-                id: crypto.randomUUID(), // Generate unique ID
+                id: crypto.randomUUID(),
                 name: data.name,
                 email: data.email,
-                message: data.message, // Keep message separate
+                message: data.message,
                 inquiryPurpose: data.inquiryPurpose,
                 description: data.description,
                 organisation: data.organisation || "",
+                formToken: formToken,
+                turnstileToken: token,
             };
 
-            const response = await fetch("/api/send-email", {
+            const response = await fetch("/api/contact", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formattedData),
             });
 
             if (response.ok) {
                 setStatus("Form submitted successfully!");
                 reset();
+                resetTurnstile();
+                const tokenResponse = await fetch("/api/form-token");
+                if (tokenResponse.ok) {
+                    const tokenData = await tokenResponse.json();
+                    setFormToken(tokenData.token);
+                }
             } else {
-                setStatus("Failed to submit the form.");
+                const errorData = await response.json().catch(() => ({}));
+                setStatus(errorData.message || "Failed to submit the form.");
+                resetTurnstile();
             }
         } catch (error) {
             console.error("Error submitting the form:", error);
             setStatus("An error occurred. Please try again.");
+            resetTurnstile();
+        }
+        pendingFormData.current = null;
+    }, [formToken, reset, resetTurnstile]);
+
+    // Handle Turnstile callback - submit form when we get the token
+    useEffect(() => {
+        if (turnstileToken && pendingFormData.current) {
+            submitForm(pendingFormData.current, turnstileToken);
+        }
+    }, [turnstileToken, submitForm]);
+
+    const onSubmit = async (data: ContactFormData) => {
+        setStatus("Verifying...");
+        pendingFormData.current = data;
+
+        // Trigger Turnstile verification
+        if (window.turnstile && turnstileWidgetId.current && TURNSTILE_SITE_KEY) {
+            // Execute uses the callback from render(), not a new one
+            window.turnstile.execute(turnstileWidgetId.current);
+        } else {
+            // Turnstile not available, submit with fallback protection
+            setStatus("Sending...");
+            await submitForm(data, null);
         }
     };
 
     return (
+        <>
+        {/* Cloudflare Turnstile Script */}
+        <Script
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+            async
+            defer
+            onLoad={() => setTurnstileLoaded(true)}
+        />
         <main className="min-h-screen bg-gradient-to-b from-[#041A2E] via-[#064580] to-[#083157]">
             <div className="py-16 sm:py-24">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -331,6 +441,11 @@ export default function ContactPage() {
                             )}
                         </div>
 
+                        {/* Turnstile Widget */}
+                        <div className="flex justify-center">
+                            <div ref={turnstileContainerRef} />
+                        </div>
+
                         {/* Submit Button */}
                         <div className="flex justify-end">
                             <button
@@ -375,5 +490,6 @@ export default function ContactPage() {
                 </div>
             </div>
         </main>
+        </>
     );
 }

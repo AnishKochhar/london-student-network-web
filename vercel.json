@@ -6,7 +6,11 @@
     },
     {
       "path": "/api/workers/process-email-reminders",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/workers/process-campaigns",
+      "schedule": "*/30 * * * *"
     }
   ]
 }

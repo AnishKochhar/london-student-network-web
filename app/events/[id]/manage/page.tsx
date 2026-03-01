@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
-import { Event } from "@/app/lib/types";
+import { Event, CoHostPermissions } from "@/app/lib/types";
 import { ArrowLeft } from "lucide-react";
 import { ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
@@ -17,10 +17,28 @@ export default function EventManagePage() {
     const [event, setEvent] = useState<Event | null>(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [isPrimary, setIsPrimary] = useState(false);
+    const [permissions, setPermissions] = useState<CoHostPermissions>({
+        can_edit: true,
+        can_manage_registrations: true,
+        can_manage_guests: true,
+        can_view_insights: true,
+    });
 
     const event_id = base62ToBase16(id);
     const eventUrl = `https://londonstudentnetwork.com/events/${id}`;
     const displayBaseUrl = "londonstudentnetwork.com/events/";
+
+    // Handle back navigation intelligently
+    const handleBackNavigation = () => {
+        // Check if we have navigation history
+        if (window.history.length > 1) {
+            router.back();
+        } else {
+            // Fallback to event page if no history
+            router.push(`/events/${id}`);
+        }
+    };
 
     /**
      * Fetch event data and verify management permissions
@@ -68,6 +86,15 @@ export default function EventManagePage() {
             }
 
             setEvent(data.event);
+            setIsPrimary(data.is_primary ?? false);
+            if (data.permissions) {
+                setPermissions({
+                    can_edit: data.permissions.can_edit ?? true,
+                    can_manage_registrations: data.permissions.can_manage_registrations ?? true,
+                    can_manage_guests: data.permissions.can_manage_guests ?? true,
+                    can_view_insights: data.permissions.can_view_insights ?? true,
+                });
+            }
         } catch (error) {
             console.error("Error fetching event for management:", error);
             toast.error("Failed to load event data");
@@ -115,11 +142,11 @@ export default function EventManagePage() {
             <div className="bg-white/5 backdrop-blur-lg border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
                     <button
-                        onClick={() => router.push(`/events/${id}`)}
+                        onClick={handleBackNavigation}
                         className="flex items-center gap-2 text-white/70 hover:text-white mb-3 sm:mb-4 transition-colors text-sm"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        <span className="hidden sm:inline">Back to Event Page</span>
+                        <span className="hidden sm:inline">Back</span>
                         <span className="sm:hidden">Back</span>
                     </button>
 
@@ -173,7 +200,7 @@ export default function EventManagePage() {
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-                <EventManagementTabs event={event} eventId={event.id} onEventUpdate={fetchEvent} />
+                <EventManagementTabs event={event} eventId={event.id} onEventUpdate={fetchEvent} isPrimary={isPrimary} permissions={permissions} />
             </div>
         </div>
     );

@@ -21,7 +21,8 @@ const EventCreationConfirmationEmailFallbackPayload = (event: Event) => {
         'public': 'Open to everyone',
         'students_only': 'Requires account login',
         'verified_students': 'Verified students only',
-        'university_exclusive': 'University-exclusive'
+        'university_exclusive': 'University-exclusive',
+        'private': 'Private (link-only)'
     };
 
     const visibilityLabel = accessLabels[event.visibility_level as keyof typeof accessLabels] || event.visibility_level;

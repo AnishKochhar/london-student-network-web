@@ -8,11 +8,9 @@ interface EventAccessControlsProps {
     visibilityLevel: string;
     registrationLevel: string;
     allowedUniversities: string[];
-    linkOnly?: boolean;
     onVisibilityChange: (value: string) => void;
     onRegistrationChange: (value: string) => void;
     onAllowedUniversitiesChange: (universities: string[]) => void;
-    onLinkOnlyChange?: (value: boolean) => void;
 }
 
 // Visibility/Registration level options with descriptions
@@ -42,7 +40,7 @@ const VISIBILITY_OPTIONS = [
         description: 'Only verified students from specific universities can see this event'
     },
     {
-        value: 'link_only',
+        value: 'private',
         label: 'Private',
         icon: LockClosedIcon,
         description: 'Hidden from all public listings - only people with the direct link can access this event'
@@ -108,8 +106,10 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
     onOpenChange?: (isOpen: boolean) => void;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         onOpenChange?.(isOpen);
@@ -124,6 +124,17 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleToggle = () => {
+        if (disabled) return;
+        if (!isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const estimatedHeight = options.length * 64 + 16;
+            setOpenUpward(spaceBelow < estimatedHeight);
+        }
+        setIsOpen(!isOpen);
+    };
 
     const selectedOption = options.find(option => option.value === value);
     const IconComponent = selectedOption?.icon || GlobeAltIcon;
@@ -158,8 +169,9 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
             </div>
 
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => !disabled && setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 disabled={disabled}
                 className={`w-full px-4 py-3 border rounded-lg focus:outline-none flex items-center justify-between backdrop-blur transition-all ${
                     disabled
@@ -179,10 +191,12 @@ const AccessDropdown = ({ value, onChange, options, label, tooltip, disabled = f
             <AnimatePresence>
                 {isOpen && !disabled && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: openUpward ? 10 : -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] overflow-hidden"
+                        exit={{ opacity: 0, y: openUpward ? 10 : -10 }}
+                        className={`absolute left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] overflow-hidden ${
+                            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+                        }`}
                     >
                         {options.map((option) => {
                             const OptionIcon = option.icon;
@@ -230,8 +244,10 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
     onOpenChange?: (isOpen: boolean) => void;
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [openUpward, setOpenUpward] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         onOpenChange?.(isOpen);
@@ -246,6 +262,16 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    const handleToggle = () => {
+        if (!isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            // max-h-60 = 240px + margin
+            setOpenUpward(spaceBelow < 256);
+        }
+        setIsOpen(!isOpen);
+    };
 
     const toggleUniversity = (code: string) => {
         if (selectedUniversities.includes(code)) {
@@ -289,8 +315,9 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
             </div>
 
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur flex items-center justify-between hover:bg-white/15 transition-all"
             >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -309,10 +336,12 @@ const UniversityMultiSelect = ({ selectedUniversities, onChange, onOpenChange }:
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: openUpward ? 10 : -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] max-h-60 overflow-y-auto"
+                        exit={{ opacity: 0, y: openUpward ? 10 : -10 }}
+                        className={`absolute left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] max-h-60 overflow-y-auto ${
+                            openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+                        }`}
                     >
                         {UNIVERSITY_OPTIONS.map((uni) => {
                             const isSelected = selectedUniversities.includes(uni.code);
@@ -389,45 +418,28 @@ export default function EventAccessControls({
     visibilityLevel,
     registrationLevel,
     allowedUniversities,
-    linkOnly = false,
     onVisibilityChange,
     onRegistrationChange,
     onAllowedUniversitiesChange,
-    onLinkOnlyChange,
 }: EventAccessControlsProps) {
     const [hasOpenDropdown, setHasOpenDropdown] = useState(false);
 
-    // Sync visibility level with link_only flag
-    const effectiveVisibilityLevel = linkOnly ? 'link_only' : visibilityLevel;
-
-    // Handle visibility change - set link_only flag if 'link_only' is selected
-    const handleVisibilityChange = (value: string) => {
-        if (value === 'link_only') {
-            onLinkOnlyChange?.(true);
-            // When switching to link_only, set visibility to public (doesn't matter since it's hidden)
-            onVisibilityChange('public');
-        } else {
-            onLinkOnlyChange?.(false);
-            onVisibilityChange(value);
-        }
-    };
-
     // Get available registration options based on visibility level
     const getAvailableRegistrationOptions = () => {
-        // Link-only events can have any registration level
-        if (effectiveVisibilityLevel === 'link_only') {
-            return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'link_only');
+        // Private events can have any registration level (for who can register via direct link)
+        if (visibilityLevel === 'private') {
+            return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'private');
         }
 
         const visibilityIndex = VISIBILITY_OPTIONS.findIndex(opt => opt.value === visibilityLevel);
         // Registration can only be as restrictive or more restrictive than visibility
-        return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'link_only').slice(visibilityIndex);
+        return VISIBILITY_OPTIONS.filter(opt => opt.value !== 'private').slice(visibilityIndex);
     };
 
     // Auto-adjust registration level if visibility becomes more restrictive
     useEffect(() => {
-        // Skip auto-adjustment for link-only events
-        if (effectiveVisibilityLevel === 'link_only') return;
+        // Skip auto-adjustment for private events
+        if (visibilityLevel === 'private') return;
 
         const visibilityIndex = VISIBILITY_OPTIONS.findIndex(opt => opt.value === visibilityLevel);
         const registrationIndex = VISIBILITY_OPTIONS.findIndex(opt => opt.value === registrationLevel);
@@ -436,7 +448,7 @@ export default function EventAccessControls({
             // Visibility is more restrictive, so registration must match or be more restrictive
             onRegistrationChange(visibilityLevel);
         }
-    }, [visibilityLevel, registrationLevel, onRegistrationChange, effectiveVisibilityLevel]);
+    }, [visibilityLevel, registrationLevel, onRegistrationChange]);
 
     return (
         <div className={`space-y-6 overflow-visible ${hasOpenDropdown ? 'relative z-[100]' : ''}`}>
@@ -460,14 +472,14 @@ export default function EventAccessControls({
             {/* Visibility Level */}
             <div>
                 <AccessDropdown
-                    value={effectiveVisibilityLevel}
-                    onChange={handleVisibilityChange}
+                    value={visibilityLevel}
+                    onChange={onVisibilityChange}
                     options={VISIBILITY_OPTIONS}
                     label="Who can see this event?"
                     tooltip="Controls who can view this event. Private events are hidden from all listings and only accessible via direct link."
                     onOpenChange={setHasOpenDropdown}
                 />
-                {effectiveVisibilityLevel === 'link_only' && (
+                {visibilityLevel === 'private' && (
                     <motion.div
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -490,7 +502,7 @@ export default function EventAccessControls({
                     onChange={onRegistrationChange}
                     options={getAvailableRegistrationOptions()}
                     label="Who can register?"
-                    tooltip={effectiveVisibilityLevel === 'link_only'
+                    tooltip={visibilityLevel === 'private'
                         ? "Controls who can register when they access the event via the direct link"
                         : "Controls who can sign up for this event. Must be at least as restrictive as visibility."}
                     disabled={visibilityLevel === 'university_exclusive'} // Auto-match for university exclusive

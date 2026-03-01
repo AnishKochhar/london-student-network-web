@@ -67,7 +67,7 @@ function NavLinks({
                             href={link.href}
                             onClick={onClick}
                             className={clsx(
-                                "block py-2 transition-all md:text-lg lg:text-xl",
+                                "block py-2 transition-all md:text-lg lg:text-xl whitespace-nowrap",
                                 pathname === link.href
                                     ? "underline"
                                     : "no-underline",

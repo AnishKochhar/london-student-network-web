@@ -1,10 +1,10 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Minus, Calendar, MapPin } from 'lucide-react';
+import { X, Plus, Minus, Calendar, MapPin, Heart } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useState, useMemo } from 'react';
-import { Event } from '@/app/lib/types';
+import { Event, DEFAULT_DONATION_PRESETS } from '@/app/lib/types';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import RegistrationStepper from '@/app/components/ui/registration-stepper';
@@ -25,12 +25,17 @@ interface Ticket {
 }
 
 interface TicketSelectionModalProps {
-    event: Event;
+    event: Event & {
+        eventSoldOut?: boolean;
+        eventCapacity?: number | null;
+        eventSoldCount?: number;
+    };
     onClose: () => void;
     onFreeRegistration: (quantity: number) => void;
     userName?: string;
     userEmail?: string;
     isGuestMode?: boolean;
+    isLoadingTickets?: boolean;
 }
 
 export default function TicketSelectionModal({
@@ -40,6 +45,7 @@ export default function TicketSelectionModal({
     userName = '',
     userEmail = '',
     isGuestMode = false,
+    isLoadingTickets = false,
 }: TicketSelectionModalProps) {
     const [mounted, setMounted] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
@@ -50,10 +56,29 @@ export default function TicketSelectionModal({
         name: '',
         email: ''
     });
+    // Donation state
+    const [donationAmount, setDonationAmount] = useState<number>(0); // In pence
+    const [customDonationInput, setCustomDonationInput] = useState<string>('');
+    // Society donation settings (fetched from API)
+    const [donationEnabled, setDonationEnabled] = useState(false);
+    const [, setDonationSettingsLoading] = useState(true);
 
     // Use tickets from event data (already loaded) - memoized to prevent re-renders
-    const tickets: Ticket[] = useMemo(() => (event.tickets as Ticket[]) || [], [event.tickets]);
-    const loading = false;
+    // If event is sold out at event-level, mark all tickets as sold out
+    const eventSoldOut = (event as { eventSoldOut?: boolean }).eventSoldOut || false;
+    const tickets: Ticket[] = useMemo(() => {
+        const rawTickets = (event.tickets as Ticket[]) || [];
+        if (eventSoldOut) {
+            // Override all tickets to show as sold out when event capacity is reached
+            return rawTickets.map(t => ({
+                ...t,
+                availability_status: 'sold_out' as const,
+                is_available: false,
+            }));
+        }
+        return rawTickets;
+    }, [event.tickets, eventSoldOut]);
+    const loading = isLoadingTickets;
 
     const steps = isGuestMode
         ? [
@@ -79,6 +104,28 @@ export default function TicketSelectionModal({
             }
         }
     }, [tickets]);
+
+    // Fetch society donation settings
+    useEffect(() => {
+        const fetchDonationSettings = async () => {
+            if (!event.organiser_uid) {
+                setDonationSettingsLoading(false);
+                return;
+            }
+            try {
+                const response = await fetch(`/api/society/donation-settings?organiser_uid=${event.organiser_uid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setDonationEnabled(data.allow_donations ?? false);
+                }
+            } catch (error) {
+                console.error('Failed to fetch donation settings:', error);
+            } finally {
+                setDonationSettingsLoading(false);
+            }
+        };
+        fetchDonationSettings();
+    }, [event.organiser_uid]);
 
     useEffect(() => {
         if (event) {
@@ -186,11 +233,13 @@ export default function TicketSelectionModal({
                     quantity,
                     guest_name: guestInfo.name.trim(),
                     guest_email: guestInfo.email.toLowerCase(),
+                    donation_amount: donationAmount, // In pence
                 }
                 : {
                     event_id: event.id,
                     ticket_uuid: selectedTicket,
                     quantity,
+                    donation_amount: donationAmount, // In pence
                 };
 
             const response = await fetch(endpoint, {
@@ -240,8 +289,36 @@ export default function TicketSelectionModal({
 
     const selectedTicketData = tickets.find(t => t.ticket_uuid === selectedTicket);
     const selectedTicketPrice = selectedTicketData ? parseFloat(selectedTicketData.ticket_price || '0') : 0;
-    const totalPrice = selectedTicketPrice * quantity;
+    const ticketSubtotal = selectedTicketPrice * quantity;
+    const donationInPounds = donationAmount / 100;
+    const totalPrice = ticketSubtotal + donationInPounds;
     const isFreeTicket = selectedTicketPrice === 0;
+
+    // Show donation option only for paid tickets when donation is enabled
+    const showDonationOption = donationEnabled && !isFreeTicket;
+
+    // Handle donation preset selection
+    const handleDonationPreset = (amount: number) => {
+        if (donationAmount === amount) {
+            // Clicking same amount deselects it
+            setDonationAmount(0);
+            setCustomDonationInput('');
+        } else {
+            setDonationAmount(amount);
+            setCustomDonationInput('');
+        }
+    };
+
+    // Handle custom donation input
+    const handleCustomDonation = (value: string) => {
+        setCustomDonationInput(value);
+        const parsed = parseFloat(value);
+        if (!isNaN(parsed) && parsed >= 0) {
+            setDonationAmount(Math.round(parsed * 100)); // Convert to pence
+        } else if (value === '') {
+            setDonationAmount(0);
+        }
+    };
 
     const modalContent = (
         <AnimatePresence>
@@ -263,17 +340,19 @@ export default function TicketSelectionModal({
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-white rounded-xl md:rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto flex flex-col md:flex-row"
+                    className="relative bg-white rounded-xl md:rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-4xl max-h-[95vh] md:max-h-[90vh] flex flex-col md:flex-row overflow-hidden"
                 >
+                    {/* Close button - positioned on modal container for proper top-right placement */}
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 p-2.5 bg-white hover:bg-gray-50 rounded-full transition-all shadow-lg border border-gray-200 z-50 hover:scale-110"
+                        aria-label="Close modal"
+                    >
+                        <X className="w-5 h-5 text-gray-700" />
+                    </button>
+
                     {/* Left Side - Event Info - Hidden on mobile for better UX */}
-                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8 flex-col">
-                        <button
-                            onClick={onClose}
-                            className="absolute top-4 right-4 md:right-auto md:left-4 p-2 hover:bg-white/80 rounded-full transition-colors z-10"
-                            aria-label="Close modal"
-                        >
-                            <X className="w-5 h-5 text-gray-700" />
-                        </button>
+                    <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8 flex-col relative">
 
                         <div className="mt-8 md:mt-0">
                             <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-6">
@@ -312,24 +391,75 @@ export default function TicketSelectionModal({
                     </div>
 
                     {/* Right Side - Registration Form */}
-                    <div className="w-full md:w-1/2 bg-white p-4 md:p-8 flex flex-col relative">
-                        {/* Close button for mobile */}
-                        <button
-                            onClick={onClose}
-                            className="md:hidden absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-10"
-                            aria-label="Close modal"
-                        >
-                            <X className="w-5 h-5 text-gray-700" />
-                        </button>
-
+                    <div className="w-full md:w-1/2 bg-white p-4 md:p-8 flex flex-col relative overflow-y-auto">
                         <div className="mb-4 md:mb-6">
                             <RegistrationStepper currentStep={currentStep} steps={steps} />
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
                             {loading ? (
-                                <div className="flex-1 flex items-center justify-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                <div className="flex-1 space-y-4 md:space-y-6 animate-pulse">
+                                    {/* Header skeleton */}
+                                    <div>
+                                        <div className="h-6 md:h-7 bg-gray-200 rounded-md w-2/3 mb-2"></div>
+                                        <div className="h-4 bg-gray-100 rounded-md w-1/2"></div>
+                                    </div>
+
+                                    {/* Ticket selection skeleton */}
+                                    <div className="space-y-3">
+                                        {/* Skeleton ticket 1 */}
+                                        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-white">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-5 h-5 bg-gray-200 rounded-full mt-1"></div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                                        <div className="h-5 bg-gray-200 rounded w-32"></div>
+                                                        <div className="h-5 bg-gray-200 rounded w-16"></div>
+                                                    </div>
+                                                    <div className="h-3 bg-gray-100 rounded w-24"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Skeleton ticket 2 */}
+                                        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-white">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-5 h-5 bg-gray-200 rounded-full mt-1"></div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                                        <div className="h-5 bg-gray-200 rounded w-28"></div>
+                                                        <div className="h-5 bg-gray-200 rounded w-16"></div>
+                                                    </div>
+                                                    <div className="h-3 bg-gray-100 rounded w-20"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Skeleton ticket 3 */}
+                                        <div className="p-3 md:p-4 rounded-lg border border-gray-200 bg-white">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-5 h-5 bg-gray-200 rounded-full mt-1"></div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                                        <div className="h-5 bg-gray-200 rounded w-36"></div>
+                                                        <div className="h-5 bg-gray-200 rounded w-12"></div>
+                                                    </div>
+                                                    <div className="h-3 bg-gray-100 rounded w-28"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Quantity skeleton */}
+                                    <div>
+                                        <div className="h-4 bg-gray-200 rounded w-20 mb-3"></div>
+                                        <div className="h-10 bg-gray-100 rounded-lg w-36"></div>
+                                    </div>
+
+                                    {/* Button skeleton */}
+                                    <div className="mt-auto pt-4">
+                                        <div className="h-11 md:h-12 bg-gradient-to-r from-gray-200 to-gray-300 rounded-lg md:rounded-xl"></div>
+                                    </div>
                                 </div>
                             ) : currentStep === 1 ? (
                                 // Step 1: Ticket Selection (for both guest and authenticated)
@@ -342,6 +472,21 @@ export default function TicketSelectionModal({
                                             Choose the ticket type and quantity
                                         </p>
                                     </div>
+
+                                    {/* Event Sold Out Banner */}
+                                    {eventSoldOut && (
+                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                                                <p className="text-sm font-medium text-red-800">
+                                                    This event is at full capacity
+                                                </p>
+                                            </div>
+                                            <p className="text-xs text-red-600 mt-1">
+                                                All tickets are currently sold out. Check back later for cancellations.
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* Ticket Selection with Release Grouping */}
                                     <div className="space-y-4">
@@ -652,16 +797,79 @@ export default function TicketSelectionModal({
                                                 </p>
                                             </div>
                                             <div className="text-right flex-shrink-0">
-                                                <p className={cn(
-                                                    "text-xl md:text-2xl font-bold",
-                                                    isFreeTicket ? 'text-green-600' : 'text-gray-900'
-                                                )}>
-                                                    {isFreeTicket ? 'Free' : `£${totalPrice.toFixed(2)}`}
+                                                <p className="text-base text-gray-700">
+                                                    £{ticketSubtotal.toFixed(2)}
                                                 </p>
                                             </div>
                                         </div>
 
+                                        {/* Donation Section */}
+                                        {showDonationOption && (
+                                            <div className="pt-4 border-t border-gray-200">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <Heart className="w-4 h-4 text-pink-500" />
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        Support {event.organiser}
+                                                    </p>
+                                                    <span className="text-xs text-gray-500">(optional)</span>
+                                                </div>
+                                                <p className="text-xs text-gray-600 mb-3">
+                                                    Add a donation to help the society continue hosting amazing events
+                                                </p>
+                                                <div className="flex flex-wrap gap-2 mb-3">
+                                                    {DEFAULT_DONATION_PRESETS.map((preset) => (
+                                                        <button
+                                                            key={preset}
+                                                            type="button"
+                                                            onClick={() => handleDonationPreset(preset)}
+                                                            className={cn(
+                                                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                                                                donationAmount === preset && customDonationInput === ''
+                                                                    ? "bg-pink-100 text-pink-700 border-2 border-pink-300"
+                                                                    : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
+                                                            )}
+                                                        >
+                                                            £{(preset / 100).toFixed(0)}
+                                                        </button>
+                                                    ))}
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">£</span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            placeholder="Other"
+                                                            value={customDonationInput}
+                                                            onChange={(e) => handleCustomDonation(e.target.value)}
+                                                            className={cn(
+                                                                "w-20 pl-6 pr-2 py-1.5 text-sm rounded-lg border transition-all",
+                                                                customDonationInput !== ''
+                                                                    ? "border-pink-300 bg-pink-50 focus:ring-pink-500"
+                                                                    : "border-gray-200 focus:ring-blue-500"
+                                                            )}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                {donationAmount > 0 && (
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-gray-600">Donation</span>
+                                                        <span className="font-medium text-pink-600">+£{donationInPounds.toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Total */}
                                         <div className="pt-4 border-t border-gray-200">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-base font-semibold text-gray-900">Total</span>
+                                                <span className={cn(
+                                                    "text-xl md:text-2xl font-bold",
+                                                    isFreeTicket ? 'text-green-600' : 'text-gray-900'
+                                                )}>
+                                                    {isFreeTicket ? 'Free' : `£${totalPrice.toFixed(2)}`}
+                                                </span>
+                                            </div>
                                             <div className="space-y-2 text-sm">
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Name</span>
@@ -679,6 +887,11 @@ export default function TicketSelectionModal({
                                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                             <p className="text-sm text-blue-900">
                                                 💳 You&apos;ll be redirected to Stripe to complete your payment securely.
+                                                {donationAmount > 0 && (
+                                                    <span className="block mt-1 text-xs text-blue-700">
+                                                        100% of your donation goes directly to {event.organiser}.
+                                                    </span>
+                                                )}
                                             </p>
                                         </div>
                                     )}

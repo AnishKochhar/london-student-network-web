@@ -22,9 +22,13 @@ interface EventRegistrationButtonProps {
     isPreview?: boolean;
     context?: "modal" | "page";
     onShowRegistrationChoice?: () => void;
+    onFetchFullEventData?: () => Promise<Event>;
     onTicketModalChange?: (isOpen: boolean) => void;
     onRegistrationModalChange?: (isOpen: boolean) => void;
 }
+
+// Modal state type for mutual exclusivity
+type ActiveModal = 'none' | 'registration' | 'tickets' | 'university' | 'calendar' | 'confirmation';
 
 export default function EventRegistrationButton({
     event,
@@ -33,28 +37,53 @@ export default function EventRegistrationButton({
     isPreview = false,
     context = "modal",
     onShowRegistrationChoice,
+    onFetchFullEventData,
     onTicketModalChange,
     onRegistrationModalChange
 }: EventRegistrationButtonProps) {
     const [isLoading, setIsLoading] = useState(false);
-    const [showConfirmation, setShowConfirmation] = useState(false);
-    const [showRegistrationConfirmation, setShowRegistrationConfirmation] = useState(false);
-    const [showTicketSelection, setShowTicketSelection] = useState(false);
-    const [showUniversityPrompt, setShowUniversityPrompt] = useState(false);
-    const [showCalendarModal, setShowCalendarModal] = useState(false);
+    const [activeModal, setActiveModal] = useState<ActiveModal>('none');
     const [universityPromptData, setUniversityPromptData] = useState<{
         userEmail: string;
         universityName?: string;
     } | null>(null);
     const [isCheckingStatus] = useState(false);
+    const [fullEventData, setFullEventData] = useState<Event | null>(null);
+    const [isFetchingTickets, setIsFetchingTickets] = useState(false);
     const { data: session} = useSession();
     const router = useRouter();
 
-    // Check if event has paid tickets (now comes with event data)
-    const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
+    // Derived modal states for backwards compatibility and cleaner JSX
+    const showConfirmation = activeModal === 'confirmation';
+    const showRegistrationConfirmation = activeModal === 'registration';
+    const showTicketSelection = activeModal === 'tickets';
+    const showUniversityPrompt = activeModal === 'university';
+    const showCalendarModal = activeModal === 'calendar';
+
+    // Safe modal setters that ensure mutual exclusivity
+    const openModal = (modal: ActiveModal) => {
+        setActiveModal(modal);
+    };
+
+    const closeAllModals = () => {
+        setActiveModal('none');
+        setFullEventData(null);
+        setIsFetchingTickets(false);
+    };
+
+    // Check if we have COMPLETE ticket data (including release schedules)
+    const hasCompleteTicketData = event.tickets &&
+        event.tickets.length > 0 &&
+        event.tickets.some((t) => (t as Record<string, unknown>).availability_status !== undefined);
+
+    // Check if we have basic ticket data
+    const hasTicketsData = event.tickets && event.tickets.length > 0;
+
+    // Check if event has paid tickets (for Stripe setup validation)
+    const hasPaidTickets = hasTicketsData && event.tickets?.some((t: { ticket_price?: string }) => {
         const price = parseFloat(t.ticket_price || '0');
         return price > 0;
-    }) || false;
+    });
 
     // Notify parent when ticket modal state changes
     useEffect(() => {
@@ -78,7 +107,7 @@ export default function EventRegistrationButton({
                         userEmail: session?.user?.email || '',
                         universityName: data.isUniversityEmail ? data.universityName : undefined
                     });
-                    setShowUniversityPrompt(true);
+                    openModal('university');
                 }, 1500);
             }
         } catch (error) {
@@ -86,7 +115,7 @@ export default function EventRegistrationButton({
         }
     };
 
-    const handleRegisterClick = () => {
+    const handleRegisterClick = async () => {
         // If there's an external registration link, open it in a new tab
         if (event?.sign_up_link) {
             window.open(event.sign_up_link, '_blank', 'noopener,noreferrer');
@@ -112,17 +141,69 @@ export default function EventRegistrationButton({
             return;
         }
 
-        // If event has paid tickets, show ticket selection modal
-        if (hasPaidTickets) {
-            setShowTicketSelection(true);
+        // Debug logging
+        console.log('[EventRegistrationButton] Initial state:', {
+            hasTicketsData,
+            hasCompleteTicketData,
+            ticketsCount: event.tickets?.length,
+            hasPaidTickets,
+            context,
+            hasCallback: !!onFetchFullEventData,
+            firstTicket: event.tickets?.[0]
+        });
+
+        // Check if event has ANY tickets (free or paid) in the current data
+        const hasTickets = hasTicketsData;
+
+        // If event has tickets, show ticket selection modal
+        if (hasTickets) {
+            // If tickets don't have complete data, we need to fetch while modal is open
+            if (!hasCompleteTicketData && onFetchFullEventData) {
+                console.log('[EventRegistrationButton] Tickets exist but missing release data, will fetch while modal is open...');
+                setIsFetchingTickets(true);
+                openModal('tickets'); // Open modal with loading state
+
+                // Fetch complete data in the background
+                const fetchedEvent = await onFetchFullEventData();
+                setIsFetchingTickets(false);
+
+                if (fetchedEvent) {
+                    setFullEventData(fetchedEvent);
+                    console.log('[EventRegistrationButton] Fetched complete event:', {
+                        ticketsCount: fetchedEvent.tickets?.length,
+                        firstTicket: fetchedEvent.tickets?.[0],
+                        hasReleaseData: fetchedEvent.tickets?.[0] ? (fetchedEvent.tickets[0] as Record<string, unknown>).availability_status !== undefined : false
+                    });
+                }
+            } else {
+                // Has complete data already, just show modal
+                openModal('tickets');
+            }
         } else {
-            // Show confirmation modal for free events
-            setShowRegistrationConfirmation(true);
+            // No tickets in current data, check if we need to fetch
+            if (onFetchFullEventData) {
+                console.log('[EventRegistrationButton] No tickets found, fetching to check...');
+                setIsLoading(true);
+                const fetchedEvent = await onFetchFullEventData();
+                setIsLoading(false);
+
+                if (fetchedEvent && fetchedEvent.tickets && fetchedEvent.tickets.length > 0) {
+                    // Found tickets after fetch, show ticket modal
+                    setFullEventData(fetchedEvent);
+                    openModal('tickets');
+                } else {
+                    // Still no tickets, show simple registration
+                    openModal('registration');
+                }
+            } else {
+                // No way to fetch, show simple registration
+                openModal('registration');
+            }
         }
     };
 
     const handleRegister = async (tickets: number = 1) => {
-        setShowRegistrationConfirmation(false);
+        closeAllModals();
 
         setIsLoading(true);
         const toastId = toast.loading("Registering for event...");
@@ -264,13 +345,13 @@ export default function EventRegistrationButton({
             if (result.success) {
                 toast.success("Successfully left the event", { id: toastId });
                 onRegistrationChange?.();
-                setShowConfirmation(false);
+                closeAllModals();
             } else {
                 const errorMessage = result.error || "Failed to leave event";
                 if (errorMessage.includes("not registered")) {
                     toast.success("You weren't registered for this event", { id: toastId });
                     onRegistrationChange?.(); // Refresh status
-                    setShowConfirmation(false);
+                    closeAllModals();
                 } else if (errorMessage.includes("Event not found")) {
                     toast.error("This event no longer exists", { id: toastId });
                 } else {
@@ -337,7 +418,7 @@ export default function EventRegistrationButton({
                                     {/* Countdown */}
                                     {event.start_datetime && (
                                         <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                            <EventCountdown startDateTime={event.start_datetime} />
+                                            <EventCountdown startDateTime={event.start_datetime} endDateTime={event.end_datetime} />
                                             {isVirtualEvent && (
                                                 <div className="mt-3 pt-3 border-t border-gray-200">
                                                     <p className="text-xs text-gray-600 flex items-start gap-2">
@@ -351,7 +432,7 @@ export default function EventRegistrationButton({
 
                                     {/* Calendar Button */}
                                     <button
-                                        onClick={() => setShowCalendarModal(true)}
+                                        onClick={() => openModal('calendar')}
                                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
                                     >
                                         <Calendar className="w-4 h-4" />
@@ -361,7 +442,7 @@ export default function EventRegistrationButton({
                                     {/* Cancel Link */}
                                     <div className="text-center pt-2">
                                         <button
-                                            onClick={() => setShowConfirmation(true)}
+                                            onClick={() => openModal('confirmation')}
                                             disabled={isPreview || isLoading}
                                             className="text-sm text-gray-500 hover:text-red-600 transition-colors duration-200"
                                         >
@@ -396,7 +477,7 @@ export default function EventRegistrationButton({
                                 className="flex gap-2"
                             >
                                 <button
-                                    onClick={() => setShowConfirmation(false)}
+                                    onClick={() => openModal('none')}
                                     disabled={isLoading}
                                     className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 transition-colors duration-150 text-sm font-medium text-gray-700"
                                 >
@@ -418,13 +499,13 @@ export default function EventRegistrationButton({
                     )}
                     <UniversityVerificationPrompt
                         isOpen={showUniversityPrompt && universityPromptData !== null}
-                        onClose={() => setShowUniversityPrompt(false)}
+                        onClose={closeAllModals}
                         userEmail={universityPromptData?.userEmail || ''}
                         universityName={universityPromptData?.universityName}
                     />
                     <CalendarModal
                         isOpen={showCalendarModal}
-                        onClose={() => setShowCalendarModal(false)}
+                        onClose={closeAllModals}
                         event={event}
                         userEmail={session?.user?.email}
                     />
@@ -449,7 +530,7 @@ export default function EventRegistrationButton({
                 </div>
                 <ModernRegistrationModal
                     isOpen={showRegistrationConfirmation}
-                    onClose={() => setShowRegistrationConfirmation(false)}
+                    onClose={closeAllModals}
                     onConfirm={handleRegister}
                     event={event}
                     isRegistering={isLoading}
@@ -459,16 +540,17 @@ export default function EventRegistrationButton({
                 {/* Paid event ticket selection modal */}
                 {showTicketSelection && (
                     <TicketSelectionModal
-                        event={event}
-                        onClose={() => setShowTicketSelection(false)}
+                        event={fullEventData ?? event}
+                        onClose={closeAllModals}
                         onFreeRegistration={handleRegister}
                         userName={session?.user?.name}
                         userEmail={session?.user?.email}
+                        isLoadingTickets={isFetchingTickets}
                     />
                 )}
                 <UniversityVerificationPrompt
                     isOpen={showUniversityPrompt && universityPromptData !== null}
-                    onClose={() => setShowUniversityPrompt(false)}
+                    onClose={closeAllModals}
                     userEmail={universityPromptData?.userEmail || ''}
                     universityName={universityPromptData?.universityName}
                 />
@@ -510,13 +592,13 @@ export default function EventRegistrationButton({
                                     {event.start_datetime && (
                                         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                                             <p className="text-xs text-gray-600 font-medium mb-1.5">Event starts in</p>
-                                            <EventCountdown startDateTime={event.start_datetime} />
+                                            <EventCountdown startDateTime={event.start_datetime} endDateTime={event.end_datetime} />
                                         </div>
                                     )}
 
                                     {/* Calendar Button */}
                                     <button
-                                        onClick={() => setShowCalendarModal(true)}
+                                        onClick={() => openModal('calendar')}
                                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors text-sm font-medium"
                                     >
                                         <Calendar className="w-4 h-4" />
@@ -526,7 +608,7 @@ export default function EventRegistrationButton({
                                     {/* Cancel Link */}
                                     <div className="text-center pt-1">
                                         <button
-                                            onClick={() => setShowConfirmation(true)}
+                                            onClick={() => openModal('confirmation')}
                                             disabled={isPreview || isLoading}
                                             className="text-xs text-gray-500 hover:text-red-600 transition-colors duration-200"
                                         >
@@ -563,7 +645,7 @@ export default function EventRegistrationButton({
                                 className="flex gap-2"
                             >
                                 <button
-                                    onClick={() => setShowConfirmation(false)}
+                                    onClick={() => openModal('none')}
                                     disabled={isLoading}
                                     className="flex-1 px-3 py-1.5 text-sm bg-white border border-gray-200 rounded hover:bg-gray-50 transition-colors duration-150 font-medium text-black"
                                 >
@@ -586,13 +668,13 @@ export default function EventRegistrationButton({
                 </AnimatePresence>
                 <UniversityVerificationPrompt
                     isOpen={showUniversityPrompt && universityPromptData !== null}
-                    onClose={() => setShowUniversityPrompt(false)}
+                    onClose={closeAllModals}
                     userEmail={universityPromptData?.userEmail || ''}
                     universityName={universityPromptData?.universityName}
                 />
                 <CalendarModal
                     isOpen={showCalendarModal}
-                    onClose={() => setShowCalendarModal(false)}
+                    onClose={closeAllModals}
                     event={event}
                     userEmail={session?.user?.email}
                 />
@@ -617,7 +699,7 @@ export default function EventRegistrationButton({
             {/* Free event registration modal */}
             <ModernRegistrationModal
                 isOpen={showRegistrationConfirmation}
-                onClose={() => setShowRegistrationConfirmation(false)}
+                onClose={closeAllModals}
                 onConfirm={handleRegister}
                 event={event}
                 isRegistering={isLoading}
@@ -628,17 +710,18 @@ export default function EventRegistrationButton({
             {/* Paid event ticket selection modal */}
             {showTicketSelection && (
                 <TicketSelectionModal
-                    event={event}
-                    onClose={() => setShowTicketSelection(false)}
+                    event={fullEventData ?? event}
+                    onClose={closeAllModals}
                     onFreeRegistration={handleRegister}
                     userName={session?.user?.name}
                     userEmail={session?.user?.email}
+                    isLoadingTickets={isFetchingTickets}
                 />
             )}
 
             <UniversityVerificationPrompt
                 isOpen={showUniversityPrompt && universityPromptData !== null}
-                onClose={() => setShowUniversityPrompt(false)}
+                onClose={closeAllModals}
                 userEmail={universityPromptData?.userEmail || ''}
                 universityName={universityPromptData?.universityName}
             />

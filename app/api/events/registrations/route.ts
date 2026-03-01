@@ -14,9 +14,10 @@ export async function POST(req: Request) {
     const activeRegistrations = registrations.filter(r => !r.is_cancelled);
     const cancelledRegistrations = registrations.filter(r => r.is_cancelled);
 
-    const totalRegistrations = activeRegistrations.length;
-    const internalRegistrations = activeRegistrations.filter(r => !r.external).length;
-    const externalRegistrations = activeRegistrations.filter(r => r.external).length;
+    // Sum quantities instead of counting rows (handles multi-ticket purchases)
+    const totalRegistrations = activeRegistrations.reduce((sum, r) => sum + (r.quantity || 1), 0);
+    const internalRegistrations = activeRegistrations.filter(r => !r.external).reduce((sum, r) => sum + (r.quantity || 1), 0);
+    const externalRegistrations = activeRegistrations.filter(r => r.external).reduce((sum, r) => sum + (r.quantity || 1), 0);
 
     // Sort by most recent
     const sortedRegistrations = [...registrations].sort((a, b) => {

@@ -1,11 +1,12 @@
 import { insertModernEvent, getEventOrganiserEmail } from "@/app/lib/data";
 import { NextResponse } from "next/server";
 import { createSQLEventData, convertSQLEventToEvent } from "@/app/lib/utils";
-import { EventFormData, SQLEvent } from "@/app/lib/types";
+import { EventFormData, SQLEvent, CoHostFormSelection } from "@/app/lib/types";
 import { sendEventRegistrationEmail } from "@/app/lib/send-email";
 import EventCreationConfirmationEmailPayload from "@/app/components/templates/event-creation-confirmation-email";
 import EventCreationConfirmationEmailFallbackPayload from "@/app/components/templates/event-creation-confirmation-email-fallback";
 import { sql } from "@vercel/postgres";
+import { randomUUID } from "crypto";
 
 interface TicketType {
     id: string;
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
 		const body = await req.json();
 		const data: EventFormData = body;
 		const tickets: TicketType[] = body.tickets || [];
+		const cohosts: CoHostFormSelection[] = body.cohosts || [];
 
 		// Validate required fields
 		if (!data.title || !data.description || !data.organiser || !data.start_datetime || !data.end_datetime) {
@@ -81,14 +83,16 @@ export async function POST(req: Request) {
 
 		// Validate access control fields
 		// Note: 'students_only' includes all account types (students, societies, companies)
-		const validVisibilityLevels = ['public', 'students_only', 'verified_students', 'university_exclusive'];
+		const validVisibilityLevels = ['public', 'students_only', 'verified_students', 'university_exclusive', 'private'];
+		const validRegistrationLevels = ['public', 'students_only', 'verified_students', 'university_exclusive'];
+
 		if (data.visibility_level && !validVisibilityLevels.includes(data.visibility_level)) {
 			return NextResponse.json(
 				{ success: false, error: "Invalid visibility level" },
 				{ status: 400 }
 			);
 		}
-		if (data.registration_level && !validVisibilityLevels.includes(data.registration_level)) {
+		if (data.registration_level && !validRegistrationLevels.includes(data.registration_level)) {
 			return NextResponse.json(
 				{ success: false, error: "Invalid registration level" },
 				{ status: 400 }
@@ -105,15 +109,18 @@ export async function POST(req: Request) {
 		}
 
 		// Validate that registration level is at least as restrictive as visibility level
-		// Restrictiveness hierarchy: public (0) < logged-in users (1) < verified students (2) < university exclusive (3)
-		const restrictiveness = { 'public': 0, 'students_only': 1, 'verified_students': 2, 'university_exclusive': 3 };
-		const visibilityRestriction = restrictiveness[data.visibility_level as keyof typeof restrictiveness] || 0;
-		const registrationRestriction = restrictiveness[data.registration_level as keyof typeof restrictiveness] || 0;
-		if (registrationRestriction < visibilityRestriction) {
-			return NextResponse.json(
-				{ success: false, error: "Registration level must be at least as restrictive as visibility level" },
-				{ status: 400 }
-			);
+		// Skip this check for private events (they can have any registration level since only people with direct link can access)
+		if (data.visibility_level !== 'private') {
+			// Restrictiveness hierarchy: public (0) < logged-in users (1) < verified students (2) < university exclusive (3)
+			const restrictiveness = { 'public': 0, 'students_only': 1, 'verified_students': 2, 'university_exclusive': 3 };
+			const visibilityRestriction = restrictiveness[data.visibility_level as keyof typeof restrictiveness] || 0;
+			const registrationRestriction = restrictiveness[data.registration_level as keyof typeof restrictiveness] || 0;
+			if (registrationRestriction < visibilityRestriction) {
+				return NextResponse.json(
+					{ success: false, error: "Registration level must be at least as restrictive as visibility level" },
+					{ status: 400 }
+				);
+			}
 		}
 
 		// Convert form data to SQL format
@@ -171,6 +178,104 @@ export async function POST(req: Request) {
 			}
 		}
 
+		// Insert co-hosts (primary organiser + invited co-hosts)
+		if (response.success && response.event) {
+			try {
+				// Determine if a co-host is designated as payment recipient
+				const coHostReceivesPayments = cohosts.some(ch => ch.receives_payments);
+
+				// Insert primary organiser as co-host
+				await sql`
+					INSERT INTO event_cohosts (
+						event_id, user_id, role, status, display_order, is_visible,
+						can_edit, can_manage_registrations, can_manage_guests, can_view_insights,
+						receives_registration_emails, receives_summary_emails,
+						receives_payments, added_by, accepted_at
+					) VALUES (
+						${response.event.id}, ${data.organiser_uid}, 'primary', 'accepted', 0, TRUE,
+						TRUE, TRUE, TRUE, TRUE,
+						TRUE, TRUE,
+						${!coHostReceivesPayments}, ${data.organiser_uid}, NOW()
+					)
+				`;
+
+				// Insert each co-host with pending status
+				for (let i = 0; i < cohosts.length; i++) {
+					const ch = cohosts[i];
+					const invitationToken = randomUUID().replace(/-/g, '');
+
+					// If co-host is designated as payment recipient with paid tickets, validate Stripe
+					if (ch.receives_payments && hasPaidTickets) {
+						const stripeCheck = await sql`
+							SELECT stripe_charges_enabled, stripe_payouts_enabled
+							FROM users WHERE id = ${ch.user_id}
+						`;
+						if (stripeCheck.rows.length === 0 ||
+							!stripeCheck.rows[0].stripe_charges_enabled ||
+							!stripeCheck.rows[0].stripe_payouts_enabled) {
+							console.warn(`⚠️ Co-host ${ch.name} designated for payments but Stripe not ready, falling back to primary`);
+							ch.receives_payments = false;
+							// Re-enable primary organiser as payment recipient
+							await sql`
+								UPDATE event_cohosts SET receives_payments = TRUE
+								WHERE event_id = ${response.event.id} AND role = 'primary'
+							`;
+						}
+					}
+
+					await sql`
+						INSERT INTO event_cohosts (
+							event_id, user_id, role, status, invitation_token, display_order, is_visible,
+							can_edit, can_manage_registrations, can_manage_guests, can_view_insights,
+							receives_registration_emails, receives_summary_emails,
+							receives_payments, added_by
+						) VALUES (
+							${response.event.id}, ${ch.user_id}, 'cohost', 'pending', ${invitationToken}, ${i + 1}, TRUE,
+							${ch.can_edit}, ${ch.can_manage_registrations}, ${ch.can_manage_guests}, ${ch.can_view_insights},
+							${ch.receives_registration_emails}, ${ch.receives_summary_emails},
+							${ch.receives_payments}, ${data.organiser_uid}
+						)
+					`;
+
+					// Send invitation email to co-host (non-blocking)
+					try {
+						const coHostEmail = await sql`SELECT email, name FROM users WHERE id = ${ch.user_id}`;
+						if (coHostEmail.rows[0]?.email) {
+							const eventTitle = data.title;
+							const organiserName = data.organiser;
+							const acceptUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.londonstudentnetwork.com'}/api/events/cohosts/respond?token=${invitationToken}&action=accept`;
+							const declineUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.londonstudentnetwork.com'}/api/events/cohosts/respond?token=${invitationToken}&action=decline`;
+
+							await sendEventRegistrationEmail({
+								toEmail: coHostEmail.rows[0].email,
+								subject: `You've been invited to co-host "${eventTitle}" on LSN`,
+								html: `
+									<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+										<h2 style="color: #1e3a5f;">Co-Host Invitation</h2>
+										<p>Hi ${coHostEmail.rows[0].name},</p>
+										<p><strong>${organiserName}</strong> has invited you to co-host <strong>"${eventTitle}"</strong> on London Student Network.</p>
+										<p>As a co-host, this event will appear on your account and you'll be listed as an organiser.</p>
+										<div style="margin: 24px 0;">
+											<a href="${acceptUrl}" style="background: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 12px;">Accept Invitation</a>
+											<a href="${declineUrl}" style="background: #6b7280; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none;">Decline</a>
+										</div>
+										<p style="color: #6b7280; font-size: 14px;">If you didn't expect this invitation, you can safely ignore this email.</p>
+									</div>
+								`,
+								text: `${organiserName} has invited you to co-host "${eventTitle}" on LSN. Accept: ${acceptUrl} | Decline: ${declineUrl}`,
+							});
+						}
+					} catch (emailError) {
+						console.error(`❌ Failed to send co-host invitation email to ${ch.name}:`, emailError);
+					}
+				}
+				console.log('✅ Co-hosts inserted successfully');
+			} catch (coHostError) {
+				console.error('❌ Failed to insert co-hosts:', coHostError);
+				// Don't fail event creation if co-host insertion fails
+			}
+		}
+
 		// Send confirmation email to organizer
 		if (response.success && response.event) {
 			console.log('=== Attempting to send confirmation email ===');
@@ -205,7 +310,10 @@ export async function POST(req: Request) {
 			console.log('⚠️ Skipping email: success =', response.success, ', hasEvent =', !!response.event);
 		}
 
-		return NextResponse.json(response);
+		return NextResponse.json({
+			...response,
+			coHostsInvited: cohosts.length,
+		});
 	} catch (error) {
 		console.error("Error creating event:", error);
 		return NextResponse.json(

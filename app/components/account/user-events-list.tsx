@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import FilteredEventsList from "../events-page/filtered-events-list";
 import { Event } from "@/app/lib/types";
 import { UserEventsListProps } from "@/app/lib/types";
@@ -46,6 +46,14 @@ export default function UserEventsList({
         offset: 0,
         hasMore: false
     });
+
+    // Track if we've already fetched to prevent infinite loops
+    const hasFetchedRef = useRef(false);
+
+    // Reset fetch flag when user_id changes
+    useEffect(() => {
+        hasFetchedRef.current = false;
+    }, [user_id]);
 
     const fetchUserEvents = useCallback(async (isLoadMore: boolean = false, currentEventCount: number = 0) => {
         try {
@@ -93,9 +101,36 @@ export default function UserEventsList({
     }, [user_id, editEvent]);
 
     useEffect(() => {
-        // Only fetch if we don't have initial data
-        if (initialEvents.length === 0) {
+        // Always set the initial data first
+        if (initialEvents.length > 0) {
+            setUserEvents(initialEvents);
+            // Set pagination based on what we have
+            // Since server fetches ALL events, we have everything - no pagination needed
+            setPagination({
+                total: initialEvents.length,
+                limit: initialEvents.length,
+                offset: 0,
+                hasMore: false
+            });
+            hasFetchedRef.current = true;
+        } else if (!hasFetchedRef.current) {
+            // No initial data and haven't fetched yet - fetch from API
             fetchUserEvents();
+            hasFetchedRef.current = true;
+        }
+
+        // Restore scroll position if returning from manage page
+        const savedScrollPosition = sessionStorage.getItem('accountPageScrollPosition');
+        if (savedScrollPosition) {
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                window.scrollTo({
+                    top: parseInt(savedScrollPosition),
+                    behavior: 'smooth'
+                });
+                // Clear the saved position
+                sessionStorage.removeItem('accountPageScrollPosition');
+            }, 100);
         }
     }, [initialEvents.length, fetchUserEvents]);
 

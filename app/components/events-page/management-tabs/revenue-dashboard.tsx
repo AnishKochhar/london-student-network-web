@@ -53,7 +53,7 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
     return (
         <div className="space-y-4 sm:space-y-6">
             {/* Revenue Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
                 {/* Total Revenue */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
@@ -71,17 +71,27 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
                         <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 shrink-0" />
                     </div>
                     <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.organizerEarnings)}</p>
-                    <p className="text-xs text-white/70 mt-1">After platform fee</p>
+                    <p className="text-xs text-white/70 mt-1">After transaction fees</p>
                 </div>
 
-                {/* Platform Fee */}
+                {/* Stripe Fees */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs sm:text-sm font-medium text-white/80">Platform Fee</p>
+                        <p className="text-xs sm:text-sm font-medium text-white/80">Stripe Fees</p>
                         <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 shrink-0" />
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.platformFee)}</p>
-                    <p className="text-xs text-white/70 mt-1">LSN service fee</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.stripeFee)}</p>
+                    <p className="text-xs text-white/70 mt-1">1.5% + 20p per transaction</p>
+                </div>
+
+                {/* LSN Fees */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs sm:text-sm font-medium text-white/80">LSN Fees</p>
+                        <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 shrink-0" />
+                    </div>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{formatCurrency(revenue.lsnFee)}</p>
+                    <p className="text-xs text-white/70 mt-1">2.5% per transaction</p>
                 </div>
 
                 {/* Total Transactions */}
@@ -90,26 +100,15 @@ export default function RevenueDashboard({ hasPaidTickets }: RevenueDashboardPro
                         <p className="text-xs sm:text-sm font-medium text-white/80">Transactions</p>
                         <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 shrink-0" />
                     </div>
-                    <p className="text-2xl sm:text-3xl font-bold text-white">{revenue.totalTransactions}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">{revenue.successfulPayments}</p>
                     <p className="text-xs text-white/70 mt-1">
-                        {revenue.successfulPayments} successful
+                        Successful payments
                     </p>
                 </div>
             </div>
 
             {/* Payment Breakdown */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-                {/* Pending Payments */}
-                {revenue.pendingAmount > 0 && (
-                    <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">
-                        <h4 className="text-xs sm:text-sm font-medium text-white/80 mb-2">Pending</h4>
-                        <p className="text-xl sm:text-2xl font-bold text-yellow-400">
-                            {formatCurrency(revenue.pendingAmount)}
-                        </p>
-                        <p className="text-xs text-white/70 mt-1">Processing</p>
-                    </div>
-                )}
-
                 {/* Refunded Amount */}
                 {revenue.refundedAmount > 0 && (
                     <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg border border-white/20 p-4 sm:p-6">

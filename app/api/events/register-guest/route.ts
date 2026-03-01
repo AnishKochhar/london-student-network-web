@@ -9,6 +9,7 @@ import EventOrganizerNotificationEmailPayload from "@/app/components/templates/e
 import EventOrganizerNotificationEmailFallbackPayload from "@/app/components/templates/event-organizer-notification-email-fallback";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
 import { generateICSFile } from "@/app/lib/ics-generator";
+import { checkEventCapacitySimple } from "@/app/lib/capacity";
 
 export async function POST(req: Request) {
 	try {
@@ -117,6 +118,15 @@ export async function POST(req: Request) {
 				success: false,
 				alreadyRegistered: true,
 				error: "This email is already registered for the event",
+			});
+		}
+
+		// Check event capacity (excluding cancelled registrations)
+		const capacityCheck = await checkEventCapacitySimple(event_id, event.capacity);
+		if (!capacityCheck.canRegister) {
+			return NextResponse.json({
+				success: false,
+				error: `EVENT_FULL|${capacityCheck.errorMessage}`,
 			});
 		}
 

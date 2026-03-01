@@ -5,6 +5,7 @@ import { Clock } from 'lucide-react';
 
 interface EventCountdownProps {
     startDateTime: string;
+    endDateTime?: string;
     className?: string;
 }
 
@@ -16,77 +17,70 @@ interface TimeRemaining {
     total: number;
 }
 
-export default function EventCountdown({ startDateTime, className = '' }: EventCountdownProps) {
+export default function EventCountdown({ startDateTime, endDateTime, className = '' }: EventCountdownProps) {
     const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null);
+    const [eventStatus, setEventStatus] = useState<'upcoming' | 'started' | 'ended'>('upcoming');
 
     useEffect(() => {
-        const calculateTimeRemaining = (): TimeRemaining => {
-            const eventTime = new Date(startDateTime).getTime();
-            const now = new Date().getTime();
-            const difference = eventTime - now;
+        const calculate = () => {
+            const now = Date.now();
+            const startTime = new Date(startDateTime).getTime();
+            const endTime = endDateTime ? new Date(endDateTime).getTime() : null;
 
-            if (difference <= 0) {
+            // Determine event status
+            if (endTime && now >= endTime) {
+                setEventStatus('ended');
+                return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
+            }
+            if (now >= startTime) {
+                setEventStatus('started');
                 return { days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 };
             }
 
-            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
-
-            return { days, hours, minutes, seconds, total: difference };
+            setEventStatus('upcoming');
+            const difference = startTime - now;
+            return {
+                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+                seconds: Math.floor((difference % (1000 * 60)) / 1000),
+                total: difference,
+            };
         };
 
-        // Initial calculation
-        setTimeRemaining(calculateTimeRemaining());
-
-        // Update every second
-        const timer = setInterval(() => {
-            setTimeRemaining(calculateTimeRemaining());
-        }, 1000);
-
+        setTimeRemaining(calculate());
+        const timer = setInterval(() => setTimeRemaining(calculate()), 1000);
         return () => clearInterval(timer);
-    }, [startDateTime]);
+    }, [startDateTime, endDateTime]);
 
     if (!timeRemaining) return null;
 
     const formatCountdown = () => {
-        if (timeRemaining.total <= 0) {
-            return 'Event has started';
-        }
+        if (eventStatus === 'ended') return 'Event has ended';
+        if (eventStatus === 'started') return 'Event has started';
 
-        if (timeRemaining.days > 0) {
-            return `${timeRemaining.days}d ${timeRemaining.hours}h`;
-        }
-
-        if (timeRemaining.hours > 0) {
-            return `${timeRemaining.hours}h ${timeRemaining.minutes}m`;
-        }
-
-        if (timeRemaining.minutes > 0) {
-            return `${timeRemaining.minutes}m ${timeRemaining.seconds}s`;
-        }
-
+        if (timeRemaining.days > 0) return `${timeRemaining.days}d ${timeRemaining.hours}h`;
+        if (timeRemaining.hours > 0) return `${timeRemaining.hours}h ${timeRemaining.minutes}m`;
+        if (timeRemaining.minutes > 0) return `${timeRemaining.minutes}m ${timeRemaining.seconds}s`;
         return `${timeRemaining.seconds}s`;
     };
 
-    const getTimeUntilText = () => {
-        if (timeRemaining.total <= 0) {
-            return '';
-        }
-        return 'Event starting in';
-    };
+    // Prose status messages get smaller text; numeric countdowns stay large
+    const isProseStatus = eventStatus !== 'upcoming';
+    const statusColor = eventStatus === 'ended'
+        ? 'text-gray-500'
+        : eventStatus === 'started'
+            ? 'text-green-600'
+            : 'text-orange-600';
 
     return (
         <div className={`flex items-center gap-2 ${className}`}>
-            <Clock className="w-5 h-5 text-gray-500" />
+            <Clock className={`w-5 h-5 ${eventStatus === 'ended' ? 'text-gray-400' : 'text-gray-500'}`} />
             <div>
-                {timeRemaining.total > 0 && (
-                    <p className="text-xs text-gray-600">{getTimeUntilText()}</p>
+                {eventStatus === 'upcoming' && (
+                    <p className="text-xs text-gray-600">Event starting in</p>
                 )}
-                <p className={`text-2xl font-bold ${
-                    timeRemaining.total <= 0 ? 'text-green-600' : 'text-orange-600'
-                }`}>
+                <p className={`${isProseStatus ? 'text-sm font-semibold' : 'text-2xl font-bold'} ${statusColor}`}>
                     {formatCountdown()}
                 </p>
             </div>

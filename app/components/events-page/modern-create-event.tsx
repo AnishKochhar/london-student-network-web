@@ -7,8 +7,10 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import toast from "react-hot-toast";
 import { ArrowLeftIcon, EyeIcon, ChevronDownIcon, CalendarIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { upload } from "@vercel/blob/client";
-import { EventFormData, Event } from "@/app/lib/types";
+import { EventFormData, Event, CoHostFormSelection } from "@/app/lib/types";
+import CoHostSelector from "./co-host-selector";
 import { placeholderImages, createModernEventObject, validateModernEvent, EVENT_TAG_TYPES } from "@/app/lib/utils";
+import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import { DefaultEvent } from "@/app/lib/types";
 import EventModal from "./event-modal";
 import Image from "next/image";
@@ -49,6 +51,7 @@ const sectionVariants = {
 const AnimatedSection = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
+    const [animationDone, setAnimationDone] = useState(false);
 
     return (
         <motion.section
@@ -56,7 +59,10 @@ const AnimatedSection = ({ children, className = "" }: { children: React.ReactNo
             variants={sectionVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
-            className={`${className} overflow-visible`}
+            onAnimationComplete={(definition) => {
+                if (definition === "visible") setAnimationDone(true);
+            }}
+            className={`${className} overflow-visible ${animationDone ? "animation-done" : ""}`}
         >
             {children}
         </motion.section>
@@ -372,7 +378,7 @@ const ModernCalendarPicker = ({ value, onChange, label, required = false, classN
     };
 
     return (
-        <div ref={calendarRef} className={`relative z-[150] ${className}`}>
+        <div ref={calendarRef} className={`relative ${className}`}>
             <label className="block text-sm font-medium text-white mb-3">
                 {label} {required && <span className="text-red-300">*</span>}
             </label>
@@ -641,12 +647,12 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
             capacity: event.capacity,
             sign_up_link: event.sign_up_link,
             for_externals: event.for_externals,
+            external_forward_email: event.external_forward_email,
             is_multi_day: false,
             send_signup_notifications: event.send_signup_notifications ?? true,
             visibility_level: event.visibility_level || 'public',
             registration_level: event.registration_level || 'public',
             allowed_universities: event.allowed_universities || [],
-            link_only: event.link_only ?? false,
             registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
             external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
         };
@@ -676,11 +682,11 @@ const convertEventToFormData = (event: Event, organiser_id: string): Partial<Eve
         capacity: event.capacity,
         sign_up_link: event.sign_up_link,
         for_externals: event.for_externals,
+        external_forward_email: event.external_forward_email,
         send_signup_notifications: event.send_signup_notifications ?? true,
         visibility_level: event.visibility_level || 'public',
         registration_level: event.registration_level || 'public',
         allowed_universities: event.allowed_universities || [],
-        link_only: event.link_only ?? false,
         registration_cutoff_hours: event.registration_cutoff_hours ?? undefined,
         external_registration_cutoff_hours: event.external_registration_cutoff_hours ?? undefined
     };
@@ -693,6 +699,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [eventData, setEventData] = useState(existingEvent || DefaultEvent);
     const [selectedTags, setSelectedTags] = useState<number>(existingEvent?.event_type || 0);
+    const [selectedCoHosts, setSelectedCoHosts] = useState<CoHostFormSelection[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Ticket management state
@@ -808,8 +815,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             send_signup_notifications: true,
             visibility_level: 'public',
             registration_level: 'public',
-            allowed_universities: [],
-            link_only: false
+            allowed_universities: []
         }
     });
 
@@ -848,7 +854,10 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                 try {
                     // Don't save if form is empty
                     if (watchedValues.title || watchedValues.description) {
-                        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(watchedValues));
+                        // Exclude uploaded_image from autosave - File objects don't serialize properly
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { uploaded_image, ...savableValues } = watchedValues;
+                        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(savableValues));
                     }
                 } catch (error) {
                     console.error("Failed to autosave:", error);
@@ -860,13 +869,12 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
     }, [watchedValues, editMode, AUTOSAVE_KEY]);
 
     useEffect(() => {
-        if (watchedImage) {
-            const file = watchedImage;
+        if (watchedImage && watchedImage instanceof Blob) {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(watchedImage);
         } else if (selectedPlaceholder) {
             setImagePreview(selectedPlaceholder);
         } else {
@@ -951,13 +959,14 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
             const isMultiDay = calculateIsMultiDay(data.start_datetime, data.end_datetime);
 
             // Prepare the data for submission
-            const eventData: EventFormData & { tickets: TicketType[] } = {
+            const eventData: EventFormData & { tickets: TicketType[]; cohosts: CoHostFormSelection[] } = {
                 ...data,
                 image_url: imageUrl,
                 organiser_uid: organiser_id,
                 is_multi_day: isMultiDay,
                 tags: selectedTags,
-                tickets: tickets, // Include tickets in submission
+                tickets: tickets,
+                cohosts: selectedCoHosts,
             };
 
             const apiEndpoint = editMode ? "/api/events/update" : "/api/events/create";
@@ -973,7 +982,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
             const result = await response.json();
             if (result.success) {
-                toast.success(editMode ? "Event updated successfully!" : "Event created successfully!", { id: toastId });
+                const baseMessage = editMode ? "Event updated successfully!" : "Event created successfully!";
+                const coHostMessage = !editMode && result.coHostsInvited > 0
+                    ? `\n${result.coHostsInvited} co-host invitation${result.coHostsInvited > 1 ? 's' : ''} sent.`
+                    : '';
+                toast.success(baseMessage + coHostMessage, { id: toastId, duration: coHostMessage ? 5000 : 3000 });
                 // Clear autosave on successful submission
                 if (!editMode) {
                     try {
@@ -985,7 +998,8 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                 // Redirect to the event page (or manage page if just created)
                 if (result.event?.id) {
                     const eventId = result.event.id;
-                    router.push(editMode ? `/events/${eventId}` : `/events/${eventId}/manage`);
+                    const shortId = base16ToBase62(eventId);
+                    router.push(editMode ? `/events/${shortId}` : `/events/${shortId}/manage`);
                 } else {
                     router.push("/events");
                 }
@@ -1164,6 +1178,29 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Co-Hosts */}
+                                <div className="mt-4">
+                                    <label className="block text-sm font-medium text-white mb-2">
+                                        Co-Hosts <span className="text-white/50 font-normal">(optional)</span>
+                                    </label>
+                                    {editMode ? (
+                                        <p className="text-sm text-blue-200/70">
+                                            Co-hosts can be managed from the Co-Hosts tab on the event management page.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm text-blue-200/70 mb-3">
+                                                Invite other societies to co-host this event. They will receive an invitation to accept.
+                                            </p>
+                                            <CoHostSelector
+                                                selectedCoHosts={selectedCoHosts}
+                                                onCoHostsChange={setSelectedCoHosts}
+                                                excludeUid={organiser_id}
+                                            />
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </AnimatedSection>
 
@@ -1174,7 +1211,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                 <p className="text-blue-200 text-sm mb-4 lg:mb-0">When is your event happening?</p>
                             </div>
 
-                            <div className="lg:col-span-9 space-y-6 relative z-[200]">
+                            <div className="lg:col-span-9 space-y-6 overflow-visible">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <ModernCalendarPicker
                                         value={watchedValues.start_datetime || ""}
@@ -1668,11 +1705,9 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     visibilityLevel={watchedValues.visibility_level || 'public'}
                                     registrationLevel={watchedValues.registration_level || 'public'}
                                     allowedUniversities={watchedValues.allowed_universities || []}
-                                    linkOnly={watchedValues.link_only || false}
                                     onVisibilityChange={(value) => setValue("visibility_level", value, { shouldValidate: true })}
                                     onRegistrationChange={(value) => setValue("registration_level", value, { shouldValidate: true })}
                                     onAllowedUniversitiesChange={(universities) => setValue("allowed_universities", universities, { shouldValidate: true })}
-                                    onLinkOnlyChange={(value) => setValue("link_only", value, { shouldValidate: true })}
                                 />
                             </div>
                         </AnimatedSection>

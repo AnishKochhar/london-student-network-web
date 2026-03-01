@@ -11,9 +11,11 @@ import { ArrowLeft, Send, MessageSquare, User, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function SendEmailPage() {
     const [partner, setPartner] = useState({ name: "" });
-    const { id } = useParams(); // Use useParams for dynamic routing to get the dynamic id from the URL
+    const { id } = useParams();
     const { data: session, status } = useSession();
     const { register, handleSubmit, reset, formState: { errors } } = useForm<SocietyMessageFormData>({
         mode: "onSubmit",
@@ -111,7 +113,7 @@ export default function SendEmailPage() {
                 {/* Header with Back Button */}
                 <div className="mb-8">
                     <Link
-                        href={`/societies/society/${id}`}
+                        href={UUID_REGEX.test(String(id)) ? `/societies/society/${id}` : `/societies/${id}`}
                         className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors mb-6"
                     >
                         <ArrowLeft className="w-4 h-4" />

@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { requireAuth, createAuthErrorResponse } from "@/app/lib/auth";
 import { stripe, calculatePlatformFee, poundsToPence } from "@/app/lib/stripe";
 import { sql } from "@vercel/postgres";
-import { fetchSQLEventById, getUserUniversityById } from "@/app/lib/data";
+import { fetchSQLEventById, getUserUniversityById, getPaymentRecipient } from "@/app/lib/data";
 import { formatInTimeZone } from "date-fns-tz";
 import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
+import { checkEventCapacity } from "@/app/lib/capacity";
 
 export async function POST(req: Request) {
     try {
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
         // Authenticate user
         const authenticatedUser = await requireAuth();
 
-        const { event_id, ticket_uuid, quantity = 1 } = await req.json();
+        const { event_id, ticket_uuid, quantity = 1, donation_amount = 0 } = await req.json();
 
         // Validate inputs
         if (!event_id || !ticket_uuid) {
@@ -33,6 +34,15 @@ export async function POST(req: Request) {
         if (quantity < 1 || quantity > 10) {
             return NextResponse.json(
                 { success: false, error: "Quantity must be between 1 and 10" },
+                { status: 400 }
+            );
+        }
+
+        // Validate donation amount (must be non-negative integer in pence)
+        const donationAmountPence = Math.max(0, Math.floor(Number(donation_amount) || 0));
+        if (donationAmountPence > 10000) { // Max £100 donation
+            return NextResponse.json(
+                { success: false, error: "Donation amount cannot exceed £100" },
                 { status: 400 }
             );
         }
@@ -107,28 +117,19 @@ export async function POST(req: Request) {
             );
         }
 
-        // Check ticket availability with atomic calculation
-        if (ticket.tickets_available !== null) {
-            // Calculate ACTUAL remaining tickets atomically
-            const availabilityCheck = await sql`
-                SELECT
-                    t.tickets_available as initial_availability,
-                    COALESCE(SUM(er.quantity), 0) as sold_quantity,
-                    t.tickets_available - COALESCE(SUM(er.quantity), 0) as remaining_tickets
-                FROM tickets t
-                LEFT JOIN event_registrations er ON er.ticket_uuid = t.ticket_uuid
-                WHERE t.ticket_uuid = ${ticket_uuid}
-                GROUP BY t.ticket_uuid, t.tickets_available
-            `;
+        // Check BOTH ticket-level AND event-level capacity (excluding cancelled registrations)
+        const capacityCheck = await checkEventCapacity(
+            event_id,
+            ticket_uuid,
+            quantity,
+            event.capacity
+        );
 
-            const remaining = parseInt(availabilityCheck.rows[0]?.remaining_tickets || '0');
-
-            if (remaining < quantity) {
-                return NextResponse.json(
-                    { success: false, error: remaining > 0 ? `Only ${remaining} ticket(s) remaining` : 'This ticket is sold out' },
-                    { status: 400 }
-                );
-            }
+        if (!capacityCheck.canRegister) {
+            return NextResponse.json(
+                { success: false, error: capacityCheck.errorMessage },
+                { status: 400 }
+            );
         }
 
         // ===== ACCESS CONTROL ENFORCEMENT =====
@@ -216,38 +217,31 @@ export async function POST(req: Request) {
             );
         }
 
-        // Fetch organizer's Stripe Connect account
-        const organizerResult = await sql`
-            SELECT
-                stripe_connect_account_id,
-                stripe_charges_enabled,
-                stripe_payouts_enabled,
-                stripe_details_submitted
-            FROM users
-            WHERE id = ${event.organiser_uid}
-        `;
+        // Fetch payment recipient's Stripe Connect account (may be primary organiser or a co-host)
+        const paymentRecipient = await getPaymentRecipient(event_id);
 
-        const organizer = organizerResult.rows[0];
-
-        if (!organizer?.stripe_connect_account_id) {
+        if (!paymentRecipient?.stripe_connect_account_id) {
             return NextResponse.json(
                 { success: false, error: "Event organizer has not set up payments yet" },
                 { status: 400 }
             );
         }
 
-        if (!organizer.stripe_charges_enabled || !organizer.stripe_payouts_enabled) {
+        if (!paymentRecipient.stripe_charges_enabled || !paymentRecipient.stripe_payouts_enabled) {
             return NextResponse.json(
                 { success: false, error: "Event organizer's payment account is not fully configured" },
                 { status: 400 }
             );
         }
 
+        const organizer = paymentRecipient;
+
         // Calculate amounts
         const ticketPriceInPence = poundsToPence(ticketPriceInPounds);
-        const totalAmount = ticketPriceInPence * quantity;
-        const platformFee = calculatePlatformFee(totalAmount);
-        const organizerAmount = totalAmount - platformFee;
+        const ticketTotal = ticketPriceInPence * quantity;
+        const platformFee = calculatePlatformFee(ticketTotal); // Platform fee only on tickets, not donations
+        const totalAmount = ticketTotal + donationAmountPence;
+        const organizerAmount = totalAmount - platformFee; // Organizer gets ticket amount minus fee PLUS full donation
 
         // Format event date/time for description
         const LONDON_TZ = 'Europe/London';
@@ -291,21 +285,50 @@ export async function POST(req: Request) {
         const validImageUrl = getValidImageUrl(event.image_url);
         const productImages = validImageUrl ? [validImageUrl] : [];
 
-        // Create Stripe Checkout Session
-        const session = await stripe.checkout.sessions.create({
-            mode: 'payment',
-            line_items: [{
+        // Build line items array
+        const lineItems: Array<{
+            price_data: {
+                currency: string;
+                product_data: {
+                    name: string;
+                    description?: string;
+                    images?: string[];
+                };
+                unit_amount: number;
+            };
+            quantity: number;
+        }> = [{
+            price_data: {
+                currency: 'gbp',
+                product_data: {
+                    name: `${event.title} - ${ticket.ticket_name}`,
+                    description: `${eventDate} at ${eventTime}\n${event.location_building}, ${event.location_area}`,
+                    images: productImages,
+                },
+                unit_amount: ticketPriceInPence,
+            },
+            quantity,
+        }];
+
+        // Add donation as separate line item if present
+        if (donationAmountPence > 0) {
+            lineItems.push({
                 price_data: {
                     currency: 'gbp',
                     product_data: {
-                        name: `${event.title} - ${ticket.ticket_name}`,
-                        description: `${eventDate} at ${eventTime}\n${event.location_building}, ${event.location_area}`,
-                        images: productImages,
+                        name: `Donation to ${event.organiser}`,
+                        description: '100% of your donation goes directly to the society',
                     },
-                    unit_amount: ticketPriceInPence,
+                    unit_amount: donationAmountPence,
                 },
-                quantity,
-            }],
+                quantity: 1,
+            });
+        }
+
+        // Create Stripe Checkout Session
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            line_items: lineItems,
             payment_intent_data: {
                 application_fee_amount: platformFee,
                 transfer_data: {
@@ -326,6 +349,7 @@ export async function POST(req: Request) {
                 user_name: user.name,
                 quantity: quantity.toString(),
                 is_external: isExternal.toString(),
+                donation_amount: donationAmountPence.toString(),
             },
             success_url: `${baseUrl}/events/${base16ToBase62(event.id)}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${baseUrl}/events/${base16ToBase62(event.id)}?payment=cancelled`,
@@ -345,7 +369,8 @@ export async function POST(req: Request) {
                 organizer_amount,
                 quantity,
                 payment_status,
-                currency
+                currency,
+                donation_amount
             ) VALUES (
                 ${event_id},
                 ${ticket_uuid},
@@ -356,7 +381,8 @@ export async function POST(req: Request) {
                 ${organizerAmount},
                 ${quantity},
                 'pending',
-                'gbp'
+                'gbp',
+                ${donationAmountPence}
             )
         `;
 

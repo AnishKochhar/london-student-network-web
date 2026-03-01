@@ -5,6 +5,7 @@ import {
     getUserUniversityById,
     registerForEvent,
     getEventOrganiserEmail,
+    getNotificationRecipients,
 } from "@/app/lib/data";
 import { requireAuth, createAuthErrorResponse } from "@/app/lib/auth";
 import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
@@ -15,6 +16,7 @@ import EventOrganizerNotificationEmailPayload from "@/app/components/templates/e
 import EventOrganizerNotificationEmailFallbackPayload from "@/app/components/templates/event-organizer-notification-email-fallback";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
 import { generateICSFile } from "@/app/lib/ics-generator";
+import { checkEventCapacitySimple } from "@/app/lib/capacity";
 
 export async function POST(req: Request) {
     try {
@@ -167,6 +169,15 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, registered: true });
     }
 
+    // Check event capacity (excluding cancelled registrations)
+    const capacityCheck = await checkEventCapacitySimple(event_id, event.capacity);
+    if (!capacityCheck.canRegister) {
+        return NextResponse.json({
+            success: false,
+            error: `EVENT_FULL|${capacityCheck.errorMessage}`,
+        });
+    }
+
     const response = await registerForEvent(
         user.id,
         user.email,
@@ -179,7 +190,7 @@ export async function POST(req: Request) {
         // Convert SQL event to Event type for email templates
         const eventData = convertSQLEventToEvent(event);
 
-        // Fetch organizer email once for use in both emails
+        // Fetch organizer email for reply-to on user confirmation email
         let organiserEmailAddress: string | undefined;
         try {
             const organiserEmail = await getEventOrganiserEmail(event.organiser_uid);
@@ -214,39 +225,45 @@ export async function POST(req: Request) {
             // Don't fail the registration if email sending fails
         }
 
-        // Send notification to organizer if not admin and notifications are enabled
+        // Send notification to all co-hosts with registration email notifications enabled
         const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
         if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
             try {
-                if (organiserEmailAddress) {
-                    const orgEmailSubject = `🔔 New Registration: ${event.title}`;
-                    const orgEmailHtml = EventOrganizerNotificationEmailPayload(
-                        eventData,
-                        {
-                            name: user.name,
-                            email: user.email,
-                            external: isExternal
-                        }
-                    );
-                    const orgEmailText = EventOrganizerNotificationEmailFallbackPayload(
-                        eventData,
-                        {
-                            name: user.name,
-                            email: user.email,
-                            external: isExternal
-                        }
-                    );
+                const notificationRecipients = await getNotificationRecipients(event_id);
 
-                    await sendEventRegistrationEmail({
-                        toEmail: organiserEmailAddress,
-                        subject: orgEmailSubject,
-                        html: orgEmailHtml,
-                        text: orgEmailText,
-                        replyTo: user.email, // Reply to the registered user
-                    });
+                for (const recipient of notificationRecipients) {
+                    try {
+                        const orgEmailSubject = `🔔 New Registration: ${event.title}`;
+                        const orgEmailHtml = EventOrganizerNotificationEmailPayload(
+                            eventData,
+                            {
+                                name: user.name,
+                                email: user.email,
+                                external: isExternal
+                            }
+                        );
+                        const orgEmailText = EventOrganizerNotificationEmailFallbackPayload(
+                            eventData,
+                            {
+                                name: user.name,
+                                email: user.email,
+                                external: isExternal
+                            }
+                        );
+
+                        await sendEventRegistrationEmail({
+                            toEmail: recipient.email,
+                            subject: orgEmailSubject,
+                            html: orgEmailHtml,
+                            text: orgEmailText,
+                            replyTo: user.email,
+                        });
+                    } catch (recipientError) {
+                        console.error(`Failed to send notification to ${recipient.email}:`, recipientError);
+                    }
                 }
             } catch (organiserEmailError) {
-                console.error("Failed to send notification email to organiser:", organiserEmailError);
+                console.error("Failed to send notification emails to organisers:", organiserEmailError);
                 // Don't fail the registration if organiser email fails
             }
         }

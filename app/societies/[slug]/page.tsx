@@ -8,10 +8,12 @@ import { getAllTags, getCategoryByTagValue } from "@/app/utils/tag-categories";
 import { formattedWebsite } from "@/app/lib/utils";
 import * as skeletons from "@/app/components/skeletons/unique-society";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
-import { ExternalLink, MessageSquare, Calendar, Info, Mail } from "lucide-react";
+import { ExternalLink, MessageSquare, Calendar, Info, Mail, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import ContactForm from "@/app/components/societies/contact-form";
 import { ShimmerButton } from "@/app/components/ui/shimmer-button";
+import SocietyDonationModal from "@/app/components/societies/society-donation-modal";
+import SocietyDonateButton from "@/app/components/societies/society-donate-button";
 
 export default function SocietySlugPage() {
     const [loadingDetails, setLoadingDetails] = useState<boolean>(true);
@@ -23,6 +25,9 @@ export default function SocietySlugPage() {
     const [tags, setTags] = useState<string[]>([]);
     const [mainColor] = useState<string>("");
     const [bannerBackground, setBannerBackground] = useState<string>("transparent");
+    // Donation state
+    const [donationEnabled, setDonationEnabled] = useState<boolean>(false);
+    const [showDonationModal, setShowDonationModal] = useState<boolean>(false);
     const { slug } = useParams();
     const router = useRouter();
     const stringSlug = slug instanceof Array ? slug[0] : slug;
@@ -58,6 +63,7 @@ export default function SocietySlugPage() {
                     setLogo(society.logo_url);
                     setDescription(society.description);
                     setWebsite(society.website);
+                    setDonationEnabled(society.allow_donations ?? false);
 
                     if (society.tags && society.tags.length > 0) {
                         const allTags = getAllTags();
@@ -231,6 +237,15 @@ export default function SocietySlugPage() {
                                     Website
                                 </button>
                             )}
+                            {donationEnabled && (
+                                <button
+                                    onClick={() => setShowDonationModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-pink-500/20 rounded-lg text-pink-200 hover:bg-pink-500/30 transition-all text-sm border border-pink-500/30"
+                                >
+                                    <Heart className="w-4 h-4" />
+                                    Donate
+                                </button>
+                            )}
                         </div>
                     </div>
                 </nav>
@@ -292,6 +307,37 @@ export default function SocietySlugPage() {
                     </motion.div>
                 </section>
 
+                {/* Support Section - Only show if donations enabled */}
+                {donationEnabled && (
+                    <section id="support" className="mb-16">
+                        <motion.div
+                            className="bg-gradient-to-br from-pink-500/10 via-rose-500/10 to-purple-500/10 backdrop-blur-sm border border-pink-500/20 rounded-xl p-6"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.15 }}
+                        >
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <Heart className="w-6 h-6 text-pink-400 flex-shrink-0" />
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white">
+                                            Support {name}
+                                        </h2>
+                                        <p className="text-sm text-gray-400">
+                                            100% goes directly to the society
+                                        </p>
+                                    </div>
+                                </div>
+                                <SocietyDonateButton
+                                    onClick={() => setShowDonationModal(true)}
+                                    variant="primary"
+                                    size="md"
+                                />
+                            </div>
+                        </motion.div>
+                    </section>
+                )}
+
                 {/* Contact Section */}
                 <section id="contact" className="mb-16">
                     <motion.div
@@ -314,6 +360,16 @@ export default function SocietySlugPage() {
                     </motion.div>
                 </section>
             </div>
+
+            {/* Donation Modal */}
+            {societyId && (
+                <SocietyDonationModal
+                    societyId={societyId}
+                    societyName={name}
+                    isOpen={showDonationModal}
+                    onClose={() => setShowDonationModal(false)}
+                />
+            )}
         </div>
     );
 }

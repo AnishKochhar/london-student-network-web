@@ -5,6 +5,7 @@ export interface Event {
     organiser: string;
     organiser_uid?: string; // Added for logo fetching
     organiser_slug?: string; // Added for society page links
+    organiser_university?: string; // University code for filtering (e.g., 'imperial', 'ucl')
     time: string; // Legacy field
     date: string; // Legacy field
     location_building: string;
@@ -30,7 +31,6 @@ export interface Event {
     visibility_level?: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     registration_level?: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[];
-    link_only?: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
@@ -38,6 +38,59 @@ export interface Event {
     tickets?: unknown[]; // Tickets for this event (from get-information API)
     isRegistered?: boolean; // Whether the current user is registered (from get-information API)
     has_paid_tickets?: boolean; // Whether this event has paid tickets
+    // Co-hosting
+    co_hosts?: EventCoHost[]; // Co-hosts for this event (from get-information API)
+}
+
+// Co-hosting types
+export interface EventCoHost {
+    user_id: string;
+    role: 'primary' | 'cohost';
+    status: 'pending' | 'accepted' | 'declined';
+    display_order: number;
+    is_visible: boolean;
+    can_edit: boolean;
+    can_manage_registrations: boolean;
+    can_manage_guests: boolean;
+    can_view_insights: boolean;
+    receives_registration_emails: boolean;
+    receives_summary_emails: boolean;
+    receives_payments: boolean;
+    // Enriched fields from JOINs
+    name?: string;
+    logo_url?: string;
+    slug?: string;
+    university_affiliation?: string;
+    stripe_charges_enabled?: boolean;
+    stripe_payouts_enabled?: boolean;
+}
+
+export interface CoHostSearchResult {
+    user_id: string;
+    name: string;
+    logo_url: string | null;
+    university_affiliation: string | null;
+    slug: string | null;
+}
+
+export interface CoHostFormSelection {
+    user_id: string;
+    name: string;
+    logo_url: string | null;
+    can_edit: boolean;
+    can_manage_registrations: boolean;
+    can_manage_guests: boolean;
+    can_view_insights: boolean;
+    receives_registration_emails: boolean;
+    receives_summary_emails: boolean;
+    receives_payments: boolean;
+}
+
+export interface CoHostPermissions {
+    can_edit: boolean;
+    can_manage_registrations: boolean;
+    can_manage_guests: boolean;
+    can_view_insights: boolean;
 }
 
 export interface EditEventProps {
@@ -87,6 +140,7 @@ export interface SQLEvent {
     organiser: string;
     organiser_uid: string;
     organiser_slug?: string; // From JOIN with society_information
+    organiser_university?: string; // From JOIN with society_information (university_affiliation)
     // New datetime fields (primary)
     start_datetime?: string;   // PostgreSQL TIMESTAMPTZ
     end_datetime?: string;     // PostgreSQL TIMESTAMPTZ
@@ -116,7 +170,6 @@ export interface SQLEvent {
     visibility_level?: string; // 'public' | 'students_only' | 'verified_students' | 'university_exclusive'
     registration_level?: string; // 'public' | 'students_only' | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[];
-    link_only?: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null;
     external_registration_cutoff_hours?: number | null;
@@ -224,10 +277,11 @@ export interface EventFormData {
     visibility_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     registration_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[]; // Array of university codes (e.g., ['imperial', 'ucl'])
-    link_only: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
+    // Co-hosting
+    cohosts?: CoHostFormSelection[]; // Co-hosts to invite when creating/editing
 }
 
 export interface SQLEventData {
@@ -254,7 +308,6 @@ export interface SQLEventData {
     visibility_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     registration_level: string; // 'public' | 'students_only' (all logged-in users) | 'verified_students' | 'university_exclusive'
     allowed_universities?: string[];
-    link_only: boolean; // When true, event is hidden from public listings but accessible via direct link
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
@@ -583,3 +636,90 @@ export const DefaultEvent: Event = {
     capacity: 150,
     sign_up_link: "https://google.co.uk",
 };
+
+// Donation types
+export interface DonationConfig {
+    enabled: boolean;
+    presetAmounts: number[]; // In pence (e.g., [100, 300, 500] for £1, £3, £5)
+}
+
+export interface DonationSelection {
+    amount: number; // In pence
+    isCustom: boolean;
+}
+
+export const DEFAULT_DONATION_PRESETS = [100, 300, 500]; // £1, £3, £5 in pence
+
+export interface SocietyDonationSettings {
+    allow_donations: boolean;
+}
+
+export interface CheckoutWithDonation {
+    ticketPrice: number; // In pence
+    quantity: number;
+    donationAmount: number; // In pence (0 if no donation)
+    totalAmount: number; // ticketPrice * quantity + donationAmount
+}
+
+// Standalone Society Donation types
+export interface SocietyDonation {
+    id: string;
+    society_uid: string;
+    user_id?: string;
+    donor_name?: string;
+    donor_email: string;
+    stripe_checkout_session_id?: string;
+    stripe_payment_intent_id?: string;
+    amount: number; // In pence
+    fee_covered: number; // Stripe fee covered by donor (in pence)
+    currency: string;
+    payment_status: 'pending' | 'succeeded' | 'failed' | 'cancelled';
+    message?: string;
+    created_at: string;
+    completed_at?: string;
+}
+
+export interface CreateSocietyDonationRequest {
+    society_uid: string;
+    amount: number; // In pence
+    donor_name?: string;
+    donor_email: string;
+    message?: string;
+    cover_fee?: boolean; // Whether donor wants to cover Stripe processing fee
+}
+
+// Donation presets for standalone donations (higher than event donations)
+export const STANDALONE_DONATION_PRESETS = [500, 1000, 2000]; // £5, £10, £20 in pence
+
+// Stripe fee calculation (approximate: 1.5% + 20p for UK cards)
+export const STRIPE_FEE_PERCENTAGE = 1.5;
+export const STRIPE_FEE_FIXED_PENCE = 20;
+
+export function calculateStripeFee(amountInPence: number): number {
+    return Math.round((amountInPence * STRIPE_FEE_PERCENTAGE / 100) + STRIPE_FEE_FIXED_PENCE);
+}
+
+// Featured Events types
+export interface FeaturedEvent {
+    id: string;
+    event_id: string;
+    event?: Event;
+    custom_description: string | null;
+    featured_start: string;
+    featured_end: string | null;
+    is_active: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface FeaturedEventFormData {
+    event_id: string;
+    custom_description?: string;
+    featured_start: string;
+    featured_end: string | null;
+}
+
+export interface FeaturedEventWithEvent extends FeaturedEvent {
+    event: Event;
+}

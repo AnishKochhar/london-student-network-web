@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { X, Calendar, MapPin, Users, Mail, Flag, ExternalLink } from "lucide-react";
-import { EventModalProps } from "@/app/lib/types";
+import { X, Calendar, MapPin, Users, ExternalLink } from "lucide-react";
+import { EventModalProps, Event as EventType } from "@/app/lib/types";
 import { motion } from "framer-motion";
+import EventImageWithGradient from "./event-image-with-gradient";
 
 interface EventModalPropsWithPreview extends EventModalProps {
     isPreview?: boolean;
@@ -17,6 +17,7 @@ import MarkdownRenderer from "../markdown/markdown-renderer";
 import EventRegistrationButton from "./event-registration-button";
 import RegistrationChoiceModal from "./registration-choice-modal";
 import ModernRegistrationModal from "./modern-registration-modal";
+import OrganiserList from "./organiser-list";
 import ReportEventModal from "./report-event-modal";
 import TicketSelectionModal from "./ticket-selection-modal";
 
@@ -34,6 +35,11 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const showTicketModalRef = useRef(false);
     const showRegistrationModalRef = useRef(false);
     const [dbLogoUrl, setDbLogoUrl] = useState<string | null>(null);
+
+    // Lazy loading state for full event data with release schedules
+    const [fullEventData, setFullEventData] = useState(event);
+    const [isLoadingFullData, setIsLoadingFullData] = useState(false);
+    const hasFullDataRef = useRef(false);
 
     // Sync refs with state
     useEffect(() => {
@@ -55,10 +61,41 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
     const jumpToEvent = () =>
         router.push(`/events/${base16ToBase62(event.id)}`);
 
-    const handleGuestRegister = () => {
-        setShowRegistrationChoice(false);
-        // Always show ticket selection modal for guests (handles both free and paid)
+    // Fetch full event data with release schedules
+    const fetchFullEventData = async (): Promise<EventType> => {
+        // Skip if already loaded and return current data
+        if (hasFullDataRef.current) return fullEventData;
+
+        try {
+            setIsLoadingFullData(true);
+            const response = await fetch("/api/events/get-information", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: event.id }),
+            });
+
+            if (!response.ok) throw new Error("Failed to fetch event data");
+
+            const data = await response.json();
+            setFullEventData(data);
+            hasFullDataRef.current = true;
+            return data;
+        } catch (error) {
+            console.error("Error fetching full event data:", error);
+            // Fall back to original event data if fetch fails
+            setFullEventData(event);
+            return event;
+        } finally {
+            setIsLoadingFullData(false);
+        }
+    };
+
+    const handleGuestRegister = async () => {
+        // Fetch full data first
+        await fetchFullEventData();
+        // Set new modal true BEFORE closing old one to prevent click-outside race condition
         setShowTicketModal(true);
+        setShowRegistrationChoice(false);
     };
 
     const handleGuestRegistrationSuccess = () => {
@@ -100,6 +137,14 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [onClose]);
+
+    // Fetch full event data (including co-hosts) on modal open
+    useEffect(() => {
+        if (!isPreview) {
+            fetchFullEventData();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Fetch society logo from database if not found locally
     useEffect(() => {
@@ -162,8 +207,6 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
         return tags;
     };
 
-    const societyLogo = returnLogo(event.organiser);
-
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <motion.div
@@ -192,15 +235,12 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                         <div className="lg:col-span-2 space-y-4">
                             {/* Event Image */}
                             {event.image_url && (
-                                <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100">
-                                    <Image
-                                        src={event.image_url}
-                                        alt={event.title}
-                                        fill
-                                        className={event.image_contain ? "object-contain" : "object-cover"}
-                                        priority
-                                    />
-                                </div>
+                                <EventImageWithGradient
+                                    src={event.image_url}
+                                    alt={event.title}
+                                    imageContain={event.image_contain}
+                                    priority
+                                />
                             )}
 
                             {/* Event Tags */}
@@ -290,7 +330,7 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                 <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
                                     <h3 className="text-lg font-bold text-gray-900 mb-4">Registration</h3>
                                     <EventRegistrationButton
-                                        event={event}
+                                        event={fullEventData}
                                         isRegistered={isRegistered}
                                         onRegistrationChange={() => {
                                             setIsRegistered(!isRegistered);
@@ -299,57 +339,19 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                         context="modal"
                                         isPreview={isPreview}
                                         onShowRegistrationChoice={() => setShowRegistrationChoice(true)}
+                                        onFetchFullEventData={fetchFullEventData}
                                         onTicketModalChange={setShowTicketModal}
                                         onRegistrationModalChange={setShowRegistrationModal}
                                     />
                                 </div>
 
                                 {/* Organizer Card */}
-                                <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
-                                        Hosted By
-                                    </h3>
-
-                                    <div className="flex items-center gap-3 mb-4">
-                                        {(societyLogo.found || dbLogoUrl) && (
-                                            <Image
-                                                src={
-                                                    societyLogo.found
-                                                        ? societyLogo.src || "/images/societies/roar.png"
-                                                        : dbLogoUrl || "/images/societies/roar.png"
-                                                }
-                                                alt="Society Logo"
-                                                width={48}
-                                                height={48}
-                                                className="object-contain rounded-lg"
-                                            />
-                                        )}
-                                        <div>
-                                            <p className="text-base font-bold text-gray-900">{event.organiser}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Contact Actions */}
-                                    <div className="space-y-2 pt-4 border-t border-gray-200">
-                                        {/* Don't show Contact Host for admin scraped events */}
-                                        {event.organiser_uid !== '45ef371c-0cbc-4f2a-b9f1-f6078aa6638c' && (
-                                            <button
-                                                onClick={() => router.push(`/societies/message/${event.organiser_uid}`)}
-                                                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                            >
-                                                <Mail className="w-4 h-4" />
-                                                Contact Host
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => setShowReportModal(true)}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                        >
-                                            <Flag className="w-4 h-4" />
-                                            Report Event
-                                        </button>
-                                    </div>
-                                </div>
+                                <OrganiserList
+                                    event={fullEventData}
+                                    variant="modal"
+                                    onReport={() => setShowReportModal(true)}
+                                    dbLogoUrl={dbLogoUrl}
+                                />
 
                                 {/* Go to Event button for desktop */}
                                 <button
@@ -366,13 +368,15 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                 </div>
 
                 {/* Registration Choice Modal */}
-                <RegistrationChoiceModal
-                    isOpen={showRegistrationChoice}
-                    onClose={() => setShowRegistrationChoice(false)}
-                    onGuestRegister={handleGuestRegister}
-                    eventTitle={event.title}
-                    eventId={base16ToBase62(event.id)}
-                />
+                {!isPreview && (
+                    <RegistrationChoiceModal
+                        isOpen={showRegistrationChoice}
+                        onClose={() => setShowRegistrationChoice(false)}
+                        onGuestRegister={handleGuestRegister}
+                        eventTitle={event.title}
+                        eventId={base16ToBase62(event.id)}
+                    />
+                )}
 
                 {/* Guest Registration Modal */}
                 <ModernRegistrationModal
@@ -388,10 +392,11 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                 {/* Ticket Selection Modal (for guests with paid tickets) */}
                 {showTicketModal && (
                     <TicketSelectionModal
-                        event={event}
+                        event={fullEventData}
                         onClose={() => setShowTicketModal(false)}
                         onFreeRegistration={handleGuestFreeTicketRegistration}
                         isGuestMode={true}
+                        isLoadingTickets={isLoadingFullData}
                     />
                 )}
 

@@ -6,15 +6,15 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 
 // Event configuration
 const EVENT_CONFIG = {
-    id: "3af0dc9f-bdd4-4e7e-9695-d5e334ec5886",
-    title: "Neurotech in Surgery",
-    subtitle: "A Talk by Mr Jonathan Shapey",
-    dateTime: "2025-10-23T16:00:00Z", // Event end time in UTC (16:00 BST = 15:00 UTC, so end at 17:00 BST = 16:00 UTC)
-    displayDate: "Thursday, 23 October | 15:00",
-    location: "Hodgkin Building, Guy's Campus",
-    description: "KCL Neurotech's most anticipated academic talk! Discover how neurotechnology is revolutionizing surgical outcomes. Limited slots available!",
-    link: "/events/1qtRlWlWbHlCek",
-    sessionKey: "neurotechSurgeryToastDismissed"
+    id: "69c0c03f-ad49-49b0-9b09-51b02297bd1c",
+    title: "The Giving Gala",
+    subtitle: "A Black-Tie Charity Event",
+    dateTime: "2025-11-21T23:30:00Z", // Event end time in UTC (23:30 GMT = 23:30 UTC)
+    displayDate: "Friday, 21 November | 19:00",
+    location: "Bayswater Suite, The Columbia Hotel",
+    description: "An evening of fundraising and connection featuring the launch of The Clandestine magazine. All profits support refugee women in the UK through Refugee Women Connect. Black-tie dress code.",
+    link: "/events/1jrQIMxQ1FA91w",
+    sessionKey: "givingGalaToastDismissed"
 };
 
 export default function EventToastNotification() {

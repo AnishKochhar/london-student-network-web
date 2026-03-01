@@ -294,18 +294,22 @@ const TimePicker = ({ value, onChange, label }: {
 // Fee Info Component - Hover Overlay
 const FeeInfoOverlay = () => {
     const [isHovered, setIsHovered] = useState(false);
-    const PLATFORM_FEE_PERCENTAGE = parseFloat(process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE_PERCENTAGE || '2.5');
+    const PLATFORM_FEE_PERCENTAGE = parseFloat(process.env.NEXT_PUBLIC_STRIPE_PLATFORM_FEE_PERCENTAGE || '6');
 
     const calculateExample = (ticketPrice: number) => {
-        const stripeFee = Math.round((ticketPrice * 100 * 0.015) + 20); // 1.5% + 20p in pence
-        const platformFee = Math.round((ticketPrice * 100 * (PLATFORM_FEE_PERCENTAGE / 100)));
-        const organiserReceives = (ticketPrice * 100) - stripeFee - platformFee; // Subtract BOTH fees
+        // Use Stripe's EU/premium card rate: 2.5% + 20p
+        const stripeFee = Math.round((ticketPrice * 100 * 0.025) + 20);
+        const totalFee = Math.round((ticketPrice * 100 * (PLATFORM_FEE_PERCENTAGE / 100)));
+        const lsnFee = totalFee - stripeFee;
+        const organiserReceives = (ticketPrice * 100) - totalFee;
 
         return {
             ticketPrice: ticketPrice.toFixed(2),
             stripeFee: (stripeFee / 100).toFixed(2),
-            platformFee: (platformFee / 100).toFixed(2),
+            lsnFee: Math.max(0, lsnFee / 100).toFixed(2),
+            totalFee: (totalFee / 100).toFixed(2),
             organiserReceives: (organiserReceives / 100).toFixed(2),
+            stripePercentage: Math.round((stripeFee / totalFee) * 100),
         };
     };
 
@@ -338,12 +342,8 @@ const FeeInfoOverlay = () => {
                             {/* Header */}
                             <div className="flex items-center gap-2 mb-3">
                                 <InformationCircleIcon className="w-5 h-5 text-blue-400" />
-                                <h3 className="text-base font-semibold text-white">Fee Breakdown</h3>
+                                <h3 className="text-base font-semibold text-white">Where does your £{example.ticketPrice} go?</h3>
                             </div>
-
-                            <p className="text-gray-300 text-xs mb-3 leading-relaxed">
-                                Example for a £{example.ticketPrice} ticket:
-                            </p>
 
                             {/* Fee calculation display */}
                             <div className="bg-white/5 rounded-lg p-3 mb-3 space-y-2.5">
@@ -353,35 +353,41 @@ const FeeInfoOverlay = () => {
                                 </div>
                                 <div className="border-t border-white/10" />
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-400">Stripe Fee (1.5% + 20p)</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs">💳</span>
+                                        <span className="text-xs text-gray-400">Card Processing (Stripe)</span>
+                                    </div>
                                     <span className="text-xs text-gray-400">-£{example.stripeFee}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-400">Platform Fee ({PLATFORM_FEE_PERCENTAGE}%)</span>
-                                    <span className="text-xs text-gray-400">-£{example.platformFee}</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs">🏠</span>
+                                        <span className="text-xs text-gray-400">Platform Upkeep (LSN)</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400">-£{example.lsnFee}</span>
                                 </div>
                                 <div className="border-t border-white/10" />
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-medium text-green-300">You Receive</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-xs">💰</span>
+                                        <span className="text-xs font-medium text-green-300">You Receive</span>
+                                    </div>
                                     <span className="font-bold text-green-400 text-sm">£{example.organiserReceives}</span>
                                 </div>
                             </div>
 
-                            {/* Quick notes */}
-                            <div className="space-y-1.5 text-[10px] text-gray-400 leading-relaxed">
-                                <p className="flex items-start gap-1.5">
-                                    <span className="text-blue-400 mt-0.5">•</span>
-                                    <span>Stripe fees cover payment processing</span>
-                                </p>
-                                <p className="flex items-start gap-1.5">
-                                    <span className="text-blue-400 mt-0.5">•</span>
-                                    <span>Platform fees maintain LSN</span>
-                                </p>
-                                <p className="flex items-start gap-1.5">
-                                    <span className="text-green-400 mt-0.5">✓</span>
-                                    <span>Free tickets (£0.00) have no fees!</span>
+                            {/* Stripe blame message */}
+                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5 mb-3">
+                                <p className="text-[11px] text-blue-200 leading-relaxed">
+                                    <span className="font-semibold">{example.stripePercentage}% of fees</span> go to Stripe for secure payment processing. LSN keeps fees minimal to support student societies.
                                 </p>
                             </div>
+
+                            {/* Quick note */}
+                            <p className="flex items-center gap-1.5 text-[10px] text-green-400">
+                                <span>✓</span>
+                                <span>Free tickets (£0.00) have zero fees!</span>
+                            </p>
 
                             {/* Arrow pointer */}
                             <div className="absolute -top-2 left-6 w-4 h-4 bg-gray-900 border-t border-l border-white/20 transform rotate-45" />

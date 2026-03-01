@@ -3,11 +3,9 @@
 import { useParams } from "next/navigation";
 import { Event } from "@/app/lib/types";
 import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import { base62ToBase16 } from "@/app/lib/uuid-utils";
-import { EVENT_TAG_TYPES, returnLogo, formatEventDateTime } from "@/app/lib/utils";
-import { Share, Edit, MapPin, Calendar, Users, Mail, Flag } from "lucide-react";
+import { EVENT_TAG_TYPES, formatEventDateTime } from "@/app/lib/utils";
+import { Share, Edit, MapPin, Calendar, Users } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -18,9 +16,11 @@ import ModernRegistrationModal from "@/app/components/events-page/modern-registr
 import TicketSelectionModal from "@/app/components/events-page/ticket-selection-modal";
 import MarkdownRenderer from "@/app/components/markdown/markdown-renderer";
 import ShareEventModal from "@/app/components/events-page/share-event-modal";
+import OrganiserList from "@/app/components/events-page/organiser-list";
 import EventRegistrationButton from "@/app/components/events-page/event-registration-button";
 import ReportEventModal from "@/app/components/events-page/report-event-modal";
 import PaymentStatusHandler from "@/app/components/events-page/payment-status-handler";
+import EventImageWithGradient from "@/app/components/events-page/event-image-with-gradient";
 
 export default function ModernEventInfo() {
     const { id } = useParams() as { id: string };
@@ -118,8 +118,9 @@ export default function ModernEventInfo() {
             });
 
             const result = await response.json();
-            if (result.success && result.registrations) {
-                setRegistrationCount(result.registrations.length);
+            if (result.success) {
+                // Use totalRegistrations which sums quantities (handles multi-ticket purchases)
+                setRegistrationCount(result.totalRegistrations || 0);
             }
         } catch (error) {
             console.error("Error fetching registration count:", error);
@@ -211,8 +212,6 @@ export default function ModernEventInfo() {
         return tags;
     };
 
-    const societyLogo = returnLogo(event.organiser);
-
     return (
         <div className="min-h-screen bg-white">
             {/* Handle payment redirects from Stripe */}
@@ -245,15 +244,12 @@ export default function ModernEventInfo() {
                     <div className="lg:col-span-2 space-y-4">
                         {/* Event Image */}
                         {event.image_url && (
-                            <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden bg-gray-100">
-                                <Image
-                                    src={event.image_url}
-                                    alt={event.title}
-                                    fill
-                                    className={event.image_contain ? "object-contain" : "object-cover"}
-                                    priority
-                                />
-                            </div>
+                            <EventImageWithGradient
+                                src={event.image_url}
+                                alt={event.title}
+                                imageContain={event.image_contain}
+                                priority
+                            />
                         )}
 
                         {/* Event Tags */}
@@ -352,60 +348,12 @@ export default function ModernEventInfo() {
                             </div>
 
                             {/* Organizer Card */}
-                            <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
-                                    Hosted By
-                                </h3>
-
-                                <div className="flex items-center gap-3 mb-4">
-                                    {(societyLogo.found || dbLogoUrl) && (
-                                        <Image
-                                            src={
-                                                societyLogo.found
-                                                    ? societyLogo.src || "/images/societies/roar.png"
-                                                    : dbLogoUrl || "/images/societies/roar.png"
-                                            }
-                                            alt="Society Logo"
-                                            width={48}
-                                            height={48}
-                                            className="object-contain rounded-lg"
-                                        />
-                                    )}
-                                    <div>
-                                        {event.organiser_slug ? (
-                                            <Link
-                                                href={`/societies/${event.organiser_slug}`}
-                                                className="text-base font-bold text-gray-900 hover:text-blue-600 transition-colors"
-                                            >
-                                                {event.organiser}
-                                            </Link>
-                                        ) : (
-                                            <p className="text-base font-bold text-gray-900">{event.organiser}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Contact Actions */}
-                                <div className="space-y-2 pt-4 border-t border-gray-200">
-                                    {/* Don't show Contact Host for admin scraped events */}
-                                    {event.organiser_uid !== '45ef371c-0cbc-4f2a-b9f1-f6078aa6638c' && (
-                                        <button
-                                            onClick={() => router.push(`/societies/message/${event.organiser_uid}`)}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                        >
-                                            <Mail className="w-4 h-4" />
-                                            Contact Host
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => setShowReportModal(true)}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                    >
-                                        <Flag className="w-4 h-4" />
-                                        Report Event
-                                    </button>
-                                </div>
-                            </div>
+                            <OrganiserList
+                                event={event}
+                                variant="page"
+                                onReport={() => setShowReportModal(true)}
+                                dbLogoUrl={dbLogoUrl}
+                            />
                         </div>
                     </div>
                 </div>

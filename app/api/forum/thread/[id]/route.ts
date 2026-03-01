@@ -4,10 +4,11 @@ import { auth } from "@/auth";
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const threadId = parseInt(params.id, 10);
+        const { id } = await params;
+        const threadId = parseInt(id, 10);
 
         if (isNaN(threadId)) {
             return NextResponse.json(

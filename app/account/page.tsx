@@ -90,6 +90,7 @@ export default async function AccountPage() {
       <AccountSettingsSection
         stripeStatus={accountData.stripeStatus}
         userRole={accountData.user.role}
+        userId={accountData.user.id}
       />
 
       {/* Bottom padding for scroll */}

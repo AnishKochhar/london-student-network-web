@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Worker, Job } from 'bullmq';
+import { Job, Worker } from 'bullmq';
 import getRedisClient from '@/app/lib/config/private/redis';
 import { sendEventRegistrationEmail, sendExternalForwardingEmail } from '@/app/lib/send-email';
 import { sql } from '@vercel/postgres';
@@ -12,13 +12,15 @@ import EventRegistrationEmailFallbackPayload from '@/app/components/templates/ev
 import EventOrganizerSummaryEmailPayload from '@/app/components/templates/event-organizer-summary-email';
 import EventOrganizerSummaryEmailFallbackPayload from '@/app/components/templates/event-organizer-summary-email-fallback';
 import { SQLEvent } from '@/app/lib/types';
-import { getEventOrganiserEmail } from '@/app/lib/data';
+import { getEventOrganiserEmail, getSummaryRecipients } from '@/app/lib/data';
+import { reminderQueue } from '@/app/lib/config/private/bullmq-queue';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60 seconds max
 
-let worker: Worker | null = null;
+// Worker token for job locking - unique per cron invocation
+const WORKER_TOKEN = `cron-worker-${Date.now()}`;
 
 // Handler for user reminder emails
 async function handleUserReminder(job: Job) {
@@ -252,12 +254,12 @@ async function handleOrganizerSummary(job: Job) {
             return { success: true, reason: 'admin_event_skipped' };
         }
 
-        // Fetch organizer email
-        const organiserEmail = await getEventOrganiserEmail(sqlEvent.organiser_uid as string);
+        // Fetch all summary email recipients (co-hosts with receives_summary_emails)
+        const summaryRecipients = await getSummaryRecipients(event_id);
 
-        if (!organiserEmail || !organiserEmail.email) {
-            console.error(`[WORKER] Organizer email not found for event ${event_id}`);
-            return { success: false, reason: 'organizer_email_not_found' };
+        if (summaryRecipients.length === 0) {
+            console.error(`[WORKER] No summary recipients found for event ${event_id}`);
+            return { success: false, reason: 'no_summary_recipients' };
         }
 
         // Fetch all registrations
@@ -273,19 +275,24 @@ async function handleOrganizerSummary(job: Job) {
             external: reg.external as boolean
         }));
 
-        // Send organizer summary email
+        // Send summary email to each recipient
         const emailSubject = `📊 Event Summary: ${event.title} - Tomorrow!`;
         const emailHtml = EventOrganizerSummaryEmailPayload(event, registrationsList);
         const emailText = EventOrganizerSummaryEmailFallbackPayload(event, registrationsList);
 
-        await sendEventRegistrationEmail({
-            toEmail: organiserEmail.email,
-            subject: emailSubject,
-            html: emailHtml,
-            text: emailText,
-        });
-
-        console.log(`[WORKER] Organizer summary sent to ${organiserEmail.email} for event ${event_id}`);
+        for (const recipient of summaryRecipients) {
+            try {
+                await sendEventRegistrationEmail({
+                    toEmail: recipient.email,
+                    subject: emailSubject,
+                    html: emailHtml,
+                    text: emailText,
+                });
+                console.log(`[WORKER] Summary email sent to ${recipient.email} for event ${event_id}`);
+            } catch (recipientError) {
+                console.error(`[WORKER] Failed to send summary to ${recipient.email}:`, recipientError);
+            }
+        }
 
         return { success: true };
 
@@ -305,44 +312,26 @@ async function handleOrganizerSummary(job: Job) {
     }
 }
 
-async function getWorker() {
-    if (!worker) {
-        const connection = await getRedisClient();
+// Process a single job based on its type
+async function processJob(job: Job): Promise<{ success: boolean; reason?: string }> {
+    console.log(`[WORKER] Processing job ${job.id}, type: ${job.name}`);
 
-        worker = new Worker(
-            'event-email-reminders',
-            async (job: Job) => {
-                console.log(`[WORKER] Processing job ${job.id}, type: ${job.name}`);
-
-                // Route to appropriate handler based on job type
-                switch (job.name) {
-                    case 'send_event_email_reminder':
-                        return await handleUserReminder(job);
-                    case 'send_external_forwarding':
-                        return await handleExternalForwarding(job);
-                    case 'send_organizer_summary':
-                        return await handleOrganizerSummary(job);
-                    default:
-                        console.error(`[WORKER] Unknown job type: ${job.name}`);
-                        return { success: false, reason: 'unknown_job_type' };
-                }
-            },
-            { connection }
-        );
-
-        worker.on('completed', (job) => {
-            console.log(`[WORKER] Job ${job.id} completed successfully`);
-        });
-
-        worker.on('failed', (job, err) => {
-            console.error(`[WORKER] Job ${job?.id} failed:`, err.message);
-        });
+    switch (job.name) {
+        case 'send_event_email_reminder':
+            return await handleUserReminder(job);
+        case 'send_external_forwarding':
+            return await handleExternalForwarding(job);
+        case 'send_organizer_summary':
+            return await handleOrganizerSummary(job);
+        default:
+            console.error(`[WORKER] Unknown job type: ${job.name}`);
+            return { success: false, reason: 'unknown_job_type' };
     }
-
-    return worker;
 }
 
 export async function GET(request: Request) {
+    let worker: Worker | null = null;
+
     try {
         // Verify authorization
         const authHeader = request.headers.get('authorization');
@@ -353,18 +342,89 @@ export async function GET(request: Request) {
 
         console.log('[WORKER] Starting worker process');
 
-        // Initialize worker (it will automatically process jobs in the background)
-        await getWorker();
+        // Check queue status FIRST - exit early if nothing to process
+        // These methods ARE available on Queue class
+        const waitingCount = await reminderQueue.getWaitingCount();
+        const delayedCount = await reminderQueue.getDelayedCount();
+        const activeCount = await reminderQueue.getActiveCount();
 
-        // Let the worker run for 50 seconds (within the 60 second limit)
-        // The worker will automatically process jobs from the queue
-        await new Promise(resolve => setTimeout(resolve, 50000));
+        console.log(`[WORKER] Queue status - Waiting: ${waitingCount}, Delayed: ${delayedCount}, Active: ${activeCount}`);
 
-        console.log('[WORKER] Worker process complete');
+        // If no jobs are ready to process, exit immediately (saves compute!)
+        if (waitingCount === 0 && activeCount === 0) {
+            console.log('[WORKER] No jobs ready to process, exiting early');
+            return NextResponse.json({
+                success: true,
+                message: 'No jobs to process',
+                queueStatus: { waiting: waitingCount, delayed: delayedCount, active: activeCount },
+                jobsProcessed: 0,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // Create a Worker instance for manual job fetching
+        // getNextJob() is a Worker method, not a Queue method
+        const connection = await getRedisClient();
+        worker = new Worker('event-email-reminders', undefined, {
+            connection,
+            lockDuration: 60000, // 60 second lock (matches our maxDuration)
+            drainDelay: 1, // Only wait 1 second when queue is empty (default is 5s)
+        });
+
+        let jobsProcessed = 0;
+        let jobsFailed = 0;
+        const startTime = Date.now();
+        const maxRuntime = 55000; // 55 seconds max to stay within 60s limit
+
+        // Process jobs until queue is empty or we hit time limit
+        while (Date.now() - startTime < maxRuntime) {
+            // getNextJob blocks until a job is available or drainDelay expires (default 5s)
+            // Use a short timeout to check frequently but not block forever
+            const job = await worker.getNextJob(WORKER_TOKEN);
+
+            if (!job) {
+                // No more jobs available, we're done
+                console.log('[WORKER] No more jobs in queue');
+                break;
+            }
+
+            try {
+                const result = await processJob(job);
+
+                if (result.success) {
+                    await job.moveToCompleted(result, WORKER_TOKEN, false);
+                    jobsProcessed++;
+                    console.log(`[WORKER] Job ${job.id} completed successfully`);
+                } else {
+                    await job.moveToFailed(new Error(result.reason || 'Job failed'), WORKER_TOKEN, false);
+                    jobsFailed++;
+                    console.log(`[WORKER] Job ${job.id} marked as failed: ${result.reason}`);
+                }
+            } catch (error) {
+                // Job processing threw an error
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                await job.moveToFailed(new Error(errorMessage), WORKER_TOKEN, false);
+                jobsFailed++;
+                console.error(`[WORKER] Job ${job.id} failed with error:`, errorMessage);
+            }
+
+            // Check if queue is now empty (avoid waiting for drainDelay on next iteration)
+            const remainingJobs = await reminderQueue.getWaitingCount();
+            if (remainingJobs === 0) {
+                console.log('[WORKER] Queue drained, exiting');
+                break;
+            }
+        }
+
+        const runtime = Math.round((Date.now() - startTime) / 1000);
+        console.log(`[WORKER] Worker complete - processed ${jobsProcessed} jobs, ${jobsFailed} failed, runtime ${runtime}s`);
 
         return NextResponse.json({
             success: true,
-            message: 'Worker processed jobs for 50 seconds',
+            message: `Processed ${jobsProcessed} jobs in ${runtime}s`,
+            jobsProcessed,
+            jobsFailed,
+            runtime: `${runtime}s`,
             timestamp: new Date().toISOString()
         });
 
@@ -373,7 +433,12 @@ export async function GET(request: Request) {
         return NextResponse.json({
             success: false,
             error: 'Internal server error',
-            message: error.message
+            message: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 });
+    } finally {
+        // Always close the worker to release Redis connection
+        if (worker) {
+            await worker.close();
+        }
     }
 }
