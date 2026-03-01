@@ -12,7 +12,7 @@ import EventRegistrationEmailFallbackPayload from '@/app/components/templates/ev
 import EventOrganizerSummaryEmailPayload from '@/app/components/templates/event-organizer-summary-email';
 import EventOrganizerSummaryEmailFallbackPayload from '@/app/components/templates/event-organizer-summary-email-fallback';
 import { SQLEvent } from '@/app/lib/types';
-import { getEventOrganiserEmail } from '@/app/lib/data';
+import { getEventOrganiserEmail, getSummaryRecipients } from '@/app/lib/data';
 import { reminderQueue } from '@/app/lib/config/private/bullmq-queue';
 
 export const runtime = 'nodejs';
@@ -254,12 +254,12 @@ async function handleOrganizerSummary(job: Job) {
             return { success: true, reason: 'admin_event_skipped' };
         }
 
-        // Fetch organizer email
-        const organiserEmail = await getEventOrganiserEmail(sqlEvent.organiser_uid as string);
+        // Fetch all summary email recipients (co-hosts with receives_summary_emails)
+        const summaryRecipients = await getSummaryRecipients(event_id);
 
-        if (!organiserEmail || !organiserEmail.email) {
-            console.error(`[WORKER] Organizer email not found for event ${event_id}`);
-            return { success: false, reason: 'organizer_email_not_found' };
+        if (summaryRecipients.length === 0) {
+            console.error(`[WORKER] No summary recipients found for event ${event_id}`);
+            return { success: false, reason: 'no_summary_recipients' };
         }
 
         // Fetch all registrations
@@ -275,19 +275,24 @@ async function handleOrganizerSummary(job: Job) {
             external: reg.external as boolean
         }));
 
-        // Send organizer summary email
+        // Send summary email to each recipient
         const emailSubject = `📊 Event Summary: ${event.title} - Tomorrow!`;
         const emailHtml = EventOrganizerSummaryEmailPayload(event, registrationsList);
         const emailText = EventOrganizerSummaryEmailFallbackPayload(event, registrationsList);
 
-        await sendEventRegistrationEmail({
-            toEmail: organiserEmail.email,
-            subject: emailSubject,
-            html: emailHtml,
-            text: emailText,
-        });
-
-        console.log(`[WORKER] Organizer summary sent to ${organiserEmail.email} for event ${event_id}`);
+        for (const recipient of summaryRecipients) {
+            try {
+                await sendEventRegistrationEmail({
+                    toEmail: recipient.email,
+                    subject: emailSubject,
+                    html: emailHtml,
+                    text: emailText,
+                });
+                console.log(`[WORKER] Summary email sent to ${recipient.email} for event ${event_id}`);
+            } catch (recipientError) {
+                console.error(`[WORKER] Failed to send summary to ${recipient.email}:`, recipientError);
+            }
+        }
 
         return { success: true };
 

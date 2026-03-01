@@ -36,7 +36,7 @@ export async function POST(req: Request) {
             );
         }
 
-        // 1. Verify user is the event organizer
+        // 1. Verify user is the event organizer or a co-host with manage_registrations permission
         const eventResult = await sql`
             SELECT * FROM events WHERE id = ${event_id}::uuid
         `;
@@ -50,11 +50,23 @@ export async function POST(req: Request) {
 
         const event = eventResult.rows[0] as SQLEvent;
 
-        if (event.organiser_uid !== session.user.id) {
-            return NextResponse.json(
-                { success: false, error: "You are not authorized to refund registrations for this event" },
-                { status: 403 }
-            );
+        // Check primary organiser OR co-host with can_manage_registrations
+        const isPrimary = event.organiser_uid === session.user.id;
+        if (!isPrimary) {
+            const coHostCheck = await sql`
+                SELECT 1 FROM event_cohosts
+                WHERE event_id = ${event_id}::uuid
+                AND user_id = ${session.user.id}
+                AND status = 'accepted'
+                AND can_manage_registrations = true
+                LIMIT 1
+            `;
+            if (coHostCheck.rows.length === 0) {
+                return NextResponse.json(
+                    { success: false, error: "You are not authorized to refund registrations for this event" },
+                    { status: 403 }
+                );
+            }
         }
 
         // 2. Get registration and payment details

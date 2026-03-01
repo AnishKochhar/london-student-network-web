@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe, calculatePlatformFee, poundsToPence } from "@/app/lib/stripe";
 import { sql } from "@vercel/postgres";
-import { fetchSQLEventById } from "@/app/lib/data";
+import { fetchSQLEventById, getPaymentRecipient } from "@/app/lib/data";
 import { formatInTimeZone } from "date-fns-tz";
 import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
@@ -174,32 +174,24 @@ export async function POST(req: Request) {
             );
         }
 
-        // Fetch organizer's Stripe Connect account
-        const organizerResult = await sql`
-            SELECT
-                stripe_connect_account_id,
-                stripe_charges_enabled,
-                stripe_payouts_enabled,
-                stripe_details_submitted
-            FROM users
-            WHERE id = ${event.organiser_uid}
-        `;
+        // Fetch payment recipient's Stripe Connect account (may be primary organiser or a co-host)
+        const paymentRecipient = await getPaymentRecipient(event_id);
 
-        const organizer = organizerResult.rows[0];
-
-        if (!organizer?.stripe_connect_account_id) {
+        if (!paymentRecipient?.stripe_connect_account_id) {
             return NextResponse.json(
                 { success: false, error: "Event organizer has not set up payments yet" },
                 { status: 400 }
             );
         }
 
-        if (!organizer.stripe_charges_enabled || !organizer.stripe_payouts_enabled) {
+        if (!paymentRecipient.stripe_charges_enabled || !paymentRecipient.stripe_payouts_enabled) {
             return NextResponse.json(
                 { success: false, error: "Event organizer's payment account is not fully configured" },
                 { status: 400 }
             );
         }
+
+        const organizer = paymentRecipient;
 
         // Calculate amounts
         const ticketPriceInPence = poundsToPence(ticketPriceInPounds);

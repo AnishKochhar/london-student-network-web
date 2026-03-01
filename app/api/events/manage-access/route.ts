@@ -39,13 +39,23 @@ export async function POST(req: Request) {
         // Single query to check ownership + fetch event
         // Uses CASE statement to compute is_organiser in database
         // Uses LIKE to match partial UUIDs (last 20 hex chars) from base62 conversion
+        // Now also checks event_cohosts table for co-host access
         const eventResult = await sql`
             SELECT
                 e.*,
                 CASE
                     WHEN e.organiser_uid = ${session.user.id} THEN true
+                    WHEN EXISTS (
+                        SELECT 1 FROM event_cohosts
+                        WHERE event_id = e.id AND user_id = ${session.user.id}
+                        AND status = 'accepted'
+                    ) THEN true
                     ELSE false
-                END as is_organiser
+                END as is_organiser,
+                CASE
+                    WHEN e.organiser_uid = ${session.user.id} THEN true
+                    ELSE false
+                END as is_primary
             FROM events e
             WHERE REPLACE(e.id::text, '-', '') LIKE '%' || ${searchString}
             LIMIT 1
@@ -67,6 +77,22 @@ export async function POST(req: Request) {
                 { status: 403 }
             );
         }
+
+        // Fetch co-host permissions for this user
+        const permissionsResult = await sql`
+            SELECT can_edit, can_manage_registrations, can_manage_guests, can_view_insights, role
+            FROM event_cohosts
+            WHERE event_id = ${event.id} AND user_id = ${session.user.id}
+            LIMIT 1
+        `;
+
+        const coHostPermissions = permissionsResult.rows[0] || {
+            can_edit: true,
+            can_manage_registrations: true,
+            can_manage_guests: true,
+            can_view_insights: true,
+            role: 'primary',
+        };
 
         // Fetch tickets with calculated availability
         // This query computes real-time ticket availability by subtracting sold quantities
@@ -116,15 +142,16 @@ export async function POST(req: Request) {
             ORDER BY t.release_order ASC, t.ticket_price::numeric ASC
         `;
 
-        // Return combined event + tickets data
+        // Return combined event + tickets + permissions data
         return NextResponse.json({
             success: true,
             event: {
                 ...event,
                 tickets: ticketsResult.rows,
-                // Remove the is_organiser flag from the response (already verified)
-                is_organiser: undefined
-            }
+                is_organiser: undefined,
+            },
+            is_primary: event.is_primary,
+            permissions: coHostPermissions,
         });
 
     } catch (error) {

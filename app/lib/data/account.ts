@@ -114,10 +114,17 @@ async function getUsername(userId: string) {
 }
 
 async function getUserEvents(userId: string) {
-	// Just select all columns like the existing API does
+	// Select events where user is primary organiser OR an accepted co-host
 	const result = await sql`
     SELECT * FROM events
-    WHERE organiser_uid = ${userId}
+    WHERE (
+      organiser_uid = ${userId}
+      OR EXISTS (
+        SELECT 1 FROM event_cohosts ec
+        WHERE ec.event_id = events.id AND ec.user_id = ${userId}
+        AND ec.status = 'accepted'
+      )
+    )
     AND (is_deleted IS NULL OR is_deleted = false)
     ORDER BY COALESCE(end_datetime, start_datetime, make_timestamp(year, month, day,
       EXTRACT(hour FROM start_time::time)::int,

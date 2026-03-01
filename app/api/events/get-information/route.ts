@@ -100,6 +100,23 @@ export async function POST(req: Request) {
             ORDER BY t.release_order ASC, t.ticket_price::numeric ASC
         `;
 
+        // Fetch co-hosts for this event (accepted and visible only)
+        const coHostsResult = await sql`
+            SELECT
+                ec.user_id, ec.role, ec.status, ec.display_order, ec.is_visible,
+                ec.can_edit, ec.can_manage_registrations, ec.can_manage_guests, ec.can_view_insights,
+                ec.receives_registration_emails, ec.receives_summary_emails, ec.receives_payments,
+                u.name, si.logo_url, si.slug, si.university_affiliation,
+                u.stripe_charges_enabled, u.stripe_payouts_enabled
+            FROM event_cohosts ec
+            JOIN users u ON ec.user_id = u.id
+            LEFT JOIN society_information si ON ec.user_id = si.user_id
+            WHERE ec.event_id = ${event.id}
+            AND ec.status = 'accepted'
+            AND ec.is_visible = TRUE
+            ORDER BY ec.role = 'primary' DESC, ec.display_order ASC
+        `;
+
         // Check registration status if user is logged in
         let isRegistered = false;
         if (session?.user?.id) {
@@ -124,6 +141,7 @@ export async function POST(req: Request) {
         return NextResponse.json({
             ...event,
             tickets: ticketsResult.rows,
+            co_hosts: coHostsResult.rows,
             isRegistered,
             eventSoldOut,       // true if event capacity is reached
             eventCapacity: event.capacity || null,

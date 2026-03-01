@@ -982,7 +982,11 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
 
             const result = await response.json();
             if (result.success) {
-                toast.success(editMode ? "Event updated successfully!" : "Event created successfully!", { id: toastId });
+                const baseMessage = editMode ? "Event updated successfully!" : "Event created successfully!";
+                const coHostMessage = !editMode && result.coHostsInvited > 0
+                    ? `\n${result.coHostsInvited} co-host invitation${result.coHostsInvited > 1 ? 's' : ''} sent.`
+                    : '';
+                toast.success(baseMessage + coHostMessage, { id: toastId, duration: coHostMessage ? 5000 : 3000 });
                 // Clear autosave on successful submission
                 if (!editMode) {
                     try {
@@ -1180,14 +1184,22 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                                     <label className="block text-sm font-medium text-white mb-2">
                                         Co-Hosts <span className="text-white/50 font-normal">(optional)</span>
                                     </label>
-                                    <p className="text-sm text-blue-200/70 mb-3">
-                                        Invite other societies to co-host this event. They will receive an invitation to accept.
-                                    </p>
-                                    <CoHostSelector
-                                        selectedCoHosts={selectedCoHosts}
-                                        onCoHostsChange={setSelectedCoHosts}
-                                        excludeUid={organiser_id}
-                                    />
+                                    {editMode ? (
+                                        <p className="text-sm text-blue-200/70">
+                                            Co-hosts can be managed from the Co-Hosts tab on the event management page.
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm text-blue-200/70 mb-3">
+                                                Invite other societies to co-host this event. They will receive an invitation to accept.
+                                            </p>
+                                            <CoHostSelector
+                                                selectedCoHosts={selectedCoHosts}
+                                                onCoHostsChange={setSelectedCoHosts}
+                                                excludeUid={organiser_id}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </AnimatedSection>

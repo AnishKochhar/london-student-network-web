@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { EventCardProps } from "@/app/lib/types";
 import { formatEventDateTime } from "@/app/lib/utils";
+import { formatOrganiserDisplay } from "./organiser-list";
 import { base16ToBase62 } from "@/app/lib/uuid-utils";
 import { getEventImage } from "@/app/lib/default-images";
 import EventCardTags from "./event-tags";
@@ -123,7 +124,7 @@ export default function EventCard({ event, editEvent, index = 0 }: ExtendedEvent
                         {event.location_area}
                     </p>
                     <p className="text-black text-right mt-2 truncate text-ellipsis font-medium">
-                        {event.organiser}
+                        {formatOrganiserDisplay(event)}
                     </p>
                 </div>
             </div>

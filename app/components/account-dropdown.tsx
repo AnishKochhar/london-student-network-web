@@ -159,7 +159,7 @@ export default function AccountDropdown({
                 aria-haspopup="true"
             >
                 <UserCircleIcon className="h-6 w-6 text-white" />
-                <span className="text-white text-sm font-medium hidden sm:block">
+                <span className="text-white text-sm font-medium hidden sm:block truncate max-w-[160px]">
                     {userName || userEmail}
                 </span>
                 <motion.div

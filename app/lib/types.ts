@@ -38,6 +38,59 @@ export interface Event {
     tickets?: unknown[]; // Tickets for this event (from get-information API)
     isRegistered?: boolean; // Whether the current user is registered (from get-information API)
     has_paid_tickets?: boolean; // Whether this event has paid tickets
+    // Co-hosting
+    co_hosts?: EventCoHost[]; // Co-hosts for this event (from get-information API)
+}
+
+// Co-hosting types
+export interface EventCoHost {
+    user_id: string;
+    role: 'primary' | 'cohost';
+    status: 'pending' | 'accepted' | 'declined';
+    display_order: number;
+    is_visible: boolean;
+    can_edit: boolean;
+    can_manage_registrations: boolean;
+    can_manage_guests: boolean;
+    can_view_insights: boolean;
+    receives_registration_emails: boolean;
+    receives_summary_emails: boolean;
+    receives_payments: boolean;
+    // Enriched fields from JOINs
+    name?: string;
+    logo_url?: string;
+    slug?: string;
+    university_affiliation?: string;
+    stripe_charges_enabled?: boolean;
+    stripe_payouts_enabled?: boolean;
+}
+
+export interface CoHostSearchResult {
+    user_id: string;
+    name: string;
+    logo_url: string | null;
+    university_affiliation: string | null;
+    slug: string | null;
+}
+
+export interface CoHostFormSelection {
+    user_id: string;
+    name: string;
+    logo_url: string | null;
+    can_edit: boolean;
+    can_manage_registrations: boolean;
+    can_manage_guests: boolean;
+    can_view_insights: boolean;
+    receives_registration_emails: boolean;
+    receives_summary_emails: boolean;
+    receives_payments: boolean;
+}
+
+export interface CoHostPermissions {
+    can_edit: boolean;
+    can_manage_registrations: boolean;
+    can_manage_guests: boolean;
+    can_view_insights: boolean;
 }
 
 export interface EditEventProps {
@@ -227,6 +280,8 @@ export interface EventFormData {
     // Registration cutoff fields
     registration_cutoff_hours?: number | null; // Hours before event when ALL registrations close
     external_registration_cutoff_hours?: number | null; // Hours before event when EXTERNAL registrations close
+    // Co-hosting
+    cohosts?: CoHostFormSelection[]; // Co-hosts to invite when creating/editing
 }
 
 export interface SQLEventData {

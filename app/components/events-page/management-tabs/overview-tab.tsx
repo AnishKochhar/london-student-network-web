@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Event } from "@/app/lib/types";
 import {
     Users, Calendar, MapPin, Mail,
@@ -346,18 +347,16 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
             )}
 
             {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && typeof window !== 'undefined' && (
-                <>
-                    {/* Portal to body to avoid z-index issues */}
+            {showDeleteConfirm && typeof window !== 'undefined' && createPortal(
+                <div
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                    style={{ zIndex: 100000 }}
+                    onClick={() => !deleting && setShowDeleteConfirm(false)}
+                >
                     <div
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-                        style={{ zIndex: 100000 }}
-                        onClick={() => !deleting && setShowDeleteConfirm(false)}
+                        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative border border-red-500/30"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <div
-                            className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative border border-red-500/30"
-                            onClick={(e) => e.stopPropagation()}
-                        >
                         <div className="flex items-center gap-3 mb-4">
                             <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
                                 <Trash2 className="w-6 h-6 text-red-500" />
@@ -411,8 +410,8 @@ export default function OverviewTab({ event, eventId, onEventUpdate }: OverviewT
                             </button>
                         </div>
                     </div>
-                </div>
-                </>
+                </div>,
+                document.body
             )}
         </div>
     );

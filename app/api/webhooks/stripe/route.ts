@@ -12,7 +12,7 @@ import DonationNotificationEmailPayload from "@/app/components/templates/donatio
 import DonationNotificationEmailFallbackPayload from "@/app/components/templates/donation-notification-email-fallback";
 import { convertSQLEventToEvent } from "@/app/lib/utils";
 import { generateICSFile } from "@/app/lib/ics-generator";
-import { getEventOrganiserEmail } from "@/app/lib/data";
+import { getEventOrganiserEmail, getNotificationRecipients } from "@/app/lib/data";
 import { SQLEvent } from "@/app/lib/types";
 import Stripe from "stripe";
 
@@ -235,43 +235,49 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
                 console.error("Failed to send registration confirmation email:", emailError);
             }
 
-            // Send notification to organizer
+            // Send notification to all co-hosts with registration email notifications enabled
             const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
             if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
                 try {
-                    if (organiserEmailAddress) {
-                        const orgEmailSubject = `🔔 New Registration: ${event.title}`;
-                        const orgEmailHtml = EventOrganizerNotificationEmailPayload(
-                            event,
-                            {
-                                name: user_name!,
-                                email: user_email!,
-                                external: isExternalBool
-                            },
-                            ticketInfo
-                        );
-                        const orgEmailText = EventOrganizerNotificationEmailFallbackPayload(
-                            event,
-                            {
-                                name: user_name!,
-                                email: user_email!,
-                                external: isExternalBool
-                            },
-                            ticketInfo
-                        );
+                    const notificationRecipients = await getNotificationRecipients(event_id);
 
-                        await sendEventRegistrationEmail({
-                            toEmail: organiserEmailAddress,
-                            subject: orgEmailSubject,
-                            html: orgEmailHtml,
-                            text: orgEmailText,
-                            replyTo: user_email!,
-                        });
+                    for (const recipient of notificationRecipients) {
+                        try {
+                            const orgEmailSubject = `🔔 New Registration: ${event.title}`;
+                            const orgEmailHtml = EventOrganizerNotificationEmailPayload(
+                                event,
+                                {
+                                    name: user_name!,
+                                    email: user_email!,
+                                    external: isExternalBool
+                                },
+                                ticketInfo
+                            );
+                            const orgEmailText = EventOrganizerNotificationEmailFallbackPayload(
+                                event,
+                                {
+                                    name: user_name!,
+                                    email: user_email!,
+                                    external: isExternalBool
+                                },
+                                ticketInfo
+                            );
 
-                        console.log("Notification email sent to organizer");
+                            await sendEventRegistrationEmail({
+                                toEmail: recipient.email,
+                                subject: orgEmailSubject,
+                                html: orgEmailHtml,
+                                text: orgEmailText,
+                                replyTo: user_email!,
+                            });
+
+                            console.log(`Notification email sent to ${recipient.email}`);
+                        } catch (recipientError) {
+                            console.error(`Failed to send notification to ${recipient.email}:`, recipientError);
+                        }
                     }
                 } catch (organiserEmailError) {
-                    console.error("Failed to send notification email to organiser:", organiserEmailError);
+                    console.error("Failed to send notification emails to organisers:", organiserEmailError);
                 }
             }
 

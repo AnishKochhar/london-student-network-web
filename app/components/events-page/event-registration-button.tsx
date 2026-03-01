@@ -418,7 +418,7 @@ export default function EventRegistrationButton({
                                     {/* Countdown */}
                                     {event.start_datetime && (
                                         <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                            <EventCountdown startDateTime={event.start_datetime} />
+                                            <EventCountdown startDateTime={event.start_datetime} endDateTime={event.end_datetime} />
                                             {isVirtualEvent && (
                                                 <div className="mt-3 pt-3 border-t border-gray-200">
                                                     <p className="text-xs text-gray-600 flex items-start gap-2">
@@ -592,7 +592,7 @@ export default function EventRegistrationButton({
                                     {event.start_datetime && (
                                         <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                                             <p className="text-xs text-gray-600 font-medium mb-1.5">Event starts in</p>
-                                            <EventCountdown startDateTime={event.start_datetime} />
+                                            <EventCountdown startDateTime={event.start_datetime} endDateTime={event.end_datetime} />
                                         </div>
                                     )}
 

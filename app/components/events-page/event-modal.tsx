@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { X, Calendar, MapPin, Users, Mail, Flag, ExternalLink } from "lucide-react";
+import { X, Calendar, MapPin, Users, ExternalLink } from "lucide-react";
 import { EventModalProps, Event as EventType } from "@/app/lib/types";
 import { motion } from "framer-motion";
 import EventImageWithGradient from "./event-image-with-gradient";
@@ -18,6 +17,7 @@ import MarkdownRenderer from "../markdown/markdown-renderer";
 import EventRegistrationButton from "./event-registration-button";
 import RegistrationChoiceModal from "./registration-choice-modal";
 import ModernRegistrationModal from "./modern-registration-modal";
+import OrganiserList from "./organiser-list";
 import ReportEventModal from "./report-event-modal";
 import TicketSelectionModal from "./ticket-selection-modal";
 
@@ -138,6 +138,14 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
         };
     }, [onClose]);
 
+    // Fetch full event data (including co-hosts) on modal open
+    useEffect(() => {
+        if (!isPreview) {
+            fetchFullEventData();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Fetch society logo from database if not found locally
     useEffect(() => {
         const societyLogo = returnLogo(event.organiser);
@@ -198,8 +206,6 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
         }
         return tags;
     };
-
-    const societyLogo = returnLogo(event.organiser);
 
     return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -340,51 +346,12 @@ export default function EventModal({ event, onClose, isPreview = false, isRegist
                                 </div>
 
                                 {/* Organizer Card */}
-                                <div className="bg-white rounded-2xl p-6 border border-gray-200">
-                                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
-                                        Hosted By
-                                    </h3>
-
-                                    <div className="flex items-center gap-3 mb-4">
-                                        {(societyLogo.found || dbLogoUrl) && (
-                                            <Image
-                                                src={
-                                                    societyLogo.found
-                                                        ? societyLogo.src || "/images/societies/roar.png"
-                                                        : dbLogoUrl || "/images/societies/roar.png"
-                                                }
-                                                alt="Society Logo"
-                                                width={48}
-                                                height={48}
-                                                className="object-contain rounded-lg"
-                                            />
-                                        )}
-                                        <div>
-                                            <p className="text-base font-bold text-gray-900">{event.organiser}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Contact Actions */}
-                                    <div className="space-y-2 pt-4 border-t border-gray-200">
-                                        {/* Don't show Contact Host for admin scraped events */}
-                                        {event.organiser_uid !== '45ef371c-0cbc-4f2a-b9f1-f6078aa6638c' && (
-                                            <button
-                                                onClick={() => router.push(`/societies/message/${event.organiser_uid}`)}
-                                                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                            >
-                                                <Mail className="w-4 h-4" />
-                                                Contact Host
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => setShowReportModal(true)}
-                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                                        >
-                                            <Flag className="w-4 h-4" />
-                                            Report Event
-                                        </button>
-                                    </div>
-                                </div>
+                                <OrganiserList
+                                    event={fullEventData}
+                                    variant="modal"
+                                    onReport={() => setShowReportModal(true)}
+                                    dbLogoUrl={dbLogoUrl}
+                                />
 
                                 {/* Go to Event button for desktop */}
                                 <button

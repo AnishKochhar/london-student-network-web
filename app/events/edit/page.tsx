@@ -52,6 +52,11 @@ export default async function EditPage({ searchParams }: EditPageProps) {
 
     const organiserList = await getAuthorisedOrganiserList(user);
 
+    // Ensure the existing event's organiser is in the dropdown options
+    if (existingEvent.organiser && !organiserList.includes(existingEvent.organiser)) {
+        organiserList.unshift(existingEvent.organiser);
+    }
+
     return (
         <ModernCreateEvent
             organiser_id={user_id}

@@ -142,7 +142,14 @@ export async function POST(req: Request) {
                 registration_cutoff_hours = ${sqlEventData.registration_cutoff_hours ?? null},
                 external_registration_cutoff_hours = ${sqlEventData.external_registration_cutoff_hours ?? null}
             WHERE id = ${id}
-            AND organiser_uid = ${session.user.id}
+            AND (
+                organiser_uid = ${session.user.id}
+                OR EXISTS (
+                    SELECT 1 FROM event_cohosts
+                    WHERE event_id = ${id} AND user_id = ${session.user.id}
+                    AND status = 'accepted' AND can_edit = true
+                )
+            )
             AND (is_deleted IS NULL OR is_deleted = false)
         `;
 
