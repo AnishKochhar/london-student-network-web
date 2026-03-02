@@ -231,7 +231,7 @@ export default function CampaignsPage() {
                         <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 text-xs flex items-center justify-center font-semibold">
                             2
                         </span>
-                        Create or customize an email template
+                        Create or customise an email template
                     </li>
                     <li className="flex items-center gap-2">
                         <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 text-xs flex items-center justify-center font-semibold">

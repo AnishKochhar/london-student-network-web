@@ -91,11 +91,12 @@ export async function POST(request: NextRequest) {
                     SELECT ec.id FROM email_categories ec
                     INNER JOIN category_tree ct ON ec.parent_id = ct.id
                 )
-                SELECT c.id, c.email, c.name, c.organization
+                SELECT DISTINCT ON (c.email) c.id, c.email, c.name, c.organization
                 FROM email_contacts c
-                WHERE c.category_id IN (SELECT id FROM category_tree)
+                JOIN email_contact_categories ecc ON ecc.contact_id = c.id
+                WHERE ecc.category_id IN (SELECT id FROM category_tree)
                 AND c.status = 'active'
-                ORDER BY c.created_at DESC
+                ORDER BY c.email, c.created_at DESC
             `;
             contacts = contactsResult.rows as ContactRow[];
         }

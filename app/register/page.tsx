@@ -22,7 +22,7 @@ export default function Register() {
                 />
                 <OptionButton
                     name="society"
-                    tooltip="Student societies and university organizations"
+                    tooltip="Student societies and university organisations"
                 />
                 <OptionButton
                     name="company"

@@ -25,7 +25,7 @@ export default async function AdminLayout({
             <AdminSidebar user={session.user} />
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto min-h-0">
                 {children}
             </main>
         </div>

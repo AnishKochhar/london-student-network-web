@@ -32,7 +32,7 @@ export default async function AdminSettingsPage() {
         },
         {
             title: "Appearance",
-            description: "Customize theme and branding",
+            description: "Customise theme and branding",
             icon: PaintBrushIcon,
             color: "text-purple-400",
         },

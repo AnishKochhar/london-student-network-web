@@ -317,6 +317,142 @@ export const SOCIETY_OUTREACH_FOLLOWUP: TemplateContent = {
 };
 
 // ============================================
+// EMAIL 5: Co-Hosting Feature Announcement
+// ============================================
+export const SOCIETY_COHOST_ANNOUNCEMENT: TemplateContent = {
+    slug: 'cohost-feature-announcement',
+    name: 'Co-Hosting Feature Announcement',
+    description: 'Announce the new co-hosting feature to registered societies',
+    category: 'announcement',
+    subject: "New on LSN: Co-host events with other societies",
+    subjectAlternatives: [
+        "You can now co-host events across universities on LSN",
+        "Multi-society events just got easier"
+    ],
+    previewText: "Invite other societies to co-host your events — shared branding, split payments, bigger reach.",
+    variables: ['name', 'organization'],
+    bodyHtml: `
+<p style="margin: 0 0 16px 0;">Hi {{name}},</p>
+
+<p style="margin: 0 0 20px 0;">We've just launched something societies have been asking for — <strong>event co-hosting</strong>.</p>
+
+<p style="margin: 0 0 20px 0;">You can now invite other societies to co-host your events on LSN. It works across universities, handles permissions automatically, and even lets you route ticket payments to the right organiser.</p>
+
+<!-- Screenshot: Public event page showing co-hosts -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 24px 0;">
+    <tr>
+        <td style="border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">
+            <img src="https://londonstudentnetwork.com/email/cohost-event-page.jpg"
+                 alt="Event page showing three co-hosting societies with logos and university affiliations"
+                 width="600"
+                 style="display: block; max-width: 100%; height: auto; border: 0;" />
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 8px 0 0 0;">
+            <p style="margin: 0; font-size: 12px; color: #9CA3AF; text-align: center;">
+                An event co-hosted by three societies across Imperial and KCL
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #111827;">Here's what co-hosting gives you:</p>
+
+<!-- Feature cards -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 8px 0;">
+    <tr>
+        <td style="background-color: #f0f9ff; border-radius: 8px; padding: 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #1e40af;">Shared branding</p>
+            <p style="margin: 0; font-size: 14px; color: #374151;">All co-hosts appear on the event page with their logo, name, and university — so students know exactly who's behind it.</p>
+        </td>
+    </tr>
+</table>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 8px 0;">
+    <tr>
+        <td style="background-color: #f0fdf4; border-radius: 8px; padding: 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #166534;">Payment routing</p>
+            <p style="margin: 0; font-size: 14px; color: #374151;">Choose which organiser receives ticket revenue. Each co-host connects their own Stripe, and the primary organiser picks the payment destination.</p>
+        </td>
+    </tr>
+</table>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 8px 0;">
+    <tr>
+        <td style="background-color: #fef3c7; border-radius: 8px; padding: 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #92400e;">Granular permissions</p>
+            <p style="margin: 0; font-size: 14px; color: #374151;">Control who can edit the event, manage guest lists, view insights, or receive registration emails — per co-host.</p>
+        </td>
+    </tr>
+</table>
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 24px 0;">
+    <tr>
+        <td style="background-color: #faf5ff; border-radius: 8px; padding: 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #6b21a8;">Cross-university reach</p>
+            <p style="margin: 0; font-size: 14px; color: #374151;">Co-host with societies from any London university. No SU restrictions, no red tape — just one event page that represents everyone.</p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #111827;">How it works:</p>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px 0;">
+    <tr>
+        <td style="padding: 6px 0; vertical-align: top; font-weight: 600; color: #4F46E5; width: 24px;">1.</td>
+        <td style="padding: 6px 0 6px 4px;">Create your event as normal</td>
+    </tr>
+    <tr>
+        <td style="padding: 6px 0; vertical-align: top; font-weight: 600; color: #4F46E5; width: 24px;">2.</td>
+        <td style="padding: 6px 0 6px 4px;">Go to the <strong>Co-Hosts</strong> tab and search for societies</td>
+    </tr>
+    <tr>
+        <td style="padding: 6px 0; vertical-align: top; font-weight: 600; color: #4F46E5; width: 24px;">3.</td>
+        <td style="padding: 6px 0 6px 4px;">They accept, and their branding appears automatically</td>
+    </tr>
+    <tr>
+        <td style="padding: 6px 0; vertical-align: top; font-weight: 600; color: #4F46E5; width: 24px;">4.</td>
+        <td style="padding: 6px 0 6px 4px;">Optionally route payments to any connected co-host</td>
+    </tr>
+</table>
+
+<!-- Screenshot: Admin co-hosts panel -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 24px 0;">
+    <tr>
+        <td style="border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">
+            <img src="https://londonstudentnetwork.com/email/cohost-admin-panel.jpg"
+                 alt="Admin panel showing co-host management with invite search, accepted co-hosts, and payment routing options"
+                 width="600"
+                 style="display: block; max-width: 100%; height: auto; border: 0;" />
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 8px 0 0 0;">
+            <p style="margin: 0; font-size: 12px; color: #9CA3AF; text-align: center;">
+                The co-hosts management panel — invite, set permissions, and route payments
+            </p>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 20px 0;">If you're planning a collab event this term, this is the easiest way to run it.</p>
+
+<!-- CTA Button -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
+    <tr>
+        <td style="border-radius: 8px; background-color: #4F46E5;">
+            <a href="https://www.londonstudentnetwork.com/login?redirect=/events/create" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 15px; font-weight: 600; color: #ffffff; text-decoration: none;">
+                Create a co-hosted event →
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0; font-size: 14px; color: #6B7280;">
+    Questions? Just reply to this email — we're happy to help you set it up.
+</p>
+    `.trim()
+};
+
+// ============================================
 // All templates collection
 // ============================================
 export const SOCIETY_OUTREACH_TEMPLATES: TemplateContent[] = [
@@ -324,6 +460,7 @@ export const SOCIETY_OUTREACH_TEMPLATES: TemplateContent[] = [
     SOCIETY_OUTREACH_PROOF,
     SOCIETY_OUTREACH_URGENCY,
     SOCIETY_OUTREACH_FOLLOWUP,
+    SOCIETY_COHOST_ANNOUNCEMENT,
 ];
 
 /**

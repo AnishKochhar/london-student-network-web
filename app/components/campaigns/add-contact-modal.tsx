@@ -235,10 +235,10 @@ export default function AddContactModal({
                                             />
                                         </div>
 
-                                        {/* Organization (Optional) */}
+                                        {/* Organisation (Optional) */}
                                         <div className="space-y-1.5">
                                             <label className="block text-sm font-medium text-white/70">
-                                                Organization <span className="text-white/30">(optional)</span>
+                                                Organisation <span className="text-white/30">(optional)</span>
                                             </label>
                                             <input
                                                 type="text"

@@ -36,7 +36,7 @@ interface CategoryTreeProps {
 }
 
 // Recursively calculate total contacts including children
-function getTotalContacts(category: CategoryNode): number {
+export function getTotalContacts(category: CategoryNode): number {
     const childrenTotal = category.children.reduce(
         (sum, child) => sum + getTotalContacts(child),
         0
@@ -215,42 +215,23 @@ function CategoryItem({
                     <div className="w-4" /> // Spacer
                 )}
 
-                {/* Folder icon or color dot */}
-                {hasChildren ? (
-                    isExpanded ? (
-                        <FolderOpenIcon
-                            className="w-4 h-4 flex-shrink-0"
-                            style={{ color: category.color }}
-                        />
-                    ) : (
-                        <FolderIcon
-                            className="w-4 h-4 flex-shrink-0"
-                            style={{ color: category.color }}
-                        />
-                    )
+                {/* Folder icon — coloured by category */}
+                {hasChildren && isExpanded ? (
+                    <FolderOpenIcon
+                        className="w-4 h-4 flex-shrink-0"
+                        style={{ color: category.color }}
+                    />
                 ) : (
-                    <div
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ring-white/10"
-                        style={{ backgroundColor: category.color }}
+                    <FolderIcon
+                        className="w-4 h-4 flex-shrink-0"
+                        style={{ color: category.color }}
                     />
                 )}
 
-                {/* Name with hover expand animation */}
-                <div className="flex-1 min-w-0 overflow-hidden">
-                    <motion.span
-                        className="text-sm font-medium whitespace-nowrap block"
-                        initial={false}
-                        animate={{
-                            width: isHovered ? "auto" : "100%",
-                        }}
-                        style={{
-                            textOverflow: isHovered ? "clip" : "ellipsis",
-                            overflow: "hidden",
-                        }}
-                    >
-                        {category.name}
-                    </motion.span>
-                </div>
+                {/* Name */}
+                <span className="text-sm font-medium truncate flex-1 min-w-0">
+                    {category.name}
+                </span>
 
                 {/* Count badge - shows total including children */}
                 {showCounts && (

@@ -24,7 +24,6 @@ export interface Recipient {
     name: string | null;
     organization: string | null;
     source: "category" | "manual" | "search";
-    categoryId?: string;
     categoryName?: string;
 }
 
@@ -33,8 +32,7 @@ interface ContactResult {
     email: string;
     name: string | null;
     organization: string | null;
-    categoryId: string | null;
-    categoryName: string | null;
+    categories: { id: string; name: string; slug: string }[];
 }
 
 interface RecipientSelectorProps {
@@ -211,22 +209,25 @@ export default function RecipientSelector({
                     const contacts = data.items || [];
 
                     const newRecipients: Recipient[] = contacts.map(
-                        (c: ContactResult & { categoryId: string }) => ({
+                        (c: ContactResult) => ({
                             id: c.id,
                             email: c.email,
                             name: c.name,
                             organization: c.organization,
                             source: "category" as const,
-                            categoryId: c.categoryId,
                             categoryName: category.name,
                         })
                     );
 
-                    // Merge avoiding duplicates
+                    // Deduplicate by email: avoid duplicates with existing recipients
                     const existingEmails = new Set(recipients.map((r) => r.email.toLowerCase()));
-                    const uniqueNew = newRecipients.filter(
-                        (r) => !existingEmails.has(r.email.toLowerCase())
-                    );
+                    const seenEmails = new Set<string>();
+                    const uniqueNew = newRecipients.filter((r) => {
+                        const lower = r.email.toLowerCase();
+                        if (existingEmails.has(lower) || seenEmails.has(lower)) return false;
+                        seenEmails.add(lower);
+                        return true;
+                    });
 
                     onRecipientsChange([...recipients, ...uniqueNew]);
                     setQuery("");
@@ -252,8 +253,7 @@ export default function RecipientSelector({
                 name: contact.name,
                 organization: contact.organization,
                 source: "search",
-                categoryId: contact.categoryId || undefined,
-                categoryName: contact.categoryName || undefined,
+                categoryName: contact.categories?.[0]?.name || undefined,
             };
 
             onRecipientsChange([...recipients, newRecipient]);
@@ -535,7 +535,7 @@ export default function RecipientSelector({
                                                                     <p className="text-xs text-white/40 truncate">
                                                                         {contact.name
                                                                             ? contact.email
-                                                                            : contact.organization || "No organization"}
+                                                                            : contact.organization || "No organisation"}
                                                                     </p>
                                                                 </div>
 

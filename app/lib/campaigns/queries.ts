@@ -49,9 +49,10 @@ export async function fetchCategoriesWithCounts(): Promise<EmailCategory[]> {
             c.sort_order as "sortOrder",
             c.created_at as "createdAt",
             c.updated_at as "updatedAt",
-            COUNT(ec.id)::int as "contactCount"
+            COUNT(DISTINCT ec.id)::int as "contactCount"
         FROM email_categories c
-        LEFT JOIN email_contacts ec ON ec.category_id = c.id AND ec.status = 'active'
+        LEFT JOIN email_contact_categories ecc ON ecc.category_id = c.id
+        LEFT JOIN email_contacts ec ON ec.id = ecc.contact_id AND ec.status = 'active'
         GROUP BY c.id
         ORDER BY c.sort_order ASC, c.name ASC
     `;
@@ -124,8 +125,8 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: string): Promise<void> {
-    // Update contacts to have no category
-    await sql`UPDATE email_contacts SET category_id = NULL WHERE category_id = ${id}`;
+    // Remove contact-category links
+    await sql`DELETE FROM email_contact_categories WHERE category_id = ${id}`;
     // Update child categories to have no parent
     await sql`UPDATE email_categories SET parent_id = NULL WHERE parent_id = ${id}`;
     // Delete the category
@@ -176,7 +177,7 @@ export async function fetchContacts(
                 INNER JOIN category_tree ct ON ec.parent_id = ct.id
             )
         `;
-        conditions.push(`c.category_id IN (SELECT id FROM category_tree)`);
+        conditions.push(`c.id IN (SELECT ecc.contact_id FROM email_contact_categories ecc WHERE ecc.category_id IN (SELECT id FROM category_tree))`);
     }
 
     if (status) {
@@ -223,8 +224,13 @@ export async function fetchContacts(
             c.email,
             c.name,
             c.organization,
-            c.category_id as "categoryId",
-            cat.name as "categoryName",
+            COALESCE(
+                (SELECT json_agg(json_build_object('id', cat.id, 'name', cat.name, 'slug', cat.slug))
+                 FROM email_contact_categories ecc2
+                 JOIN email_categories cat ON cat.id = ecc2.category_id
+                 WHERE ecc2.contact_id = c.id),
+                '[]'::json
+            ) as "categories",
             c.metadata,
             c.tags,
             c.notes,
@@ -236,7 +242,6 @@ export async function fetchContacts(
             c.created_at as "createdAt",
             c.updated_at as "updatedAt"
         FROM email_contacts c
-        LEFT JOIN email_categories cat ON c.category_id = cat.id
         ${whereClause}
         ORDER BY ${orderBy}
         LIMIT $${values.length - 1} OFFSET $${values.length}
@@ -262,8 +267,13 @@ export async function fetchContactById(id: string): Promise<EmailContact | null>
             c.email,
             c.name,
             c.organization,
-            c.category_id as "categoryId",
-            cat.name as "categoryName",
+            COALESCE(
+                (SELECT json_agg(json_build_object('id', cat.id, 'name', cat.name, 'slug', cat.slug))
+                 FROM email_contact_categories ecc2
+                 JOIN email_categories cat ON cat.id = ecc2.category_id
+                 WHERE ecc2.contact_id = c.id),
+                '[]'::json
+            ) as "categories",
             c.metadata,
             c.tags,
             c.notes,
@@ -275,7 +285,6 @@ export async function fetchContactById(id: string): Promise<EmailContact | null>
             c.created_at as "createdAt",
             c.updated_at as "updatedAt"
         FROM email_contacts c
-        LEFT JOIN email_categories cat ON c.category_id = cat.id
         WHERE c.id = ${id}
     `;
     return rows[0] as EmailContact | null;
@@ -298,12 +307,11 @@ export async function createContact(data: {
 
     const { rows } = await sql`
         INSERT INTO email_contacts (
-            email, name, organization, category_id, metadata, tags, notes, source
+            email, name, organization, metadata, tags, notes, source
         ) VALUES (
             ${data.email},
             ${data.name || null},
             ${data.organization || null},
-            ${data.categoryId || null},
             ${JSON.stringify(data.metadata || {})},
             ${tagsArray}::text[],
             ${data.notes || null},
@@ -314,7 +322,6 @@ export async function createContact(data: {
             email,
             name,
             organization,
-            category_id as "categoryId",
             metadata,
             tags,
             notes,
@@ -324,7 +331,27 @@ export async function createContact(data: {
             created_at as "createdAt",
             updated_at as "updatedAt"
     `;
-    return rows[0] as EmailContact;
+    const contact = rows[0];
+
+    // Link to category if provided
+    if (data.categoryId) {
+        await sql`
+            INSERT INTO email_contact_categories (contact_id, category_id)
+            VALUES (${contact.id}, ${data.categoryId})
+            ON CONFLICT DO NOTHING
+        `;
+    }
+
+    // Fetch categories for return value
+    const { rows: catRows } = await sql`
+        SELECT cat.id, cat.name, cat.slug
+        FROM email_contact_categories ecc
+        JOIN email_categories cat ON cat.id = ecc.category_id
+        WHERE ecc.contact_id = ${contact.id}
+    `;
+    contact.categories = catRows;
+
+    return contact as EmailContact;
 }
 
 export async function updateContact(
@@ -351,11 +378,15 @@ export async function updateContact(
             email = COALESCE(${data.email}, email),
             name = COALESCE(${data.name}, name),
             organization = COALESCE(${data.organization}, organization),
-            category_id = COALESCE(${data.categoryId}, category_id),
             metadata = COALESCE(${data.metadata ? JSON.stringify(data.metadata) : null}, metadata),
             tags = COALESCE(${tagsArray}::text[], tags),
             notes = COALESCE(${data.notes}, notes),
             status = COALESCE(${data.status}, status),
+            unsubscribed_at = CASE
+                WHEN ${data.status || null} = 'unsubscribed' THEN COALESCE(unsubscribed_at, NOW())
+                WHEN ${data.status || null} = 'active' THEN NULL
+                ELSE unsubscribed_at
+            END,
             updated_at = NOW()
         WHERE id = ${id}
         RETURNING
@@ -363,17 +394,41 @@ export async function updateContact(
             email,
             name,
             organization,
-            category_id as "categoryId",
             metadata,
             tags,
             notes,
             status,
+            unsubscribed_at as "unsubscribedAt",
             bounce_count as "bounceCount",
+            last_emailed_at as "lastEmailedAt",
             source,
             created_at as "createdAt",
             updated_at as "updatedAt"
     `;
-    return rows[0] as EmailContact;
+    const contact = rows[0];
+
+    // Update category if provided (replaces all existing categories)
+    if (data.categoryId !== undefined) {
+        await sql`DELETE FROM email_contact_categories WHERE contact_id = ${id}`;
+        if (data.categoryId) {
+            await sql`
+                INSERT INTO email_contact_categories (contact_id, category_id)
+                VALUES (${id}, ${data.categoryId})
+                ON CONFLICT DO NOTHING
+            `;
+        }
+    }
+
+    // Fetch categories for return value
+    const { rows: catRows } = await sql`
+        SELECT cat.id, cat.name, cat.slug
+        FROM email_contact_categories ecc
+        JOIN email_categories cat ON cat.id = ecc.category_id
+        WHERE ecc.contact_id = ${id}
+    `;
+    contact.categories = catRows;
+
+    return contact as EmailContact;
 }
 
 export async function deleteContacts(ids: string[], hardDelete: boolean = false): Promise<number> {
@@ -429,19 +484,27 @@ export async function importContacts(
                     : '{}';
 
                 // Insert new contact
-                await sql`
+                const { rows: inserted } = await sql`
                     INSERT INTO email_contacts (
-                        email, name, organization, category_id, metadata, tags, source
+                        email, name, organization, metadata, tags, source
                     ) VALUES (
                         ${contact.email},
                         ${contact.name || null},
                         ${contact.organization || null},
-                        ${categoryId},
                         ${JSON.stringify(contact.metadata || {})},
                         ${tagsArray}::text[],
                         ${source}
                     )
+                    RETURNING id
                 `;
+                // Link to category
+                if (categoryId && inserted[0]) {
+                    await sql`
+                        INSERT INTO email_contact_categories (contact_id, category_id)
+                        VALUES (${inserted[0].id}, ${categoryId})
+                        ON CONFLICT DO NOTHING
+                    `;
+                }
                 result.created++;
             }
         } catch (error) {

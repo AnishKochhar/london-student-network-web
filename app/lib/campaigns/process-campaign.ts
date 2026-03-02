@@ -6,6 +6,7 @@ import {
     replaceVariables,
     htmlToPlainText,
 } from "@/app/lib/campaigns/email-templates";
+import { buildUnsubscribeUrl } from "@/app/lib/campaigns/unsubscribe";
 
 // ============================================
 // Campaign Processing Engine
@@ -203,6 +204,11 @@ async function processBatch(
             let bodyHtml = "";
             let bodyText = "";
 
+            // Generate signed unsubscribe URL for this recipient
+            const unsubscribeUrl = send.contact_id
+                ? buildUnsubscribeUrl(send.contact_id, send.to_email)
+                : undefined;
+
             if (template) {
                 const personalizedBody = replaceVariables(template.bodyHtml, variables);
                 bodyHtml = wrapWithLSNBranding(
@@ -212,7 +218,7 @@ async function processBatch(
                         : undefined,
                     {
                         previewText: template.previewText || undefined,
-                        unsubscribeUrl: `https://londonstudentnetwork.com/unsubscribe?email=${encodeURIComponent(send.to_email)}`,
+                        unsubscribeUrl,
                     }
                 );
                 bodyText = htmlToPlainText(personalizedBody);
@@ -223,7 +229,7 @@ async function processBatch(
                 ? `${campaign.from_name} <${campaign.from_email}>`
                 : campaign.from_email;
 
-            // Send email
+            // Send email with List-Unsubscribe headers for email client compliance
             await sendSendGridEmail({
                 to: send.to_email,
                 from: fromAddress,
@@ -231,6 +237,12 @@ async function processBatch(
                 subject,
                 html: bodyHtml,
                 text: bodyText,
+                ...(unsubscribeUrl && {
+                    headers: {
+                        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+                        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+                    },
+                }),
             });
 
             // Mark as sent

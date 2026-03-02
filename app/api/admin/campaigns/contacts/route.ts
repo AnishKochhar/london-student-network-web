@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import {
     fetchContacts,
     createContact,
+    updateContact,
     deleteContacts,
     importContacts,
 } from "@/app/lib/campaigns/queries";
@@ -91,6 +92,44 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
             { error: "Failed to create contact" },
+            { status: 500 }
+        );
+    }
+}
+
+// PATCH /api/admin/campaigns/contacts - Update a contact
+export async function PATCH(request: NextRequest) {
+    try {
+        const session = await auth();
+        if (!session?.user || session.user.role !== "admin") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const body = await request.json();
+
+        if (!body.id) {
+            return NextResponse.json(
+                { error: "Contact ID is required" },
+                { status: 400 }
+            );
+        }
+
+        const contact = await updateContact(body.id, {
+            email: body.email,
+            name: body.name,
+            organization: body.organization,
+            categoryId: body.categoryId,
+            metadata: body.metadata,
+            tags: body.tags,
+            notes: body.notes,
+            status: body.status,
+        });
+
+        return NextResponse.json(contact);
+    } catch (error) {
+        console.error("Error updating contact:", error);
+        return NextResponse.json(
+            { error: "Failed to update contact" },
             { status: 500 }
         );
     }

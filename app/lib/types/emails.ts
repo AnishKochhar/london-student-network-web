@@ -5,6 +5,7 @@ export interface DefaultEmailPayloadType {
     subject: string;
     text?: string; // email might only contain html body
     html?: string; // email might only contain text body
+    headers?: Record<string, string>; // custom email headers (e.g. List-Unsubscribe)
 }
 
 export interface FallbackEmailServiceResponse {
