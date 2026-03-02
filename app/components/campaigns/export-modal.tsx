@@ -66,7 +66,7 @@ export default function ExportModal({
             email: c.email,
             name: c.name || "",
             organization: c.organization || "",
-            category: c.categoryPath || c.categoryName || "",
+            category: c.categories?.map(cat => cat.name).join(", ") || "",
             status: c.status,
             tags: c.tags.join(", "),
             lastEmailed: c.lastEmailedAt || "Never",
@@ -313,7 +313,7 @@ export default function ExportModal({
                                                     <div>
                                                         <p className="text-sm font-medium text-white">Basic</p>
                                                         <p className="text-xs text-white/50 mt-0.5">
-                                                            Email, Name, Organization
+                                                            Email, Name, Organisation
                                                         </p>
                                                     </div>
                                                 </button>

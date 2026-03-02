@@ -40,7 +40,7 @@ const CATEGORIES = [
 
 const VARIABLE_BUTTONS = [
     { name: "name", label: "Name", description: "Contact's name" },
-    { name: "organization", label: "Organization", description: "Society/company name" },
+    { name: "organization", label: "Organisation", description: "Society/company name" },
     { name: "email", label: "Email", description: "Contact's email" },
 ];
 

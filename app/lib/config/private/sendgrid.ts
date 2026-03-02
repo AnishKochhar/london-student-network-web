@@ -28,6 +28,7 @@ export default async function sendSendGridEmail({
     subject,
     text,
     html,
+    headers,
 }: DefaultEmailPayloadType) {
     if (!text && !html) {
         throw new Error("At least one of 'text' or 'html' must be provided.");
@@ -40,6 +41,7 @@ export default async function sendSendGridEmail({
         subject,
         ...(text && { text }),
         ...(html && { html }),
+        ...(headers && { headers }),
     };
 
     try {

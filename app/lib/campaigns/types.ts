@@ -22,9 +22,7 @@ export interface EmailContact {
   email: string;
   name: string | null;
   organization: string | null;
-  categoryId: string | null;
-  categoryName?: string;
-  categoryPath?: string; // e.g., "Imperial > Tech"
+  categories: { id: string; name: string; slug: string }[];
   metadata: ContactMetadata;
   tags: string[];
   notes: string | null;

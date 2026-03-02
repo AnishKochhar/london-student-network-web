@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { sql } from "@vercel/postgres";
 
-// POST /api/admin/campaigns/contacts/move - Move contacts to a new category
+// POST /api/admin/campaigns/contacts/move - Add contacts to a category
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
@@ -19,24 +19,40 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { ids, categoryId } = body;
+        const { ids, categoryId, replace } = body;
 
-        // Convert array to PostgreSQL array format
+        if (replace) {
+            // Remove existing category links for these contacts
+            const idsArray = `{${ids.map((id: string) => `"${id}"`).join(",")}}`;
+            await sql`
+                DELETE FROM email_contact_categories
+                WHERE contact_id = ANY(${idsArray}::uuid[])
+            `;
+        }
+
+        let movedCount = 0;
+        if (categoryId) {
+            // Add contacts to the category
+            for (const contactId of ids) {
+                const result = await sql`
+                    INSERT INTO email_contact_categories (contact_id, category_id)
+                    VALUES (${contactId}::uuid, ${categoryId}::uuid)
+                    ON CONFLICT DO NOTHING
+                `;
+                movedCount += result.rowCount || 0;
+            }
+        }
+
+        // Update timestamps
         const idsArray = `{${ids.map((id: string) => `"${id}"`).join(",")}}`;
-
-        // Update all contacts to the new category
-        const result = await sql`
-            UPDATE email_contacts
-            SET
-                category_id = ${categoryId || null},
-                updated_at = NOW()
+        await sql`
+            UPDATE email_contacts SET updated_at = NOW()
             WHERE id = ANY(${idsArray}::uuid[])
-            RETURNING id
         `;
 
         return NextResponse.json({
             success: true,
-            movedCount: result.rowCount,
+            movedCount,
         });
     } catch (error) {
         console.error("Error moving contacts:", error);

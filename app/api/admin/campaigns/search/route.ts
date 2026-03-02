@@ -20,8 +20,7 @@ interface ContactResult {
     email: string;
     name: string | null;
     organization: string | null;
-    categoryId: string | null;
-    categoryName: string | null;
+    categories: { id: string; name: string }[];
 }
 
 type SearchResult = CategoryResult | ContactResult;
@@ -67,7 +66,8 @@ export async function GET(request: NextRequest) {
                 COUNT(DISTINCT ec.id) as contact_count
             FROM category_path cp
             LEFT JOIN email_categories p ON cp.parent_id = p.id
-            LEFT JOIN email_contacts ec ON ec.category_id = cp.id AND ec.status = 'active'
+            LEFT JOIN email_contact_categories ecc ON ecc.category_id = cp.id
+            LEFT JOIN email_contacts ec ON ec.id = ecc.contact_id AND ec.status = 'active'
             WHERE cp.name ILIKE ${searchPattern}
             GROUP BY cp.id, cp.name, cp.slug, cp.parent_id, cp.color, cp.path, p.name
             ORDER BY contact_count DESC
@@ -77,10 +77,15 @@ export async function GET(request: NextRequest) {
         // Search contacts
         const contactsResult = await sql`
             SELECT
-                c.id, c.email, c.name, c.organization, c.category_id,
-                cat.name as category_name
+                c.id, c.email, c.name, c.organization,
+                COALESCE(
+                    (SELECT json_agg(json_build_object('id', cat.id, 'name', cat.name))
+                     FROM email_contact_categories ecc2
+                     JOIN email_categories cat ON cat.id = ecc2.category_id
+                     WHERE ecc2.contact_id = c.id),
+                    '[]'::json
+                ) as categories
             FROM email_contacts c
-            LEFT JOIN email_categories cat ON c.category_id = cat.id
             WHERE c.status = 'active'
             AND (
                 c.email ILIKE ${searchPattern}
@@ -111,8 +116,7 @@ export async function GET(request: NextRequest) {
             email: row.email,
             name: row.name,
             organization: row.organization,
-            categoryId: row.category_id,
-            categoryName: row.category_name,
+            categories: row.categories || [],
         }));
 
         // Combine and interleave results (categories first, then contacts)

@@ -2,8 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { inria } from "@/app/fonts";
 import "./globals.css";
-import Header from "./components/header";
-import Footer from "./components/footer";
+import ConditionalLayout from "./components/conditional-layout";
 import SessionProviderWrapper from "./components/session-provider-wrapper";
 import FloatingHelpButton from "./components/ui/floating-help-button";
 import ConditionalShareFooter from "./components/account/conditional-share-footer";
@@ -111,11 +110,7 @@ export default function RootLayout({
             >
                 <SessionProviderWrapper>
                     <Suspense fallback={<div>Loading...</div>}>
-                        <div className="flex flex-col min-h-screen">
-                            <Header />
-                            <div className="flex-grow overflow-visible">{children}</div>
-                            <Footer />
-                        </div>
+                        <ConditionalLayout>{children}</ConditionalLayout>
                     </Suspense>
                     <FloatingHelpButton />
                     <ConditionalShareFooter />

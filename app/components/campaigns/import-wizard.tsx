@@ -560,7 +560,7 @@ export default function ImportWizard({
                                         <div className="mt-5 p-4 bg-white/5 rounded-lg">
                                             <h4 className="text-sm font-medium text-white/70 mb-2">Expected format</h4>
                                             <p className="text-xs text-white/50">
-                                                Your file should have a header row with columns like &quot;Email&quot;, &quot;Name&quot;, and &quot;Organization&quot;.
+                                                Your file should have a header row with columns like &quot;Email&quot;, &quot;Name&quot;, and &quot;Organisation&quot;.
                                                 Only the email column is required.
                                             </p>
                                         </div>
@@ -649,7 +649,7 @@ export default function ImportWizard({
                                                         Name
                                                     </th>
                                                     <th className="text-left px-3 py-2 text-white/50">
-                                                        Organization
+                                                        Organisation
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -777,7 +777,7 @@ export default function ImportWizard({
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-medium">No category</p>
-                                                <p className="text-xs text-white/40">Add to all contacts without categorization</p>
+                                                <p className="text-xs text-white/40">Add to all contacts without categorisation</p>
                                             </div>
                                             {selectedCategoryId === null && (
                                                 <motion.div

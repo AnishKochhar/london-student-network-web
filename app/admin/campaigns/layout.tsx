@@ -87,7 +87,7 @@ export default function CampaignsLayout({
     const breadcrumbs = buildBreadcrumbs();
 
     return (
-        <div className="flex h-full">
+        <div className="flex h-full min-h-0">
             {/* Sub-Sidebar */}
             <motion.aside
                 initial={false}
@@ -177,7 +177,7 @@ export default function CampaignsLayout({
             </motion.aside>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
                 {/* Breadcrumb Bar */}
                 <div className="h-14 flex items-center px-6 border-b border-white/5 bg-black/10">
                     <nav className="flex items-center gap-1.5 text-sm">

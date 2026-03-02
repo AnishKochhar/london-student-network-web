@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
     title: "Student Societies in London",
-    description: "Connect with student societies and organizations across London's universities. From academic societies to hobby groups, sports clubs to cultural organizations - find your community.",
+    description: "Connect with student societies and organisations across London's universities. From academic societies to hobby groups, sports clubs to cultural organisations - find your community.",
     keywords: [
         "London student societies",
         "university societies London",
-        "student organizations",
+        "student organisations",
         "student clubs London",
         "university clubs",
         "student activities",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     ],
     openGraph: {
         title: "Student Societies in London | London Student Network",
-        description: "Connect with student societies and organizations across London's universities. Find your community among hundreds of student groups.",
+        description: "Connect with student societies and organisations across London's universities. Find your community among hundreds of student groups.",
         url: "https://londonstudentnetwork.com/societies",
         images: [
             {

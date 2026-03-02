@@ -13,6 +13,7 @@ import {
     CheckIcon,
     ArrowPathIcon,
     FolderIcon,
+    TagIcon,
     ChevronDownIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
@@ -20,7 +21,7 @@ import {
     ExclamationTriangleIcon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
-import CategoryTree, { CategoryNode, EmptyCategoryTree } from "@/app/components/campaigns/category-tree";
+import CategoryTree, { CategoryNode, EmptyCategoryTree, getTotalContacts } from "@/app/components/campaigns/category-tree";
 import SlideInPanel, {
     PanelSection,
     PanelField,
@@ -91,10 +92,15 @@ export default function ContactsPage() {
     const [showMobileMenu, setShowMobileMenu] = useState(false);
     const [showMobileCategoryPicker, setShowMobileCategoryPicker] = useState(false);
 
+    // Contact subscription management
+    const [showStatusConfirm, setShowStatusConfirm] = useState<"unsubscribe" | "reactivate" | null>(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
     // Category management states
     const [editingCategory, setEditingCategory] = useState<CategoryNode | null>(null);
     const [deletingCategory, setDeletingCategory] = useState<CategoryNode | null>(null);
     const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+    const [showPlannedCategories, setShowPlannedCategories] = useState(false);
     const [addingSubcategoryTo, setAddingSubcategoryTo] = useState<string | null>(null);
     const [newCategoryName, setNewCategoryName] = useState("");
     const [isSavingCategory, setIsSavingCategory] = useState(false);
@@ -103,14 +109,37 @@ export default function ContactsPage() {
     const [availableTags, setAvailableTags] = useState<string[]>([]);
     const [availableSources, setAvailableSources] = useState<string[]>([]);
 
-    // Resizable sidebar
-    const [sidebarWidth, setSidebarWidth] = useState(224); // 14rem = 224px
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const isResizing = useRef(false);
-    const sidebarRef = useRef<HTMLDivElement>(null);
-    const MIN_SIDEBAR_WIDTH = 180;
+    // Resizable sidebar with localStorage persistence
+    const SIDEBAR_STORAGE_KEY = "campaigns-contacts-sidebar";
+    const DEFAULT_SIDEBAR_WIDTH = 256;
+    const MIN_SIDEBAR_WIDTH = 200;
     const MAX_SIDEBAR_WIDTH = 400;
     const COLLAPSED_WIDTH = 48;
+
+    const [sidebarWidth, setSidebarWidth] = useState(() => {
+        if (typeof window === "undefined") return DEFAULT_SIDEBAR_WIDTH;
+        try {
+            const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return parsed.width ?? DEFAULT_SIDEBAR_WIDTH;
+            }
+        } catch { /* ignore */ }
+        return DEFAULT_SIDEBAR_WIDTH;
+    });
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+        if (typeof window === "undefined") return false;
+        try {
+            const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return parsed.collapsed ?? false;
+            }
+        } catch { /* ignore */ }
+        return false;
+    });
+    const isResizing = useRef(false);
+    const sidebarRef = useRef<HTMLDivElement>(null);
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -145,6 +174,16 @@ export default function ContactsPage() {
         };
     }, []);
 
+    // Persist sidebar state to localStorage
+    useEffect(() => {
+        try {
+            localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify({
+                width: sidebarWidth,
+                collapsed: isSidebarCollapsed,
+            }));
+        } catch { /* ignore */ }
+    }, [sidebarWidth, isSidebarCollapsed]);
+
     // Debounce search input
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -159,9 +198,7 @@ export default function ContactsPage() {
             const res = await fetch("/api/admin/campaigns/categories");
             if (res.ok) {
                 const data = await res.json();
-                // Merge real categories with placeholder categories
-                const mergedCategories = [...data.categories, ...placeholderCategories];
-                setCategories(mergedCategories);
+                setCategories(data.categories);
             }
         } catch (error) {
             console.error("Failed to fetch categories:", error);
@@ -437,6 +474,29 @@ export default function ContactsPage() {
         }
     };
 
+    const handleUpdateContactStatus = async (contactId: string, newStatus: "active" | "unsubscribed") => {
+        setIsUpdatingStatus(true);
+        try {
+            const res = await fetch("/api/admin/campaigns/contacts", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: contactId, status: newStatus }),
+            });
+
+            if (res.ok) {
+                const updated = await res.json();
+                setContacts(prev =>
+                    prev.map(c => c.id === contactId ? { ...c, status: updated.status, unsubscribedAt: updated.unsubscribedAt } : c)
+                );
+            }
+        } catch (error) {
+            console.error("Error updating contact status:", error);
+        } finally {
+            setIsUpdatingStatus(false);
+            setShowStatusConfirm(null);
+        }
+    };
+
     // Extract unique tags and sources from contacts for filtering
     useEffect(() => {
         const tags = new Set<string>();
@@ -497,7 +557,7 @@ export default function ContactsPage() {
     const displayContacts = isPlaceholderCategory ? [] : contacts;
 
     return (
-        <div className="flex h-full">
+        <div className="flex h-full min-h-0">
             {/* Category Sidebar - Collapsible & Resizable */}
             <motion.div
                 ref={sidebarRef}
@@ -543,7 +603,7 @@ export default function ContactsPage() {
                                 exit={{ opacity: 0 }}
                                 className="py-2 px-1 space-y-1"
                             >
-                                {/* Collapsed: Show category icons/indicators */}
+                                {/* Collapsed: Show coloured folder icons */}
                                 <button
                                     onClick={() => handleCategorySelect(null)}
                                     className={`w-full p-2 rounded-lg transition-colors ${
@@ -551,9 +611,9 @@ export default function ContactsPage() {
                                             ? "bg-indigo-500/20 text-indigo-300"
                                             : "text-white/50 hover:bg-white/10 hover:text-white"
                                     }`}
-                                    title="All Categories"
+                                    title="All Contacts"
                                 >
-                                    <FolderIcon className="w-5 h-5 mx-auto" />
+                                    <TagIcon className="w-5 h-5 mx-auto" />
                                 </button>
                                 {categories.slice(0, 8).map((cat) => (
                                     <button
@@ -564,14 +624,12 @@ export default function ContactsPage() {
                                                 ? "bg-indigo-500/20"
                                                 : "hover:bg-white/10"
                                         }`}
-                                        title={cat.name}
+                                        title={`${cat.name} (${getTotalContacts(cat)})`}
                                     >
-                                        <div
-                                            className="w-5 h-5 mx-auto rounded flex items-center justify-center text-xs font-bold"
-                                            style={{ backgroundColor: cat.color || "#6366f1", color: "white" }}
-                                        >
-                                            {cat.name.charAt(0)}
-                                        </div>
+                                        <FolderIcon
+                                            className="w-5 h-5 mx-auto"
+                                            style={{ color: cat.color || "#6366f1" }}
+                                        />
                                     </button>
                                 ))}
                                 {categories.length > 8 && (
@@ -588,27 +646,62 @@ export default function ContactsPage() {
                                 className="p-3"
                             >
                                 {categories.length > 0 ? (
-                                    <CategoryTree
-                                        categories={categories}
-                                        selectedId={selectedCategoryId}
-                                        onSelect={handleCategorySelect}
-                                        onAddCategory={(parentId) => {
-                                            setAddingSubcategoryTo(parentId);
-                                            setNewCategoryName("");
-                                            setShowAddCategoryModal(true);
-                                        }}
-                                        onEditCategory={(category) => {
-                                            if (!category.id.startsWith("placeholder-")) {
+                                    <>
+                                        <CategoryTree
+                                            categories={categories}
+                                            selectedId={selectedCategoryId}
+                                            onSelect={handleCategorySelect}
+                                            onAddCategory={(parentId) => {
+                                                setAddingSubcategoryTo(parentId);
+                                                setNewCategoryName("");
+                                                setShowAddCategoryModal(true);
+                                            }}
+                                            onEditCategory={(category) => {
                                                 setEditingCategory(category);
                                                 setNewCategoryName(category.name);
-                                            }
-                                        }}
-                                        onDeleteCategory={(category) => {
-                                            if (!category.id.startsWith("placeholder-")) {
+                                            }}
+                                            onDeleteCategory={(category) => {
                                                 setDeletingCategory(category);
-                                            }
-                                        }}
-                                    />
+                                            }}
+                                        />
+
+                                        {/* Planned categories section */}
+                                        {placeholderCategories.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-white/5">
+                                                <button
+                                                    onClick={() => setShowPlannedCategories(!showPlannedCategories)}
+                                                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-white/30 hover:text-white/50 transition-colors w-full"
+                                                >
+                                                    <ChevronRightIcon className={`w-3 h-3 transition-transform duration-150 ${showPlannedCategories ? "rotate-90" : ""}`} />
+                                                    <span className="uppercase tracking-wider font-semibold">Planned</span>
+                                                </button>
+                                                <AnimatePresence>
+                                                    {showPlannedCategories && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: "auto", opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="overflow-hidden"
+                                                        >
+                                                            <div className="space-y-0.5 mt-1">
+                                                                {placeholderCategories.map((cat) => (
+                                                                    <div
+                                                                        key={cat.id}
+                                                                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-white/25 cursor-default"
+                                                                    >
+                                                                        <FolderIcon className="w-4 h-4 opacity-50" style={{ color: cat.color }} />
+                                                                        <span className="truncate flex-1 min-w-0">{cat.name}</span>
+                                                                        <span className="text-xs text-white/15 flex-shrink-0">0</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        )}
+                                    </>
                                 ) : isLoading ? (
                                     <div className="flex items-center justify-center py-8">
                                         <ArrowPathIcon className="w-5 h-5 text-white/30 animate-spin" />
@@ -899,9 +992,20 @@ export default function ContactsPage() {
                                             </div>
                                         </td>
                                         <td className="hidden md:table-cell p-3">
-                                            <span className="text-sm text-white/60">
-                                                {contact.categoryPath || contact.categoryName || "—"}
-                                            </span>
+                                            {contact.categories && contact.categories.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {contact.categories.map((cat) => (
+                                                        <span
+                                                            key={cat.id}
+                                                            className="inline-flex px-2 py-0.5 text-xs bg-indigo-500/15 text-indigo-300 rounded-md"
+                                                        >
+                                                            {cat.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <span className="text-sm text-white/40">—</span>
+                                            )}
                                         </td>
                                         <td className="p-2 sm:p-3">
                                             <StatusBadge status={contact.status} />
@@ -979,7 +1083,7 @@ export default function ContactsPage() {
             {/* Contact Detail Panel */}
             <SlideInPanel
                 isOpen={activeContactId !== null}
-                onClose={() => setActiveContactId(null)}
+                onClose={() => { setActiveContactId(null); setShowStatusConfirm(null); }}
                 title={activeContact?.name || activeContact?.email || "Contact"}
                 subtitle={activeContact?.organization || undefined}
                 width="lg"
@@ -992,20 +1096,107 @@ export default function ContactsPage() {
                                 <PanelField label="Name" value={activeContact.name} />
                             )}
                             {activeContact.organization && (
-                                <PanelField label="Organization" value={activeContact.organization} />
+                                <PanelField label="Organisation" value={activeContact.organization} />
                             )}
-                            <PanelField
-                                label="Category"
-                                value={activeContact.categoryPath || activeContact.categoryName || "Uncategorized"}
-                            />
+                            <div className="space-y-1">
+                                <p className="text-xs text-white/40 uppercase tracking-wide">Categories</p>
+                                {activeContact.categories && activeContact.categories.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {activeContact.categories.map((cat) => (
+                                            <span
+                                                key={cat.id}
+                                                className="inline-flex px-2.5 py-1 text-xs bg-indigo-500/15 text-indigo-300 rounded-md"
+                                            >
+                                                {cat.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-white/50">Uncategorised</p>
+                                )}
+                            </div>
                         </PanelSection>
 
-                        <PanelSection title="Status">
-                            <div className="flex items-center gap-3">
-                                <StatusBadge status={activeContact.status} />
-                                <span className="text-sm text-white/50">
-                                    Added {formatDate(activeContact.createdAt)}
-                                </span>
+                        <PanelSection title="Subscription">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <StatusBadge status={activeContact.status} />
+                                        <span className="text-sm text-white/50">
+                                            Added {formatDate(activeContact.createdAt)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {activeContact.status === "unsubscribed" && activeContact.unsubscribedAt && (
+                                    <p className="text-xs text-yellow-400/70">
+                                        Unsubscribed on {formatDate(activeContact.unsubscribedAt)}
+                                    </p>
+                                )}
+
+                                {/* Confirmation prompt */}
+                                <AnimatePresence>
+                                    {showStatusConfirm && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="p-3 rounded-lg bg-white/5 border border-white/10 space-y-2">
+                                                <p className="text-sm text-white/70">
+                                                    {showStatusConfirm === "unsubscribe"
+                                                        ? "This contact will no longer receive campaign emails."
+                                                        : "This contact will start receiving campaign emails again."}
+                                                </p>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleUpdateContactStatus(
+                                                            activeContact.id,
+                                                            showStatusConfirm === "unsubscribe" ? "unsubscribed" : "active"
+                                                        )}
+                                                        disabled={isUpdatingStatus}
+                                                        className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                                                            showStatusConfirm === "unsubscribe"
+                                                                ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30"
+                                                                : "bg-green-500/20 text-green-300 hover:bg-green-500/30"
+                                                        } disabled:opacity-50`}
+                                                    >
+                                                        {isUpdatingStatus
+                                                            ? "Updating..."
+                                                            : showStatusConfirm === "unsubscribe"
+                                                                ? "Confirm Unsubscribe"
+                                                                : "Confirm Reactivation"}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setShowStatusConfirm(null)}
+                                                        className="px-3 py-1.5 rounded-md text-xs font-medium bg-white/5 text-white/50 hover:bg-white/10 transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Action button */}
+                                {!showStatusConfirm && (
+                                    <button
+                                        onClick={() => setShowStatusConfirm(
+                                            activeContact.status === "unsubscribed" ? "reactivate" : "unsubscribe"
+                                        )}
+                                        className={`w-full px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                            activeContact.status === "unsubscribed"
+                                                ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                                                : "bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20"
+                                        }`}
+                                    >
+                                        {activeContact.status === "unsubscribed"
+                                            ? "Reactivate Subscription"
+                                            : "Unsubscribe Contact"}
+                                    </button>
+                                )}
                             </div>
                         </PanelSection>
 
@@ -1418,7 +1609,7 @@ export default function ContactsPage() {
                                     {deletingCategory.contactCount > 0 && (
                                         <p className="mt-3 text-sm text-yellow-400/80 bg-yellow-500/10 px-3 py-2 rounded-lg">
                                             This category contains {deletingCategory.contactCount} contact{deletingCategory.contactCount !== 1 ? "s" : ""}.
-                                            These contacts will be moved to uncategorized.
+                                            These contacts will be moved to uncategorised.
                                         </p>
                                     )}
                                     {deletingCategory.children.length > 0 && (
