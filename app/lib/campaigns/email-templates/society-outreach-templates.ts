@@ -329,12 +329,12 @@ export const SOCIETY_COHOST_ANNOUNCEMENT: TemplateContent = {
         "You can now co-host events across universities on LSN",
         "Multi-society events just got easier"
     ],
-    previewText: "Invite other societies to co-host your events — shared branding, split payments, bigger reach.",
+    previewText: "Invite other societies to co-host your events - shared branding, split payments, bigger reach.",
     variables: ['name', 'organization'],
     bodyHtml: `
 <p style="margin: 0 0 16px 0;">Hi {{name}},</p>
 
-<p style="margin: 0 0 20px 0;">We've just launched something societies have been asking for — <strong>event co-hosting</strong>.</p>
+<p style="margin: 0 0 20px 0;">We've just launched something societies have been asking for - <strong>event co-hosting</strong>.</p>
 
 <p style="margin: 0 0 20px 0;">You can now invite other societies to co-host your events on LSN. It works across universities, handles permissions automatically, and even lets you route ticket payments to the right organiser.</p>
 
@@ -360,35 +360,35 @@ export const SOCIETY_COHOST_ANNOUNCEMENT: TemplateContent = {
 <p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #111827;">Here's what co-hosting gives you:</p>
 
 <!-- Feature cards -->
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 8px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 10px 0;">
     <tr>
-        <td style="background-color: #f0f9ff; border-radius: 8px; padding: 16px;">
-            <p style="margin: 0 0 4px 0; font-weight: 600; color: #1e40af;">Shared branding</p>
-            <p style="margin: 0; font-size: 14px; color: #374151;">All co-hosts appear on the event page with their logo, name, and university — so students know exactly who's behind it.</p>
+        <td style="border-left: 3px solid #4F46E5; background-color: #f9fafb; padding: 14px 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #111827;">Shared branding</p>
+            <p style="margin: 0; font-size: 14px; color: #4b5563;">All co-hosts appear on the event page with their logo, name, and university - so students know exactly who's behind it.</p>
         </td>
     </tr>
 </table>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 8px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 10px 0;">
     <tr>
-        <td style="background-color: #f0fdf4; border-radius: 8px; padding: 16px;">
-            <p style="margin: 0 0 4px 0; font-weight: 600; color: #166534;">Payment routing</p>
-            <p style="margin: 0; font-size: 14px; color: #374151;">Choose which organiser receives ticket revenue. Each co-host connects their own Stripe, and the primary organiser picks the payment destination.</p>
+        <td style="border-left: 3px solid #4F46E5; background-color: #f9fafb; padding: 14px 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #111827;">Payment routing</p>
+            <p style="margin: 0; font-size: 14px; color: #4b5563;">Choose which organiser receives ticket revenue. Each co-host connects their own Stripe, and the primary organiser picks the payment destination.</p>
         </td>
     </tr>
 </table>
-<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 8px 0;">
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 10px 0;">
     <tr>
-        <td style="background-color: #fef3c7; border-radius: 8px; padding: 16px;">
-            <p style="margin: 0 0 4px 0; font-weight: 600; color: #92400e;">Granular permissions</p>
-            <p style="margin: 0; font-size: 14px; color: #374151;">Control who can edit the event, manage guest lists, view insights, or receive registration emails — per co-host.</p>
+        <td style="border-left: 3px solid #4F46E5; background-color: #f9fafb; padding: 14px 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #111827;">Granular permissions</p>
+            <p style="margin: 0; font-size: 14px; color: #4b5563;">Control who can edit the event, manage guest lists, view insights, or receive registration emails - per co-host.</p>
         </td>
     </tr>
 </table>
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 24px 0;">
     <tr>
-        <td style="background-color: #faf5ff; border-radius: 8px; padding: 16px;">
-            <p style="margin: 0 0 4px 0; font-weight: 600; color: #6b21a8;">Cross-university reach</p>
-            <p style="margin: 0; font-size: 14px; color: #374151;">Co-host with societies from any London university. No SU restrictions, no red tape — just one event page that represents everyone.</p>
+        <td style="border-left: 3px solid #4F46E5; background-color: #f9fafb; padding: 14px 16px;">
+            <p style="margin: 0 0 4px 0; font-weight: 600; color: #111827;">Cross-university reach</p>
+            <p style="margin: 0; font-size: 14px; color: #4b5563;">Co-host with societies from any London university. No SU restrictions, no red tape - just one event page that represents everyone.</p>
         </td>
     </tr>
 </table>
@@ -427,7 +427,7 @@ export const SOCIETY_COHOST_ANNOUNCEMENT: TemplateContent = {
     <tr>
         <td style="padding: 8px 0 0 0;">
             <p style="margin: 0; font-size: 12px; color: #9CA3AF; text-align: center;">
-                The co-hosts management panel — invite, set permissions, and route payments
+                The co-hosts management panel - invite, set permissions, and route payments
             </p>
         </td>
     </tr>
@@ -447,7 +447,7 @@ export const SOCIETY_COHOST_ANNOUNCEMENT: TemplateContent = {
 </table>
 
 <p style="margin: 0; font-size: 14px; color: #6B7280;">
-    Questions? Just reply to this email — we're happy to help you set it up.
+    Questions? Just reply to this email - we're happy to help you set it up.
 </p>
     `.trim()
 };

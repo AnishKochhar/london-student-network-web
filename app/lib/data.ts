@@ -8,6 +8,10 @@ import {
     OrganiserAccountEditFormData,
     CompanyRegisterFormData,
     CompanyInformation,
+    PastAttendee,
+    PastEventSummary,
+    EventOrganiserInfo,
+    EventInvitation,
 } from "./types";
 import {
     convertSQLEventToEvent,
@@ -2103,5 +2107,500 @@ export async function fetchUpcomingPublicEvents() {
     } catch (error) {
         console.error("Error fetching upcoming public events:", error);
         return [];
+    }
+}
+
+// ============================================
+// Event Invitations
+// ============================================
+
+/**
+ * Fetches unique past attendees across all events organised or co-hosted by a user,
+ * excluding people already invited to or registered for the target event.
+ */
+export async function getOrganiserPastAttendees(
+    organiserUid: string,
+    targetEventId: string
+): Promise<{ contacts: PastAttendee[]; pastEvents: PastEventSummary[] }> {
+    try {
+        // Both queries share the same CTE shape but @vercel/postgres typed templates
+        // require separate calls for different result types.
+        // The contacts query pre-aggregates events_attended via a CTE instead of
+        // a correlated subquery (was N+1, now a single GROUP BY scan).
+        const contactsResult = await sql<PastAttendee>`
+            WITH organiser_events AS (
+                SELECT DISTINCT e.id, e.title, e.start_datetime
+                FROM events e
+                LEFT JOIN event_cohosts ec ON e.id = ec.event_id
+                    AND ec.user_id = ${organiserUid}
+                    AND ec.status = 'accepted'
+                WHERE (e.organiser_uid = ${organiserUid} OR ec.user_id IS NOT NULL)
+                  AND COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) < NOW()
+                  AND e.id != ${targetEventId}::uuid
+                  AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            ),
+            email_event_counts AS (
+                SELECT LOWER(er.email) AS email_lower, COUNT(DISTINCT er.event_id)::int AS events_attended
+                FROM event_registrations er
+                JOIN organiser_events oe ON er.event_id = oe.id
+                WHERE (er.is_cancelled = false OR er.is_cancelled IS NULL)
+                GROUP BY LOWER(er.email)
+            )
+            SELECT DISTINCT ON (LOWER(er.email))
+                er.email,
+                er.name,
+                er.user_id,
+                er.external,
+                oe.id AS source_event_id,
+                oe.title AS source_event_title,
+                oe.start_datetime AS source_event_date,
+                COALESCE(eec.events_attended, 0) AS events_attended
+            FROM event_registrations er
+            JOIN organiser_events oe ON er.event_id = oe.id
+            LEFT JOIN email_event_counts eec ON LOWER(er.email) = eec.email_lower
+            WHERE (er.is_cancelled = false OR er.is_cancelled IS NULL)
+              AND LOWER(er.email) NOT IN (
+                  SELECT LOWER(recipient_email)
+                  FROM event_invitations
+                  WHERE event_id = ${targetEventId}::uuid
+              )
+              AND LOWER(er.email) NOT IN (
+                  SELECT LOWER(email)
+                  FROM event_registrations
+                  WHERE event_id = ${targetEventId}::uuid
+                    AND (is_cancelled = false OR is_cancelled IS NULL)
+              )
+            ORDER BY LOWER(er.email), oe.start_datetime DESC
+        `;
+
+        // Past events summary for the sidebar — counts only invitable contacts
+        // (excludes anyone already invited or registered for the target event)
+        const eventsResult = await sql<PastEventSummary>`
+            WITH organiser_events AS (
+                SELECT DISTINCT e.id, e.title, e.start_datetime
+                FROM events e
+                LEFT JOIN event_cohosts ec ON e.id = ec.event_id
+                    AND ec.user_id = ${organiserUid}
+                    AND ec.status = 'accepted'
+                WHERE (e.organiser_uid = ${organiserUid} OR ec.user_id IS NOT NULL)
+                  AND COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) < NOW()
+                  AND e.id != ${targetEventId}::uuid
+                  AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            ),
+            excluded_emails AS (
+                SELECT LOWER(recipient_email) AS email FROM event_invitations
+                WHERE event_id = ${targetEventId}::uuid
+                UNION
+                SELECT LOWER(email) FROM event_registrations
+                WHERE event_id = ${targetEventId}::uuid
+                  AND (is_cancelled = false OR is_cancelled IS NULL)
+            )
+            SELECT
+                oe.id,
+                oe.title,
+                oe.start_datetime,
+                COUNT(DISTINCT LOWER(er.email))::int AS attendee_count
+            FROM organiser_events oe
+            LEFT JOIN event_registrations er ON oe.id = er.event_id
+                AND (er.is_cancelled = false OR er.is_cancelled IS NULL)
+                AND LOWER(er.email) NOT IN (SELECT email FROM excluded_emails)
+            GROUP BY oe.id, oe.title, oe.start_datetime
+            ORDER BY oe.start_datetime DESC
+        `;
+
+        return {
+            contacts: contactsResult.rows,
+            pastEvents: eventsResult.rows,
+        };
+    } catch (error) {
+        console.error("Error fetching organiser past attendees:", error);
+        return { contacts: [], pastEvents: [] };
+    }
+}
+
+/**
+ * Fetches past attendees across ALL organisers (primary + co-hosts) of a target event.
+ * Returns contacts and events tagged with which organiser they belong to,
+ * plus the list of organisers for the UI to render grouped sections.
+ */
+export async function getCoHostPastAttendees(
+    sessionUserId: string,
+    targetEventId: string
+): Promise<{
+    contacts: PastAttendee[];
+    pastEvents: PastEventSummary[];
+    organisers: EventOrganiserInfo[];
+}> {
+    try {
+        // Step 1: Find all organisers of the target event
+        const organisersResult = await sql<{ user_id: string; name: string; role: string }>`
+            SELECT e.organiser_uid AS user_id, e.organiser AS name, 'primary' AS role
+            FROM events e WHERE e.id = ${targetEventId}::uuid
+            UNION ALL
+            SELECT ec.user_id,
+                   COALESCE(
+                       (SELECT e2.organiser FROM events e2 WHERE e2.organiser_uid = ec.user_id LIMIT 1),
+                       'Unknown'
+                   ) AS name,
+                   ec.role
+            FROM event_cohosts ec
+            WHERE ec.event_id = ${targetEventId}::uuid
+              AND ec.status = 'accepted'
+              AND ec.user_id != (SELECT organiser_uid FROM events WHERE id = ${targetEventId}::uuid)
+        `;
+
+        const organisers: EventOrganiserInfo[] = organisersResult.rows.map(r => ({
+            user_id: r.user_id,
+            name: r.name,
+            role: r.role as 'primary' | 'cohost',
+            is_self: r.user_id === sessionUserId,
+        }));
+
+        if (organisers.length === 0) {
+            return { contacts: [], pastEvents: [], organisers: [] };
+        }
+
+        const organiserIds = organisers.map(o => o.user_id);
+
+        // Step 2: Fetch all past events for ALL organisers, tagged with owner
+        // Uses sql.query() because @vercel/postgres tagged templates don't accept arrays
+        const eventsQuery = `
+            WITH all_organiser_events AS (
+                SELECT DISTINCT ON (e.id)
+                    e.id, e.title, e.start_datetime,
+                    CASE
+                        WHEN e.organiser_uid = ANY($1::uuid[]) THEN e.organiser_uid
+                        ELSE ec.user_id
+                    END AS organiser_id,
+                    CASE
+                        WHEN e.organiser_uid = ANY($1::uuid[]) THEN e.organiser
+                        ELSE (SELECT e2.organiser FROM events e2 WHERE e2.organiser_uid = ec.user_id LIMIT 1)
+                    END AS organiser_name
+                FROM events e
+                LEFT JOIN event_cohosts ec ON e.id = ec.event_id
+                    AND ec.user_id = ANY($1::uuid[])
+                    AND ec.status = 'accepted'
+                WHERE (e.organiser_uid = ANY($1::uuid[]) OR ec.user_id IS NOT NULL)
+                  AND COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) < NOW()
+                  AND e.id != $2::uuid
+                  AND (e.is_deleted IS NULL OR e.is_deleted = false)
+                ORDER BY e.id, (e.organiser_uid = ANY($1::uuid[])) DESC
+            ),
+            excluded_emails AS (
+                SELECT LOWER(recipient_email) AS email FROM event_invitations
+                WHERE event_id = $2::uuid
+                UNION
+                SELECT LOWER(email) FROM event_registrations
+                WHERE event_id = $2::uuid AND (is_cancelled = false OR is_cancelled IS NULL)
+            )
+            SELECT
+                aoe.id,
+                aoe.title,
+                aoe.start_datetime,
+                COUNT(DISTINCT LOWER(er.email))::int AS attendee_count,
+                aoe.organiser_id,
+                aoe.organiser_name
+            FROM all_organiser_events aoe
+            LEFT JOIN event_registrations er ON aoe.id = er.event_id
+                AND (er.is_cancelled = false OR er.is_cancelled IS NULL)
+                AND LOWER(er.email) NOT IN (SELECT email FROM excluded_emails)
+            GROUP BY aoe.id, aoe.title, aoe.start_datetime, aoe.organiser_id, aoe.organiser_name
+            ORDER BY aoe.start_datetime DESC
+        `;
+
+        const eventsResult = await sql.query(eventsQuery, [organiserIds, targetEventId]);
+
+        // Step 3: Fetch deduplicated contacts across all organisers
+        const contactsQuery = `
+            WITH all_organiser_events AS (
+                SELECT DISTINCT ON (e.id) e.id, e.title, e.start_datetime
+                FROM events e
+                LEFT JOIN event_cohosts ec ON e.id = ec.event_id
+                    AND ec.user_id = ANY($1::uuid[])
+                    AND ec.status = 'accepted'
+                WHERE (e.organiser_uid = ANY($1::uuid[]) OR ec.user_id IS NOT NULL)
+                  AND COALESCE(e.start_datetime, make_timestamp(e.year, e.month, e.day, 0, 0, 0)) < NOW()
+                  AND e.id != $2::uuid
+                  AND (e.is_deleted IS NULL OR e.is_deleted = false)
+            ),
+            email_event_counts AS (
+                SELECT LOWER(er.email) AS email_lower, COUNT(DISTINCT er.event_id)::int AS events_attended
+                FROM event_registrations er
+                JOIN all_organiser_events oe ON er.event_id = oe.id
+                WHERE (er.is_cancelled = false OR er.is_cancelled IS NULL)
+                GROUP BY LOWER(er.email)
+            )
+            SELECT DISTINCT ON (LOWER(er.email))
+                er.email,
+                er.name,
+                er.user_id,
+                er.external,
+                oe.id AS source_event_id,
+                oe.title AS source_event_title,
+                oe.start_datetime AS source_event_date,
+                COALESCE(eec.events_attended, 0)::int AS events_attended
+            FROM event_registrations er
+            JOIN all_organiser_events oe ON er.event_id = oe.id
+            LEFT JOIN email_event_counts eec ON LOWER(er.email) = eec.email_lower
+            WHERE (er.is_cancelled = false OR er.is_cancelled IS NULL)
+              AND LOWER(er.email) NOT IN (
+                  SELECT LOWER(recipient_email) FROM event_invitations WHERE event_id = $2::uuid
+              )
+              AND LOWER(er.email) NOT IN (
+                  SELECT LOWER(email) FROM event_registrations
+                  WHERE event_id = $2::uuid AND (is_cancelled = false OR is_cancelled IS NULL)
+              )
+            ORDER BY LOWER(er.email), oe.start_datetime DESC
+        `;
+
+        const contactsResult = await sql.query(contactsQuery, [organiserIds, targetEventId]);
+
+        return {
+            contacts: contactsResult.rows as PastAttendee[],
+            pastEvents: eventsResult.rows as PastEventSummary[],
+            organisers,
+        };
+    } catch (error) {
+        console.error("Error fetching co-host past attendees:", error);
+        return { contacts: [], pastEvents: [], organisers: [] };
+    }
+}
+
+/**
+ * Inserts invitation rows for batch processing.
+ * Uses ON CONFLICT to skip duplicates (same event + email).
+ */
+export async function insertEventInvitations(
+    eventId: string,
+    sentBy: string,
+    recipients: Array<{
+        email: string;
+        name?: string | null;
+        userId?: string | null;
+        sourceEventId?: string | null;
+    }>,
+    customMessage?: string | null
+): Promise<{ inserted: number; skipped: number }> {
+    if (recipients.length === 0) return { inserted: 0, skipped: 0 };
+
+    try {
+        // Build bulk VALUES using UNNEST — single round-trip for any number of recipients
+        const emails = recipients.map((r) => r.email);
+        const names = recipients.map((r) => r.name || null);
+        const userIds = recipients.map((r) => r.userId || null);
+        const sourceEventIds = recipients.map((r) => r.sourceEventId || null);
+
+        const result = await sql.query(
+            `INSERT INTO event_invitations (
+                event_id, sent_by, recipient_email, recipient_name,
+                recipient_user_id, source_event_id, custom_message, status
+            )
+            SELECT
+                $1::uuid,
+                $2::uuid,
+                UNNEST($3::text[]),
+                UNNEST($4::text[]),
+                UNNEST($5::uuid[]),
+                UNNEST($6::uuid[]),
+                $7,
+                'pending'
+            ON CONFLICT (event_id, recipient_email) DO NOTHING`,
+            [eventId, sentBy, emails, names, userIds, sourceEventIds, customMessage || null]
+        );
+
+        const inserted = result.rowCount ?? 0;
+        return { inserted, skipped: recipients.length - inserted };
+    } catch (error) {
+        console.error("Error bulk inserting invitations:", error);
+        return { inserted: 0, skipped: recipients.length };
+    }
+}
+
+/**
+ * Fetches invitation status and progress for polling.
+ */
+export async function getEventInvitationStatus(
+    eventId: string
+): Promise<{
+    totalRecipients: number;
+    sentCount: number;
+    statusBreakdown: Record<string, number>;
+    startedAt: string | null;
+    completedAt: string | null;
+} | null> {
+    try {
+        // Single query: status breakdown + timing info via GROUP BY + window aggregates
+        const result = await sql`
+            SELECT
+                status,
+                COUNT(*)::int AS count,
+                MIN(sent_at) OVER () AS started_at,
+                CASE WHEN SUM(CASE WHEN status IN ('pending', 'queued') THEN 1 ELSE 0 END) OVER () = 0
+                     THEN MAX(sent_at) OVER ()
+                     ELSE NULL
+                END AS completed_at
+            FROM event_invitations
+            WHERE event_id = ${eventId}::uuid
+            GROUP BY status
+        `;
+
+        if (result.rows.length === 0) return null;
+
+        const breakdown: Record<string, number> = {};
+        let total = 0;
+        let sent = 0;
+
+        for (const row of result.rows) {
+            breakdown[row.status] = row.count;
+            total += row.count;
+            if (row.status !== 'pending' && row.status !== 'queued') {
+                sent += row.count;
+            }
+        }
+
+        return {
+            totalRecipients: total,
+            sentCount: sent,
+            statusBreakdown: breakdown,
+            startedAt: result.rows[0]?.started_at || null,
+            completedAt: result.rows[0]?.completed_at || null,
+        };
+    } catch (error) {
+        console.error("Error fetching invitation status:", error);
+        return null;
+    }
+}
+
+/**
+ * Fetches individual invitation send details for the progress UI.
+ */
+export async function getEventInvitationSends(
+    eventId: string,
+    statusFilter?: string
+): Promise<EventInvitation[]> {
+    try {
+        if (statusFilter) {
+            const result = await sql<EventInvitation>`
+                SELECT * FROM event_invitations
+                WHERE event_id = ${eventId}::uuid AND status = ${statusFilter}
+                ORDER BY created_at DESC
+                LIMIT 200
+            `;
+            return result.rows;
+        }
+
+        const result = await sql<EventInvitation>`
+            SELECT * FROM event_invitations
+            WHERE event_id = ${eventId}::uuid
+            ORDER BY created_at DESC
+            LIMIT 200
+        `;
+        return result.rows;
+    } catch (error) {
+        console.error("Error fetching invitation sends:", error);
+        return [];
+    }
+}
+
+/**
+ * Claims a batch of pending invitations for processing (atomic).
+ */
+export async function claimInvitationBatch(
+    eventId: string,
+    batchSize: number = 20
+): Promise<EventInvitation[]> {
+    try {
+        const result = await sql<EventInvitation>`
+            UPDATE event_invitations
+            SET status = 'queued'
+            WHERE id IN (
+                SELECT id FROM event_invitations
+                WHERE event_id = ${eventId}::uuid AND status = 'pending'
+                ORDER BY created_at ASC
+                LIMIT ${batchSize}
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING *
+        `;
+        return result.rows;
+    } catch (error) {
+        console.error("Error claiming invitation batch:", error);
+        return [];
+    }
+}
+
+/**
+ * Updates a single invitation's status after sending.
+ */
+export async function updateInvitationStatus(
+    invitationId: string,
+    status: string,
+    sendgridMessageId?: string | null,
+    errorMessage?: string | null
+): Promise<void> {
+    try {
+        await sql`
+            UPDATE event_invitations
+            SET status = ${status},
+                sendgrid_message_id = COALESCE(${sendgridMessageId || null}, sendgrid_message_id),
+                error_message = ${errorMessage || null},
+                sent_at = CASE WHEN ${status} = 'sent' THEN NOW() ELSE sent_at END
+            WHERE id = ${invitationId}::uuid
+        `;
+    } catch (error) {
+        console.error(`Error updating invitation ${invitationId}:`, error);
+    }
+}
+
+/**
+ * Batch-updates invitation statuses in a single query using UNNEST.
+ * Handles 'sent' rows (sets sent_at = NOW()) and 'dropped' rows (stores error messages).
+ */
+export async function batchUpdateInvitationStatus(
+    sentIds: string[],
+    droppedIds: string[],
+    droppedErrors: string[]
+): Promise<void> {
+    try {
+        if (sentIds.length > 0) {
+            await sql.query(
+                `UPDATE event_invitations
+                 SET status = 'sent', sent_at = NOW()
+                 WHERE id = ANY($1::uuid[])`,
+                [sentIds]
+            );
+        }
+        if (droppedIds.length > 0) {
+            await sql.query(
+                `UPDATE event_invitations
+                 SET status = 'dropped',
+                     error_message = err.msg
+                 FROM UNNEST($1::uuid[], $2::text[])
+                     AS err(id, msg)
+                 WHERE event_invitations.id = err.id`,
+                [droppedIds, droppedErrors]
+            );
+        }
+    } catch (error) {
+        console.error("Error batch-updating invitation statuses:", error);
+    }
+}
+
+/**
+ * Resets invitations stuck in 'queued' state (e.g. from a timed-out processor).
+ * Call at the start of processInvitations to recover from prior failures.
+ */
+export async function resetStuckQueuedInvitations(eventId: string): Promise<number> {
+    try {
+        const result = await sql`
+            UPDATE event_invitations
+            SET status = 'pending'
+            WHERE event_id = ${eventId}::uuid
+              AND status = 'queued'
+        `;
+        return result.rowCount ?? 0;
+    } catch (error) {
+        console.error("Error resetting stuck queued invitations:", error);
+        return 0;
     }
 }

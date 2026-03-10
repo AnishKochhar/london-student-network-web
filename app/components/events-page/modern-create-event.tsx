@@ -999,7 +999,7 @@ export default function ModernCreateEvent({ organiser_id, organiserList, editMod
                 if (result.event?.id) {
                     const eventId = result.event.id;
                     const shortId = base16ToBase62(eventId);
-                    router.push(editMode ? `/events/${shortId}` : `/events/${shortId}/manage`);
+                    router.push(editMode ? `/events/${shortId}` : `/events/${shortId}/invite`);
                 } else {
                     router.push("/events");
                 }

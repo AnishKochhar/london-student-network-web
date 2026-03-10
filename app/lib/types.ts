@@ -723,3 +723,71 @@ export interface FeaturedEventFormData {
 export interface FeaturedEventWithEvent extends FeaturedEvent {
     event: Event;
 }
+
+// ============================================
+// Event Invitations
+// ============================================
+
+export interface EventInvitation {
+    id: string;
+    event_id: string;
+    sent_by: string;
+    recipient_email: string;
+    recipient_name: string | null;
+    recipient_user_id: string | null;
+    source_event_id: string | null;
+    custom_message: string | null;
+    status: string;
+    sendgrid_message_id: string | null;
+    error_message: string | null;
+    created_at: string;
+    sent_at: string | null;
+    opened_at: string | null;
+}
+
+export interface PastAttendee {
+    email: string;
+    name: string;
+    user_id: string | null;
+    external: boolean;
+    source_event_id: string;
+    source_event_title: string;
+    source_event_date: string;
+    events_attended: number;
+}
+
+export interface PastEventSummary {
+    id: string;
+    title: string;
+    start_datetime: string;
+    attendee_count: number;
+    organiser_id?: string;
+    organiser_name?: string;
+}
+
+export interface EventOrganiserInfo {
+    user_id: string;
+    name: string;
+    role: 'primary' | 'cohost';
+    is_self: boolean;
+}
+
+export interface InvitationStatusResponse {
+    event_id: string;
+    status: string;
+    progress: number;
+    totalRecipients: number;
+    sentCount: number;
+    startedAt: string | null;
+    completedAt: string | null;
+    statusBreakdown: Record<string, number>;
+}
+
+export interface InvitationSendDetail {
+    id: string;
+    recipient_email: string;
+    recipient_name: string | null;
+    status: string;
+    sent_at: string | null;
+    error_message: string | null;
+}
