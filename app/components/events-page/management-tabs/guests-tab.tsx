@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Event } from "@/app/lib/types";
-import { Search, Download, Mail, Copy, Check, SortAsc, Filter, DollarSign, AlertTriangle, X } from "lucide-react";
+import { Search, Download, Mail, Copy, Check, SortAsc, Filter, DollarSign, AlertTriangle, X, UserPlus } from "lucide-react";
 import toast from "react-hot-toast";
 import { useManagementData } from "./data-provider";
+import InviteGuestsModal from "../invite-guests-modal";
 
 interface GuestsTabProps {
     event: Event;
@@ -39,6 +40,9 @@ export default function GuestsTab({ event, eventId }: GuestsTabProps) {
     const [filterBy, setFilterBy] = useState<FilterOption>("all");
     const [copiedEmails, setCopiedEmails] = useState(false);
     const [copiedNames, setCopiedNames] = useState(false);
+
+    // Invite modal state
+    const [showInviteModal, setShowInviteModal] = useState(false);
 
     // Refund modal state
     const [refundModalOpen, setRefundModalOpen] = useState(false);
@@ -314,6 +318,14 @@ export default function GuestsTab({ event, eventId }: GuestsTabProps) {
                         >
                             <Download className="w-4 h-4 shrink-0" />
                             <span className="text-xs sm:text-sm font-medium">Export CSV</span>
+                        </button>
+
+                        <button
+                            onClick={() => setShowInviteModal(true)}
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 rounded-lg transition-all hover:scale-105 backdrop-blur-sm"
+                        >
+                            <UserPlus className="w-4 h-4 shrink-0" />
+                            <span className="text-xs sm:text-sm font-medium">Invite Guests</span>
                         </button>
                     </div>
                 </div>
@@ -692,6 +704,15 @@ export default function GuestsTab({ event, eventId }: GuestsTabProps) {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Invite Guests Modal */}
+            {showInviteModal && (
+                <InviteGuestsModal
+                    event={event}
+                    eventId={eventId}
+                    onClose={() => setShowInviteModal(false)}
+                />
             )}
         </div>
     );
