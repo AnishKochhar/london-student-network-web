@@ -363,6 +363,13 @@ export default function InviteGuestsModal({ event, eventId, onClose }: InviteGue
                 }),
             });
 
+            if (!res.ok) {
+                const text = await res.text();
+                let message = `Server error (${res.status})`;
+                try { message = JSON.parse(text).error || message; } catch { /* non-JSON response */ }
+                throw new Error(message);
+            }
+
             const data = await res.json();
 
             if (data.success && data.queued) {

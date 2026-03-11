@@ -31,12 +31,19 @@ interface SendInvitationsRequest {
 // POST /api/events/invitations/send
 export async function POST(request: NextRequest) {
     try {
+        console.log("[INVITATIONS] Send route invoked");
+
         const session = await auth();
         if (!session?.user?.id) {
+            console.log("[INVITATIONS] No session - returning 401");
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        console.log("[INVITATIONS] Authenticated as:", session.user.id);
+
         const body: SendInvitationsRequest = await request.json();
+
+        console.log("[INVITATIONS] Request body - eventId:", body.eventId, "recipients:", body.recipients?.length);
 
         if (!body.eventId) {
             return NextResponse.json({ error: "eventId is required" }, { status: 400 });
@@ -47,6 +54,7 @@ export async function POST(request: NextRequest) {
 
         // Verify ownership
         const hasAccess = await checkOwnershipOfEvent(session.user.id, body.eventId);
+        console.log("[INVITATIONS] Ownership check:", hasAccess);
         if (!hasAccess) {
             return NextResponse.json(
                 { error: "You do not have permission to manage this event" },
