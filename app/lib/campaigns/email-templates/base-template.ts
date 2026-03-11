@@ -37,7 +37,7 @@ const BRAND_COLORS = {
 };
 
 // Logo hosted URL (use absolute URL for emails)
-const LSN_LOGO_URL = 'https://londonstudentnetwork.com/logo/LSN%20LOGO%202.png';
+const LSN_LOGO_URL = 'https://londonstudentnetwork.com/logo/lsn-logo.png';
 const LSN_WEBSITE_URL = 'https://londonstudentnetwork.com';
 
 /**
