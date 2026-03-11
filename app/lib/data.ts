@@ -2429,16 +2429,12 @@ export async function getEventInvitationStatus(
     completedAt: string | null;
 } | null> {
     try {
-        // Single query: status breakdown + timing info via GROUP BY + window aggregates
         const result = await sql`
             SELECT
                 status,
                 COUNT(*)::int AS count,
-                MIN(sent_at) OVER () AS started_at,
-                CASE WHEN SUM(CASE WHEN status IN ('pending', 'queued') THEN 1 ELSE 0 END) OVER () = 0
-                     THEN MAX(sent_at) OVER ()
-                     ELSE NULL
-                END AS completed_at
+                MIN(sent_at) AS min_sent_at,
+                MAX(sent_at) AS max_sent_at
             FROM event_invitations
             WHERE event_id = ${eventId}::uuid
             GROUP BY status
@@ -2449,6 +2445,9 @@ export async function getEventInvitationStatus(
         const breakdown: Record<string, number> = {};
         let total = 0;
         let sent = 0;
+        let earliestSent: string | null = null;
+        let latestSent: string | null = null;
+        let hasPending = false;
 
         for (const row of result.rows) {
             breakdown[row.status] = row.count;
@@ -2456,14 +2455,23 @@ export async function getEventInvitationStatus(
             if (row.status !== 'pending' && row.status !== 'queued') {
                 sent += row.count;
             }
+            if (row.status === 'pending' || row.status === 'queued') {
+                hasPending = true;
+            }
+            if (row.min_sent_at && (!earliestSent || row.min_sent_at < earliestSent)) {
+                earliestSent = row.min_sent_at;
+            }
+            if (row.max_sent_at && (!latestSent || row.max_sent_at > latestSent)) {
+                latestSent = row.max_sent_at;
+            }
         }
 
         return {
             totalRecipients: total,
             sentCount: sent,
             statusBreakdown: breakdown,
-            startedAt: result.rows[0]?.started_at || null,
-            completedAt: result.rows[0]?.completed_at || null,
+            startedAt: earliestSent,
+            completedAt: hasPending ? null : latestSent,
         };
     } catch (error) {
         console.error("Error fetching invitation status:", error);
