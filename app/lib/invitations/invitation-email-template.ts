@@ -4,7 +4,7 @@
 // 4 branded HTML email templates for inviting past attendees.
 // All use inline CSS for email client compatibility.
 
-const LSN_LOGO_URL = "https://londonstudentnetwork.com/logo/LSN%20LOGO%202.png";
+const LSN_LOGO_URL = "https://londonstudentnetwork.com/logo/lsn-logo.png";
 
 // ── Types ──────────────────────────────────────
 
