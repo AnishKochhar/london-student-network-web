@@ -2,6 +2,14 @@
 import { hardCodedSponsors } from "../components/sponsor-page/hard-coded-sponsors";
 import SponsorsPageClient from "../components/sponsor-page/sponsors-client";
 import { CompanyInformation } from "../lib/types";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Sponsors & Partners",
+    description:
+        "Meet the organisations partnering with London Student Network to support students and societies across London's universities.",
+    alternates: { canonical: "/sponsors" },
+};
 
 export default async function SponsorsPage() {
     let allSponsors: CompanyInformation[] = [];
