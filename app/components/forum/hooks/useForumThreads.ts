@@ -63,7 +63,7 @@ export function useForumThreads(
 
             const data = await response.json();
 
-            const transformedThreads = (data.threads || []).map((thread) => ({
+            const transformedThreads = (data.threads || []).map((thread: Record<string, unknown>) => ({
                 ...thread,
                 // Set default replyCount to 0 if it doesn't exist
                 replyCount:
@@ -135,7 +135,7 @@ export function useForumThreads(
                 JSON.stringify(activeFilters) === JSON.stringify(activeFiltersRef.current)
             ) {
                 const transformedThreads = (data.threads || []).map(
-                    (thread) => ({
+                    (thread: Record<string, unknown>) => ({
                         ...thread,
                         replyCount:
                             thread.replyCount !== undefined

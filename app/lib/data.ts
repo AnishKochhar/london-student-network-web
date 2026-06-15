@@ -191,7 +191,7 @@ export async function fetchAllUpcomingEvents(
                     ELSE NULL
                 END as tickets_available
             FROM tickets t
-            WHERE t.event_uuid = ANY(${eventIds})
+            WHERE t.event_uuid = ANY(${eventIds as unknown as string})
             ORDER BY t.event_uuid, t.ticket_price::numeric ASC
         `;
 

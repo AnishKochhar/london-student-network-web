@@ -8,7 +8,7 @@ interface EventAnalyticsTrackerProps {
     eventTitle: string;
 }
 
-export default function EventAnalyticsTracker({ eventId, eventTitle }: EventAnalyticsTrackerProps) {
+export default function EventAnalyticsTracker({ eventId, eventTitle }: EventAnalyticsTrackerProps): null {
     const hasTracked = useRef(false);
 
     useEffect(() => {

@@ -15,7 +15,7 @@ export default async function SponsorsPage() {
     let allSponsors: CompanyInformation[] = [];
     try {
         // const companyInformation = await getAllCompanyInformation();
-		const companyInformation = [];
+		const companyInformation: CompanyInformation[] = [];
         const combinedSponsors = [...companyInformation, ...hardCodedSponsors];
 
         const uniqueSponsors = Array.from(
