@@ -11,14 +11,10 @@ import sgMail from "@sendgrid/mail";
 // sendgrid initialization
 // ================================
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-
-if (!SENDGRID_API_KEY) {
-    console.error("SendGrid API key is missing!");
-    throw new Error("SENDGRID_API_KEY environment variable not set");
-}
-
-sgMail.setApiKey(SENDGRID_API_KEY); // sgMail setup is light and will likely not be required repeatedly, so just re-attach always
+// SendGrid's API key is configured lazily inside the send function below, so
+// that importing this module never throws when the key is absent (which made
+// `next build` non-hermetic). A missing key now degrades to the fallback
+// email service instead of crashing at import time.
 
 // Function to send an email (exported as a server action), with a custom fallback email service
 export default async function sendSendGridEmail({
@@ -32,6 +28,13 @@ export default async function sendSendGridEmail({
 }: DefaultEmailPayloadType) {
     if (!text && !html) {
         throw new Error("At least one of 'text' or 'html' must be provided.");
+    }
+
+    // Configure SendGrid lazily. If the key is absent, the send below fails and
+    // we fall through to the fallback email service in the catch block.
+    const sendGridApiKey = process.env.SENDGRID_API_KEY;
+    if (sendGridApiKey) {
+        sgMail.setApiKey(sendGridApiKey);
     }
 
     const msg = {
