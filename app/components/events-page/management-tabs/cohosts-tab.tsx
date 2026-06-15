@@ -55,7 +55,7 @@ export default function CoHostsTab({ event, eventId, onEventUpdate, isPrimary = 
     const [showDropdown, setShowDropdown] = useState(false);
     const [addingUser, setAddingUser] = useState<string | null>(null);
     const searchRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     const hasPaidTickets = event.tickets?.some((t: { ticket_price?: string }) => {
         const price = parseFloat(t.ticket_price || "0");

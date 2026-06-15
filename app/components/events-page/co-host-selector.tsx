@@ -33,7 +33,7 @@ export default function CoHostSelector({ selectedCoHosts, onCoHostsChange, exclu
 
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
     // Close dropdown on click outside
     useEffect(() => {
