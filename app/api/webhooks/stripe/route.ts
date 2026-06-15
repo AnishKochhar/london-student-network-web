@@ -93,14 +93,20 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     }
 
     // Otherwise, handle as event registration
-    const { event_id, ticket_uuid, user_id, user_email, user_name, quantity, is_external, is_guest } = session.metadata!;
+    const metadata = session.metadata;
+    if (!metadata) {
+        console.error("Checkout session has no metadata; ignoring", session.id);
+        return;
+    }
+    const { event_id, ticket_uuid, user_id, user_email, user_name, quantity, is_external, is_guest } = metadata;
 
     if (!event_id || !ticket_uuid || !user_id) {
         console.error("Missing required metadata in checkout session");
         return;
     }
 
-    const quantityNum = parseInt(quantity || '1');
+    const parsedQuantity = parseInt(quantity || '1', 10);
+    const quantityNum = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
     const isExternalBool = is_external === 'true';
     const isGuestBool = is_guest === 'true' || user_id === 'guest';
 
@@ -350,6 +356,11 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 async function handleSocietyDonationCompleted(session: Stripe.Checkout.Session) {
     console.log("Processing society donation:", session.id);
 
+    const metadata = session.metadata;
+    if (!metadata) {
+        console.error("Donation checkout session has no metadata; ignoring", session.id);
+        return;
+    }
     const {
         society_uid,
         society_name,
@@ -358,15 +369,20 @@ async function handleSocietyDonationCompleted(session: Stripe.Checkout.Session) 
         message,
         donation_amount,
         fee_covered
-    } = session.metadata!;
+    } = metadata;
 
     if (!society_uid || !donor_email || !donation_amount) {
         console.error("Missing required metadata in donation checkout session");
         return;
     }
 
-    const donationAmountPence = parseInt(donation_amount);
-    const feeCoveredPence = parseInt(fee_covered || '0');
+    const donationAmountPence = parseInt(donation_amount, 10);
+    const feeCoveredPence = parseInt(fee_covered || '0', 10) || 0;
+
+    if (!Number.isFinite(donationAmountPence) || donationAmountPence <= 0) {
+        console.error("Invalid donation_amount in checkout session metadata:", donation_amount);
+        return;
+    }
 
     try {
         // Update donation record
