@@ -15,6 +15,7 @@ const LINKS: { href: string; label: string }[] = [
     { href: "/admin/societies/ingest", label: "Ingest" },
     { href: "/admin/societies/imports", label: "Imports" },
     { href: "/admin/societies/review", label: "Review queue" },
+    { href: "/admin/societies/analytics", label: "Analytics" },
 ];
 
 export default function SocietyAdminNav() {
