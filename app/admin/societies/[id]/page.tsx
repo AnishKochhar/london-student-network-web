@@ -12,6 +12,7 @@ import {
 import toast from "react-hot-toast";
 import AdminPageHeader from "@/app/components/admin/admin-page-header";
 import OutboundDisabledBanner from "@/app/components/admin/societies/outbound-disabled-banner";
+import SocietyEventsTab from "@/app/components/admin/societies/society-events-tab";
 import {
     SOCIETY_TYPE_LABELS,
     type Society,
@@ -391,6 +392,8 @@ export default function SocietyDetailPage() {
                                 </ul>
                             )}
                         </div>
+
+                        <SocietyEventsTab societyId={id} />
                     </div>
                 </div>
             </div>

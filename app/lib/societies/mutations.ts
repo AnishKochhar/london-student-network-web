@@ -13,6 +13,7 @@ import { sql } from "@vercel/postgres";
 import {
     hasDb,
     mapClaimInviteRow,
+    mapEventCandidateRow,
     mapImportCandidateRow,
     mapReviewItemRow,
     mapSocietyRow,
@@ -26,6 +27,7 @@ import type {
     Society,
     SocietyClaimInvite,
     SocietyDraft,
+    SocietyEventCandidate,
     SocietyImportCandidate,
     SocietyInteraction,
     SocietyReviewItem,
@@ -531,6 +533,98 @@ export async function createClaimInvite(
     };
     getStore().claimInvites.set(invite.id, invite);
     return invite;
+}
+
+// --- Event candidates (event-engine foundation) ----------------------------
+
+export type EventCandidateInput = Omit<
+    SocietyEventCandidate,
+    "id" | "createdAt" | "updatedAt" | "status"
+> & { status?: SocietyEventCandidate["status"] };
+
+export async function createEventCandidate(
+    input: EventCandidateInput,
+): Promise<SocietyEventCandidate> {
+    if (hasDb()) {
+        const { rows } = await sql`
+            INSERT INTO society_event_candidates (
+                society_id, university_id, title, description, event_date,
+                event_time, location, source_url, ticket_url, image_url,
+                extracted_from_source_id, confidence_score, status
+            ) VALUES (
+                ${input.societyId ?? null}, ${input.universityId ?? null},
+                ${input.title}, ${input.description ?? null},
+                ${input.eventDate ?? null}, ${input.eventTime ?? null},
+                ${input.location ?? null}, ${input.sourceUrl ?? null},
+                ${input.ticketUrl ?? null}, ${input.imageUrl ?? null},
+                ${input.extractedFromSourceId ?? null},
+                ${input.confidenceScore ?? null}, ${input.status ?? "new"}
+            )
+            RETURNING *
+        `;
+        return mapEventCandidateRow(rows[0]);
+    }
+    const ts = nowIso();
+    const candidate: SocietyEventCandidate = {
+        id: localId("evt"),
+        societyId: input.societyId ?? null,
+        universityId: input.universityId ?? null,
+        title: input.title,
+        description: input.description ?? null,
+        eventDate: input.eventDate ?? null,
+        eventTime: input.eventTime ?? null,
+        location: input.location ?? null,
+        sourceUrl: input.sourceUrl ?? null,
+        ticketUrl: input.ticketUrl ?? null,
+        imageUrl: input.imageUrl ?? null,
+        extractedFromSourceId: input.extractedFromSourceId ?? null,
+        confidenceScore: input.confidenceScore ?? null,
+        status: input.status ?? "new",
+        createdAt: ts,
+        updatedAt: ts,
+    };
+    getStore().eventCandidates.set(candidate.id, candidate);
+    return candidate;
+}
+
+export async function updateEventCandidate(
+    id: string,
+    patch: Partial<SocietyEventCandidate>,
+): Promise<SocietyEventCandidate | null> {
+    if (hasDb()) {
+        const current = await sql`SELECT * FROM society_event_candidates WHERE id = ${id} LIMIT 1`;
+        if (!current.rows[0]) return null;
+        const m = { ...mapEventCandidateRow(current.rows[0]), ...stripUndefined(patch) };
+        const { rows } = await sql`
+            UPDATE society_event_candidates SET
+                society_id = ${m.societyId},
+                university_id = ${m.universityId},
+                title = ${m.title},
+                description = ${m.description},
+                event_date = ${m.eventDate},
+                event_time = ${m.eventTime},
+                location = ${m.location},
+                source_url = ${m.sourceUrl},
+                ticket_url = ${m.ticketUrl},
+                image_url = ${m.imageUrl},
+                extracted_from_source_id = ${m.extractedFromSourceId},
+                confidence_score = ${m.confidenceScore},
+                status = ${m.status},
+                updated_at = NOW()
+            WHERE id = ${id}
+            RETURNING *
+        `;
+        return rows[0] ? mapEventCandidateRow(rows[0]) : null;
+    }
+    const c = getStore().eventCandidates.get(id);
+    if (!c) return null;
+    const updated: SocietyEventCandidate = {
+        ...c,
+        ...stripUndefined(patch),
+        updatedAt: nowIso(),
+    };
+    getStore().eventCandidates.set(id, updated);
+    return updated;
 }
 
 // --- Interactions (analytics foundation) ----------------------------------

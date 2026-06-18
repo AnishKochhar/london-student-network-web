@@ -9,6 +9,7 @@ import { sql } from "@vercel/postgres";
 import {
     hasDb,
     mapClaimInviteRow,
+    mapEventCandidateRow,
     mapImportCandidateRow,
     mapReviewItemRow,
     mapSocietyRow,
@@ -19,6 +20,7 @@ import { getStore } from "./store";
 import type {
     Society,
     SocietyClaimInvite,
+    SocietyEventCandidate,
     SocietyImportCandidate,
     SocietyImportStatus,
     SocietyReviewItem,
@@ -278,6 +280,25 @@ export async function getAllReviewItems(): Promise<SocietyReviewItem[]> {
     return [...getStore().reviewItems.values()].sort(
         (a, b) => timeOf(b.createdAt) - timeOf(a.createdAt),
     );
+}
+
+// --- Event candidates ------------------------------------------------------
+
+export async function listEventCandidates(
+    opts: { societyId?: string; status?: SocietyEventCandidate["status"] } = {},
+): Promise<SocietyEventCandidate[]> {
+    if (hasDb()) {
+        const { rows } = opts.societyId
+            ? await sql`SELECT * FROM society_event_candidates WHERE society_id = ${opts.societyId} ORDER BY created_at DESC`
+            : await sql`SELECT * FROM society_event_candidates ORDER BY created_at DESC`;
+        return rows
+            .map(mapEventCandidateRow)
+            .filter((c) => (opts.status ? c.status === opts.status : true));
+    }
+    return [...getStore().eventCandidates.values()]
+        .filter((c) => (opts.societyId ? c.societyId === opts.societyId : true))
+        .filter((c) => (opts.status ? c.status === opts.status : true))
+        .sort((a, b) => timeOf(b.createdAt) - timeOf(a.createdAt));
 }
 
 // --- Claim invites ---------------------------------------------------------

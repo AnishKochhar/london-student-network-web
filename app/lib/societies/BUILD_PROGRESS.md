@@ -22,8 +22,8 @@
 | P9 | Review queue | committed | decision engine + quality review + queue UI; 76 tests; reviewed |
 | P10 | Public directory (/network) | committed | directory+profile, published-only, smoke-tested live; 83 tests; reviewed |
 | P11 | Claim plumbing | committed | readiness + draft + preview page; sendDisabled true (4 layers); 90 tests; reviewed |
-| P12 | Event candidate foundation | in_progress | model + extractor + admin tab |
-| P13 | Analytics foundation | pending | interactions + metrics |
+| P12 | Event candidate foundation | committed | extractor + discover + admin events tab; 93 tests; reviewed |
+| P13 | Analytics foundation | in_progress | interactions + metrics |
 
 ## Self-validation per phase
 
@@ -103,6 +103,13 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   Independent review confirmed the no-outbound guarantee holds, enforced at 4 layers (TS literal
   `sendDisabled: true`, no input param, DB DEFAULT+CHECK, hardcoded read-back); no real /claim
   route; raw token not persisted (only its hash). Gates clean, 90/90 vitest. Committed as `Society P11`.
+- P12 done: events.ts (parseLooseDate, extractEventCandidatesFromHtml [event-platform links only],
+  discoverSocietyEventCandidates [from society's stored source HTML, deduped, status 'new', never
+  published], linkEventCandidateToSociety), createEventCandidate/updateEventCandidate +
+  listEventCandidates, events APIs, society-events PATCH (approve→pending_review, never published),
+  detail-page events tab. Review: no high/med; fixed DB updateEventCandidate to also persist
+  university_id/source_url/image_url/extracted_from_source_id. Gates clean, 93/93 vitest.
+  Committed as `Society P12`.
 
 ## ⚠️ Deployment note
 This environment's `.env` has POSTGRES_URL set → `hasDb()` is true. The society tables don't exist
