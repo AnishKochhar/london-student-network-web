@@ -1,28 +1,73 @@
 import type { Metadata } from "next";
+import { auth } from "@/auth";
+import {
+    getPublishedOpportunities,
+    getSavedOpportunities,
+    getSavedOpportunityIds,
+} from "@/app/lib/opportunities/queries";
+import { recommendForUser } from "@/app/lib/opportunities/recommendations";
+import JobsBrowser from "@/app/components/jobs/jobs-browser";
+import { MarketingCtas } from "@/app/components/jobs/marketing-ctas";
 
 export const metadata: Metadata = {
-    title: "Student Jobs & Opportunities",
+    title: "Student Jobs & Opportunities | London Student Network",
     description:
-        "A dedicated jobs board for London students and graduates — internships, graduate roles, and part-time work from our partner network. Coming soon.",
+        "Discover internships, graduate roles, placements and part-time work curated for London students. Save opportunities and apply — all in one beautiful place.",
     alternates: { canonical: "/jobs" },
 };
 
-export default function JobsPage() {
+// User-specific saved state — render dynamically.
+export const dynamic = "force-dynamic";
+
+type SearchParams = Promise<{
+    search?: string;
+    type?: string;
+    location?: string;
+    sort?: string;
+}>;
+
+export default async function JobsPage({
+    searchParams,
+}: {
+    searchParams: SearchParams;
+}) {
+    const params = await searchParams;
+    const session = await auth();
+    const isLoggedIn = Boolean(session?.user);
+    const userId = session?.user?.id;
+    const verifiedUniversity =
+        (session?.user as { verified_university?: string | null } | undefined)
+            ?.verified_university ?? null;
+
+    const [opportunities, savedIds, savedOpps] = await Promise.all([
+        getPublishedOpportunities(),
+        userId ? getSavedOpportunityIds(userId) : Promise.resolve([]),
+        userId ? getSavedOpportunities(userId) : Promise.resolve([]),
+    ]);
+
+    // Personalized picks (empty until the user has saved something).
+    const recommended = userId
+        ? recommendForUser(opportunities, savedOpps, {
+              verifiedUniversity,
+              limit: 6,
+          })
+        : [];
+
     return (
-        <main className="bg-[#041A2E] text-white">
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
-                <div className="text-center p-8">
-                    <h1 className="text-5xl font-bold mb-4 animate-pulse">
-                        Jobs
-                    </h1>
-                    <p className="text-2xl mb-8 text-gray-300">Coming Soon!</p>
-                    <p className="text-lg max-w-2xl text-gray-400">
-                        We are working hard to bring you a dedicated jobs board
-                        for students and graduates. Stay tuned for opportunities
-                        from our network of partners.
-                    </p>
-                </div>
-            </div>
+        <main className="min-h-screen bg-[#041A2E] text-white">
+            <JobsBrowser
+                initialOpportunities={opportunities}
+                savedIds={savedIds}
+                isLoggedIn={isLoggedIn}
+                recommended={recommended}
+                initialFilters={{
+                    search: params.search,
+                    type: params.type,
+                    locationType: params.location,
+                    sort: params.sort,
+                }}
+            />
+            <MarketingCtas />
         </main>
     );
 }
