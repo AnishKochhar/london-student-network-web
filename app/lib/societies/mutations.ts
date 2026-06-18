@@ -12,6 +12,7 @@
 import { sql } from "@vercel/postgres";
 import {
     hasDb,
+    mapClaimInviteRow,
     mapImportCandidateRow,
     mapReviewItemRow,
     mapSocietyRow,
@@ -23,6 +24,7 @@ import { getStore, localId } from "./store";
 import { getTakenSlugs, getUniversityById } from "./queries";
 import type {
     Society,
+    SocietyClaimInvite,
     SocietyDraft,
     SocietyImportCandidate,
     SocietyInteraction,
@@ -474,6 +476,61 @@ export async function updateReviewItem(
     const updated: SocietyReviewItem = { ...r, ...stripUndefined(patch), updatedAt: nowIso() };
     getStore().reviewItems.set(id, updated);
     return updated;
+}
+
+// --- Claim invites (DRAFTS ONLY — never sent) ------------------------------
+
+export type ClaimInviteInput = {
+    societyId: string;
+    contactId?: string | null;
+    email?: string | null;
+    claimTokenHash?: string | null;
+    claimUrlPreview?: string | null;
+    subjectDraft?: string | null;
+    bodyDraft?: string | null;
+    status?: SocietyClaimInvite["status"];
+};
+
+/**
+ * Create a claim-invite DRAFT. There is no parameter for `sendDisabled` — it is
+ * always true (and the DB has a CHECK enforcing it). There is deliberately no
+ * function anywhere that sends a claim invite.
+ */
+export async function createClaimInvite(
+    input: ClaimInviteInput,
+): Promise<SocietyClaimInvite> {
+    if (hasDb()) {
+        const { rows } = await sql`
+            INSERT INTO society_claim_invites (
+                society_id, contact_id, email, claim_token_hash,
+                claim_url_preview, subject_draft, body_draft, status
+            ) VALUES (
+                ${input.societyId}, ${input.contactId ?? null},
+                ${input.email ?? null}, ${input.claimTokenHash ?? null},
+                ${input.claimUrlPreview ?? null}, ${input.subjectDraft ?? null},
+                ${input.bodyDraft ?? null}, ${input.status ?? "draft"}
+            )
+            RETURNING *
+        `;
+        return mapClaimInviteRow(rows[0]);
+    }
+    const ts = nowIso();
+    const invite: SocietyClaimInvite = {
+        id: localId("claim"),
+        societyId: input.societyId,
+        contactId: input.contactId ?? null,
+        email: input.email ?? null,
+        claimTokenHash: input.claimTokenHash ?? null,
+        claimUrlPreview: input.claimUrlPreview ?? null,
+        subjectDraft: input.subjectDraft ?? null,
+        bodyDraft: input.bodyDraft ?? null,
+        status: input.status ?? "draft",
+        sendDisabled: true, // invariant
+        createdAt: ts,
+        updatedAt: ts,
+    };
+    getStore().claimInvites.set(invite.id, invite);
+    return invite;
 }
 
 // --- Interactions (analytics foundation) ----------------------------------

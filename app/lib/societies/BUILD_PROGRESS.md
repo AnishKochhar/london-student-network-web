@@ -21,8 +21,8 @@
 | P8 | Social enrichment | committed | social extract + IG confidence gate + profile enrich; 70 tests; reviewed |
 | P9 | Review queue | committed | decision engine + quality review + queue UI; 76 tests; reviewed |
 | P10 | Public directory (/network) | committed | directory+profile, published-only, smoke-tested live; 83 tests; reviewed |
-| P11 | Claim plumbing | in_progress | draft invite + preview, sendDisabled always true |
-| P12 | Event candidate foundation | pending | model + extractor + admin tab |
+| P11 | Claim plumbing | committed | readiness + draft + preview page; sendDisabled true (4 layers); 90 tests; reviewed |
+| P12 | Event candidate foundation | in_progress | model + extractor + admin tab |
 | P13 | Analytics foundation | pending | interactions + metrics |
 
 ## Self-validation per phase
@@ -96,6 +96,13 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   NOTE: env has POSTGRES_URL set, so DB mode needs migration 018 applied to function — applying it
   to the live DB was DENIED by the safety classifier (correct; user must run it explicitly). Store
   mode fully works. Gates clean, 83/83 vitest. Committed as `Society P10`.
+- P11 done: claim.ts (evaluateClaimReadiness §6.12, isSocietyClaimReady, markSocietyClaimReady,
+  generateClaimUrlPreview [non-functional preview], generateClaimInviteDraft), createClaimInvite
+  mutation + getClaimInviteForSociety query, claim API (generate_draft/mark_ready — NO send),
+  claim-preview admin page with the big "Sending is disabled" banner and NO send button.
+  Independent review confirmed the no-outbound guarantee holds, enforced at 4 layers (TS literal
+  `sendDisabled: true`, no input param, DB DEFAULT+CHECK, hardcoded read-back); no real /claim
+  route; raw token not persisted (only its hash). Gates clean, 90/90 vitest. Committed as `Society P11`.
 
 ## ⚠️ Deployment note
 This environment's `.env` has POSTGRES_URL set → `hasDb()` is true. The society tables don't exist

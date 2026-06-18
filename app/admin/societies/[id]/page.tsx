@@ -173,14 +173,22 @@ export default function SocietyDetailPage() {
                     { label: society.name },
                 ]}
                 actions={
-                    <Link
-                        href={previewHref}
-                        target="_blank"
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
-                    >
-                        <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                        Public preview
-                    </Link>
+                    <>
+                        <Link
+                            href={`/admin/societies/${society.id}/claim-preview`}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
+                        >
+                            Claim preview
+                        </Link>
+                        <Link
+                            href={previewHref}
+                            target="_blank"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
+                        >
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                            Public preview
+                        </Link>
+                    </>
                 }
             />
 

@@ -349,6 +349,9 @@ export type SocietyClaimInviteStatus =
     | "draft"
     | "ready"
     | "sending_disabled"
+    // SAFETY: "sent" exists only so the future loop's vocabulary is complete. It
+    // must remain UNREACHABLE while outbound is disabled — no code sets it, and
+    // `sendDisabled` is independently pinned true at the type + DB level.
     | "sent"
     | "expired"
     | "claimed"

@@ -8,6 +8,7 @@
 import { sql } from "@vercel/postgres";
 import {
     hasDb,
+    mapClaimInviteRow,
     mapImportCandidateRow,
     mapReviewItemRow,
     mapSocietyRow,
@@ -17,6 +18,7 @@ import {
 import { getStore } from "./store";
 import type {
     Society,
+    SocietyClaimInvite,
     SocietyImportCandidate,
     SocietyImportStatus,
     SocietyReviewItem,
@@ -275,6 +277,27 @@ export async function getAllReviewItems(): Promise<SocietyReviewItem[]> {
     }
     return [...getStore().reviewItems.values()].sort(
         (a, b) => timeOf(b.createdAt) - timeOf(a.createdAt),
+    );
+}
+
+// --- Claim invites ---------------------------------------------------------
+
+/** The most recent claim-invite draft for a society, or null. */
+export async function getClaimInviteForSociety(
+    societyId: string,
+): Promise<SocietyClaimInvite | null> {
+    if (hasDb()) {
+        const { rows } = await sql`
+            SELECT * FROM society_claim_invites
+            WHERE society_id = ${societyId}
+            ORDER BY created_at DESC LIMIT 1
+        `;
+        return rows[0] ? mapClaimInviteRow(rows[0]) : null;
+    }
+    return (
+        [...getStore().claimInvites.values()]
+            .filter((c) => c.societyId === societyId)
+            .sort((a, b) => timeOf(b.createdAt) - timeOf(a.createdAt))[0] ?? null
     );
 }
 
