@@ -7,6 +7,7 @@ import {
     ArrowPathIcon,
     CheckBadgeIcon,
     ArrowTopRightOnSquareIcon,
+    SparklesIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import AdminPageHeader from "@/app/components/admin/admin-page-header";
@@ -111,6 +112,26 @@ export default function SocietyDetailPage() {
                 return;
             }
             toast.error(msg);
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function enrich() {
+        setBusy(true);
+        try {
+            const res = await fetch(`/api/admin/societies/${id}/enrich`, {
+                method: "POST",
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            const s = data.summary;
+            toast.success(
+                `Enriched — ${s.profileFieldsFilled.length} fields, ${s.socialsAttached.length} socials`,
+            );
+            load();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Enrich failed");
         } finally {
             setBusy(false);
         }
@@ -285,14 +306,24 @@ export default function SocietyDetailPage() {
                             <ScoreRow label="Source confidence" value={society.sourceConfidenceScore} />
                             <ScoreRow label="Duplicate risk" value={society.duplicateRiskScore} invert />
                             <ScoreRow label="Publish confidence" value={society.publishConfidenceScore} />
-                            <button
-                                onClick={() => simple({ kind: "recompute" }, "Recomputed")}
-                                disabled={busy}
-                                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white hover:bg-white/10"
-                            >
-                                <ArrowPathIcon className="h-4 w-4" />
-                                Recompute
-                            </button>
+                            <div className="mt-3 flex gap-2">
+                                <button
+                                    onClick={() => simple({ kind: "recompute" }, "Recomputed")}
+                                    disabled={busy}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white hover:bg-white/10"
+                                >
+                                    <ArrowPathIcon className="h-4 w-4" />
+                                    Recompute
+                                </button>
+                                <button
+                                    onClick={enrich}
+                                    disabled={busy}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white hover:bg-white/10"
+                                >
+                                    <SparklesIcon className="h-4 w-4" />
+                                    Enrich
+                                </button>
+                            </div>
                         </div>
 
                         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

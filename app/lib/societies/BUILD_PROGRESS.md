@@ -18,8 +18,8 @@
 | P5 | SU directory ingestion | committed | parser + manual-paste + live fetch (SSRF-guarded) + ingest page; 35 tests; reviewed |
 | P6 | Matching / dedup | committed | similarity + duplicate risk + gap-fill merge + rescan; 49 tests; reviewed |
 | P7 | Profile creation | committed | scoring + candidate→draft→publish gate + societies list/detail; 58 tests; reviewed |
-| P8 | Social enrichment | in_progress | attach socials, uncertain → review |
-| P9 | Review queue | pending | approve/reject/merge/edit/ignore |
+| P8 | Social enrichment | committed | social extract + IG confidence gate + profile enrich; 70 tests; reviewed |
+| P9 | Review queue | in_progress | approve/reject/merge/edit/ignore |
 | P10 | Public directory (/network) | pending | cards, filters, profile, disclaimer |
 | P11 | Claim plumbing | pending | draft invite + preview, sendDisabled always true |
 | P12 | Event candidate foundation | pending | model + extractor + admin tab |
@@ -74,3 +74,10 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   the gate or explicit force; drafts never auto-publish. Review fixes (2×HIGH): setSocietyPublicStatus
   can't expose a draft (only toggle published rows), and the edit PATCH whitelists content fields so
   status/isPublic/scores can't be edited in. Gates clean, 58/58 vitest. Committed as `Society P7`.
+- P8 done: enrich.ts (extractSocialLinksFromHtml, scoreInstagramMatch w/ confidence gate, profile
+  helpers: shortDescription/classifyCategory/tags, enrichSociety gap-fill + IG attach/review),
+  prompts.ts (spec §14 enrichment prompt, stored constant — not invoked), enrich API + detail-page
+  Enrich button. IG gate: >=90 silent attach, 70–89 attach+review, <70 skip. No network/LLM/outbound.
+  Review fixes (HIGH+MED): IG silent-attach now needs a strong (>=6ch) token or uni-prefix
+  corroboration (stops Law→lawnmower etc.); website capture skips social/SU/.ac.uk hosts.
+  Gates clean, 70/70 vitest. Committed as `Society P8`.
