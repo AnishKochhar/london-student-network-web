@@ -116,7 +116,13 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   client components wired into the public profile, admin analytics page + nav. Review fix (LOW): added
   rate-limit + metadata cap to the public beacon. Gates clean, 95/95 vitest. Committed as `Society P13`.
 
-## ✅ ALL PHASES COMPLETE (P2–P13). Final full-suite validation pending; see deployment note above for migration 018.
+## ✅ ALL PHASES COMPLETE (P2–P13)
+Final validation: full repo suite **127/127 vitest pass** (95 society), tsc + eslint clean for the
+feature, `/network` + profile smoke-tested live in store mode. Comprehensive grep: ZERO outbound-client
+references anywhere in the feature; the no-outbound guard test passes. Each phase had an independent
+review agent; all HIGH findings fixed (P4 header-inference collision, P5 IPv6 SSRF bypass, P7 two
+publish-gate bypasses, P8 Instagram false-attach) plus assorted MED/LOW.
+See the deployment note above: migration 018 must be applied by the user to run in DB mode.
 
 ## ⚠️ Deployment note
 This environment's `.env` has POSTGRES_URL set → `hasDb()` is true. The society tables don't exist
