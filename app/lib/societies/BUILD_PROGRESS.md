@@ -20,8 +20,8 @@
 | P7 | Profile creation | committed | scoring + candidate→draft→publish gate + societies list/detail; 58 tests; reviewed |
 | P8 | Social enrichment | committed | social extract + IG confidence gate + profile enrich; 70 tests; reviewed |
 | P9 | Review queue | committed | decision engine + quality review + queue UI; 76 tests; reviewed |
-| P10 | Public directory (/network) | in_progress | cards, filters, profile, disclaimer |
-| P11 | Claim plumbing | pending | draft invite + preview, sendDisabled always true |
+| P10 | Public directory (/network) | committed | directory+profile, published-only, smoke-tested live; 83 tests; reviewed |
+| P11 | Claim plumbing | in_progress | draft invite + preview, sendDisabled always true |
 | P12 | Event candidate foundation | pending | model + extractor + admin tab |
 | P13 | Analytics foundation | pending | interactions + metrics |
 
@@ -87,3 +87,19 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   (/admin/societies/review, priority/reason/recommended action, per-item actions), review APIs.
   No review action sends anything (spec §8.4). Review fix (MED): decisions guarded to open items
   only (no replay re-firing side-effects). Gates clean, 76/76 vitest. Committed as `Society P9`.
+- P10 done: public /network directory (hero, search, uni tabs, type/category/sort filters, card
+  grid, disabled claim CTA) + /network/[universitySlug]/[societySlug] profile (hero, socials,
+  membership/SU links, similar societies, unclaimed badge, source disclaimer, generateMetadata).
+  selectors.ts (filter/sort/collect/similar, pure). Published-only enforced via getPublishedSociet*.
+  SMOKE-TESTED live (store mode): directory shows 5 published seeds, profile renders, draft/unknown
+  → not-found with NO content leak. Review: no high/med; hardened logo <img> to http(s)-only.
+  NOTE: env has POSTGRES_URL set, so DB mode needs migration 018 applied to function — applying it
+  to the live DB was DENIED by the safety classifier (correct; user must run it explicitly). Store
+  mode fully works. Gates clean, 83/83 vitest. Committed as `Society P10`.
+
+## ⚠️ Deployment note
+This environment's `.env` has POSTGRES_URL set → `hasDb()` is true. The society tables don't exist
+in that DB yet, so admin/public pages error until **migration 018 is applied** by the user:
+`psql "$POSTGRES_URL" -f migrations/018_add_society_intelligence.sql` (or
+`pnpm tsx scripts/apply-society-migration.ts`). All phases are verified in STORE mode (empty
+POSTGRES_URL). Auto-applying the migration was intentionally blocked by the safety classifier.
