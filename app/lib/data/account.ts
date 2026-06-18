@@ -291,7 +291,7 @@ async function getStripeAccountStatus(userId: string) {
 		return {
 			hasAccount: true,
 			accountId: stripeAccountId,
-			status: null,
+			status: null as null,
 			error: 'Failed to fetch Stripe account status',
 		};
 	}

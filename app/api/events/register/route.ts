@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ADMIN_USER_ID } from "@/app/lib/admin";
 import {
     checkIfRegistered,
     fetchSQLEventById,
@@ -226,7 +227,7 @@ export async function POST(req: Request) {
         }
 
         // Send notification to all co-hosts with registration email notifications enabled
-        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        const ADMIN_ID = ADMIN_USER_ID;
         if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
             try {
                 const notificationRecipients = await getNotificationRecipients(event_id);

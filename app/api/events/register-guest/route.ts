@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sql } from "@vercel/postgres";
+import { ADMIN_USER_ID } from "@/app/lib/admin";
 import { fetchSQLEventById, getEventOrganiserEmail } from "@/app/lib/data";
 import { rateLimit, rateLimitConfigs, getRateLimitIdentifier, createRateLimitResponse } from "@/app/lib/rate-limit";
 import { sendEventRegistrationEmail } from "@/app/lib/send-email";
@@ -226,7 +227,7 @@ export async function POST(req: Request) {
 		}
 
 		// Send notification email to organiser (if not admin and notifications are enabled)
-		const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+		const ADMIN_ID = ADMIN_USER_ID;
 		if (event.organiser_uid !== ADMIN_ID && event.send_signup_notifications !== false) {
 			try {
 				if (!organiserEmailAddress || organiserEmailAddress === "") {

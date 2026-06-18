@@ -49,7 +49,7 @@ export async function fetchThreadReplies(
         const data = await response.json();
         const replies = data.replies || [];
         const topLevelCount = replies.filter(
-            (reply) => reply.parentId === null,
+            (reply: { parentId: number | null }) => reply.parentId === null,
         ).length;
 
         return { replies, topLevelCount };

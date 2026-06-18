@@ -78,7 +78,7 @@ export const sendOrganiserEmail = async ({
     }
 };
 
-export const sendUserEmail = async ({ toEmail, fromEmail, subject, text }) => {
+export const sendUserEmail = async ({ toEmail, fromEmail, subject, text }: { toEmail: string; fromEmail: string; subject: string; text: string }) => {
     try {
         if (!toEmail) {
             console.error("The target email is empty");

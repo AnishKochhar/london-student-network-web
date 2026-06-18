@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Job, Worker } from 'bullmq';
+import { ADMIN_USER_ID } from "@/app/lib/admin";
 import getRedisClient from '@/app/lib/config/private/redis';
 import { sendEventRegistrationEmail, sendExternalForwardingEmail } from '@/app/lib/send-email';
 import { sql } from '@vercel/postgres';
@@ -87,7 +88,7 @@ async function handleUserReminder(job: Job) {
         const event = convertSQLEventToEvent(sqlEvent as SQLEvent);
 
         // SAFETY CHECK: Skip admin-created events (scraped/manually added)
-        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        const ADMIN_ID = ADMIN_USER_ID;
         if (sqlEvent.organiser_uid === ADMIN_ID) {
             console.log(`[WORKER] ⚠️ Skipping admin-created event ${event_id} - no automated emails for admin events`);
             return { success: true, reason: 'admin_event_skipped' };
@@ -166,7 +167,7 @@ async function handleExternalForwarding(job: Job) {
         const sqlEvent = eventResult.rows[0];
 
         // SAFETY CHECK: Skip admin-created events
-        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        const ADMIN_ID = ADMIN_USER_ID;
         if (sqlEvent.organiser_uid === ADMIN_ID) {
             console.log(`[WORKER] ⚠️ Skipping external forwarding for admin event ${event_id}`);
             return { success: true, reason: 'admin_event_skipped' };
@@ -248,7 +249,7 @@ async function handleOrganizerSummary(job: Job) {
         const event = convertSQLEventToEvent(sqlEvent as SQLEvent);
 
         // SAFETY CHECK: Skip admin-created events
-        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        const ADMIN_ID = ADMIN_USER_ID;
         if (sqlEvent.organiser_uid === ADMIN_ID) {
             console.log(`[WORKER] ⚠️ Skipping organizer summary for admin event ${event_id}`);
             return { success: true, reason: 'admin_event_skipped' };

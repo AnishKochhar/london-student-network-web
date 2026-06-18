@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ADMIN_USER_ID } from "@/app/lib/admin";
 import { useRouter } from "next/navigation";
 import { Mail, Flag } from "lucide-react";
 import { Event, EventCoHost } from "@/app/lib/types";
@@ -14,7 +15,7 @@ interface OrganiserListProps {
     dbLogoUrl?: string | null;
 }
 
-const ADMIN_UID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+const ADMIN_UID = ADMIN_USER_ID;
 
 /**
  * Shared component for displaying event organisers (primary + co-hosts).

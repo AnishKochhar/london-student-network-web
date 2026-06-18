@@ -148,7 +148,7 @@ export function generateCalendarURLs(event: Event) {
         outlookOffice365: `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&startdt=${outlookStart}&enddt=${outlookEnd}&body=${description}&location=${location}`,
         yahoo: `https://calendar.yahoo.com/?v=60&title=${title}&st=${googleStart}&et=${googleEnd}&desc=${description}&in_loc=${location}`,
         // Apple Calendar uses ICS files
-        apple: null // Will download ICS file
+        apple: null as string | null // Will download ICS file
     };
 }
 

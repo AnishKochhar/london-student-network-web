@@ -11,6 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { createPortal } from "react-dom";
 import { EmailTemplate, EmailSignature } from "@/app/lib/campaigns/types";
+import DOMPurify from "dompurify";
 
 interface TemplateEditorModalProps {
     isOpen: boolean;
@@ -425,11 +426,11 @@ export default function TemplateEditorModal({
                                                 <div
                                                     className="prose prose-sm max-w-none text-gray-700"
                                                     dangerouslySetInnerHTML={{
-                                                        __html: formData.bodyHtml
+                                                        __html: DOMPurify.sanitize(formData.bodyHtml
                                                             .replace(/\{\{name\}\}/g, '<span class="bg-blue-100 text-blue-800 px-1 rounded">John</span>')
                                                             .replace(/\{\{organization\}\}/g, '<span class="bg-blue-100 text-blue-800 px-1 rounded">Example Society</span>')
                                                             .replace(/\{\{email\}\}/g, '<span class="bg-blue-100 text-blue-800 px-1 rounded">john@example.com</span>')
-                                                            || '<span class="text-gray-400">Email body preview...</span>',
+                                                            ) || '<span class="text-gray-400">Email body preview...</span>',
                                                     }}
                                                 />
                                             </div>
@@ -441,6 +442,7 @@ export default function TemplateEditorModal({
                                         {previewHtml ? (
                                             <iframe
                                                 srcDoc={previewHtml}
+                                                sandbox=""
                                                 className="w-full max-w-[600px] h-full bg-white rounded-lg shadow-lg"
                                                 title="Email Preview"
                                             />

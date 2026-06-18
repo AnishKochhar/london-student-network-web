@@ -81,7 +81,7 @@ export async function GET(
             userVote: thread.user_vote || null,
             wasEdited: thread.was_edited,
             editedTimeAgo: thread.was_edited ? getTimeAgo(new Date(thread.updated_at)) : null,
-            replies: [], // Will be loaded separately if needed
+            replies: [] as unknown[], // Will be loaded separately if needed
         };
 
         return NextResponse.json({

@@ -21,7 +21,7 @@ const API_SCHEMA = {
     ],
     security: [
         {
-            bearerAuth: [],
+            bearerAuth: [] as string[],
         },
     ],
     components: {
@@ -103,7 +103,7 @@ const API_SCHEMA = {
                 description: 'Retrieve a paginated list of events. By default returns only upcoming public events.',
                 operationId: 'listEvents',
                 tags: ['Events'],
-                security: [{ bearerAuth: [] }],
+                security: [{ bearerAuth: [] as string[] }],
                 parameters: [
                     {
                         name: 'limit',

@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Student Jobs & Opportunities",
+    description:
+        "A dedicated jobs board for London students and graduates — internships, graduate roles, and part-time work from our partner network. Coming soon.",
+    alternates: { canonical: "/jobs" },
+};
+
 export default function JobsPage() {
     return (
         <main className="bg-[#041A2E] text-white">
