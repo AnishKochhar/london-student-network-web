@@ -17,8 +17,8 @@
 | P4 | CRM import | committed | xlsx/csv upload + column inference + dedup + review routing + summary; 25 tests; reviewed |
 | P5 | SU directory ingestion | committed | parser + manual-paste + live fetch (SSRF-guarded) + ingest page; 35 tests; reviewed |
 | P6 | Matching / dedup | committed | similarity + duplicate risk + gap-fill merge + rescan; 49 tests; reviewed |
-| P7 | Profile creation | in_progress | candidate→draft→published + scoring gate |
-| P8 | Social enrichment | pending | attach socials, uncertain → review |
+| P7 | Profile creation | committed | scoring + candidate→draft→publish gate + societies list/detail; 58 tests; reviewed |
+| P8 | Social enrichment | in_progress | attach socials, uncertain → review |
 | P9 | Review queue | pending | approve/reject/merge/edit/ignore |
 | P10 | Public directory (/network) | pending | cards, filters, profile, disclaimer |
 | P11 | Claim plumbing | pending | draft invite + preview, sendDisabled always true |
@@ -67,3 +67,10 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   (4×MED/LOW): acronym demoted to a +12 score nudge (no IT↔International-Tennis false hits),
   all-generic names normalise to empty (no stub false-dupes), rescan de-dupes vs all-status
   review items + skips resolved candidates. Gates clean, 49/49 vitest. Committed as `Society P6`.
+- P7 done: scoring.ts (completeness/sourceConfidence/uniConfidence/publishConfidence + conservative
+  isSocietyPublishEligible per spec §10–11), publish.ts (recomputeSocietyScores, candidateToDraftSociety,
+  gated publishSocietyProfile + explicit force, unpublish, setSocietyPublicStatus, bulkPublish),
+  societies list + detail/edit admin pages, promote-to-draft from imports, APIs. Publishing only via
+  the gate or explicit force; drafts never auto-publish. Review fixes (2×HIGH): setSocietyPublicStatus
+  can't expose a draft (only toggle published rows), and the edit PATCH whitelists content fields so
+  status/isPublic/scores can't be edited in. Gates clean, 58/58 vitest. Committed as `Society P7`.

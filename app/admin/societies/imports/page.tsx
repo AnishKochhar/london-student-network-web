@@ -8,6 +8,7 @@ import {
     DocumentDuplicateIcon,
     FlagIcon,
     MagnifyingGlassIcon,
+    RocketLaunchIcon,
 } from "@heroicons/react/24/outline";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
@@ -194,6 +195,24 @@ export default function SocietyImportsPage() {
         }
     }
 
+    async function promote(id: string) {
+        setBusy(id);
+        try {
+            const res = await fetch(
+                `/api/admin/society-imports/${id}/promote`,
+                { method: "POST" },
+            );
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            toast.success("Draft society created");
+            load();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Couldn't create draft");
+        } finally {
+            setBusy(null);
+        }
+    }
+
     return (
         <div>
             <AdminPageHeader
@@ -344,6 +363,14 @@ export default function SocietyImportsPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-end gap-1.5">
+                                                <button
+                                                    onClick={() => promote(c.id)}
+                                                    disabled={busy === c.id}
+                                                    title="Create draft society"
+                                                    className="rounded-lg p-1.5 text-emerald-300/80 hover:bg-emerald-500/10 hover:text-emerald-300"
+                                                >
+                                                    <RocketLaunchIcon className="h-4 w-4" />
+                                                </button>
                                                 <button
                                                     onClick={() =>
                                                         act(c.id, "needs_review", "Sent to review")

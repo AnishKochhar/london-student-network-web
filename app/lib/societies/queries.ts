@@ -175,6 +175,21 @@ export async function listSources(): Promise<SocietySource[]> {
     );
 }
 
+export async function listSourcesForSociety(
+    societyId: string,
+): Promise<SocietySource[]> {
+    if (hasDb()) {
+        const { rows } = await sql`
+            SELECT * FROM society_sources WHERE society_id = ${societyId}
+            ORDER BY created_at DESC
+        `;
+        return rows.map(mapSourceRow);
+    }
+    return [...getStore().sources.values()].filter(
+        (s) => s.societyId === societyId,
+    );
+}
+
 export async function getSourceById(
     id: string,
 ): Promise<SocietySource | null> {
