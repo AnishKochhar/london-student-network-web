@@ -16,8 +16,8 @@
 | P3 | Source registry | committed | registry agent + admin dashboard + sources page + API; 18 tests; reviewed |
 | P4 | CRM import | committed | xlsx/csv upload + column inference + dedup + review routing + summary; 25 tests; reviewed |
 | P5 | SU directory ingestion | committed | parser + manual-paste + live fetch (SSRF-guarded) + ingest page; 35 tests; reviewed |
-| P6 | Matching / dedup | in_progress | normalise + fingerprint + similarity + merge UI |
-| P7 | Profile creation | pending | candidate→draft→published + scoring gate |
+| P6 | Matching / dedup | committed | similarity + duplicate risk + gap-fill merge + rescan; 49 tests; reviewed |
+| P7 | Profile creation | in_progress | candidate→draft→published + scoring gate |
 | P8 | Social enrichment | pending | attach socials, uncertain → review |
 | P9 | Review queue | pending | approve/reject/merge/edit/ignore |
 | P10 | Public directory (/network) | pending | cards, filters, profile, disclaimer |
@@ -59,3 +59,11 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   Review fix (HIGH): blocked all IPv6 literals in assertSafeUrl (the [::1] check was dead) +
   manual per-hop redirect revalidation; added SSRF unit tests. Gates clean, 35/35 vitest.
   Committed as `Society P5`.
+- P6 done: matching.ts (nameSimilarity token-Jaccard, calculateSocietyMatchScore w/ uni
+  agreement + URL/IG/email/category signals + acronym nudge, findPotentialDuplicateSocieties,
+  calculateDuplicateRisk, gap-fill mergeSocietyData), dedupe.ts (findMatchesForCandidate,
+  rescanCandidatesForDuplicates, human-only mergeCandidateIntoSociety), rescan + matches APIs,
+  merge_into PATCH, "Scan for duplicates" button. Never auto-merges/publishes. Review fixes
+  (4×MED/LOW): acronym demoted to a +12 score nudge (no IT↔International-Tennis false hits),
+  all-generic names normalise to empty (no stub false-dupes), rescan de-dupes vs all-status
+  review items + skips resolved candidates. Gates clean, 49/49 vitest. Committed as `Society P6`.

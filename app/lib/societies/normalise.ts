@@ -79,10 +79,11 @@ export function normaliseSocietyName(name: string): string {
         .split(/\s+/)
         .filter((w) => w && !GENERIC_TOKENS.includes(w));
 
-    const normalised = words.join(" ").replace(/\s+/g, " ").trim();
-    // If we stripped everything (e.g. name was just "The Society"), fall back to
-    // the basic clean so we never produce an empty key.
-    return normalised || basicClean(name);
+    // If stripping leaves nothing (e.g. "The Society"), return empty rather than
+    // falling back to the un-stripped name — an all-generic name carries no
+    // distinguishing signal and must NOT be treated as a match key (it would
+    // make every stub name look like a duplicate). Such names route to review.
+    return words.join(" ").replace(/\s+/g, " ").trim();
 }
 
 /**

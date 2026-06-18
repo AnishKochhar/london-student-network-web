@@ -238,6 +238,19 @@ export async function listReviewItems(
         );
 }
 
+/** Every review item regardless of status (used for de-duping rescans). */
+export async function getAllReviewItems(): Promise<SocietyReviewItem[]> {
+    if (hasDb()) {
+        const { rows } = await sql`
+            SELECT * FROM society_review_items ORDER BY created_at DESC
+        `;
+        return rows.map(mapReviewItemRow);
+    }
+    return [...getStore().reviewItems.values()].sort(
+        (a, b) => timeOf(b.createdAt) - timeOf(a.createdAt),
+    );
+}
+
 // --- Admin stats (spec §8.1) ----------------------------------------------
 
 export async function getStats(): Promise<SocietyStats> {

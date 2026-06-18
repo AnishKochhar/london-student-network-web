@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/app/lib/societies/api-helpers";
 import { updateImportCandidate } from "@/app/lib/societies/mutations";
+import { mergeCandidateIntoSociety } from "@/app/lib/societies/dedupe";
 import type { SocietyImportStatus } from "@/app/lib/societies/types";
 
 export const runtime = "nodejs";
@@ -15,7 +16,9 @@ const KIND_TO_STATUS: Record<string, SocietyImportStatus> = {
 
 /**
  * PATCH /api/admin/society-imports/[id]
- * body.kind: "reject" | "mark_duplicate" | "needs_review" | "reset"
+ * body.kind:
+ *   "reject" | "mark_duplicate" | "needs_review" | "reset" — status changes
+ *   "merge_into" + { societyId } — gap-fill merge into an existing society
  * (Promote-to-draft lands in P7; full review actions in P9. No outbound here.)
  */
 export async function PATCH(
@@ -29,7 +32,20 @@ export async function PATCH(
         const body = (await req.json()) as {
             kind?: string;
             reviewNotes?: string;
+            societyId?: string;
         };
+
+        if (body.kind === "merge_into") {
+            if (!body.societyId) {
+                return NextResponse.json(
+                    { error: "societyId is required to merge." },
+                    { status: 400 },
+                );
+            }
+            const result = await mergeCandidateIntoSociety(id, body.societyId);
+            return NextResponse.json(result);
+        }
+
         const status = body.kind ? KIND_TO_STATUS[body.kind] : undefined;
         if (!status) {
             return NextResponse.json(

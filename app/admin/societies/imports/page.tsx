@@ -7,6 +7,7 @@ import {
     NoSymbolIcon,
     DocumentDuplicateIcon,
     FlagIcon,
+    MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import * as XLSX from "xlsx";
 import toast from "react-hot-toast";
@@ -90,6 +91,7 @@ export default function SocietyImportsPage() {
     const [importing, setImporting] = useState(false);
     const [summary, setSummary] = useState<CrmSummary | null>(null);
     const [busy, setBusy] = useState<string | null>(null);
+    const [scanning, setScanning] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
     const load = useCallback(async () => {
@@ -155,6 +157,25 @@ export default function SocietyImportsPage() {
         else reader.readAsArrayBuffer(file);
     }
 
+    async function rescan() {
+        setScanning(true);
+        try {
+            const res = await fetch("/api/admin/society-imports/rescan", {
+                method: "POST",
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            toast.success(
+                `Scanned ${data.summary.scanned} — ${data.summary.flaggedHigh} high-risk, ${data.summary.reviewItemsCreated} new review items`,
+            );
+            load();
+        } catch {
+            toast.error("Scan failed");
+        } finally {
+            setScanning(false);
+        }
+    }
+
     async function act(id: string, kind: string, label: string) {
         setBusy(id);
         try {
@@ -183,6 +204,16 @@ export default function SocietyImportsPage() {
                     { label: "Society Intelligence", href: "/admin/societies" },
                     { label: "Imports" },
                 ]}
+                actions={
+                    <button
+                        onClick={rescan}
+                        disabled={scanning}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10 disabled:opacity-60"
+                    >
+                        <MagnifyingGlassIcon className="h-4 w-4" />
+                        {scanning ? "Scanning…" : "Scan for duplicates"}
+                    </button>
+                }
             />
 
             <div className="space-y-6 p-6 sm:p-8">
