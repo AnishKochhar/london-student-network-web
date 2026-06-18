@@ -7,9 +7,12 @@ import {
 } from "@/app/lib/societies/queries";
 import { similarSocieties } from "@/app/lib/societies/selectors";
 import SocietyNetworkCard from "@/app/components/network/society-network-card";
+import SocietyViewTracker from "@/app/components/network/society-view-tracker";
+import TrackedLink from "@/app/components/network/tracked-link";
 import {
     SOCIETY_TYPE_LABELS,
     type Society,
+    type SocietyInteractionType,
 } from "@/app/lib/societies/types";
 
 export const dynamic = "force-dynamic";
@@ -43,12 +46,16 @@ function initials(name: string): string {
         .join("");
 }
 
-const SOCIALS: { key: keyof Society; label: string }[] = [
-    { key: "instagramUrl", label: "Instagram" },
-    { key: "tiktokUrl", label: "TikTok" },
-    { key: "linkedinUrl", label: "LinkedIn" },
-    { key: "linktreeUrl", label: "Links" },
-    { key: "websiteUrl", label: "Website" },
+const SOCIALS: {
+    key: keyof Society;
+    label: string;
+    type: SocietyInteractionType;
+}[] = [
+    { key: "instagramUrl", label: "Instagram", type: "instagram_click" },
+    { key: "tiktokUrl", label: "TikTok", type: "website_click" },
+    { key: "linkedinUrl", label: "LinkedIn", type: "website_click" },
+    { key: "linktreeUrl", label: "Links", type: "website_click" },
+    { key: "websiteUrl", label: "Website", type: "website_click" },
 ];
 
 export default async function SocietyProfilePage({
@@ -65,6 +72,7 @@ export default async function SocietyProfilePage({
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#083157] to-[#064580]">
+            <SocietyViewTracker societyId={society.id} />
             <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
                 <Link
                     href="/network"
@@ -117,38 +125,38 @@ export default async function SocietyProfilePage({
                 {/* Actions */}
                 <div className="mt-6 flex flex-wrap gap-3">
                     {society.membershipUrl && (
-                        <a
+                        <TrackedLink
+                            societyId={society.id}
+                            type="membership_click"
                             href={society.membershipUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="rounded-xl bg-gradient-to-r from-sky-400 to-emerald-400 px-4 py-2 text-sm font-semibold text-[#04243f] hover:from-sky-300 hover:to-emerald-300"
                         >
                             Join / membership
-                        </a>
+                        </TrackedLink>
                     )}
                     {society.suProfileUrl && (
-                        <a
+                        <TrackedLink
+                            societyId={society.id}
+                            type="website_click"
                             href={society.suProfileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
                             className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10"
                         >
                             Official SU page
-                        </a>
+                        </TrackedLink>
                     )}
-                    {SOCIALS.map(({ key, label }) => {
+                    {SOCIALS.map(({ key, label, type }) => {
                         const url = society[key] as string | null;
                         if (!url) return null;
                         return (
-                            <a
+                            <TrackedLink
                                 key={key}
+                                societyId={society.id}
+                                type={type}
                                 href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10"
                             >
                                 {label}
-                            </a>
+                            </TrackedLink>
                         );
                     })}
                 </div>

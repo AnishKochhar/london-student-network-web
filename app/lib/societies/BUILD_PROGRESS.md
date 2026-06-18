@@ -23,7 +23,7 @@
 | P10 | Public directory (/network) | committed | directory+profile, published-only, smoke-tested live; 83 tests; reviewed |
 | P11 | Claim plumbing | committed | readiness + draft + preview page; sendDisabled true (4 layers); 90 tests; reviewed |
 | P12 | Event candidate foundation | committed | extractor + discover + admin events tab; 93 tests; reviewed |
-| P13 | Analytics foundation | in_progress | interactions + metrics |
+| P13 | Analytics foundation | committed | interactions API + trackers + admin analytics; 95 tests; reviewed |
 
 ## Self-validation per phase
 
@@ -110,6 +110,13 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   detail-page events tab. Review: no high/med; fixed DB updateEventCandidate to also persist
   university_id/source_url/image_url/extracted_from_source_id. Gates clean, 93/93 vitest.
   Committed as `Society P12`.
+- P13 done: getInteractionStats (by-type, views, clicks, top societies; DB+store parity),
+  PUBLIC /api/society-interactions (inbound-only record; allowlisted type; published-only; rate-limited
+  + metadata size-capped; never throws), admin /api/admin/society-analytics, view-tracker + tracked-link
+  client components wired into the public profile, admin analytics page + nav. Review fix (LOW): added
+  rate-limit + metadata cap to the public beacon. Gates clean, 95/95 vitest. Committed as `Society P13`.
+
+## ✅ ALL PHASES COMPLETE (P2–P13). Final full-suite validation pending; see deployment note above for migration 018.
 
 ## ⚠️ Deployment note
 This environment's `.env` has POSTGRES_URL set → `hasDb()` is true. The society tables don't exist

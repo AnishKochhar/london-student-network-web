@@ -322,6 +322,84 @@ export async function getClaimInviteForSociety(
     );
 }
 
+// --- Interaction analytics (spec §6.9 / §13) -------------------------------
+
+export type InteractionStats = {
+    totalInteractions: number;
+    totalViews: number;
+    totalClicks: number;
+    byType: Record<string, number>;
+    topSocieties: { societyId: string; name: string; views: number }[];
+};
+
+const CLICK_TYPES = [
+    "membership_click",
+    "instagram_click",
+    "website_click",
+    "event_click",
+];
+
+export async function getInteractionStats(): Promise<InteractionStats> {
+    if (hasDb()) {
+        const [byTypeRes, topRes] = await Promise.all([
+            sql`SELECT interaction_type, count(*)::int AS n
+                FROM society_interactions GROUP BY interaction_type`,
+            sql`SELECT i.society_id, s.name, count(*)::int AS views
+                FROM society_interactions i
+                JOIN societies s ON s.id = i.society_id
+                WHERE i.interaction_type = 'profile_view'
+                GROUP BY i.society_id, s.name
+                ORDER BY views DESC LIMIT 5`,
+        ]);
+        const byType: Record<string, number> = {};
+        for (const r of byTypeRes.rows)
+            byType[String(r.interaction_type)] = Number(r.n);
+        return summariseInteractions(
+            byType,
+            topRes.rows.map((r) => ({
+                societyId: String(r.society_id),
+                name: String(r.name),
+                views: Number(r.views),
+            })),
+        );
+    }
+
+    const store = getStore();
+    const byType: Record<string, number> = {};
+    const viewsBySociety = new Map<string, number>();
+    for (const i of store.interactions) {
+        byType[i.interactionType] = (byType[i.interactionType] ?? 0) + 1;
+        if (i.interactionType === "profile_view") {
+            viewsBySociety.set(
+                i.societyId,
+                (viewsBySociety.get(i.societyId) ?? 0) + 1,
+            );
+        }
+    }
+    const top = [...viewsBySociety.entries()]
+        .map(([societyId, views]) => ({
+            societyId,
+            name: store.societies.get(societyId)?.name ?? "(unknown)",
+            views,
+        }))
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 5);
+    return summariseInteractions(byType, top);
+}
+
+function summariseInteractions(
+    byType: Record<string, number>,
+    topSocieties: { societyId: string; name: string; views: number }[],
+): InteractionStats {
+    const totalInteractions = Object.values(byType).reduce((a, b) => a + b, 0);
+    const totalViews = byType["profile_view"] ?? 0;
+    const totalClicks = CLICK_TYPES.reduce(
+        (sum, t) => sum + (byType[t] ?? 0),
+        0,
+    );
+    return { totalInteractions, totalViews, totalClicks, byType, topSocieties };
+}
+
 // --- Admin stats (spec §8.1) ----------------------------------------------
 
 export async function getStats(): Promise<SocietyStats> {
