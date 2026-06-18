@@ -15,8 +15,8 @@
 | P2 | Core models & seeds | committed | types, migration 018, seed↔DB, queries/mutations; 13 tests pass; reviewed |
 | P3 | Source registry | committed | registry agent + admin dashboard + sources page + API; 18 tests; reviewed |
 | P4 | CRM import | committed | xlsx/csv upload + column inference + dedup + review routing + summary; 25 tests; reviewed |
-| P5 | SU directory ingestion | in_progress | manual-paste + best-effort live fetch + review |
-| P6 | Matching / dedup | pending | normalise + fingerprint + similarity + merge UI |
+| P5 | SU directory ingestion | committed | parser + manual-paste + live fetch (SSRF-guarded) + ingest page; 35 tests; reviewed |
+| P6 | Matching / dedup | in_progress | normalise + fingerprint + similarity + merge UI |
 | P7 | Profile creation | pending | candidate→draft→published + scoring gate |
 | P8 | Social enrichment | pending | attach socials, uncertain → review |
 | P9 | Review queue | pending | approve/reject/merge/edit/ignore |
@@ -52,3 +52,10 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   on synthetic fixtures. Review fix: replaced substring header matching with whole-token
   matching (Instagram→category etc.) + tightened parseCount. Gates: clean, 25/25 vitest.
   Committed as `Society P4`.
+- P5 done: SU directory ingestion — scrape.ts (SSRF-guarded fetchPublicPage), su-directory.ts
+  (parseSuDirectoryHtml + ingestSuDirectoryHtml + best-effort live ingestSuDirectoryFromSource),
+  ingest API (manual paste or live fetch → 422 w/ paste hint on failure), /admin/societies/ingest
+  page, "Ingest" nav link. High-trust candidates only (never auto-publishes); duplicates → review.
+  Review fix (HIGH): blocked all IPv6 literals in assertSafeUrl (the [::1] check was dead) +
+  manual per-hop redirect revalidation; added SSRF unit tests. Gates clean, 35/35 vitest.
+  Committed as `Society P5`.

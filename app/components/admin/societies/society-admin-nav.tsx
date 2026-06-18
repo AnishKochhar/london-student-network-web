@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 const LINKS: { href: string; label: string }[] = [
     { href: "/admin/societies", label: "Overview" },
     { href: "/admin/societies/sources", label: "Sources" },
+    { href: "/admin/societies/ingest", label: "Ingest" },
     { href: "/admin/societies/imports", label: "Imports" },
     { href: "/admin/societies/review", label: "Review queue" },
 ];
