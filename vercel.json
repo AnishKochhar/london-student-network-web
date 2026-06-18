@@ -11,6 +11,10 @@
     {
       "path": "/api/workers/process-campaigns",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/scrape-opportunities",
+      "schedule": "0 6 * * *"
     }
   ]
 }
