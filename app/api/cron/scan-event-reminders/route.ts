@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { ADMIN_USER_ID } from "@/app/lib/admin";
 import { scheduleEventEmailReminder } from '@/app/lib/functions/events/schedule-event-email-reminder';
 import { scheduleExternalForwardingEmail } from '@/app/lib/functions/events/schedule-external-forwarding-email';
 import { scheduleOrganizerSummaryEmail } from '@/app/lib/functions/events/schedule-organizer-summary-email';
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
         const errors: string[] = [];
 
         // Admin user ID - events created by admin should not send automated emails
-        const ADMIN_ID = "45ef371c-0cbc-4f2a-b9f1-f6078aa6638c";
+        const ADMIN_ID = ADMIN_USER_ID;
 
         // Process each event
         for (const sqlEvent of eventsResult.rows) {

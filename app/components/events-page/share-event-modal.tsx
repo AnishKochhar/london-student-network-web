@@ -48,7 +48,7 @@ export default function ShareEventModal({ isOpen, onClose, event }: ShareEventMo
     const shareOptions = [
         {
             name: "Instagram",
-            url: null, // Instagram doesn't support direct URL sharing
+            url: null as string | null, // Instagram doesn't support direct URL sharing
             onClick: () => {
                 // Copy link to clipboard for Instagram sharing
                 navigator.clipboard.writeText(eventUrl);

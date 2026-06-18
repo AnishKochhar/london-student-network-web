@@ -1,0 +1,49 @@
+name: CI
+
+# Runs the deterministic, secret-free quality gates on every PR and on pushes
+# to the long-lived branches. These three checks need no database or env secrets,
+# so they stay green/red purely based on code correctness.
+#
+# NOTE: `next build` is intentionally NOT a gate here. The homepage and /events
+# use ISR (revalidate) and are prerendered at build time, where they call the DB
+# and `auth()` (which needs AUTH_SECRET). Adding `build` would make CI fail
+# without database/secret env. Wire those in (or a test DB) before adding a
+# build job — a red-by-default CI gets ignored.
+
+on:
+  pull_request:
+    branches: [main, josh]
+  push:
+    branches: [main, josh]
+
+jobs:
+  verify:
+    name: Lint, typecheck & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test

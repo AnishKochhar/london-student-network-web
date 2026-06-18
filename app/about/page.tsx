@@ -2,6 +2,14 @@ import ProblemSection from "@/app/components/about-page/problem-section";
 import SolutionSection from "@/app/components/about-page/solution-section";
 import TeamSection from "@/app/components/about-page/team-section";
 import BackgroundImage from "../components/background-image";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "About Us",
+    description:
+        "London Student Network is a student-built community connecting over 500,000 students across London's universities through events, societies, and opportunities.",
+    alternates: { canonical: "/about" },
+};
 
 export default function AboutPage() {
     return (

@@ -56,7 +56,7 @@ function makeCampaignRow(overrides?: Partial<Record<string, unknown>>) {
         from_email: "josh@londonstudentnetwork.com",
         from_name: "London Student Network",
         reply_to: "hello@londonstudentnetwork.com",
-        subject_override: null,
+        subject_override: null as string | null,
         status: "sending",
         ...overrides,
     };

@@ -1,4 +1,6 @@
-export default function ToggleSwitch({ label, registerField }) {
+import { UseFormRegisterReturn } from "react-hook-form";
+
+export default function ToggleSwitch({ label, registerField }: { label: string; registerField: UseFormRegisterReturn }) {
     return (
         <label className="inline-flex items-center cursor-pointer mt-4">
             <span className="mr-2 text-sm">{label}</span>

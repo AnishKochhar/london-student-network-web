@@ -165,6 +165,7 @@ export default function TemplatePreviewModal({
                                             {/* Email Body */}
                                             <iframe
                                                 srcDoc={previewHtml}
+                                                sandbox=""
                                                 className="w-full border-0"
                                                 style={{ minHeight: viewMode === "mobile" ? "600px" : "800px" }}
                                                 title="Email Preview"

@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
                     replyCount: replyCount || 0,
                     tags: tags || [],
                     avatar: getAvatarInitials(authorName),
-                    userVote: userId ? userVotes[thread.id] || null : null,
+                    userVote: userId ? (userVotes as Record<string, string>)[thread.id] || null : null,
                     wasEdited: wasEdited,
                     editedTimeAgo: wasEdited
                         ? getTimeAgo(thread.updated_at)

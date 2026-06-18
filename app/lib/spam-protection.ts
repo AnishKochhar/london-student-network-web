@@ -6,7 +6,19 @@
 
 import crypto from 'crypto';
 
-const FORM_SECRET = process.env.FORM_SECRET || 'lsn-contact-form-secret-key-2024';
+// Sign form-timing tokens with a dedicated secret, falling back to the app's
+// AUTH_SECRET so we never ship a predictable, source-visible signing key.
+// (The previous hardcoded fallback let anyone forge valid timing tokens.)
+const FORM_SECRET = process.env.FORM_SECRET || process.env.AUTH_SECRET;
+
+function getFormSecret(): string {
+    if (!FORM_SECRET) {
+        throw new Error(
+            'Cannot sign form tokens: set FORM_SECRET (or AUTH_SECRET) in the environment.',
+        );
+    }
+    return FORM_SECRET;
+}
 
 // Minimum time (in seconds) a human would take to fill the form
 const MIN_FORM_TIME_SECONDS = 3;
@@ -31,7 +43,7 @@ const rateLimitStore = new Map<string, RateLimitEntry>();
 export function createFormToken(): string {
     const timestamp = Date.now().toString();
     const signature = crypto
-        .createHmac('sha256', FORM_SECRET)
+        .createHmac('sha256', getFormSecret())
         .update(timestamp)
         .digest('hex')
         .substring(0, 16); // Truncate for shorter token
@@ -56,7 +68,7 @@ export function verifyFormToken(token: string): { valid: boolean; reason?: strin
 
         // Verify the signature
         const expectedSignature = crypto
-            .createHmac('sha256', FORM_SECRET)
+            .createHmac('sha256', getFormSecret())
             .update(timestamp)
             .digest('hex')
             .substring(0, 16);

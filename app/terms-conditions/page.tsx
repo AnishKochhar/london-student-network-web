@@ -1,4 +1,12 @@
 import React from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Terms & Conditions",
+    description:
+        "The terms and conditions governing use of the London Student Network platform.",
+    alternates: { canonical: "/terms-conditions" },
+};
 
 export default function TermsConditions() {
     return (
