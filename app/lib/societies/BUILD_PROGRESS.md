@@ -13,8 +13,8 @@
 | Phase | Title | Status | Notes |
 |-------|-------|--------|-------|
 | P2 | Core models & seeds | committed | types, migration 018, seed↔DB, queries/mutations; 13 tests pass; reviewed |
-| P3 | Source registry | in_progress | admin sources page + seed 5 SU + CRM + existing-LSN |
-| P4 | CRM import | pending | xlsx parser + upload UI + dedup + summary |
+| P3 | Source registry | committed | registry agent + admin dashboard + sources page + API; 18 tests; reviewed |
+| P4 | CRM import | in_progress | xlsx parser + upload UI + dedup + summary |
 | P5 | SU directory ingestion | pending | manual-paste + best-effort live fetch + review |
 | P6 | Matching / dedup | pending | normalise + fingerprint + similarity + merge UI |
 | P7 | Profile creation | pending | candidate→draft→published + scoring gate |
@@ -38,3 +38,9 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   seed (5 unis + 6 societies + 7 sources), normalise/slug helpers, apply-script. Gates:
   typecheck clean, eslint clean, 13/13 vitest pass. Independent review: no high/med defects,
   no-outbound invariant confirmed. Committed as `Society P2`.
+- P3 done: source-registry agent (seed/queue-fetch/disable/enable), admin dashboard
+  (/admin/societies) with outbound-disabled banner + per-uni stats, sources mgmt page
+  (/admin/societies/sources), API routes (society-sources GET/POST/PATCH/DELETE + seed) all
+  requireAdmin-guarded, reusable banner + society sub-nav (shared sidebar untouched). Review
+  fix: hardened all update mutations with stripUndefined so partial patches don't null fields.
+  Gates: typecheck/eslint clean, 18/18 vitest pass. Committed as `Society P3`.

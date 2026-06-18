@@ -140,7 +140,7 @@ export async function updateSociety(
         // Whitelisted, commonly-edited columns. Extended in later phases.
         const current = await sql`SELECT * FROM societies WHERE id = ${id} LIMIT 1`;
         if (!current.rows[0]) return null;
-        const merged = { ...mapSocietyRow(current.rows[0]), ...patch };
+        const merged = { ...mapSocietyRow(current.rows[0]), ...stripUndefined(patch) };
         const { rows } = await sql`
             UPDATE societies SET
                 name = ${merged.name},
@@ -181,7 +181,7 @@ export async function updateSociety(
 
     const society = getStore().societies.get(id);
     if (!society) return null;
-    const updated: Society = { ...society, ...patch, updatedAt: nowIso() };
+    const updated: Society = { ...society, ...stripUndefined(patch), updatedAt: nowIso() };
     getStore().societies.set(id, updated);
     return updated;
 }
@@ -273,7 +273,7 @@ export async function updateSource(
     if (hasDb()) {
         const current = await sql`SELECT * FROM society_sources WHERE id = ${id} LIMIT 1`;
         if (!current.rows[0]) return null;
-        const m = { ...mapSourceRow(current.rows[0]), ...patch };
+        const m = { ...mapSourceRow(current.rows[0]), ...stripUndefined(patch) };
         const { rows } = await sql`
             UPDATE society_sources SET
                 source_name = ${m.sourceName},
@@ -293,7 +293,7 @@ export async function updateSource(
     }
     const source = getStore().sources.get(id);
     if (!source) return null;
-    const updated: SocietySource = { ...source, ...patch, updatedAt: nowIso() };
+    const updated: SocietySource = { ...source, ...stripUndefined(patch), updatedAt: nowIso() };
     getStore().sources.set(id, updated);
     return updated;
 }
@@ -375,7 +375,7 @@ export async function updateImportCandidate(
     if (hasDb()) {
         const current = await sql`SELECT * FROM society_import_candidates WHERE id = ${id} LIMIT 1`;
         if (!current.rows[0]) return null;
-        const m = { ...mapImportCandidateRow(current.rows[0]), ...patch };
+        const m = { ...mapImportCandidateRow(current.rows[0]), ...stripUndefined(patch) };
         const { rows } = await sql`
             UPDATE society_import_candidates SET
                 status = ${m.status},
@@ -396,7 +396,7 @@ export async function updateImportCandidate(
     if (!c) return null;
     const updated: SocietyImportCandidate = {
         ...c,
-        ...patch,
+        ...stripUndefined(patch),
         updatedAt: nowIso(),
     };
     getStore().importCandidates.set(id, updated);
@@ -457,7 +457,7 @@ export async function updateReviewItem(
     if (hasDb()) {
         const current = await sql`SELECT * FROM society_review_items WHERE id = ${id} LIMIT 1`;
         if (!current.rows[0]) return null;
-        const m = { ...mapReviewItemRow(current.rows[0]), ...patch };
+        const m = { ...mapReviewItemRow(current.rows[0]), ...stripUndefined(patch) };
         const { rows } = await sql`
             UPDATE society_review_items SET
                 status = ${m.status},
@@ -471,7 +471,7 @@ export async function updateReviewItem(
     }
     const r = getStore().reviewItems.get(id);
     if (!r) return null;
-    const updated: SocietyReviewItem = { ...r, ...patch, updatedAt: nowIso() };
+    const updated: SocietyReviewItem = { ...r, ...stripUndefined(patch), updatedAt: nowIso() };
     getStore().reviewItems.set(id, updated);
     return updated;
 }
@@ -517,4 +517,17 @@ function pgTextArray(arr: string[] = []): string {
 /** JSON string for a `::jsonb` parameter, or null. */
 function toJson(value: unknown): string | null {
     return value == null ? null : JSON.stringify(value);
+}
+
+/**
+ * Drop keys whose value is `undefined` so a partial patch never overwrites an
+ * existing field with `undefined`/NULL. (Explicit `null` is kept — that's a
+ * deliberate clear.)
+ */
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+    const out: Partial<T> = {};
+    for (const [k, v] of Object.entries(obj)) {
+        if (v !== undefined) (out as Record<string, unknown>)[k] = v;
+    }
+    return out;
 }
