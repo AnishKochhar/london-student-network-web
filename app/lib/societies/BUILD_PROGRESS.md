@@ -14,8 +14,8 @@
 |-------|-------|--------|-------|
 | P2 | Core models & seeds | committed | types, migration 018, seed↔DB, queries/mutations; 13 tests pass; reviewed |
 | P3 | Source registry | committed | registry agent + admin dashboard + sources page + API; 18 tests; reviewed |
-| P4 | CRM import | in_progress | xlsx parser + upload UI + dedup + summary |
-| P5 | SU directory ingestion | pending | manual-paste + best-effort live fetch + review |
+| P4 | CRM import | committed | xlsx/csv upload + column inference + dedup + review routing + summary; 25 tests; reviewed |
+| P5 | SU directory ingestion | in_progress | manual-paste + best-effort live fetch + review |
 | P6 | Matching / dedup | pending | normalise + fingerprint + similarity + merge UI |
 | P7 | Profile creation | pending | candidate→draft→published + scoring gate |
 | P8 | Social enrichment | pending | attach socials, uncertain → review |
@@ -44,3 +44,11 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   requireAdmin-guarded, reusable banner + society sub-nav (shared sidebar untouched). Review
   fix: hardened all update mutations with stripUndefined so partial patches don't null fields.
   Gates: typecheck/eslint clean, 18/18 vitest pass. Committed as `Society P3`.
+- P4 done: CRM Import Agent (crm.ts) — whole-token column inference, row→candidate
+  mapping (preserves rawRow), conservative dedup vs societies+candidates+intra-batch,
+  uncertain rows → review items; admin imports page with xlsx/csv upload (client XLSX
+  parse) + sample importer + summary + candidate actions; API society-imports (crm POST,
+  list GET, [id] PATCH). NEVER writes societies (verified). Real CRM file absent — proven
+  on synthetic fixtures. Review fix: replaced substring header matching with whole-token
+  matching (Instagram→category etc.) + tightened parseCount. Gates: clean, 25/25 vitest.
+  Committed as `Society P4`.
