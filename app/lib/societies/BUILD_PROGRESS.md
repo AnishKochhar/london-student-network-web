@@ -19,8 +19,8 @@
 | P6 | Matching / dedup | committed | similarity + duplicate risk + gap-fill merge + rescan; 49 tests; reviewed |
 | P7 | Profile creation | committed | scoring + candidate→draft→publish gate + societies list/detail; 58 tests; reviewed |
 | P8 | Social enrichment | committed | social extract + IG confidence gate + profile enrich; 70 tests; reviewed |
-| P9 | Review queue | in_progress | approve/reject/merge/edit/ignore |
-| P10 | Public directory (/network) | pending | cards, filters, profile, disclaimer |
+| P9 | Review queue | committed | decision engine + quality review + queue UI; 76 tests; reviewed |
+| P10 | Public directory (/network) | in_progress | cards, filters, profile, disclaimer |
 | P11 | Claim plumbing | pending | draft invite + preview, sendDisabled always true |
 | P12 | Event candidate foundation | pending | model + extractor + admin tab |
 | P13 | Analytics foundation | pending | interactions + metrics |
@@ -81,3 +81,9 @@ review subagent audits the diff (esp. the no-outbound invariant), then commit
   Review fixes (HIGH+MED): IG silent-attach now needs a strong (>=6ch) token or uni-prefix
   corroboration (stops Law→lawnmower etc.); website capture skips social/SU/.ac.uk hosts.
   Gates clean, 70/70 vitest. Committed as `Society P8`.
+- P9 done: review.ts (applyReviewDecision — merge/reject/approve/ignore/needs_more_info each mutate
+  the underlying entity: merge candidate→society, free a non-duplicate, detach a wrong Instagram,
+  reject candidate/society; runSocietyQualityReview generates+dedupes items), review queue UI
+  (/admin/societies/review, priority/reason/recommended action, per-item actions), review APIs.
+  No review action sends anything (spec §8.4). Review fix (MED): decisions guarded to open items
+  only (no replay re-firing side-effects). Gates clean, 76/76 vitest. Committed as `Society P9`.

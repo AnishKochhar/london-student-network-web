@@ -253,6 +253,18 @@ export async function listReviewItems(
         );
 }
 
+export async function getReviewItemById(
+    id: string,
+): Promise<SocietyReviewItem | null> {
+    if (hasDb()) {
+        const { rows } = await sql`
+            SELECT * FROM society_review_items WHERE id = ${id} LIMIT 1
+        `;
+        return rows[0] ? mapReviewItemRow(rows[0]) : null;
+    }
+    return getStore().reviewItems.get(id) ?? null;
+}
+
 /** Every review item regardless of status (used for de-duping rescans). */
 export async function getAllReviewItems(): Promise<SocietyReviewItem[]> {
     if (hasDb()) {
