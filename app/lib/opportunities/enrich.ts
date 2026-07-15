@@ -11,6 +11,7 @@
 import { getImportById } from "./queries";
 import { updateImport } from "./mutations";
 import { claudeProvider } from "./enrich-claude";
+import { groqProvider } from "./enrich-groq";
 import type {
     OpportunityImport,
     OpportunityDraft,
@@ -123,29 +124,48 @@ export const heuristicProvider: EnrichmentProvider = {
 };
 
 /**
- * Returns the active enrichment provider. When ANTHROPIC_API_KEY is set, uses
- * the real Claude provider and transparently falls back to the heuristic on any
- * error (timeout, refusal, parse failure) so enrichment never hard-fails.
- * Without a key, uses the heuristic — so the loop works with zero config.
+ * Returns the active enrichment provider as a fallback chain. LLM providers are
+ * tried in order of quality — Claude (Haiku 4.5) first, then Groq (gpt-oss-120b)
+ * — with the deterministic heuristic as the always-available floor. Each step is
+ * attempted only when its key is set, and any error (timeout, refusal, HTTP,
+ * parse failure) transparently drops to the next provider, so enrichment never
+ * hard-fails. With no keys at all, it's the heuristic alone — the loop works
+ * with zero config.
+ *
+ * Ordering rationale (validated by an A/B against Haiku on live listings):
+ * Claude has the best judgment on the graduate/agency-noise boundary; gpt-oss-120b
+ * agrees ~90% of the time and fails safe (never publishes junk); the heuristic
+ * caps its own confidence so it can extract but never auto-publishes on its own.
  */
 export function getEnrichmentProvider(): EnrichmentProvider {
-    if (process.env.ANTHROPIC_API_KEY) {
-        return {
-            name: `claude:${claudeProvider.name}`,
-            async enrich(input) {
+    const chain: EnrichmentProvider[] = [];
+    if (process.env.ANTHROPIC_API_KEY) chain.push(claudeProvider);
+    if (process.env.GROQ_API_KEY) chain.push(groqProvider);
+    chain.push(heuristicProvider);
+
+    // Single provider (heuristic only) needs no wrapper.
+    if (chain.length === 1) return heuristicProvider;
+
+    return {
+        name: chain.map((p) => p.name).join(" → "),
+        async enrich(input) {
+            for (let i = 0; i < chain.length; i++) {
                 try {
-                    return await claudeProvider.enrich(input);
+                    return await chain[i].enrich(input);
                 } catch (error) {
+                    const next = chain[i + 1]?.name ?? "(none)";
                     console.error(
-                        "Claude enrichment failed — falling back to heuristic:",
+                        `Enrichment via "${chain[i].name}" failed — falling back to "${next}":`,
                         error,
                     );
-                    return heuristicProvider.enrich(input);
+                    // Last provider (heuristic) is synchronous and shouldn't throw,
+                    // but if it does, let it propagate rather than loop.
                 }
-            },
-        };
-    }
-    return heuristicProvider;
+            }
+            // Unreachable in practice (heuristic is the floor), but satisfies types.
+            return heuristicProvider.enrich(input);
+        },
+    };
 }
 
 /**
