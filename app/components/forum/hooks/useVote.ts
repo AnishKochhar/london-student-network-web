@@ -68,8 +68,8 @@ export function useVote({
                 // User is voting or changing vote
                 if (newVotes.userVote) {
                     // Remove previous vote first
-                    newVotes[`${newVotes.userVote}s`] =
-                        newVotes[`${newVotes.userVote}s`] - 1;
+                    newVotes[`${newVotes.userVote}s` as "upvotes" | "downvotes"] =
+                        newVotes[`${newVotes.userVote}s` as "upvotes" | "downvotes"] - 1;
                 }
 
                 // Add new vote

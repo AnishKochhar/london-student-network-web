@@ -18,6 +18,8 @@ import {
     FireIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
+    BriefcaseIcon,
+    InboxArrowDownIcon,
 } from "@heroicons/react/24/outline";
 
 interface AdminSidebarProps {
@@ -48,6 +50,8 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     const navigation: NavItem[] = [
         { name: "Dashboard", href: "/admin", icon: HomeIcon },
         { name: "Events", href: "/admin/events", icon: CalendarDaysIcon },
+        { name: "Jobs", href: "/admin/jobs", icon: BriefcaseIcon },
+        { name: "Job imports", href: "/admin/jobs/imports", icon: InboxArrowDownIcon },
         { name: "Featured Event", href: "/admin/featured-event", icon: FireIcon },
         { name: "Campaigns", href: "/admin/campaigns", icon: MegaphoneIcon },
         { name: "Analytics", href: "/admin/analytics", icon: ChartBarIcon },

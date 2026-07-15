@@ -29,7 +29,6 @@ import { Tag } from "./types";
 // needs organisation
 
 export async function fetchWebsiteStats() {
-    // return FallbackStatistics
     try {
         const stats = await sql`
         SELECT
@@ -37,11 +36,12 @@ export async function fetchWebsiteStats() {
             (SELECT COUNT(DISTINCT university_attended) FROM user_information) AS total_universities,
             (SELECT COUNT(*) FROM users WHERE role = 'organiser') AS total_societies
     	`;
-        // console.log("fetched stats:", stats.rows)
         return stats.rows[0];
     } catch (error) {
-        console.error("Database error:", error);
-        // TODO: here is the error, so it will always return the fallback stat
+        // Graceful degradation: keep the homepage rendering with placeholder
+        // figures if the stats query fails. Logged at error level so a genuine
+        // database outage is visible in server logs rather than hidden.
+        console.error("fetchWebsiteStats failed; returning fallback statistics:", error);
         return FallbackStatistics;
     }
 }
@@ -191,7 +191,7 @@ export async function fetchAllUpcomingEvents(
                     ELSE NULL
                 END as tickets_available
             FROM tickets t
-            WHERE t.event_uuid = ANY(${eventIds})
+            WHERE t.event_uuid = ANY(${eventIds as unknown as string})
             ORDER BY t.event_uuid, t.ticket_price::numeric ASC
         `;
 

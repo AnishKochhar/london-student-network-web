@@ -1,4 +1,12 @@
 import React from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "Privacy Policy",
+    description:
+        "How London Student Network collects, uses, and protects your personal data.",
+    alternates: { canonical: "/privacy-policy" },
+};
 
 export default function PrivacyPolicy() {
     return (

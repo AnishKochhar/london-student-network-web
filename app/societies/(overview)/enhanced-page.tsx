@@ -59,7 +59,7 @@ export default function EnhancedSocietiesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Single useCallback for filter changes (used by both desktop and mobile)
-  const handleFiltersChange = useCallback((newFilters) => {
+  const handleFiltersChange = useCallback((newFilters: Pick<FilterState, "categories" | "tags" | "university">) => {
     setFilters(prev => ({
       ...prev,
       categories: newFilters.categories,

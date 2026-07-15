@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { UserCircleIcon, ChevronDownIcon, ArrowsRightLeftIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon, ChevronDownIcon, ArrowsRightLeftIcon, BookmarkIcon } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
 import SwitchAccountModal from "./switch-account/switch-account-modal";
 
@@ -106,6 +106,15 @@ export default function AccountDropdown({
                         >
                             <UserCircleIcon className="h-5 w-5 text-gray-500 group-hover:text-blue-600 transition-colors" />
                             <span className="font-medium">My Account</span>
+                        </Link>
+
+                        <Link
+                            href="/account/saved-jobs"
+                            className="flex items-center space-x-3 py-3 px-3 text-gray-700 hover:bg-blue-50 rounded-lg transition-colors group w-full"
+                            onClick={handleClose}
+                        >
+                            <BookmarkIcon className="h-5 w-5 text-gray-500 group-hover:text-blue-600 transition-colors" />
+                            <span className="font-medium">Saved jobs</span>
                         </Link>
 
                         <button

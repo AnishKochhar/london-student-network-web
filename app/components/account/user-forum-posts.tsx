@@ -206,7 +206,7 @@ export default function UserForumPosts({ initialPosts }: { initialPosts?: { thre
                             </Link>
                         </div>
                     ) : (
-                        getCurrentItems().map((thread) => (
+                        (getCurrentItems() as Thread[]).map((thread) => (
                             <div
                                 key={thread.id}
                                 onClick={() => !loadingThreadId && handleThreadClick(thread.id)}
